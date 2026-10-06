@@ -138,6 +138,7 @@ $router->delete('/api/variants/{id}/images/{imageId}', fn ($id, $imageId) => $va
 
 // Inventory (docs/DOCUMENTATION.md section 11)
 $inventory = new InventoryController($pdo);
+$router->get('/api/inventory', fn () => $inventory->index());
 $router->get('/api/inventory/low-stock', fn () => $inventory->lowStock());
 $router->get('/api/inventory/adjustments', fn () => $inventory->indexAdjustments());
 $router->post('/api/inventory/adjustments', fn () => $inventory->storeAdjustment());

@@ -90,9 +90,15 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
 - Purchases (`/purchases`): list + create form — pick a supplier, then
   scan/type a SKU or barcode and press Enter to add a line (reuses
   `/api/variants/lookup`, the same endpoint POS billing will use).
-- Stock Adjustments (`/stock-adjustments`): list of past adjustments
-  (grouped by adjustment, with system/counted/difference per item) +
-  the same scan-based create flow. The frontend only ever sends
+- Stock Adjustments (`/stock-adjustments`): a searchable card grid of
+  every product variant, each with a −/[count]/+ stepper (the input is
+  also directly editable) initialized to its current system quantity.
+  Only cards whose count actually changed get submitted; a sticky
+  "N item(s) changed" bar appears with Discard/Stock Adjustment actions,
+  and confirming asks for one shared reason, previews the diff per item,
+  then submits all changed items in one call. Below that, the list of
+  past adjustments (grouped by adjustment, with system/counted/
+  difference per item) is unchanged. The frontend only ever sends
   `variant_id` and `counted_qty` — `product_id` is resolved server-side
   from the variant's own inventory row (see `database/README.md` for
   the bug this fixed).

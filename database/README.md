@@ -206,6 +206,17 @@ mockups show — this build has no concept of an untracked product; every
 variant always has a real inventory row, so a toggle with no backing
 behavior would be a fabricated control.
 
+**Stock Adjustment card UI** — the merchant wanted a product list with a
+per-item +/- stepper instead of scan-to-add-a-line. Needed a "list every
+variant's current stock" endpoint that didn't exist (`low-stock` only
+returns the ones below threshold); added `InventoryService::listAllStock()`
++ `GET /api/inventory` (search, pagination, left-joined against
+`inventory` since a variant with no stock movement yet has no row
+there). Hit the project's own documented `PDO::ATTR_EMULATE_PREPARES`
+gotcha again — the search clause needed three distinct placeholders
+(`:search1/2/3`) for the one value across `p.name`/`v.sku`/`v.barcode`,
+not one reused `:search`.
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Deferred from the Product Create spec (low practical value for a

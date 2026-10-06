@@ -169,6 +169,63 @@ final class InventoryService
         return $row === false ? null : $row;
     }
 
+    /**
+     * Every active variant with its current stock, for the Stock
+     * Adjustment screen's product list (left-joined, not inner-joined —
+     * a variant with no stock movement yet has no `inventory` row at
+     * all, since that row is created lazily by apply()/setLowStockThreshold()).
+     *
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
+    public function listAllStock(?string $search, int $page, int $limit): array
+    {
+        $page = max(1, $page);
+        $limit = min(100, max(1, $limit));
+        $offset = ($page - 1) * $limit;
+
+        $where = ['v.deleted_at IS NULL', 'p.deleted_at IS NULL'];
+        $params = [];
+
+        if ($search !== null && trim($search) !== '') {
+            // Three distinct placeholders for the same value — with
+            // emulated prepares off, PDO rejects reusing one named
+            // placeholder twice in a query.
+            $where[] = '(p.name LIKE :search1 OR v.sku LIKE :search2 OR v.barcode LIKE :search3)';
+            $needle = '%' . trim($search) . '%';
+            $params['search1'] = $needle;
+            $params['search2'] = $needle;
+            $params['search3'] = $needle;
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM product_variants v JOIN products p ON p.id = v.product_id WHERE {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare(
+            "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name,
+                    COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
+                    COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
+             FROM product_variants v
+             JOIN products p ON p.id = v.product_id
+             LEFT JOIN inventory i ON i.variant_id = v.id
+             WHERE {$whereSql}
+             ORDER BY p.name, v.sku
+             LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
+    }
+
     /** @return list<array<string, mixed>> */
     public function lowStock(): array
     {

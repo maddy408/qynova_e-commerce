@@ -32,6 +32,18 @@ final class InventoryController
         Response::json(['inventory' => $stock]);
     }
 
+    public function index(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.view');
+
+        $search = isset($_GET['search']) ? (string) $_GET['search'] : null;
+        $page = (int) ($_GET['page'] ?? 1);
+        $limit = (int) ($_GET['limit'] ?? 50);
+
+        Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit));
+    }
+
     public function lowStock(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
