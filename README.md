@@ -107,9 +107,9 @@ npm run dev
 
 - **Phase 1** — monorepo skeleton: two app shells (admin-pos, storefront),
   backend skeleton with a working `/api/health` route, env examples.
-- **Phase 2 (in progress)** — database: 57 tables (see `database/README.md`
+- **Phase 2 (in progress)** — database: 61 tables (see `database/README.md`
   for the full list and what's still missing — automatic discounts,
-  combos/deals/banners, wishlist, payments/refunds ledger, delivery, etc.).
+  combos/deals/banners, wishlist, a real payment gateway, ledgers, etc.).
   Backend APIs built and verified end-to-end against a running dev server
   (not just written — actually exercised with curl):
   - Staff login (JWT + permissions) and customer mobile+OTP signup/login
@@ -130,8 +130,17 @@ npm run dev
   - Purchases/GRN: supplier → purchase → stock increase, partial purchase
     returns with over-return rejection, and whole-purchase cancellation
     reversing exactly the un-returned remainder
+  - Delivery: order status stays synchronized with delivery status
+    through every stage (PENDING → ASSIGNED → PICKED_UP → IN_TRANSIT →
+    OUT_FOR_DELIVERY → DELIVERED), both via admin update and a mock
+    shipping-provider webhook; a delivered shipment can't be changed
+    further; customers can track their own order's delivery
+  - Refunds: created automatically (PENDING) the moment a paid order or
+    invoice is cancelled, processed as an explicit separate step
+    (COMPLETED/FAILED), with a tested retry-after-failure path and a
+    refund summary report
 
 Still ahead: both frontend apps' actual UI (nothing built in React/Next.js
-yet beyond the default scaffolds), Razorpay, delivery tracking, refunds,
-Excel import/export, the admin dashboard, and reports — per
+yet beyond the default scaffolds), Razorpay, a real shipping provider
+adapter, Excel import/export, the admin dashboard, and reports — per
 `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.

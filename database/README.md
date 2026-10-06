@@ -31,6 +31,8 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0010_orders.sql` | `orders`, `order_items`, `order_item_discounts`, `order_status_history`; adds the deferred FKs on `stock_reservations.order_id` and `coupon_usages.order_id` |
 | `0011_invoices.sql` | `invoices` (gap-reuse numbering via a generated `active_invoice_no` column — see below), `invoice_items` |
 | `0012_purchases.sql` | `suppliers`, `purchases`, `purchase_items`, `purchase_returns`, `purchase_return_items` |
+| `0013_delivery.sql` | `deliveries`, `delivery_status_history` |
+| `0014_refunds.sql` | `refunds`, `refund_transactions` |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
@@ -55,6 +57,23 @@ deleting it (deletion is what frees a number), which is also exactly the
 rule the spec states ("a cancelled invoice remains a valid historical
 transaction").
 
+**Delivery ↔ order sync** (`DeliveryService::DELIVERY_TO_ORDER_STATUS`)
+maps a delivery status change onto the parent order's status (e.g.
+`OUT_FOR_DELIVERY` on the delivery sets the order to `OUT_FOR_DELIVERY`
+too), logging both `delivery_status_history` and `order_status_history`
+in one transaction. A delivery already `DELIVERED` can't change further.
+The admin-update path and the mock `/api/shipping/webhook` path share the
+same `updateStatus()`, differing only in `source`.
+
+**Refunds** are created automatically the moment a *paid* order or
+invoice is cancelled (`RefundService::createForOrder`/`createForInvoice`,
+called from inside that cancellation's own transaction) in `PENDING`
+status, then processed as a separate explicit step — mirroring a real
+gateway's async refund flow even though there's no real gateway. Verified
+end-to-end: order-cancel → refund created → processed → `COMPLETED`;
+force-failure → `FAILED` → retried → `COMPLETED`; a still-`PENDING`
+refund can be cancelled outright (admin decides not to refund after all).
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Automatic discounts** — `discounts` + its applicability join tables
@@ -67,15 +86,17 @@ transaction").
   cancel algorithm (DOCUMENTATION.md section 9); `order_item_discounts`
   already exists for this, `OrderService::cancel()` and
   `InvoiceService::cancel()` only do whole-order/whole-invoice so far.
-- **Payments & refunds** — `payments`, `payment_transactions`,
-  `payment_transaction_events`, `refunds`, `refund_transactions`. Invoice/
-  purchase payment tracking is currently just `amount_paid`/
-  `payment_status` columns directly on the row — deliberately simplified,
-  no payment-gateway integration or supplier/customer ledger yet.
-- **Delivery** — `deliveries`, `delivery_status_history`,
-  `serviceable_pincodes`, `shipping_rules`.
-- **Finance ledger** — `customer_ledger`, `supplier_ledger`, `expenses`,
-  `income`.
+- **Real shipping provider** — a `ShiprocketProvider` adapter behind the
+  same interface the mock currently satisfies informally; `serviceable_
+  pincodes`/`shipping_rules` for pincode-gated checkout and computed
+  shipping charges (checkout currently uses a flat rate/free-above
+  threshold — see `OrderService::FLAT_SHIPPING`).
+- **Payment gateway & ledgers** — `payments`, `payment_transactions`,
+  `payment_transaction_events`, `customer_ledger`, `supplier_ledger`.
+  Invoice/purchase/refund payment tracking is currently just columns
+  directly on each row — deliberately simplified, no Razorpay
+  integration or running ledger balance yet.
+- **Finance** — `expenses`, `income`.
 - **Notifications** — `notification_templates`, `notification_queue`,
   `notification_logs`, `notification_preferences`.
 - **Content & settings** — `pages`, `faqs`, `contact_messages`,

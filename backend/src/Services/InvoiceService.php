@@ -20,6 +20,7 @@ final class InvoiceService
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
         private readonly ?CouponService $coupons = null,
+        private readonly ?RefundService $refunds = null,
     ) {
     }
 
@@ -280,6 +281,16 @@ final class InvoiceService
                 "INSERT INTO audit_logs (actor_type, actor_id, action, entity_type, entity_id, reason)
                  VALUES ('USER', :actor, 'CANCEL_INVOICE', 'invoice', :id, :reason)"
             )->execute(['actor' => $cancelledByUserId, 'id' => $invoiceId, 'reason' => $reason]);
+
+            if (in_array($invoice['payment_status'], ['PAID', 'PARTIAL'], true) && $this->refunds !== null) {
+                $this->refunds->createForInvoice(
+                    invoiceId: $invoiceId,
+                    customerId: $invoice['customer_id'] !== null ? (int) $invoice['customer_id'] : null,
+                    amount: (string) $invoice['amount_paid'],
+                    reason: $reason,
+                    method: $invoice['payment_method'] ?? 'CASH',
+                );
+            }
 
             $this->pdo->commit();
         } catch (\Throwable $e) {

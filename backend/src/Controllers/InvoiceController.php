@@ -11,6 +11,7 @@ use App\Middleware\PermissionMiddleware;
 use App\Services\CouponService;
 use App\Services\InventoryService;
 use App\Services\InvoiceService;
+use App\Services\RefundService;
 use PDO;
 use RuntimeException;
 
@@ -20,7 +21,7 @@ final class InvoiceController
 
     public function __construct(private readonly PDO $pdo)
     {
-        $this->invoices = new InvoiceService($pdo, new InventoryService($pdo), new CouponService($pdo));
+        $this->invoices = new InvoiceService($pdo, new InventoryService($pdo), new CouponService($pdo), new RefundService($pdo));
     }
 
     public function index(): void

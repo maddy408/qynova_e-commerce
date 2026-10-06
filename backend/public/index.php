@@ -9,12 +9,14 @@ use App\Controllers\AuthController;
 use App\Controllers\CartController;
 use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
+use App\Controllers\DeliveryController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
+use App\Controllers\RefundController;
 use App\Controllers\VariantController;
 use App\Helpers\Config;
 use App\Helpers\Response;
@@ -116,6 +118,23 @@ $router->get('/api/purchases/{id}', fn ($id) => $purchases->show($id));
 $router->post('/api/purchases', fn () => $purchases->store());
 $router->post('/api/purchases/{id}/cancel', fn ($id) => $purchases->cancel($id));
 $router->post('/api/purchases/{id}/returns', fn ($id) => $purchases->storeReturn($id));
+
+// Delivery (ECOMMERCE_POS_ADMIN_SPEC.md sections 21-22)
+$delivery = new DeliveryController($pdo);
+$router->get('/api/deliveries', fn () => $delivery->index());
+$router->get('/api/deliveries/{id}', fn ($id) => $delivery->show($id));
+$router->get('/api/orders/{orderId}/delivery', fn ($orderId) => $delivery->showForOrder($orderId));
+$router->post('/api/orders/{orderId}/delivery', fn ($orderId) => $delivery->store($orderId));
+$router->patch('/api/deliveries/{id}/status', fn ($id) => $delivery->updateStatus($id));
+$router->post('/api/shipping/webhook', fn () => $delivery->webhook());
+
+// Refunds (ECOMMERCE_POS_ADMIN_SPEC.md section 23)
+$refunds = new RefundController($pdo);
+$router->get('/api/refunds', fn () => $refunds->index());
+$router->get('/api/refunds/{id}', fn ($id) => $refunds->show($id));
+$router->post('/api/refunds/{id}/process', fn ($id) => $refunds->process($id));
+$router->post('/api/refunds/{id}/cancel', fn ($id) => $refunds->cancel($id));
+$router->get('/api/reports/refunds', fn () => $refunds->summary());
 
 try {
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'] ?? '/');

@@ -12,6 +12,7 @@ use App\Services\CouponService;
 use App\Services\InventoryService;
 use App\Services\InvoiceService;
 use App\Services\OrderService;
+use App\Services\RefundService;
 use PDO;
 use RuntimeException;
 
@@ -22,7 +23,9 @@ final class OrderController
     public function __construct(private readonly PDO $pdo)
     {
         $inventory = new InventoryService($pdo);
-        $this->orders = new OrderService($pdo, $inventory, new CouponService($pdo), new InvoiceService($pdo, $inventory));
+        $coupons = new CouponService($pdo);
+        $refunds = new RefundService($pdo);
+        $this->orders = new OrderService($pdo, $inventory, $coupons, new InvoiceService($pdo, $inventory, $coupons, $refunds), $refunds);
     }
 
     public function preview(): void

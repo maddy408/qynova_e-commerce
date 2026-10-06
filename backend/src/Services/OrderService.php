@@ -29,6 +29,7 @@ final class OrderService
         private readonly InventoryService $inventory,
         private readonly CouponService $coupons,
         private readonly InvoiceService $invoices,
+        private readonly RefundService $refunds,
     ) {
     }
 
@@ -328,6 +329,16 @@ final class OrderService
             )->execute(['reason' => $reason, 'id' => $orderId]);
 
             $this->logStatus($orderId, $order['status'], 'CANCELLED', $actorUserId, $actorUserId === null ? 'CUSTOMER' : 'ADMIN', $reason);
+
+            if ($wasPaid) {
+                $this->refunds->createForOrder(
+                    orderId: $orderId,
+                    customerId: (int) $order['customer_id'],
+                    amount: (string) $order['grand_total'],
+                    reason: $reason,
+                    method: 'RAZORPAY',
+                );
+            }
 
             $this->pdo->commit();
         } catch (\Throwable $e) {
