@@ -10,6 +10,7 @@ use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\CouponService;
 use App\Services\InventoryService;
+use App\Services\InvoiceService;
 use App\Services\OrderService;
 use PDO;
 use RuntimeException;
@@ -20,7 +21,8 @@ final class OrderController
 
     public function __construct(private readonly PDO $pdo)
     {
-        $this->orders = new OrderService($pdo, new InventoryService($pdo), new CouponService($pdo));
+        $inventory = new InventoryService($pdo);
+        $this->orders = new OrderService($pdo, $inventory, new CouponService($pdo), new InvoiceService($pdo, $inventory));
     }
 
     public function preview(): void

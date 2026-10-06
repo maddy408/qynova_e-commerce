@@ -28,6 +28,7 @@ final class OrderService
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
         private readonly CouponService $coupons,
+        private readonly InvoiceService $invoices,
     ) {
     }
 
@@ -243,6 +244,8 @@ final class OrderService
                 ->execute(['id' => $orderId]);
 
             $this->logStatus($orderId, 'PENDING', 'CONFIRMED', null, 'SYSTEM', 'Payment confirmed');
+
+            $this->invoices->createFromOrder($order);
 
             $this->pdo->commit();
         } catch (\Throwable $e) {

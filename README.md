@@ -107,11 +107,11 @@ npm run dev
 
 - **Phase 1** — monorepo skeleton: two app shells (admin-pos, storefront),
   backend skeleton with a working `/api/health` route, env examples.
-- **Phase 2 (in progress)** — database: 50 tables (see `database/README.md`
-  for the full list and what's still missing — suppliers/purchases,
-  automatic discounts, combos/deals/banners, wishlist, invoices, payments,
-  delivery, etc.). Backend APIs built and verified end-to-end against a
-  running dev server (not just written — actually exercised with curl):
+- **Phase 2 (in progress)** — database: 57 tables (see `database/README.md`
+  for the full list and what's still missing — automatic discounts,
+  combos/deals/banners, wishlist, payments/refunds ledger, delivery, etc.).
+  Backend APIs built and verified end-to-end against a running dev server
+  (not just written — actually exercised with curl):
   - Staff login (JWT + permissions) and customer mobile+OTP signup/login
   - Referral system: code generation, reward creation, self-referral guard
   - Products + the attribute-based variant system, duplicate-combination
@@ -123,8 +123,15 @@ npm run dev
     payment confirmation, and both cancellation paths (release an unpaid
     reservation vs. restore stock on a paid order) — including reverting
     coupon usage and the referral reward on cancel
+  - Invoices: POS billing (immediate stock deduction) and auto-generated
+    e-commerce invoices (on order payment confirmation); the exact
+    "INVOICE GAP TEST" from docs section 25 (reuse the lowest deleted
+    gap, never reuse a cancelled number) verified step-by-step
+  - Purchases/GRN: supplier → purchase → stock increase, partial purchase
+    returns with over-return rejection, and whole-purchase cancellation
+    reversing exactly the un-returned remainder
 
 Still ahead: both frontend apps' actual UI (nothing built in React/Next.js
-yet beyond the default scaffolds), purchases/suppliers, invoices, Razorpay,
-delivery tracking, refunds, Excel import/export, the admin dashboard, and
-reports — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
+yet beyond the default scaffolds), Razorpay, delivery tracking, refunds,
+Excel import/export, the admin dashboard, and reports — per
+`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.

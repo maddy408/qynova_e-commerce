@@ -10,8 +10,10 @@ use App\Controllers\CartController;
 use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
 use App\Controllers\InventoryController;
+use App\Controllers\InvoiceController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
+use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\VariantController;
 use App\Helpers\Config;
@@ -95,6 +97,25 @@ $router->get('/api/orders/{id}', fn ($id) => $orders->show($id));
 $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPayment($id));
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
+
+// Invoices (docs/DOCUMENTATION.md section 16) — POS billing + e-commerce
+// invoices (the latter auto-created by OrderService::confirmPayment)
+$invoices = new InvoiceController($pdo);
+$router->get('/api/invoices', fn () => $invoices->index());
+$router->get('/api/invoices/{id}', fn ($id) => $invoices->show($id));
+$router->post('/api/invoices/pos-sale', fn () => $invoices->storePosSale());
+$router->post('/api/invoices/{id}/cancel', fn ($id) => $invoices->cancel($id));
+$router->delete('/api/invoices/{id}', fn ($id) => $invoices->destroy($id));
+
+// Suppliers & purchases / GRN (docs/DOCUMENTATION.md section 11)
+$purchases = new PurchaseController($pdo);
+$router->get('/api/suppliers', fn () => $purchases->indexSuppliers());
+$router->post('/api/suppliers', fn () => $purchases->storeSupplier());
+$router->get('/api/purchases', fn () => $purchases->index());
+$router->get('/api/purchases/{id}', fn ($id) => $purchases->show($id));
+$router->post('/api/purchases', fn () => $purchases->store());
+$router->post('/api/purchases/{id}/cancel', fn ($id) => $purchases->cancel($id));
+$router->post('/api/purchases/{id}/returns', fn ($id) => $purchases->storeReturn($id));
 
 try {
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'] ?? '/');

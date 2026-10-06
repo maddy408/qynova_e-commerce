@@ -29,6 +29,8 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0008_coupons.sql` | `coupons`, `coupon_products`, `coupon_categories`, `coupon_brands`, `coupon_customers` (customer-specific targeting), `coupon_usages` |
 | `0009_carts.sql` | `carts`, `cart_items` (no stored price — every read re-prices) |
 | `0010_orders.sql` | `orders`, `order_items`, `order_item_discounts`, `order_status_history`; adds the deferred FKs on `stock_reservations.order_id` and `coupon_usages.order_id` |
+| `0011_invoices.sql` | `invoices` (gap-reuse numbering via a generated `active_invoice_no` column — see below), `invoice_items` |
+| `0012_purchases.sql` | `suppliers`, `purchases`, `purchase_items`, `purchase_returns`, `purchase_return_items` |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
@@ -37,26 +39,39 @@ constraints hold. The full checkout flow (cart → coupon validation →
 referral discount → tax → stock reserve → order → mock payment confirm →
 stock deduct, plus both the unpaid-reservation-release and paid-stock-
 restore cancellation paths) was exercised end-to-end against a running
-server — see the backend README/commit history for what was checked.
+server, as was the full purchase/GRN and purchase-return flow, and the
+exact invoice-numbering gap-reuse scenario from `DOCUMENTATION.md` section
+25's "INVOICE GAP TEST" (1,2,3,4 → delete 2 → reuse as 2 → delete 3 →
+reuse as 3 → next is 5 → cancel 5 → next is 6, and 5 can never come back)
+— see the backend README/commit history for what was checked.
+
+**Invoice numbering** (`InvoiceService::nextInvoiceNumber()`) reuses the
+lowest gap first and never reuses a cancelled number, via a generated
+column: `active_invoice_no` is `invoice_no` while the row is live and
+`NULL` once soft-deleted, so the `UNIQUE` key only reserves a number for
+currently-active rows — the same trick `0005_products.sql` uses for "one
+primary category per product". Cancelling an invoice therefore blocks
+deleting it (deletion is what frees a number), which is also exactly the
+rule the spec states ("a cancelled invoice remains a valid historical
+transaction").
 
 ## Not yet built (next migrations, roughly in this order)
 
-- **Suppliers & purchases** — `suppliers`, `purchases`, `purchase_items`,
-  `purchase_returns`, `purchase_return_items`.
 - **Automatic discounts** — `discounts` + its applicability join tables
   (DOCUMENTATION.md section 9's separate, code-less "Discount Master" —
   distinct from the `coupons` built in 0008, which always needs a code).
 - **Combos, deals, banners** — `combos`, `combo_items`, `deals`,
   `deal_products`, `banners`, `banner_items`, `home_sections`.
 - **Wishlist** — `wishlists`, `wishlist_items`.
-- **Partial order cancellation** — the coupon re-validate-on-cancel
-  algorithm (DOCUMENTATION.md section 9); `order_item_discounts` already
-  exists for this, `OrderService::cancel()` only does whole-order so far.
-- **Invoices** — `invoices`, `invoice_items` (invoice-numbering rules:
-  `DOCUMENTATION.md` section 16). Orders exist but nothing generates an
-  invoice from one yet.
+- **Partial order/invoice cancellation** — the coupon re-validate-on-
+  cancel algorithm (DOCUMENTATION.md section 9); `order_item_discounts`
+  already exists for this, `OrderService::cancel()` and
+  `InvoiceService::cancel()` only do whole-order/whole-invoice so far.
 - **Payments & refunds** — `payments`, `payment_transactions`,
-  `payment_transaction_events`, `refunds`, `refund_transactions`.
+  `payment_transaction_events`, `refunds`, `refund_transactions`. Invoice/
+  purchase payment tracking is currently just `amount_paid`/
+  `payment_status` columns directly on the row — deliberately simplified,
+  no payment-gateway integration or supplier/customer ledger yet.
 - **Delivery** — `deliveries`, `delivery_status_history`,
   `serviceable_pincodes`, `shipping_rules`.
 - **Finance ledger** — `customer_ledger`, `supplier_ledger`, `expenses`,
