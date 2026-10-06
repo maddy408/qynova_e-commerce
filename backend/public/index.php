@@ -7,12 +7,14 @@ require_once dirname(__DIR__) . '/config/database.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\CartController;
+use App\Controllers\CategoryController;
 use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\DeliveryController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
+use App\Controllers\MasterDataController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ProductExportController;
@@ -20,6 +22,7 @@ use App\Controllers\ProductImportController;
 use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
+use App\Controllers\SubcategoryController;
 use App\Controllers\VariantController;
 use App\Helpers\Config;
 use App\Helpers\Response;
@@ -54,6 +57,23 @@ $referral = new ReferralController($pdo);
 $router->get('/api/referral-settings', fn () => $referral->getSettings());
 $router->put('/api/referral-settings', fn () => $referral->updateSettings());
 $router->get('/api/reports/referrals', fn () => $referral->report());
+
+// Catalog masters (docs/DOCUMENTATION.md section 7)
+$categories = new CategoryController($pdo);
+$router->get('/api/categories', fn () => $categories->index());
+$router->post('/api/categories', fn () => $categories->store());
+$router->put('/api/categories/{id}', fn ($id) => $categories->update($id));
+
+$subcategories = new SubcategoryController($pdo);
+$router->get('/api/subcategories', fn () => $subcategories->index());
+$router->post('/api/subcategories', fn () => $subcategories->store());
+$router->put('/api/subcategories/{id}', fn ($id) => $subcategories->update($id));
+
+$masters = new MasterDataController($pdo);
+$router->get('/api/brands', fn () => $masters->indexBrands());
+$router->post('/api/brands', fn () => $masters->storeBrand());
+$router->get('/api/units', fn () => $masters->indexUnits());
+$router->post('/api/units', fn () => $masters->storeUnit());
 
 // Products & variants (ECOMMERCE_POS_ADMIN_SPEC.md sections 5-7)
 $products = new ProductController($pdo);

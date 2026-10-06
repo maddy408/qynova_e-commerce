@@ -92,6 +92,23 @@ and every export filter (all/selected/category/active, stock report).
 Image URLs are stored as given, not downloaded/compressed — see "Not yet
 built" below.
 
+**Category/Subcategory/Brand/Unit CRUD** — until now these masters were
+only ever populated by seed data or as an auto-create side effect of
+product import; there was no admin API to manage them directly.
+`CategoryService`/`SubcategoryService` (full CRUD, the latter managing
+the `category_subcategory` mapping) and a minimal `MasterDataController`
+(list + create for brands/units) close that gap, driven by the admin-pos
+frontend's Category/Subcategory/Product-create screens. Found and fixed
+a real bug along the way: `PDOException` extends `RuntimeException` as
+of PHP 8, so `catch (RuntimeException $e) { ... } catch (PDOException $e)
+{ ... }` silently let the first block swallow every PDO error too (wrong
+status code, raw SQL message leaked to the client) — the `PDOException`
+catch has to come first. Worth auditing for elsewhere this ordering
+might recur; the full codebase search done here found two confirmed
+occurrences (both fixed), with other controllers only ever catching
+`RuntimeException` alone (no competing `PDOException` block to become
+unreachable).
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Automatic discounts** — `discounts` + its applicability join tables

@@ -150,7 +150,11 @@ npm run dev
     reported as a fabricated zero — that module doesn't exist. Verified
     against real multi-product, multi-channel test data, including
     catching and fixing a double-counting bug (an out-of-stock variant
-    was being counted as both "low stock" and "out of stock")
+    was being counted as both "low stock" and "out of stock") and —
+    caught later, live in the browser, when a freshly-seeded dashboard
+    showed "null pending" instead of "0 pending" — three more spots
+    with the same missing-`COALESCE` pattern (`SUM()` over zero matching
+    rows returns `NULL`, not `0`, in SQL)
   - Excel import/export (PhpSpreadsheet): one row per variant, grouped
     into one product by Product Code/Name; a downloadable sample
     template; `preview` vs. `commit` share identical logic (a
@@ -166,8 +170,38 @@ npm run dev
     used, and an initial naive-pluralization bug turned "Category" into
     "Categorie" in error messages (the spec's own example is literally
     `"Row 41: Category not found"`)
+  - Category/Subcategory/Brand/Unit CRUD: previously these masters were
+    only ever seed data or an import side effect — no admin API existed
+    to manage them directly. Added `CategoryService`/`SubcategoryService`
+    (the latter owning the `category_subcategory` mapping) and a small
+    `MasterDataController` for brands/units. Found and fixed a real bug
+    while testing duplicate-name rejection: `PDOException` extends
+    `RuntimeException` as of PHP 8, so a `catch (RuntimeException)` block
+    listed before a `catch (PDOException)` block silently swallowed every
+    PDO error too — wrong HTTP status, raw SQL message leaked to the
+    client. Audited the rest of the codebase for the same ordering risk;
+    these were the only two instances.
 
-Still ahead: both frontend apps' actual UI (nothing built in React/Next.js
-yet beyond the default scaffolds), Razorpay, a real shipping provider
-adapter, and reports — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section
-46's phase order.
+- **Phase 3 (started)** — `apps/admin-pos` frontend: real screens now,
+  not the default Vite scaffold. React Router + Tailwind v4 + an axios
+  client with JWT-interceptor auth. Built and verified **in an actual
+  browser** (navigated, clicked, typed — not just code review): login,
+  a live dashboard pulling `/api/dashboard/summary`, Categories (list/
+  create/activate-deactivate), Subcategories (same, plus a category
+  multi-select mapping UI), and Product creation with a category
+  chip-picker (click a chip's star to set the primary category) whose
+  subcategory picker is *live-filtered* to only subcategories mapped to
+  the categories currently selected — mirroring `ProductService`'s own
+  validation rule so a submission here can never be rejected for
+  violating it. Confirmed end-to-end against the real API: created a
+  category, a subcategory mapped to two categories (reproducing the
+  spec's own "Kids under both Toys and Gift Items" example verbatim),
+  and a product through that mapping — then verified via a direct API
+  call that `is_primary`/the subcategory link both persisted exactly as
+  selected in the UI.
+
+Still ahead: everything else in `apps/admin-pos` (product editing,
+variants, POS billing, all other modules), the storefront app (still the
+default scaffold), Razorpay, a real shipping provider adapter, and
+reports — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase
+order.

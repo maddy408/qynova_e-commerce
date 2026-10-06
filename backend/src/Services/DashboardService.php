@@ -37,18 +37,18 @@ final class DashboardService
                 COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN grand_total ELSE 0 END), 0) AS today_sales,
                 COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN grand_total ELSE 0 END), 0) AS this_month_sales,
                 COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN amount_paid ELSE 0 END), 0) AS today_collection,
-                SUM(channel = 'POS') AS pos_invoice_count,
-                SUM(channel = 'ECOMMERCE') AS ecommerce_invoice_count
+                COALESCE(SUM(channel = 'POS'), 0) AS pos_invoice_count,
+                COALESCE(SUM(channel = 'ECOMMERCE'), 0) AS ecommerce_invoice_count
              FROM invoices WHERE status = 'ACTIVE' AND deleted_at IS NULL"
         )->fetch();
 
         $orders = $this->pdo->query(
             "SELECT
                 COUNT(*) AS total_orders,
-                SUM(status = 'PENDING') AS pending_orders,
-                SUM(status = 'DELIVERED') AS completed_orders,
-                SUM(status = 'CANCELLED') AS cancelled_orders,
-                SUM(DATE(created_at) = CURDATE()) AS today_orders
+                COALESCE(SUM(status = 'PENDING'), 0) AS pending_orders,
+                COALESCE(SUM(status = 'DELIVERED'), 0) AS completed_orders,
+                COALESCE(SUM(status = 'CANCELLED'), 0) AS cancelled_orders,
+                COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS today_orders
              FROM orders"
         )->fetch();
 
@@ -64,9 +64,9 @@ final class DashboardService
         $customers = $this->pdo->query(
             "SELECT
                 COUNT(*) AS total_customers,
-                SUM(status = 'ACTIVE') AS active_customers,
-                SUM(DATE(created_at) = CURDATE()) AS new_customers_today,
-                SUM(created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)) AS new_customers_30d
+                COALESCE(SUM(status = 'ACTIVE'), 0) AS active_customers,
+                COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS new_customers_today,
+                COALESCE(SUM(created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)), 0) AS new_customers_30d
              FROM customers WHERE deleted_at IS NULL"
         )->fetch();
 
