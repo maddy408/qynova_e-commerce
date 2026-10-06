@@ -48,12 +48,18 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
 - Categories: list, create, activate/deactivate.
 - Subcategories: list, create with multi-category mapping (checkbox
   list against `category_subcategory`), activate/deactivate.
-- Products: list (click a row to open it); a sectioned Create screen
-  (Basic Info/Classification/Pricing & Tax/Specifications) with a
+- Products: list (click a row to open it); an 8-step Create wizard
+  (Basic Info / Classification / Images / Type & Variants / Inventory /
+  E-commerce & Shipping / SEO & Visibility / Review & Save) with a
   category chip-picker (click a chip's star to set the primary category),
   a subcategory picker live-filtered to only subcategories mapped to the
-  selected categories, bullet points, and a Simple vs. Variable product
-  type toggle — then redirects to the product's detail page.
+  selected categories, and a Simple vs. Variable product type toggle.
+  Images are staged client-side with a main-image picker; for Variable
+  products, attribute values are picked as chips right in Create. Saving
+  creates the product, its variant(s) (generating every attribute
+  combination for Variable), uploads the staged images, and sets
+  specifications — all in one submit, then redirects to the product's
+  detail page for anything that needs further per-variant tuning.
 - Product detail page (`/products/:id`): everything that needs a real
   product ID first —
   - **Product images**: drag-drop or click-to-browse upload, set

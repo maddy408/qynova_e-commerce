@@ -141,6 +141,7 @@ $inventory = new InventoryController($pdo);
 $router->get('/api/inventory/low-stock', fn () => $inventory->lowStock());
 $router->get('/api/inventory/adjustments', fn () => $inventory->indexAdjustments());
 $router->post('/api/inventory/adjustments', fn () => $inventory->storeAdjustment());
+$router->put('/api/inventory/{variantId}/threshold', fn ($variantId) => $inventory->setLowStockThreshold($variantId));
 $router->get('/api/inventory/{variantId}', fn ($variantId) => $inventory->show($variantId));
 
 // Coupons (ECOMMERCE_POS_ADMIN_SPEC.md sections 14-17)

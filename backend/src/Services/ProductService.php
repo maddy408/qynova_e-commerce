@@ -175,17 +175,21 @@ final class ProductService
         $stmt = $this->pdo->prepare(
             'INSERT INTO products (
                 name, slug, product_code, brand_id, unit_id, hsn_code_id, gst_rate_id,
-                short_description, description, bullet_points, tags, material, manufacturer, country_of_origin,
+                short_description, description, bullet_points, tags, material,
+                length_cm, width_cm, height_cm, weight_grams, manufacturer, country_of_origin,
                 meta_title, meta_description, seo_keywords,
                 expiry_applicable, warranty_applicable, warranty_period, warranty_unit, warranty_description,
                 returnable, return_window_days, replacement_available, refund_available,
+                shipping_required, cod_available,
                 is_active, is_pos_enabled, is_ecommerce_enabled, is_featured, is_trending, is_deal, show_discount
             ) VALUES (
                 :name, :slug, :product_code, :brand_id, :unit_id, :hsn_code_id, :gst_rate_id,
-                :short_description, :description, :bullet_points, :tags, :material, :manufacturer, :country_of_origin,
+                :short_description, :description, :bullet_points, :tags, :material,
+                :length_cm, :width_cm, :height_cm, :weight_grams, :manufacturer, :country_of_origin,
                 :meta_title, :meta_description, :seo_keywords,
                 :expiry_applicable, :warranty_applicable, :warranty_period, :warranty_unit, :warranty_description,
                 :returnable, :return_window_days, :replacement_available, :refund_available,
+                :shipping_required, :cod_available,
                 :is_active, :is_pos_enabled, :is_ecommerce_enabled, :is_featured, :is_trending, :is_deal, :show_discount
             )'
         );
@@ -202,6 +206,10 @@ final class ProductService
             'bullet_points' => $this->encodeBulletPoints($data['bullet_points'] ?? null),
             'tags' => $data['tags'] ?? null,
             'material' => $data['material'] ?? null,
+            'length_cm' => $data['length_cm'] ?? null,
+            'width_cm' => $data['width_cm'] ?? null,
+            'height_cm' => $data['height_cm'] ?? null,
+            'weight_grams' => $data['weight_grams'] ?? null,
             'manufacturer' => $data['manufacturer'] ?? null,
             'country_of_origin' => $data['country_of_origin'] ?? null,
             'meta_title' => $data['meta_title'] ?? null,
@@ -216,6 +224,8 @@ final class ProductService
             'return_window_days' => $data['return_window_days'] ?? null,
             'replacement_available' => (int) (bool) ($data['replacement_available'] ?? false),
             'refund_available' => (int) (bool) ($data['refund_available'] ?? true),
+            'shipping_required' => (int) (bool) ($data['shipping_required'] ?? true),
+            'cod_available' => (int) (bool) ($data['cod_available'] ?? true),
             'is_active' => (int) (bool) ($data['is_active'] ?? true),
             'is_pos_enabled' => (int) (bool) ($data['is_pos_enabled'] ?? true),
             'is_ecommerce_enabled' => (int) (bool) ($data['is_ecommerce_enabled'] ?? true),
@@ -256,14 +266,17 @@ final class ProductService
 
         $fields = [
             'name', 'product_code', 'brand_id', 'unit_id', 'hsn_code_id', 'gst_rate_id',
-            'short_description', 'description', 'tags', 'material', 'manufacturer', 'country_of_origin',
+            'short_description', 'description', 'tags', 'material',
+            'length_cm', 'width_cm', 'height_cm', 'weight_grams', 'manufacturer', 'country_of_origin',
             'meta_title', 'meta_description', 'seo_keywords',
             'expiry_applicable', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
             'returnable', 'return_window_days', 'replacement_available', 'refund_available',
+            'shipping_required', 'cod_available',
             'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
         ];
         $boolFields = [
             'expiry_applicable', 'warranty_applicable', 'returnable', 'replacement_available', 'refund_available',
+            'shipping_required', 'cod_available',
             'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
         ];
 

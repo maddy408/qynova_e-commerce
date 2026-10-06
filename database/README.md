@@ -35,6 +35,7 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0014_refunds.sql` | `refunds`, `refund_transactions` |
 | `0015_product_enrichment.sql` | Adds `bullet_points`, warranty/return/refund/SEO-keyword columns and `is_trending`/`is_deal` to `products`; adds `product_specifications` |
 | `0016_banners.sql` | `banners`, `banner_items`, `home_sections`; adds the `banners.manage` permission |
+| `0017_product_shipping.sql` | Adds `shipping_required`, `cod_available` to `products` |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
@@ -178,6 +179,32 @@ migration — the tables already existed). `GET /api/gst-rates` defaults to
 `status = 'ACTIVE'` only (what the product form's dropdown wants); the
 Tax admin page passes `?all=1` to also see INACTIVE rates it can
 reactivate.
+
+**Product Create rebuild** (`0017_product_shipping.sql` + `ProductService`) —
+rebuilt the admin Product Create screen into an 8-step wizard matching
+the merchant's requested flow exactly (Basic Info / Classification /
+Images / Type & Variants / Inventory / E-commerce & Shipping / SEO &
+Visibility / Review). Two real gaps fixed along the way: `products.
+length_cm/width_cm/height_cm/weight_grams` existed since `0005_products.
+sql` but `ProductService::create()`/`update()` never referenced them —
+wired in now. `shipping_required`/`cod_available` didn't exist at all —
+added here. Images and (for Variable products) variants are no longer
+deferred to a second screen the merchant has to know to visit: the
+Create form stages images client-side and lets the merchant pick
+attribute values directly, then uploads the images and calls the
+existing `/variants/generate` endpoint immediately after the product
+row is created — all under one "Create Product" click, since a product
+needs a real ID before an image or a variant can reference it, but
+nothing says the *merchant* has to see that as two separate steps.
+Also added `InventoryService::setLowStockThreshold()` (+ `PUT
+/api/inventory/{variantId}/threshold`) so "Low Stock Alert" in the
+Inventory step has somewhere real to write to — `inventory.
+low_stock_threshold` existed since `0007_inventory.sql` but was only
+ever set to its default (5) on first stock movement, never
+customizable. Deliberately did NOT add a "Manage Stock" toggle some
+mockups show — this build has no concept of an untracked product; every
+variant always has a real inventory row, so a toggle with no backing
+behavior would be a fabricated control.
 
 ## Not yet built (next migrations, roughly in this order)
 

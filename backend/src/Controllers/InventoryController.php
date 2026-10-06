@@ -40,6 +40,25 @@ final class InventoryController
         Response::json(['items' => (new InventoryService($this->pdo))->lowStock()]);
     }
 
+    public function setLowStockThreshold(string $variantId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.adjust');
+
+        $threshold = Request::json()['low_stock_threshold'] ?? null;
+
+        if (!is_numeric($threshold)) {
+            Response::error('low_stock_threshold must be a number', 422);
+        }
+
+        try {
+            (new InventoryService($this->pdo))->setLowStockThreshold((int) $variantId, (string) $threshold);
+            Response::json(['updated' => true]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 404);
+        }
+    }
+
     public function indexAdjustments(): void
     {
         $claims = JwtAuthMiddleware::authenticate();

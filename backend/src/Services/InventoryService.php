@@ -135,6 +135,30 @@ final class InventoryService
         ];
     }
 
+    /**
+     * Sets a variant's low-stock alert threshold. Works even before any
+     * stock movement exists — upserts the inventory row the same way
+     * apply() does, since `inventory` is otherwise only created lazily
+     * on the first movement. product_id is resolved from the variant
+     * itself, never trusted from the caller (same reasoning as
+     * createAdjustment()).
+     */
+    public function setLowStockThreshold(int $variantId, string $threshold): void
+    {
+        $stmt = $this->pdo->prepare('SELECT product_id FROM product_variants WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => $variantId]);
+        $productId = $stmt->fetchColumn();
+
+        if ($productId === false) {
+            throw new RuntimeException('Variant not found');
+        }
+
+        $this->pdo->prepare(
+            'INSERT INTO inventory (variant_id, product_id, low_stock_threshold) VALUES (:variant_id, :product_id, :threshold)
+             ON DUPLICATE KEY UPDATE low_stock_threshold = VALUES(low_stock_threshold)'
+        )->execute(['variant_id' => $variantId, 'product_id' => $productId, 'threshold' => $threshold]);
+    }
+
     /** @return array<string, mixed>|null */
     public function getStock(int $variantId): ?array
     {
