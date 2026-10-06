@@ -6,6 +6,7 @@ import { CategoriesPage } from './pages/CategoriesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { ProductCreatePage } from './pages/ProductCreatePage'
+import { ProductDetailPage } from './pages/ProductDetailPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { SubcategoriesPage } from './pages/SubcategoriesPage'
 
@@ -37,6 +38,7 @@ function App() {
         <Route path="/subcategories" element={<SubcategoriesPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
+        <Route path="/products/:id" element={<ProductDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

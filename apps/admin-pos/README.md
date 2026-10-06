@@ -48,15 +48,30 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
 - Categories: list, create, activate/deactivate.
 - Subcategories: list, create with multi-category mapping (checkbox
   list against `category_subcategory`), activate/deactivate.
-- Products: list; create form with a category chip-picker (click a
-  chip's star to set the primary category) and a subcategory picker
-  that's live-filtered to only subcategories mapped to the selected
-  categories — mirroring the backend's own validation rule in
-  `ProductService`, so a submission here can never be rejected for
-  violating it.
+- Products: list (click a row to open it); a sectioned Create screen
+  (Basic Info/Classification/Pricing & Tax/Specifications) with a
+  category chip-picker (click a chip's star to set the primary category),
+  a subcategory picker live-filtered to only subcategories mapped to the
+  selected categories, bullet points, and a Simple vs. Variable product
+  type toggle — then redirects to the product's detail page.
+- Product detail page (`/products/:id`): everything that needs a real
+  product ID first —
+  - **Product images**: drag-drop or click-to-browse upload, set
+    primary, delete (promotes the next image to primary automatically).
+  - **Variants** (variable products): pick attribute values as chips,
+    "Generate Combinations" creates the full cartesian product in one
+    call (skips any combination that already exists rather than
+    erroring), inline price editing per row, and a **per-variant "Manage
+    Images" modal** — scoped to exactly that variant's own gallery,
+    never another variant's.
+  - **Specifications**: free-form name/value rows, saved as a whole list.
+  - Simple products get an inline Pricing & Inventory card instead of
+    the variant table (SKU/MRP/price directly, stock shown read-only
+    from the real inventory ledger).
 
-Not built yet: product variants (SKU/price/stock — spec says these are
-added from a product's detail page, which doesn't exist yet), editing an
-existing product, POS billing screens, and everything else in
+Not built yet: editing a product's basic info/classification after
+creation, POS billing screens, and everything else in
 `docs/ECOMMERCE_POS_ADMIN_SPEC.md` beyond category/subcategory/product
-creation.
+creation — coupons, orders, referral settings, purchases, stock
+adjustments, banners and reports all have working backends already but
+no frontend yet.

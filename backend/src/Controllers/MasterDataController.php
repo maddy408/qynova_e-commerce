@@ -81,4 +81,16 @@ final class MasterDataController
             throw $e;
         }
     }
+
+    public function indexGstRates(): void
+    {
+        Response::json(['gst_rates' => $this->pdo->query(
+            "SELECT * FROM gst_rates WHERE status = 'ACTIVE' ORDER BY gst_percent"
+        )->fetchAll()]);
+    }
+
+    public function indexHsnCodes(): void
+    {
+        Response::json(['hsn_codes' => $this->pdo->query('SELECT * FROM hsn_codes ORDER BY code')->fetchAll()]);
+    }
 }

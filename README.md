@@ -199,9 +199,37 @@ npm run dev
   and a product through that mapping — then verified via a direct API
   call that `is_primary`/the subcategory link both persisted exactly as
   selected in the UI.
+  - **Product Create, rebuilt against a detailed spec/mockup** (real
+    image upload + variant management, not placeholder UI): a sectioned
+    Create screen (Basic Info/Classification/Pricing & Tax/
+    Specifications) with a Simple vs. Variable product-type toggle, then
+    redirects to a Product Detail page for everything that needs a real
+    product ID first — product images (drag-drop upload, set primary,
+    delete-promotes-next-primary), a variant attribute picker + "Generate
+    Combinations" button (the cartesian product of selected attribute
+    values, e.g. 2 colors × 2 sizes → 4 variants in one call), inline
+    per-variant price editing, and a per-variant "Manage Images" modal
+    scoped to exactly that variant. Verified end-to-end in the browser
+    for both product types: created a Simple product (Coffee Mug) and
+    confirmed its opening stock hit the real `inventory_movements`
+    ledger (`STOCK_ADJUSTMENT_IN`, not an optimistic UI number); opened a
+    Variable product (Cotton T-Shirt, 4 generated variants) and confirmed
+    an image uploaded earlier via curl rendered correctly as the primary
+    product image and as that specific variant's thumbnail, and that the
+    per-variant image modal showed only that variant's own images — the
+    explicit "never mix Blue/L images with Orange/XL" requirement,
+    confirmed visually, not just by reading the code.
+  - New backend alongside it: real file upload with WebP compression
+    (verified against a ~900KB test image: 1200px/100KB main,
+    300px/30KB thumbnail, confirmed as a valid readable image afterward)
+    for both `product_images` and `variant_images` — tables that existed
+    since Phase 2 but had no upload endpoint, only a pass-through URL
+    during Excel import; a variant combination generator; and
+    `product_specifications`.
 
-Still ahead: everything else in `apps/admin-pos` (product editing,
-variants, POS billing, all other modules), the storefront app (still the
-default scaffold), Razorpay, a real shipping provider adapter, and
-reports — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase
-order.
+Still ahead: editing a product's basic fields from the detail page, POS
+billing, the storefront app (still the default scaffold), admin frontend
+for coupons/orders/referral/purchases/stock-adjustment (all have working
+backends already — just no UI yet), banners (no backend yet either),
+Razorpay, a real shipping provider adapter, and a dedicated reports page
+— per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.

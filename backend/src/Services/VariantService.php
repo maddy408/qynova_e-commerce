@@ -147,6 +147,63 @@ final class VariantService
         $this->pdo->prepare('UPDATE product_variants SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($params);
     }
 
+    /**
+     * Auto-generates every combination across the given attribute value
+     * groups (one inner array per attribute, e.g. Color=[1,2],
+     * Size=[5,6] -> 4 variants) instead of making the admin create each
+     * one by hand. An auto-built SKU is assigned; price/stock default to
+     * zero/blank for the admin to fill in after. A combination that
+     * already exists on this product is skipped, not an error — so
+     * re-running the generator after adding one more attribute value is
+     * safe and only adds what's new.
+     *
+     * @param list<list<int>> $attributeValueGroups
+     * @param array<string, mixed> $defaults
+     * @return array{created: list<int>, skipped: list<string>}
+     */
+    public function generateCombinations(int $productId, array $attributeValueGroups, array $defaults): array
+    {
+        $attributeValueGroups = array_values(array_filter($attributeValueGroups, fn ($g) => $g !== []));
+
+        if ($attributeValueGroups === []) {
+            throw new RuntimeException('Select at least one value for at least one attribute');
+        }
+
+        $productStmt = $this->pdo->prepare('SELECT product_code, name FROM products WHERE id = :id AND deleted_at IS NULL');
+        $productStmt->execute(['id' => $productId]);
+        $product = $productStmt->fetch();
+
+        if ($product === false) {
+            throw new RuntimeException('Product not found');
+        }
+
+        $skuBase = $product['product_code'] !== null && $product['product_code'] !== ''
+            ? mb_strtoupper((string) $product['product_code'])
+            : $this->skuSlug((string) $product['name']);
+
+        $created = [];
+        $skipped = [];
+
+        foreach ($this->cartesianProduct($attributeValueGroups) as $combination) {
+            $labels = array_map(function (int $valueId): string {
+                $stmt = $this->pdo->prepare('SELECT value FROM variant_attribute_values WHERE id = :id');
+                $stmt->execute(['id' => $valueId]);
+                $value = (string) ($stmt->fetchColumn() ?: '');
+
+                return mb_strtoupper(mb_substr(preg_replace('/[^A-Za-z0-9]/', '', $value) ?? $value, 0, 3));
+            }, $combination);
+
+            try {
+                $sku = $this->uniqueSku($skuBase . '-' . implode('-', $labels));
+                $created[] = $this->createVariant($productId, array_merge($defaults, ['sku' => $sku]), $combination);
+            } catch (RuntimeException $e) {
+                $skipped[] = implode('/', $labels) . ': ' . $e->getMessage();
+            }
+        }
+
+        return ['created' => $created, 'skipped' => $skipped];
+    }
+
     /** Scan lookup order: barcode, SKU, then product name (docs section 12). */
     public function lookup(string $code): ?array
     {
@@ -211,5 +268,51 @@ final class VariantService
                 }
             }
         }
+    }
+
+    /**
+     * @param list<list<int>> $groups
+     * @return list<list<int>>
+     */
+    private function cartesianProduct(array $groups): array
+    {
+        $result = [[]];
+
+        foreach ($groups as $group) {
+            $next = [];
+            foreach ($result as $combination) {
+                foreach ($group as $value) {
+                    $next[] = [...$combination, $value];
+                }
+            }
+            $result = $next;
+        }
+
+        return $result;
+    }
+
+    private function uniqueSku(string $base): string
+    {
+        $sku = $base;
+        $suffix = 1;
+
+        while (true) {
+            $stmt = $this->pdo->prepare('SELECT 1 FROM product_variants WHERE sku = :sku');
+            $stmt->execute(['sku' => $sku]);
+
+            if ($stmt->fetchColumn() === false) {
+                return $sku;
+            }
+
+            $sku = "{$base}-{$suffix}";
+            $suffix++;
+        }
+    }
+
+    private function skuSlug(string $name): string
+    {
+        $clean = mb_strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name) ?? '');
+
+        return $clean !== '' ? mb_substr($clean, 0, 6) : 'PROD';
     }
 }

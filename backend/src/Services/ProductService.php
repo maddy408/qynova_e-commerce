@@ -107,9 +107,15 @@ final class ProductService
             return null;
         }
 
+        $product['bullet_points'] = $product['bullet_points'] !== null ? json_decode((string) $product['bullet_points'], true) : [];
+
         $images = $this->pdo->prepare('SELECT * FROM product_images WHERE product_id = :id ORDER BY sort_order');
         $images->execute(['id' => $id]);
         $product['images'] = $images->fetchAll();
+
+        $specifications = $this->pdo->prepare('SELECT * FROM product_specifications WHERE product_id = :id ORDER BY sort_order');
+        $specifications->execute(['id' => $id]);
+        $product['specifications'] = $specifications->fetchAll();
 
         $categories = $this->pdo->prepare(
             'SELECT c.id, c.name, pc.is_primary FROM product_categories pc
@@ -169,12 +175,18 @@ final class ProductService
         $stmt = $this->pdo->prepare(
             'INSERT INTO products (
                 name, slug, product_code, brand_id, unit_id, hsn_code_id, gst_rate_id,
-                short_description, description, material, manufacturer, country_of_origin,
-                is_active, is_pos_enabled, is_ecommerce_enabled, is_featured, show_discount
+                short_description, description, bullet_points, tags, material, manufacturer, country_of_origin,
+                meta_title, meta_description, seo_keywords,
+                expiry_applicable, warranty_applicable, warranty_period, warranty_unit, warranty_description,
+                returnable, return_window_days, replacement_available, refund_available,
+                is_active, is_pos_enabled, is_ecommerce_enabled, is_featured, is_trending, is_deal, show_discount
             ) VALUES (
                 :name, :slug, :product_code, :brand_id, :unit_id, :hsn_code_id, :gst_rate_id,
-                :short_description, :description, :material, :manufacturer, :country_of_origin,
-                :is_active, :is_pos_enabled, :is_ecommerce_enabled, :is_featured, :show_discount
+                :short_description, :description, :bullet_points, :tags, :material, :manufacturer, :country_of_origin,
+                :meta_title, :meta_description, :seo_keywords,
+                :expiry_applicable, :warranty_applicable, :warranty_period, :warranty_unit, :warranty_description,
+                :returnable, :return_window_days, :replacement_available, :refund_available,
+                :is_active, :is_pos_enabled, :is_ecommerce_enabled, :is_featured, :is_trending, :is_deal, :show_discount
             )'
         );
         $stmt->execute([
@@ -187,13 +199,29 @@ final class ProductService
             'gst_rate_id' => $data['gst_rate_id'] ?? null,
             'short_description' => $data['short_description'] ?? null,
             'description' => $data['description'] ?? null,
+            'bullet_points' => $this->encodeBulletPoints($data['bullet_points'] ?? null),
+            'tags' => $data['tags'] ?? null,
             'material' => $data['material'] ?? null,
             'manufacturer' => $data['manufacturer'] ?? null,
             'country_of_origin' => $data['country_of_origin'] ?? null,
+            'meta_title' => $data['meta_title'] ?? null,
+            'meta_description' => $data['meta_description'] ?? null,
+            'seo_keywords' => $data['seo_keywords'] ?? null,
+            'expiry_applicable' => (int) (bool) ($data['expiry_applicable'] ?? false),
+            'warranty_applicable' => (int) (bool) ($data['warranty_applicable'] ?? false),
+            'warranty_period' => $data['warranty_period'] ?? null,
+            'warranty_unit' => $data['warranty_unit'] ?? null,
+            'warranty_description' => $data['warranty_description'] ?? null,
+            'returnable' => (int) (bool) ($data['returnable'] ?? true),
+            'return_window_days' => $data['return_window_days'] ?? null,
+            'replacement_available' => (int) (bool) ($data['replacement_available'] ?? false),
+            'refund_available' => (int) (bool) ($data['refund_available'] ?? true),
             'is_active' => (int) (bool) ($data['is_active'] ?? true),
             'is_pos_enabled' => (int) (bool) ($data['is_pos_enabled'] ?? true),
             'is_ecommerce_enabled' => (int) (bool) ($data['is_ecommerce_enabled'] ?? true),
             'is_featured' => (int) (bool) ($data['is_featured'] ?? false),
+            'is_trending' => (int) (bool) ($data['is_trending'] ?? false),
+            'is_deal' => (int) (bool) ($data['is_deal'] ?? false),
             'show_discount' => (int) (bool) ($data['show_discount'] ?? true),
         ]);
 
@@ -203,6 +231,18 @@ final class ProductService
         $this->syncSubcategories($productId, (array) ($data['subcategory_ids'] ?? []));
 
         return $productId;
+    }
+
+    /** @param list<string>|null $bulletPoints */
+    private function encodeBulletPoints(?array $bulletPoints): ?string
+    {
+        if ($bulletPoints === null) {
+            return null;
+        }
+
+        $clean = array_values(array_filter(array_map('trim', $bulletPoints), fn ($b) => $b !== ''));
+
+        return $clean === [] ? null : json_encode($clean);
     }
 
     /** @param array<string, mixed> $data */
@@ -216,19 +256,29 @@ final class ProductService
 
         $fields = [
             'name', 'product_code', 'brand_id', 'unit_id', 'hsn_code_id', 'gst_rate_id',
-            'short_description', 'description', 'material', 'manufacturer', 'country_of_origin',
-            'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'show_discount',
+            'short_description', 'description', 'tags', 'material', 'manufacturer', 'country_of_origin',
+            'meta_title', 'meta_description', 'seo_keywords',
+            'expiry_applicable', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
+            'returnable', 'return_window_days', 'replacement_available', 'refund_available',
+            'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
+        ];
+        $boolFields = [
+            'expiry_applicable', 'warranty_applicable', 'returnable', 'replacement_available', 'refund_available',
+            'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
         ];
 
         $sets = [];
         $params = ['id' => $id];
 
+        if (array_key_exists('bullet_points', $data)) {
+            $sets[] = 'bullet_points = :bullet_points';
+            $params['bullet_points'] = $this->encodeBulletPoints($data['bullet_points']);
+        }
+
         foreach ($fields as $field) {
             if (array_key_exists($field, $data)) {
                 $sets[] = "{$field} = :{$field}";
-                $params[$field] = in_array($field, ['is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'show_discount'], true)
-                    ? (int) (bool) $data[$field]
-                    : $data[$field];
+                $params[$field] = in_array($field, $boolFields, true) ? (int) (bool) $data[$field] : $data[$field];
             }
         }
 

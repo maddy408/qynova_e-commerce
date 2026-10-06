@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
 
 export function ProductsPage() {
+  const navigate = useNavigate()
   const [products, setProducts] = useState<ProductListItem[] | null>(null)
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export function ProductsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {products.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} onClick={() => navigate(`/products/${p.id}`)} className="cursor-pointer hover:bg-slate-50">
                   <td className="px-5 py-3">
                     <p className="font-medium text-slate-900">{p.name}</p>
                     {p.product_code && <p className="text-xs text-slate-500">{p.product_code}</p>}

@@ -9,6 +9,7 @@ use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\ProductService;
+use App\Services\ProductSpecificationService;
 use PDO;
 use RuntimeException;
 
@@ -68,5 +69,20 @@ final class ProductController
 
         (new ProductService($this->pdo))->softDelete((int) $id);
         Response::json(['deleted' => true]);
+    }
+
+    public function updateSpecifications(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+
+        try {
+            (new ProductSpecificationService($this->pdo))->replaceAll((int) $id, (array) ($body['specifications'] ?? []));
+            Response::json(['specifications' => (new ProductSpecificationService($this->pdo))->list((int) $id)]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
     }
 }

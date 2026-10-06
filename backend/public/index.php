@@ -18,12 +18,14 @@ use App\Controllers\MasterDataController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ProductExportController;
+use App\Controllers\ProductImageController;
 use App\Controllers\ProductImportController;
 use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
 use App\Controllers\SubcategoryController;
 use App\Controllers\VariantController;
+use App\Controllers\VariantImageController;
 use App\Helpers\Config;
 use App\Helpers\Response;
 use App\Helpers\Router;
@@ -74,6 +76,8 @@ $router->get('/api/brands', fn () => $masters->indexBrands());
 $router->post('/api/brands', fn () => $masters->storeBrand());
 $router->get('/api/units', fn () => $masters->indexUnits());
 $router->post('/api/units', fn () => $masters->storeUnit());
+$router->get('/api/gst-rates', fn () => $masters->indexGstRates());
+$router->get('/api/hsn-codes', fn () => $masters->indexHsnCodes());
 
 // Products & variants (ECOMMERCE_POS_ADMIN_SPEC.md sections 5-7)
 $products = new ProductController($pdo);
@@ -96,14 +100,34 @@ $router->get('/api/products/export', fn () => $productExport->export());
 $router->get('/api/products/{id}', fn ($id) => $products->show($id));
 $router->put('/api/products/{id}', fn ($id) => $products->update($id));
 $router->delete('/api/products/{id}', fn ($id) => $products->destroy($id));
+$router->put('/api/products/{id}/specifications', fn ($id) => $products->updateSpecifications($id));
+
+// Product images (sections 8-10, 37-38) — real file upload, WebP
+// compression, primary/reorder/delete. Registered before the generic
+// /api/products/{id} routes above don't matter here (different method/
+// suffix), but kept grouped with products for readability.
+$productImages = new ProductImageController($pdo);
+$router->post('/api/products/{id}/images', fn ($id) => $productImages->store($id));
+$router->patch('/api/products/{id}/images/{imageId}/primary', fn ($id, $imageId) => $productImages->setPrimary($id, $imageId));
+$router->put('/api/products/{id}/images/reorder', fn ($id) => $productImages->reorder($id));
+$router->delete('/api/products/{id}/images/{imageId}', fn ($id, $imageId) => $productImages->destroy($id, $imageId));
 
 $variants = new VariantController($pdo);
 $router->get('/api/variant-attributes', fn () => $variants->indexAttributes());
 $router->post('/api/variant-attributes', fn () => $variants->storeAttribute());
 $router->post('/api/variant-attributes/{id}/values', fn ($id) => $variants->storeAttributeValue($id));
 $router->post('/api/products/{id}/variants', fn ($id) => $variants->store($id));
+$router->post('/api/products/{id}/variants/generate', fn ($id) => $variants->generateCombinations($id));
 $router->put('/api/variants/{id}', fn ($id) => $variants->update($id));
 $router->get('/api/variants/lookup', fn () => $variants->lookup());
+
+// Variant images — each variant's own gallery, never mixed with another
+// variant's (section 14-19 of the spec).
+$variantImages = new VariantImageController($pdo);
+$router->post('/api/variants/{id}/images', fn ($id) => $variantImages->store($id));
+$router->patch('/api/variants/{id}/images/{imageId}/primary', fn ($id, $imageId) => $variantImages->setPrimary($id, $imageId));
+$router->put('/api/variants/{id}/images/reorder', fn ($id) => $variantImages->reorder($id));
+$router->delete('/api/variants/{id}/images/{imageId}', fn ($id, $imageId) => $variantImages->destroy($id, $imageId));
 
 // Inventory (docs/DOCUMENTATION.md section 11)
 $inventory = new InventoryController($pdo);

@@ -80,6 +80,26 @@ final class VariantController
         Response::json(['updated' => true]);
     }
 
+    /** Auto-generate every combination across the given attribute value groups (section 13 of the spec). */
+    public function generateCombinations(string $productId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $groups = array_map(
+            fn ($group) => array_map('intval', (array) $group),
+            array_values((array) ($body['attribute_value_groups'] ?? [])),
+        );
+
+        try {
+            $result = (new VariantService($this->pdo))->generateCombinations((int) $productId, $groups, (array) ($body['defaults'] ?? []));
+            Response::json($result, 201);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
     /** POS scan lookup: barcode -> SKU -> product name (docs section 12). */
     public function lookup(): void
     {

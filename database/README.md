@@ -33,6 +33,7 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0012_purchases.sql` | `suppliers`, `purchases`, `purchase_items`, `purchase_returns`, `purchase_return_items` |
 | `0013_delivery.sql` | `deliveries`, `delivery_status_history` |
 | `0014_refunds.sql` | `refunds`, `refund_transactions` |
+| `0015_product_enrichment.sql` | Adds `bullet_points`, warranty/return/refund/SEO-keyword columns and `is_trending`/`is_deal` to `products`; adds `product_specifications` |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
@@ -109,8 +110,41 @@ occurrences (both fixed), with other controllers only ever catching
 `RuntimeException` alone (no competing `PDOException` block to become
 unreachable).
 
+**Product/variant image upload + the WebP compression pipeline** —
+`product_images`/`variant_images` existed since 0005/0006 but nothing
+ever wrote to them except a pass-through URL during Excel import; there
+was no real upload endpoint. `ImageUploadService` closes that gap:
+MIME-sniffed (never trusted from the client), converted to WebP,
+resized, and iteratively re-quality-reduced until under the configured
+target size (`config.image.main_target_kb`/`thumb_target_kb` — these
+existed in `config/config.php` since Phase 1 but were never wired to
+anything until now). `ProductImageService`/`VariantImageService` own
+primary/reorder/delete, with deleting the primary image correctly
+promoting the next one. Verified against a real ~900KB noisy JPEG:
+compressed to a 1200px-max WebP under the 100KB target and a 300px
+thumbnail under the 30KB target, confirmed as a valid, readable image
+afterward (not just "a file exists").
+
+**Variant combination generator** — `VariantService::generateCombinations()`
+takes attribute value groups (e.g. Color=[Blue,Orange], Size=[L,XL]) and
+creates the cartesian product as variants in one call, auto-building each
+SKU and skipping (not erroring on) combinations that already exist, so
+re-running it after adding one more attribute value only adds what's new.
+Verified: 2 colors × 2 sizes → 4 variants in one call; re-running the
+exact same request afterward skipped all 4 with a clear per-combination
+reason instead of erroring out.
+
+**`product_specifications`** — free-form name/value rows (`ProductSpecificationService`),
+replacing the full list per save rather than diffing individual rows —
+simplest correct semantics for how the UI edits it (a whole list at once).
+
 ## Not yet built (next migrations, roughly in this order)
 
+- **Deferred from the Product Create spec (low practical value for a
+  single-shop build, scoped out rather than silently dropped)** —
+  manufacturer address/contact, importer/packer info, batch tracking,
+  package dimensions/shipping class, per-channel (POS vs. e-commerce)
+  min/max order quantity, pre-order flag.
 - **Automatic discounts** — `discounts` + its applicability join tables
   (DOCUMENTATION.md section 9's separate, code-less "Discount Master" —
   distinct from the `coupons` built in 0008, which always needs a code).
