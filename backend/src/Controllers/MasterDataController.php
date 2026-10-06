@@ -82,15 +82,174 @@ final class MasterDataController
         }
     }
 
+    /** `?all=1` (the Tax admin page) also returns INACTIVE rates so they can be reactivated; everyone else only wants ACTIVE ones for a dropdown. */
     public function indexGstRates(): void
     {
+        $where = isset($_GET['all']) ? '1=1' : "status = 'ACTIVE'";
         Response::json(['gst_rates' => $this->pdo->query(
-            "SELECT * FROM gst_rates WHERE status = 'ACTIVE' ORDER BY gst_percent"
+            "SELECT * FROM gst_rates WHERE {$where} ORDER BY gst_percent"
         )->fetchAll()]);
+    }
+
+    public function storeGstRate(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $name = trim((string) ($body['name'] ?? ''));
+        $percent = $body['gst_percent'] ?? null;
+
+        if ($name === '' || !is_numeric($percent)) {
+            Response::error('name and a numeric gst_percent are required', 422);
+        }
+
+        $taxMode = ($body['tax_mode'] ?? 'EXCLUSIVE') === 'INCLUSIVE' ? 'INCLUSIVE' : 'EXCLUSIVE';
+        // Same half/half/full split ProductImportService uses when it
+        // auto-creates a GST rate during Excel import — intrastate sales
+        // split the rate evenly across CGST+SGST, interstate charges the
+        // full rate as IGST. Caller can still override any of the three.
+        $half = (string) ((float) $percent / 2);
+
+        try {
+            $this->pdo->prepare(
+                'INSERT INTO gst_rates (name, gst_percent, cgst_percent, sgst_percent, igst_percent, tax_mode, status)
+                 VALUES (:name, :percent, :cgst, :sgst, :igst, :mode, :status)'
+            )->execute([
+                'name' => $name,
+                'percent' => $percent,
+                'cgst' => $body['cgst_percent'] ?? $half,
+                'sgst' => $body['sgst_percent'] ?? $half,
+                'igst' => $body['igst_percent'] ?? $percent,
+                'mode' => $taxMode,
+                'status' => ($body['status'] ?? 'ACTIVE') === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+            ]);
+            Response::json(['id' => (int) $this->pdo->lastInsertId()], 201);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A GST rate with this name already exists', 409);
+            }
+            throw $e;
+        }
+    }
+
+    public function updateGstRate(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $fields = ['name', 'gst_percent', 'cgst_percent', 'sgst_percent', 'igst_percent', 'tax_mode', 'status'];
+        $sets = [];
+        $params = ['id' => $id];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $body)) {
+                $sets[] = "{$field} = :{$field}";
+                $params[$field] = $body[$field];
+            }
+        }
+
+        if ($sets === []) {
+            Response::json(['updated' => true]);
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('UPDATE gst_rates SET ' . implode(', ', $sets) . ' WHERE id = :id');
+            $stmt->execute($params);
+
+            if ($stmt->rowCount() === 0) {
+                Response::error('GST rate not found', 404);
+            }
+
+            Response::json(['updated' => true]);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A GST rate with this name already exists', 409);
+            }
+            throw $e;
+        }
     }
 
     public function indexHsnCodes(): void
     {
         Response::json(['hsn_codes' => $this->pdo->query('SELECT * FROM hsn_codes ORDER BY code')->fetchAll()]);
+    }
+
+    public function storeHsnCode(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $code = trim((string) ($body['code'] ?? ''));
+
+        if ($code === '') {
+            Response::error('code is required', 422);
+        }
+
+        try {
+            $this->pdo->prepare('INSERT INTO hsn_codes (code, description) VALUES (:code, :description)')
+                ->execute(['code' => $code, 'description' => $body['description'] ?? null]);
+            Response::json(['id' => (int) $this->pdo->lastInsertId()], 201);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('This HSN code already exists', 409);
+            }
+            throw $e;
+        }
+    }
+
+    public function updateHsnCode(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $fields = ['code', 'description'];
+        $sets = [];
+        $params = ['id' => $id];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $body)) {
+                $sets[] = "{$field} = :{$field}";
+                $params[$field] = $body[$field];
+            }
+        }
+
+        if ($sets === []) {
+            Response::json(['updated' => true]);
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('UPDATE hsn_codes SET ' . implode(', ', $sets) . ' WHERE id = :id');
+            $stmt->execute($params);
+
+            if ($stmt->rowCount() === 0) {
+                Response::error('HSN code not found', 404);
+            }
+
+            Response::json(['updated' => true]);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('This HSN code already exists', 409);
+            }
+            throw $e;
+        }
+    }
+
+    public function destroyHsnCode(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $stmt = $this->pdo->prepare('DELETE FROM hsn_codes WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+
+        if ($stmt->rowCount() === 0) {
+            Response::error('HSN code not found', 404);
+        }
+
+        Response::json(['deleted' => true]);
     }
 }

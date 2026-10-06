@@ -169,6 +169,16 @@ pipeline as product images, each as its own upload endpoint (`POST
 real ID before it has anywhere to attach a file, same two-step reasoning
 as product images.
 
+**GST rate / HSN code CRUD** — `gst_rates` and `hsn_codes` (tables since
+`0004_catalog.sql`) could previously only be populated by
+`ProductImportService`'s auto-create-on-import path; there was no direct
+"create a GST rate" endpoint. Added `POST`/`PUT /api/gst-rates` and
+`POST`/`PUT`/`DELETE /api/hsn-codes` to `MasterDataController` (no new
+migration — the tables already existed). `GET /api/gst-rates` defaults to
+`status = 'ACTIVE'` only (what the product form's dropdown wants); the
+Tax admin page passes `?all=1` to also see INACTIVE rates it can
+reactivate.
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Deferred from the Product Create spec (low practical value for a

@@ -103,8 +103,13 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
   page layout blocks. Best Sellers/Combos/Deals are selectable but
   flagged "not wired up yet" in the UI — those have no backend yet
   either (see `database/README.md`).
+- Tax (`/tax`): GST rates and HSN codes, previously only reachable
+  through Excel import's auto-create. Creating a GST rate only asks for
+  the name, the overall %, and tax mode — CGST/SGST/IGST are
+  auto-computed with the same half/half/full split
+  `ProductImportService` already uses, rather than asking the admin to
+  type three more numbers that are almost always derived from the first.
 
 Not built yet: editing a product's basic info/classification after
-creation, POS billing screens, a dedicated Tax admin page, a unified
-Reports page, and a non-coupon automatic discount engine — see
-`docs/ECOMMERCE_POS_ADMIN_SPEC.md`.
+creation, POS billing screens, a unified Reports page, and a non-coupon
+automatic discount engine — see `docs/ECOMMERCE_POS_ADMIN_SPEC.md`.

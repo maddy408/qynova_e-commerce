@@ -256,8 +256,17 @@ npm run dev
     up yet" label on the Best Sellers/Combos/Deals types, which are
     schema-ready but have no resolving backend.
 
+  - **Tax admin page** — GST rates and HSN codes previously only
+    reachable through Excel import's auto-create now have real CRUD
+    (`MasterDataController`, no new migration — `gst_rates`/`hsn_codes`
+    existed since Phase 2). Creating a GST rate only asks for name/%/tax
+    mode; CGST, SGST and IGST are auto-computed with the same half/half/
+    full split the import path already used. Verified in the browser:
+    created a 28% rate (confirmed 14%/14% CGST/SGST), deactivated and
+    reactivated it, and created an HSN code.
+
 Still ahead: editing a product's basic fields from the detail page, POS
-billing, the storefront app (still the default scaffold), a dedicated Tax
-admin page, a unified Reports page, an automatic (non-coupon) discount
-engine, Razorpay, and a real shipping provider adapter — per
-`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
+billing, the storefront app (still the default scaffold), a unified
+Reports page, an automatic (non-coupon) discount engine, Razorpay, and a
+real shipping provider adapter — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md`
+section 46's phase order.

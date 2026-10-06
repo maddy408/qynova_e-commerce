@@ -64,7 +64,11 @@ export interface GstRate {
   id: number
   name: string
   gst_percent: string
+  cgst_percent: string
+  sgst_percent: string
+  igst_percent: string
   tax_mode: 'INCLUSIVE' | 'EXCLUSIVE'
+  status: 'ACTIVE' | 'INACTIVE'
 }
 
 export interface HsnCode {

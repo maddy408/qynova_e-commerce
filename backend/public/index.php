@@ -79,7 +79,12 @@ $router->post('/api/brands', fn () => $masters->storeBrand());
 $router->get('/api/units', fn () => $masters->indexUnits());
 $router->post('/api/units', fn () => $masters->storeUnit());
 $router->get('/api/gst-rates', fn () => $masters->indexGstRates());
+$router->post('/api/gst-rates', fn () => $masters->storeGstRate());
+$router->put('/api/gst-rates/{id}', fn ($id) => $masters->updateGstRate($id));
 $router->get('/api/hsn-codes', fn () => $masters->indexHsnCodes());
+$router->post('/api/hsn-codes', fn () => $masters->storeHsnCode());
+$router->put('/api/hsn-codes/{id}', fn ($id) => $masters->updateHsnCode($id));
+$router->delete('/api/hsn-codes/{id}', fn ($id) => $masters->destroyHsnCode($id));
 
 // Products & variants (ECOMMERCE_POS_ADMIN_SPEC.md sections 5-7)
 $products = new ProductController($pdo);

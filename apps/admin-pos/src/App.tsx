@@ -18,6 +18,7 @@ import { ReferralSettingsPage } from './pages/ReferralSettingsPage'
 import { StockAdjustmentsPage } from './pages/StockAdjustmentsPage'
 import { SubcategoriesPage } from './pages/SubcategoriesPage'
 import { SuppliersPage } from './pages/SuppliersPage'
+import { TaxPage } from './pages/TaxPage'
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -57,6 +58,7 @@ function App() {
         <Route path="/referral-settings" element={<ReferralSettingsPage />} />
         <Route path="/banners" element={<BannersPage />} />
         <Route path="/home-sections" element={<HomeSectionsPage />} />
+        <Route path="/tax" element={<TaxPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

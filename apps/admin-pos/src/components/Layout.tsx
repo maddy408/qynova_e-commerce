@@ -37,6 +37,10 @@ const navGroups = [
       { to: '/home-sections', label: 'Home Sections', icon: '🏠' },
     ],
   },
+  {
+    label: 'Settings',
+    items: [{ to: '/tax', label: 'Tax', icon: '🧾' }],
+  },
 ]
 
 export function Layout() {
