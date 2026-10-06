@@ -1,0 +1,32 @@
+# Env files — never commit secrets
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Dependencies and build output (apps/* also carry their own .gitignore)
+node_modules/
+**/node_modules/
+vendor/
+**/vendor/
+dist/
+dist-ssr/
+.next/
+out/
+build/
+
+# Backend uploads (user-generated content)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# Firebase service account / secrets
+*firebase-service-account*.json
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

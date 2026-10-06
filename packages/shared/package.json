@@ -1,0 +1,8 @@
+{
+  "name": "@unified-pos/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared UI components, API client and types for admin/pos/storefront. No business logic — pricing, GST, coupon and inventory decisions live only in the backend.",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
