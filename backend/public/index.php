@@ -6,8 +6,11 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/config/database.php';
 
 use App\Controllers\AuthController;
+use App\Controllers\CartController;
+use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
 use App\Controllers\InventoryController;
+use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ReferralController;
 use App\Controllers\VariantController;
@@ -66,6 +69,32 @@ $inventory = new InventoryController($pdo);
 $router->get('/api/inventory/low-stock', fn () => $inventory->lowStock());
 $router->get('/api/inventory/{variantId}', fn ($variantId) => $inventory->show($variantId));
 $router->post('/api/inventory/adjustments', fn () => $inventory->storeAdjustment());
+
+// Coupons (ECOMMERCE_POS_ADMIN_SPEC.md sections 14-17)
+$coupons = new CouponController($pdo);
+$router->get('/api/coupons', fn () => $coupons->index());
+$router->get('/api/coupons/available', fn () => $coupons->availableForCustomer());
+$router->get('/api/coupons/{id}', fn ($id) => $coupons->show($id));
+$router->post('/api/coupons', fn () => $coupons->store());
+$router->put('/api/coupons/{id}', fn ($id) => $coupons->update($id));
+
+// Cart (docs/DOCUMENTATION.md section 13)
+$cart = new CartController($pdo);
+$router->get('/api/cart', fn () => $cart->show());
+$router->post('/api/cart/items', fn () => $cart->store());
+$router->patch('/api/cart/items/{id}', fn ($id) => $cart->update($id));
+$router->delete('/api/cart/items/{id}', fn ($id) => $cart->destroy($id));
+
+// Orders & checkout (docs section 13/20; ECOMMERCE_POS_ADMIN_SPEC.md 18-20, 36-38)
+$orders = new OrderController($pdo);
+$router->post('/api/orders/preview', fn () => $orders->preview());
+$router->post('/api/orders/checkout', fn () => $orders->checkout());
+$router->get('/api/orders', fn () => $orders->index());
+$router->get('/api/customers/orders', fn () => $orders->myOrders());
+$router->get('/api/orders/{id}', fn ($id) => $orders->show($id));
+$router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPayment($id));
+$router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
+$router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 
 try {
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'] ?? '/');

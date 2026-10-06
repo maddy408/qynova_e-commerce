@@ -26,29 +26,35 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0005_products.sql` | `products`, `product_images`, `product_categories` (one primary per product, enforced by a generated-column unique key), `product_subcategories`, `related_products`, `product_stats` |
 | `0006_variants.sql` | `variant_attributes`, `variant_attribute_values`, `product_variants`, `product_variant_values`, `variant_images`, `customer_price_lists`, `customer_price_list_items` |
 | `0007_inventory.sql` | `inventory`, `inventory_movements` (append-only — `UPDATE`/`DELETE` blocked by trigger), `stock_reservations`, `stock_adjustments`, `stock_adjustment_items` |
+| `0008_coupons.sql` | `coupons`, `coupon_products`, `coupon_categories`, `coupon_brands`, `coupon_customers` (customer-specific targeting), `coupon_usages` |
+| `0009_carts.sql` | `carts`, `cart_items` (no stored price — every read re-prices) |
+| `0010_orders.sql` | `orders`, `order_items`, `order_item_discounts`, `order_status_history`; adds the deferred FKs on `stock_reservations.order_id` and `coupon_usages.order_id` |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
 `inventory_movements`, and the one-primary-category and singleton-settings
-constraints hold.
+constraints hold. The full checkout flow (cart → coupon validation →
+referral discount → tax → stock reserve → order → mock payment confirm →
+stock deduct, plus both the unpaid-reservation-release and paid-stock-
+restore cancellation paths) was exercised end-to-end against a running
+server — see the backend README/commit history for what was checked.
 
 ## Not yet built (next migrations, roughly in this order)
 
 - **Suppliers & purchases** — `suppliers`, `purchases`, `purchase_items`,
   `purchase_returns`, `purchase_return_items`.
-- **Pricing, discounts, coupons** — `pricing`, `discounts`, `coupons`,
-  `coupon_products`, `coupon_categories`, `coupon_brands`,
-  `coupon_customers`, `coupon_customer_types`, `coupon_usages` (customer-
-  specific coupons per `ECOMMERCE_POS_ADMIN_SPEC.md` section 14-17).
+- **Automatic discounts** — `discounts` + its applicability join tables
+  (DOCUMENTATION.md section 9's separate, code-less "Discount Master" —
+  distinct from the `coupons` built in 0008, which always needs a code).
 - **Combos, deals, banners** — `combos`, `combo_items`, `deals`,
   `deal_products`, `banners`, `banner_items`, `home_sections`.
-- **Carts & wishlist** — `carts`, `cart_items`, `wishlists`,
-  `wishlist_items`.
-- **Orders** — `orders`, `order_items`, `order_item_discounts`,
-  `order_status_history`, `order_returns`, `order_return_items`. Needs a
-  retroactive FK from `stock_reservations.order_id` once `orders` exists.
+- **Wishlist** — `wishlists`, `wishlist_items`.
+- **Partial order cancellation** — the coupon re-validate-on-cancel
+  algorithm (DOCUMENTATION.md section 9); `order_item_discounts` already
+  exists for this, `OrderService::cancel()` only does whole-order so far.
 - **Invoices** — `invoices`, `invoice_items` (invoice-numbering rules:
-  `DOCUMENTATION.md` section 16).
+  `DOCUMENTATION.md` section 16). Orders exist but nothing generates an
+  invoice from one yet.
 - **Payments & refunds** — `payments`, `payment_transactions`,
   `payment_transaction_events`, `refunds`, `refund_transactions`.
 - **Delivery** — `deliveries`, `delivery_status_history`,

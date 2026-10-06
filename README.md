@@ -107,14 +107,24 @@ npm run dev
 
 - **Phase 1** — monorepo skeleton: two app shells (admin-pos, storefront),
   backend skeleton with a working `/api/health` route, env examples.
-- **Phase 2 (in progress)** — database foundation: 39 tables across
-  access/roles/permissions, customers, OTP, referral, catalog, products,
-  variants, inventory (see `database/README.md` for the full list and
-  what's still missing — coupons, orders, payments, delivery, etc.).
-  Migrations verified against a live MySQL 9.4 instance, including the
-  append-only trigger on `inventory_movements`. Dev seed data (admin/
-  cashier/customer logins, seed categories/units/GST rates) in
-  `database/seed/`.
+- **Phase 2 (in progress)** — database: 50 tables (see `database/README.md`
+  for the full list and what's still missing — suppliers/purchases,
+  automatic discounts, combos/deals/banners, wishlist, invoices, payments,
+  delivery, etc.). Backend APIs built and verified end-to-end against a
+  running dev server (not just written — actually exercised with curl):
+  - Staff login (JWT + permissions) and customer mobile+OTP signup/login
+  - Referral system: code generation, reward creation, self-referral guard
+  - Products + the attribute-based variant system, duplicate-combination
+    guard, POS barcode/SKU/name lookup
+  - Inventory ledger (`InventoryService`) + stock adjustments
+  - Coupons (customer-specific targeting, full validation) + cart +
+    checkout: coupon + referral discount stacking with combine flags,
+    backend-computed tax/shipping/grand total, stock reservation, mock
+    payment confirmation, and both cancellation paths (release an unpaid
+    reservation vs. restore stock on a paid order) — including reverting
+    coupon usage and the referral reward on cancel
 
-Backend APIs, both frontends, and every feature module land next, per
-`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
+Still ahead: both frontend apps' actual UI (nothing built in React/Next.js
+yet beyond the default scaffolds), purchases/suppliers, invoices, Razorpay,
+delivery tracking, refunds, Excel import/export, the admin dashboard, and
+reports — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
