@@ -1,38 +1,67 @@
 # Unified POS + E-Commerce System
 
 One shop (single branch) selling accessories, gifts, toys and related
-products. One PHP REST API + one MySQL database, shared by three
-independent frontends. Full spec: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)
-(and the shorter source brief at [docs/SHOP_FEATURES_REQUIREMENTS.md](docs/SHOP_FEATURES_REQUIREMENTS.md)).
+products. One PHP REST API + one MySQL database, shared by two independent
+frontends: a combined Admin + POS app, and a customer-facing storefront.
+
+Specs this build follows (in order of precedence where they overlap):
+
+1. [docs/ECOMMERCE_POS_ADMIN_SPEC.md](docs/ECOMMERCE_POS_ADMIN_SPEC.md) —
+   **current architecture source of truth.** Defines the 2-app layout
+   (Admin+POS combined, separate customer e-commerce app), mobile-OTP
+   customer auth, the referral system, and the full variant/coupon/order/
+   delivery/refund business logic.
+2. [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md) — the original 40-section
+   build spec (3-app layout, Google login, Firebase push, Razorpay,
+   wholesale pricing, combos/deals, shipping-provider tracking). Superseded
+   on app count by spec 1, but still the source for everything spec 1
+   doesn't redefine (GST/HSN master, invoice-numbering rules, inventory
+   ledger design, shipping/pincode logic, non-negotiable rules in section 26).
+3. [docs/SHOP_FEATURES_REQUIREMENTS.md](docs/SHOP_FEATURES_REQUIREMENTS.md) —
+   the original shorter customer brief; a subset of spec 2.
+
+**Open conflicts between spec 1 and spec 2 not yet resolved** (auth method:
+Google login vs. mobile+OTP; Firebase push notifications; wholesale
+customer type; combos/deals/banners; Razorpay vs. unspecified payment
+gateway) — see the conversation this was scaffolded in, or raise it before
+Phase 2 (auth + DB) lands.
 
 ## Architecture
 
 ```
-apps/admin        React (Vite) — admin panel, own login, own routes
-apps/pos          React (Vite) PWA — cashier billing, keyboard + hardware optimized
+apps/admin-pos    React (Vite) — Admin Panel + POS Billing, one app, role-based access
 apps/storefront   Next.js — customer-facing e-commerce (SSR/SSG for SEO)
 backend/          ONE PHP REST API (PDO, JWT auth, role-based authorization)
 packages/shared/  Shared UI components, API client, types — no business logic
 database/         Migrations + seed for the single MySQL database
-bridge/           Optional local print/scanner bridge (Node.js, shop PC)
-docs/             Full specification this build follows
+bridge/           Optional local print/scanner bridge (Node.js, shop PC) —
+                  only needed if POS hardware (thermal printer/barcode
+                  scanner) is added; not required by spec 1
+docs/             The three specs above
 ```
 
-Pricing, GST, coupon, inventory and ledger logic live **only** in the
-backend. All three apps call the same API and the same database; none of
-them may compute money values independently.
+Pricing, GST, coupon, referral, inventory and ledger logic live **only**
+in the backend. Both apps call the same API and the same database; neither
+may compute money values independently.
 
-## Non-negotiable rules (see docs section 26 for the full list)
+## Non-negotiable rules
 
-- No Product Line, Route, City or Branch concept anywhere.
-- Frontend is never trusted for selling price, discount, coupon, GST, stock
-  or grand total — the backend recalculates everything.
-- All stock changes go through one `InventoryService`, each writing an
-  immutable `inventory_movements` row.
-- Critical operations (sale, purchase, invoice, cancellation, return,
-  payment) run inside DB transactions.
-- Deleted invoice numbers are reused (lowest gap first); cancelled invoice
-  numbers are never reused.
+From spec 1 section 48 and spec 2 section 26/32:
+
+- No duplicate product/inventory/customer/order systems between Admin+POS
+  and the storefront — one shared backend and database.
+- Frontend is never trusted for price, discount, tax, stock, coupon amount,
+  customer ID or role — the backend recalculates and re-validates everything.
+- Variants are first-class (attributes, SKU, barcode, price, stock, images,
+  description per variant) — never plain text.
+- All stock changes are transactional and variant-aware; POS and
+  e-commerce share one inventory, with locking to prevent overselling.
+- Every admin edit to price/quantity/discount/status on an order is
+  audit-logged (old value, new value, changed by, reason).
+- Referral and coupon percentages, tax, and discount rules come from
+  configuration/database — never hardcoded.
+- No Product Line/Route/City/Branch concept anywhere (spec 2, single
+  business/location).
 
 ## Setup
 
@@ -48,10 +77,10 @@ php -S localhost:8000 -t public   # or serve public/ via Apache/XAMPP
 curl http://localhost:8000/api/health
 ```
 
-### Admin / POS (Vite)
+### Admin + POS (Vite)
 
 ```bash
-cd apps/admin   # or apps/pos
+cd apps/admin-pos
 npm install
 copy .env.example .env
 npm run dev
@@ -68,7 +97,7 @@ npm run dev
 
 ## Build status
 
-Phase 1 (section 27): monorepo skeleton, three app shells, backend skeleton
-with a working `/api/health` route, env examples, this README. Database
-schema, auth, and every feature module land in the following phases, in
-the order defined in docs section 27.
+Phase 1: monorepo skeleton — two app shells (admin-pos, storefront),
+backend skeleton with a working `/api/health` route, env examples, this
+README. Database schema, auth (OTP + referral), and every feature module
+land in the following phases per spec 1 section 46.
