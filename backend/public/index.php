@@ -9,6 +9,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CartController;
 use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
+use App\Controllers\DashboardController;
 use App\Controllers\DeliveryController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
@@ -135,6 +136,14 @@ $router->get('/api/refunds/{id}', fn ($id) => $refunds->show($id));
 $router->post('/api/refunds/{id}/process', fn ($id) => $refunds->process($id));
 $router->post('/api/refunds/{id}/cancel', fn ($id) => $refunds->cancel($id));
 $router->get('/api/reports/refunds', fn () => $refunds->summary());
+
+// Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)
+$dashboard = new DashboardController($pdo);
+$router->get('/api/dashboard/summary', fn () => $dashboard->summary());
+$router->get('/api/dashboard/sales-chart', fn () => $dashboard->salesChart());
+$router->get('/api/dashboard/product-analytics', fn () => $dashboard->productAnalytics());
+$router->get('/api/dashboard/customer-analytics', fn () => $dashboard->customerAnalytics());
+$router->get('/api/dashboard/recent-activity', fn () => $dashboard->recentActivity());
 
 try {
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'] ?? '/');

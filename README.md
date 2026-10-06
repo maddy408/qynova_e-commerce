@@ -139,6 +139,18 @@ npm run dev
     invoice is cancelled, processed as an explicit separate step
     (COMPLETED/FAILED), with a tested retry-after-failure path and a
     refund summary report
+  - Admin dashboard: sales cards (total/today/this-month/collection,
+    split POS vs. e-commerce), order funnel counts, refund totals,
+    customer counts, product/stock counts; a sales chart (daily/weekly/
+    monthly buckets); top-selling products/categories/variants plus a
+    gross-profit *estimate* (explicitly labeled — no cost-at-sale-time
+    snapshot exists yet, see `database/README.md`); new-vs-returning and
+    top-customer analytics, referral-customer count; recent sales/orders.
+    Net Profit/Expenses/Income are deliberately omitted rather than
+    reported as a fabricated zero — that module doesn't exist. Verified
+    against real multi-product, multi-channel test data, including
+    catching and fixing a double-counting bug (an out-of-stock variant
+    was being counted as both "low stock" and "out of stock")
 
 Still ahead: both frontend apps' actual UI (nothing built in React/Next.js
 yet beyond the default scaffolds), Razorpay, a real shipping provider
