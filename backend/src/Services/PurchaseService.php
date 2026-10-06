@@ -53,8 +53,15 @@ final class PurchaseService
     /**
      * @param list<array{variant_id: int, quantity: string, unit_cost: string}> $items
      */
-    public function createPurchase(int $supplierId, array $items, string $purchaseDate, string $amountPaid, int $createdByUserId): int
-    {
+    public function createPurchase(
+        int $supplierId,
+        array $items,
+        string $purchaseDate,
+        string $amountPaid,
+        int $createdByUserId,
+        ?string $paymentMethod = null,
+        ?string $notes = null
+    ): int {
         if ($items === []) {
             throw new RuntimeException('At least one item is required');
         }
@@ -103,10 +110,10 @@ final class PurchaseService
             $this->pdo->prepare(
                 "INSERT INTO purchases (
                     purchase_no, supplier_id, status, subtotal, tax_total, grand_total,
-                    amount_paid, payment_status, purchase_date, created_by
+                    amount_paid, payment_method, payment_status, purchase_date, notes, created_by
                 ) VALUES (
                     :purchase_no, :supplier_id, 'ACTIVE', :subtotal, :tax_total, :grand_total,
-                    :amount_paid, :payment_status, :purchase_date, :created_by
+                    :amount_paid, :payment_method, :payment_status, :purchase_date, :notes, :created_by
                 )"
             )->execute([
                 'purchase_no' => $purchaseNo,
@@ -115,8 +122,10 @@ final class PurchaseService
                 'tax_total' => $taxTotal,
                 'grand_total' => $grandTotal,
                 'amount_paid' => $amountPaid,
+                'payment_method' => $paymentMethod,
                 'payment_status' => $paymentStatus,
                 'purchase_date' => $purchaseDate,
+                'notes' => $notes,
                 'created_by' => $createdByUserId,
             ]);
 

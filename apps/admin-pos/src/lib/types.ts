@@ -60,6 +60,14 @@ export interface Unit {
   short_code: string
 }
 
+export interface PaymentMethod {
+  id: number
+  code: string
+  name: string
+  sort_order: number
+  is_active: 0 | 1
+}
+
 export interface GstRate {
   id: number
   name: string

@@ -50,6 +50,7 @@ $router->post('/api/customers/signup', fn () => $customerAuth->signup());
 $router->post('/api/customers/login', fn () => $customerAuth->login());
 $router->post('/api/customers/otp/login', fn () => $customerAuth->loginWithOtp());
 $router->get('/api/customers/me', fn () => $customerAuth->me());
+$router->get('/api/customers', fn () => $customerAuth->indexForStaff());
 
 // Staff auth (docs/DOCUMENTATION.md section 5)
 $auth = new AuthController($pdo);
@@ -67,11 +68,13 @@ $categories = new CategoryController($pdo);
 $router->get('/api/categories', fn () => $categories->index());
 $router->post('/api/categories', fn () => $categories->store());
 $router->put('/api/categories/{id}', fn ($id) => $categories->update($id));
+$router->delete('/api/categories/{id}', fn ($id) => $categories->destroy($id));
 
 $subcategories = new SubcategoryController($pdo);
 $router->get('/api/subcategories', fn () => $subcategories->index());
 $router->post('/api/subcategories', fn () => $subcategories->store());
 $router->put('/api/subcategories/{id}', fn ($id) => $subcategories->update($id));
+$router->delete('/api/subcategories/{id}', fn ($id) => $subcategories->destroy($id));
 
 $masters = new MasterDataController($pdo);
 $router->get('/api/brands', fn () => $masters->indexBrands());
@@ -85,6 +88,9 @@ $router->get('/api/hsn-codes', fn () => $masters->indexHsnCodes());
 $router->post('/api/hsn-codes', fn () => $masters->storeHsnCode());
 $router->put('/api/hsn-codes/{id}', fn ($id) => $masters->updateHsnCode($id));
 $router->delete('/api/hsn-codes/{id}', fn ($id) => $masters->destroyHsnCode($id));
+$router->get('/api/payment-methods', fn () => $masters->indexPaymentMethods());
+$router->post('/api/payment-methods', fn () => $masters->storePaymentMethod());
+$router->put('/api/payment-methods/{id}', fn ($id) => $masters->updatePaymentMethod($id));
 
 // Products & variants (ECOMMERCE_POS_ADMIN_SPEC.md sections 5-7)
 $products = new ProductController($pdo);
@@ -139,6 +145,7 @@ $router->delete('/api/variants/{id}/images/{imageId}', fn ($id, $imageId) => $va
 // Inventory (docs/DOCUMENTATION.md section 11)
 $inventory = new InventoryController($pdo);
 $router->get('/api/inventory', fn () => $inventory->index());
+$router->get('/api/pos/products', fn () => $inventory->posIndex());
 $router->get('/api/inventory/low-stock', fn () => $inventory->lowStock());
 $router->get('/api/inventory/adjustments', fn () => $inventory->indexAdjustments());
 $router->post('/api/inventory/adjustments', fn () => $inventory->storeAdjustment());
@@ -225,6 +232,7 @@ $router->get('/api/home-sections', fn () => $homeSections->index());
 $router->post('/api/home-sections', fn () => $homeSections->store());
 $router->put('/api/home-sections/reorder', fn () => $homeSections->reorder());
 $router->put('/api/home-sections/{id}', fn ($id) => $homeSections->update($id));
+$router->post('/api/home-sections/{id}/image', fn ($id) => $homeSections->uploadImage($id));
 $router->delete('/api/home-sections/{id}', fn ($id) => $homeSections->destroy($id));
 
 // Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)

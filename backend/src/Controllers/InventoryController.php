@@ -44,6 +44,25 @@ final class InventoryController
         Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit));
     }
 
+    /**
+     * Product grid for POS billing — same data shape as index() but
+     * gated by `pos.sell` instead of `inventory.view`, since a cashier
+     * can sell without being able to see the full inventory/stock-
+     * adjustment screens.
+     */
+    public function posIndex(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'pos.sell');
+
+        $search = isset($_GET['search']) ? (string) $_GET['search'] : null;
+        $page = (int) ($_GET['page'] ?? 1);
+        $limit = (int) ($_GET['limit'] ?? 100);
+        $categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : null;
+
+        Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit, posOnly: true, categoryId: $categoryId));
+    }
+
     public function lowStock(): void
     {
         $claims = JwtAuthMiddleware::authenticate();

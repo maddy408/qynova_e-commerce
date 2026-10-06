@@ -75,6 +75,11 @@ final class CategoryService
         $this->pdo->prepare('UPDATE categories SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($params);
     }
 
+    public function delete(int $id): void
+    {
+        $this->pdo->prepare("UPDATE categories SET deleted_at = NOW(), status = 'INACTIVE' WHERE id = :id")->execute(['id' => $id]);
+    }
+
     private function uniqueSlug(string $name): string
     {
         $base = $this->slugify($name);

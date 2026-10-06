@@ -42,7 +42,10 @@ const navGroups = [
   },
   {
     label: 'Settings',
-    items: [{ to: '/tax', label: 'Tax', icon: '🧾' }],
+    items: [
+      { to: '/tax', label: 'Tax', icon: '🧾' },
+      { to: '/payment-methods', label: 'Payment Methods', icon: '💳' },
+    ],
   },
 ]
 
@@ -97,7 +100,7 @@ export function Layout() {
         </div>
       </aside>
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-6xl px-8 py-8">
+        <div className="w-full px-6 py-5">
           <Outlet />
         </div>
       </main>

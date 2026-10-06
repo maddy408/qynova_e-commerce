@@ -176,6 +176,77 @@ final class MasterDataController
         Response::json(['hsn_codes' => $this->pdo->query('SELECT * FROM hsn_codes ORDER BY code')->fetchAll()]);
     }
 
+    /** `?all=1` also returns INACTIVE methods for the Payment Methods admin page; everyone else only wants ACTIVE ones for a dropdown. */
+    public function indexPaymentMethods(): void
+    {
+        $where = isset($_GET['all']) ? '1=1' : 'is_active = 1';
+        Response::json(['payment_methods' => $this->pdo->query(
+            "SELECT * FROM payment_methods WHERE {$where} ORDER BY sort_order, name"
+        )->fetchAll()]);
+    }
+
+    public function storePaymentMethod(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'payment_methods.manage');
+
+        $body = Request::json();
+        $code = mb_strtoupper(trim((string) ($body['code'] ?? '')));
+        $name = trim((string) ($body['name'] ?? ''));
+
+        if ($code === '' || $name === '') {
+            Response::error('code and name are required', 422);
+        }
+
+        try {
+            $this->pdo->prepare(
+                'INSERT INTO payment_methods (code, name, sort_order, is_active) VALUES (:code, :name, :sort_order, :is_active)'
+            )->execute([
+                'code' => $code,
+                'name' => $name,
+                'sort_order' => (int) ($body['sort_order'] ?? 0),
+                'is_active' => (int) (bool) ($body['is_active'] ?? true),
+            ]);
+            Response::json(['id' => (int) $this->pdo->lastInsertId()], 201);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A payment method with this code already exists', 409);
+            }
+            throw $e;
+        }
+    }
+
+    public function updatePaymentMethod(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'payment_methods.manage');
+
+        $body = Request::json();
+        $fields = ['name', 'sort_order', 'is_active'];
+        $sets = [];
+        $params = ['id' => $id];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $body)) {
+                $sets[] = "{$field} = :{$field}";
+                $params[$field] = $field === 'is_active' ? (int) (bool) $body[$field] : $body[$field];
+            }
+        }
+
+        if ($sets === []) {
+            Response::json(['updated' => true]);
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE payment_methods SET ' . implode(', ', $sets) . ' WHERE id = :id');
+        $stmt->execute($params);
+
+        if ($stmt->rowCount() === 0) {
+            Response::error('Payment method not found', 404);
+        }
+
+        Response::json(['updated' => true]);
+    }
+
     public function storeHsnCode(): void
     {
         $claims = JwtAuthMiddleware::authenticate();

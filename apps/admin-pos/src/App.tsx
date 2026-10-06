@@ -12,6 +12,7 @@ import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProductCreatePage } from './pages/ProductCreatePage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
+import { PaymentMethodsPage } from './pages/PaymentMethodsPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { PurchasesPage } from './pages/PurchasesPage'
 import { ReferralSettingsPage } from './pages/ReferralSettingsPage'
@@ -60,6 +61,7 @@ function App() {
         <Route path="/banners" element={<BannersPage />} />
         <Route path="/home-sections" element={<HomeSectionsPage />} />
         <Route path="/tax" element={<TaxPage />} />
+        <Route path="/payment-methods" element={<PaymentMethodsPage />} />
         <Route path="/reports" element={<ReportsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

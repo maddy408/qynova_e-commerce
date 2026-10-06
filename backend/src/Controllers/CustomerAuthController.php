@@ -207,6 +207,34 @@ final class CustomerAuthController
         Response::json(['customer' => $customer, 'referral' => $referral]);
     }
 
+    /** Staff-facing customer search for POS billing's customer picker. */
+    public function indexForStaff(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'pos.sell');
+
+        $search = trim((string) ($_GET['search'] ?? ''));
+        $where = ['deleted_at IS NULL'];
+        $params = [];
+
+        if ($search !== '') {
+            $where[] = '(name LIKE :search1 OR phone LIKE :search2)';
+            $needle = '%' . $search . '%';
+            $params['search1'] = $needle;
+            $params['search2'] = $needle;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT c.id, c.name, c.phone, c.customer_type, c.created_at,
+                    (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS order_count,
+                    (SELECT MAX(created_at) FROM orders o WHERE o.customer_id = c.id) AS latest_order_at
+             FROM customers c WHERE ' . implode(' AND ', $where) . ' ORDER BY latest_order_at DESC, c.name LIMIT 50'
+        );
+        $stmt->execute($params);
+
+        Response::json(['customers' => $stmt->fetchAll()]);
+    }
+
     private function issueToken(int $customerId, string $name, string $phone): string
     {
         return JwtHelper::issue(

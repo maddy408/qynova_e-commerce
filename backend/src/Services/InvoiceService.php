@@ -354,7 +354,13 @@ final class InvoiceService
 
         $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
 
-        $stmt = $this->pdo->prepare("SELECT * FROM invoices WHERE {$whereSql} ORDER BY created_at DESC LIMIT 200");
+        $stmt = $this->pdo->prepare(
+            "SELECT i.*, c.name AS customer_name, c.phone AS customer_phone, u.name AS cashier_name
+             FROM invoices i
+             LEFT JOIN customers c ON c.id = i.customer_id
+             LEFT JOIN users u ON u.id = i.cashier_user_id
+             WHERE {$whereSql} ORDER BY i.created_at DESC LIMIT 200"
+        );
         $stmt->execute($params);
 
         return $stmt->fetchAll();
@@ -363,7 +369,13 @@ final class InvoiceService
     /** @return array<string, mixed>|null */
     public function find(int $invoiceId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM invoices WHERE id = :id');
+        $stmt = $this->pdo->prepare(
+            'SELECT i.*, c.name AS customer_name, c.phone AS customer_phone, u.name AS cashier_name
+             FROM invoices i
+             LEFT JOIN customers c ON c.id = i.customer_id
+             LEFT JOIN users u ON u.id = i.cashier_user_id
+             WHERE i.id = :id'
+        );
         $stmt->execute(['id' => $invoiceId]);
         $invoice = $stmt->fetch();
 

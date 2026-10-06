@@ -16,3 +16,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Invoice print view (InvoiceDetailPage): hide the on-screen toolbar and
+   the app sidebar/layout chrome, print just the receipt itself. */
+@media print {
+  .no-print,
+  aside,
+  nav {
+    display: none !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+}

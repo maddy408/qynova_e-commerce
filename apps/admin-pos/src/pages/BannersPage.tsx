@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Banner, BannerPosition, BannerTargetType, Category, ProductListItem, Subcategory } from '../lib/types'
@@ -86,16 +87,28 @@ export function BannersPage() {
                   <Badge>{b.target_type}</Badge>
                   {b.items.length > 0 && <Badge tone="amber">{b.items.length} item(s)</Badge>}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => setEditing(b)}>
-                    Manage
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => toggleActive(b)}>
-                    {b.is_active ? 'Deactivate' : 'Activate'}
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-red-600" onClick={() => removeBanner(b.id)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => setEditing(b)}
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                    title="Manage / Edit Banner"
+                  >
+                    <PencilIcon />
+                  </button>
+                  <button
+                    onClick={() => toggleActive(b)}
+                    className={`p-1.5 rounded-lg transition-colors ${b.is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'}`}
+                    title={b.is_active ? 'Deactivate Banner' : 'Activate Banner'}
+                  >
+                    <PowerIcon />
+                  </button>
+                  <button
+                    onClick={() => removeBanner(b.id)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    title="Delete Banner"
+                  >
+                    <TrashIcon />
+                  </button>
                 </div>
               </div>
             </Card>
@@ -250,16 +263,17 @@ function BannerFormModal({
   const [targetUrl, setTargetUrl] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [endsAt, setEndsAt] = useState('')
-  const [sortOrder, setSortOrder] = useState('0')
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [desktopFile, setDesktopFile] = useState<File | null>(null)
+  const [mobileFile, setMobileFile] = useState<File | null>(null)
+  const [desktopPreview, setDesktopPreview] = useState<string>('')
+  const [mobilePreview, setMobilePreview] = useState<string>('')
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
     setSubmitting(true)
     try {
-      await api.post('/banners', {
+      const res = await api.post('/banners', {
         title: name,
         position,
         target_type: targetType,
@@ -269,6 +283,24 @@ function BannerFormModal({
         ends_at: endsAt || null,
         sort_order: Number(sortOrder) || 0,
       })
+      const bannerId = res.data.id
+
+      if (desktopFile) {
+        const formData = new FormData()
+        formData.append('file', desktopFile)
+        await api.post(`/banners/${bannerId}/image/desktop`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
+      if (mobileFile) {
+        const formData = new FormData()
+        formData.append('file', mobileFile)
+        await api.post(`/banners/${bannerId}/image/mobile`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
       onSaved()
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not create banner'))
@@ -279,10 +311,10 @@ function BannerFormModal({
 
   return (
     <Modal title={title} onClose={onClose} width="lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         {error && <Alert>{error}</Alert>}
         <div className="grid grid-cols-2 gap-4">
-          <TextField label="Title" required autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          <TextField label="Title" required autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Summer Special Sale" />
           <Select label="Position" value={position} onChange={(e) => setPosition(e.target.value as BannerPosition)}>
             {POSITIONS.map((p) => (
               <option key={p} value={p}>
@@ -290,6 +322,46 @@ function BannerFormModal({
               </option>
             ))}
           </Select>
+        </div>
+
+        {/* Banner Images Selection */}
+        <div className="grid grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Desktop Image Banner</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) {
+                  setDesktopFile(f)
+                  setDesktopPreview(URL.createObjectURL(f))
+                }
+              }}
+              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+            />
+            {desktopPreview && (
+              <img src={desktopPreview} alt="Desktop Preview" className="mt-2 h-16 w-full rounded border border-slate-300 object-cover" />
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Image Banner (Optional)</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) {
+                  setMobileFile(f)
+                  setMobilePreview(URL.createObjectURL(f))
+                }
+              }}
+              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+            />
+            {mobilePreview && (
+              <img src={mobilePreview} alt="Mobile Preview" className="mt-2 h-16 w-full rounded border border-slate-300 object-cover" />
+            )}
+          </div>
         </div>
 
         <TargetFields
@@ -311,9 +383,7 @@ function BannerFormModal({
           <TextField label="Sort Order" type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </div>
 
-        <p className="text-xs text-slate-500">You can upload the banner image after creating it, from "Manage".</p>
-
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>

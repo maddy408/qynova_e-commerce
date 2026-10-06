@@ -64,4 +64,13 @@ final class CategoryController
             throw $e;
         }
     }
+
+    public function destroy(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $this->categories->delete((int) $id);
+        Response::json(['deleted' => true]);
+    }
 }

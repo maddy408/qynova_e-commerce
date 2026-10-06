@@ -18,8 +18,10 @@ final class HomeSectionService
 {
     private const TYPES = ['BANNER', 'CATEGORIES', 'BEST_SELLERS', 'NEW_ARRIVALS', 'FEATURED', 'COMBOS', 'DEALS', 'CUSTOM'];
 
-    public function __construct(private readonly PDO $pdo)
-    {
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly ImageUploadService $uploader = new ImageUploadService(),
+    ) {
     }
 
     /** @return list<array<string, mixed>> */
@@ -80,6 +82,25 @@ final class HomeSectionService
         if ($stmt->rowCount() === 0 && $this->find($id) === null) {
             throw new RuntimeException('Home section not found');
         }
+    }
+
+    /** @param array{tmp_name: string, size: int, error: int, name: string} $file */
+    public function uploadImage(int $id, array $file): string
+    {
+        $section = $this->find($id);
+        if ($section === null) {
+            throw new RuntimeException('Home section not found');
+        }
+
+        $stored = $this->uploader->store($file, "home-sections/{$id}");
+        if (!empty($section['image_path'])) {
+            $this->uploader->delete($section['image_path']);
+        }
+
+        $this->pdo->prepare('UPDATE home_sections SET image_path = :path WHERE id = :id')
+            ->execute(['path' => $stored['path'], 'id' => $id]);
+
+        return $stored['path'];
     }
 
     public function delete(int $id): void

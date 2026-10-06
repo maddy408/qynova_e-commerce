@@ -113,6 +113,11 @@ final class SubcategoryService
         }
     }
 
+    public function delete(int $id): void
+    {
+        $this->pdo->prepare("UPDATE subcategories SET deleted_at = NOW(), status = 'INACTIVE' WHERE id = :id")->execute(['id' => $id]);
+    }
+
     /** @param list<int> $categoryIds */
     private function syncCategories(int $subcategoryId, array $categoryIds): void
     {

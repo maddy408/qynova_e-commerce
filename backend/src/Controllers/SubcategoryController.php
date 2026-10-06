@@ -72,4 +72,13 @@ final class SubcategoryController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    public function destroy(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $this->subcategories->delete((int) $id);
+        Response::json(['deleted' => true]);
+    }
 }

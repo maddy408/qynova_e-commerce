@@ -98,6 +98,8 @@ export function ProductCreatePage() {
   const [searchKeywords, setSearchKeywords] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
   const [isActive, setIsActive] = useState(true)
+  const [showDiscount, setShowDiscount] = useState(true)
+  const [colorSearch, setColorSearch] = useState('')
 
   // Specifications (kept from the previous build — free-form name/value rows)
   const [specs, setSpecs] = useState<{ name: string; value: string }[]>([{ name: '', value: '' }])
@@ -240,6 +242,7 @@ export function ProductCreatePage() {
         meta_description: metaDescription || null,
         is_featured: isFeatured,
         is_active: isActive,
+        show_discount: showDiscount,
       })
       const productId = res.data.id
 
@@ -278,7 +281,7 @@ export function ProductCreatePage() {
           if (ids.length > 0) groupsByAttribute.set(attribute.id, ids)
         }
 
-        await api.post(`/products/${productId}/variants/generate`, {
+        const generateRes = await api.post(`/products/${productId}/variants/generate`, {
           attribute_value_groups: Array.from(groupsByAttribute.values()),
           defaults: {
             mrp: mrp || undefined,
@@ -288,6 +291,24 @@ export function ProductCreatePage() {
             hsn_code_id: hsnCodeId || undefined,
           },
         })
+
+        const createdVariantIds: number[] = generateRes.data.created ?? []
+
+        const stock = openingStock.trim()
+        if (stock !== '' && Number(stock) > 0 && createdVariantIds.length > 0) {
+          setSubmitStep('Setting opening stock for variants…')
+          await api.post('/inventory/adjustments', {
+            reason: 'Opening stock',
+            items: createdVariantIds.map((varId) => ({ variant_id: varId, counted_qty: stock })),
+          })
+        }
+
+        if (lowStockAlert.trim() !== '' && createdVariantIds.length > 0) {
+          setSubmitStep('Setting low stock alert for variants…')
+          for (const varId of createdVariantIds) {
+            await api.put(`/inventory/${varId}/threshold`, { low_stock_threshold: Number(lowStockAlert) })
+          }
+        }
       }
 
       if (stagedImages.length > 0) {
@@ -317,34 +338,67 @@ export function ProductCreatePage() {
     }
   }
 
+  const computedDiscountPercent = useMemo(() => {
+    const m = Number(mrp)
+    const s = Number(sellingPrice)
+    if (m > 0 && s > 0 && m > s) {
+      return Math.round(((m - s) / m) * 100)
+    }
+    return 0
+  }, [mrp, sellingPrice])
+
   const priceFieldsCard = (
-    <div className="grid grid-cols-3 gap-4">
-      <TextField label="MRP" required type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} />
-      <TextField
-        label="Selling Price"
-        required
-        type="number"
-        step="0.01"
-        value={sellingPrice}
-        onChange={(e) => setSellingPrice(e.target.value)}
-      />
-      <TextField label="Cost Price" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} />
-      <Select label="GST Rate" value={gstRateId} onChange={(e) => setGstRateId(e.target.value)}>
-        <option value="">— None —</option>
-        {gstRates.map((g) => (
-          <option key={g.id} value={g.id}>
-            {g.name}
-          </option>
-        ))}
-      </Select>
-      <Select label="HSN Code" value={hsnCodeId} onChange={(e) => setHsnCodeId(e.target.value)}>
-        <option value="">— None —</option>
-        {hsnCodes.map((h) => (
-          <option key={h.id} value={h.id}>
-            {h.code}
-          </option>
-        ))}
-      </Select>
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        <TextField label="MRP (₹)" required type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} placeholder="e.g. 999" />
+        <TextField
+          label="Selling Price (₹)"
+          required
+          type="number"
+          step="0.01"
+          value={sellingPrice}
+          onChange={(e) => setSellingPrice(e.target.value)}
+          placeholder="e.g. 799"
+        />
+        <TextField label="Cost / Purchase Price (₹)" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="e.g. 500" />
+        <Select label="GST Rate" value={gstRateId} onChange={(e) => setGstRateId(e.target.value)}>
+          <option value="">— None —</option>
+          {gstRates.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </Select>
+        <Select label="HSN Code" value={hsnCodeId} onChange={(e) => setHsnCodeId(e.target.value)}>
+          <option value="">— None —</option>
+          {hsnCodes.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.code}
+            </option>
+          ))}
+        </Select>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">Auto Discount</label>
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 h-[38px]">
+            <span>{computedDiscountPercent}% OFF</span>
+            {mrp && sellingPrice && Number(mrp) > Number(sellingPrice) && (
+              <span className="text-[10px] font-medium text-emerald-600">(Save ₹{(Number(mrp) - Number(sellingPrice)).toFixed(2)})</span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 pt-1 border-t border-slate-100">
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showDiscount}
+            onChange={(e) => setShowDiscount(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+          <span className="ml-2 text-xs font-medium text-slate-700">Show Discount Badge on E-Commerce</span>
+        </label>
+      </div>
     </div>
   )
 
@@ -572,59 +626,131 @@ export function ProductCreatePage() {
                   {variantAttributes.length === 0 ? (
                     <p className="text-sm text-slate-400">No variant attributes set up yet.</p>
                   ) : (
-                    <div className="space-y-3">
-                      {variantAttributes.map((attribute) => (
-                        <div key={attribute.id}>
-                          <p className="mb-1 text-xs font-medium uppercase text-slate-500">{attribute.name}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {attribute.values.map((value) => (
-                              <button
-                                key={value.id}
-                                type="button"
-                                onClick={() => toggleAttributeValue(value.id)}
-                                className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                                  selectedValueIds.includes(value.id)
-                                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                                    : 'border-slate-300 text-slate-600 hover:border-slate-400'
-                                }`}
+                    <div className="space-y-4">
+                      {variantAttributes.map((attribute) => {
+                        const isColor = attribute.name.toLowerCase().includes('color')
+                        const selectedForAttr = attribute.values.filter((v) => selectedValueIds.includes(v.id))
+                        const unselectedForAttr = attribute.values.filter((v) => !selectedValueIds.includes(v.id))
+
+                        return (
+                          <div key={attribute.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                                Select {attribute.name}
+                              </label>
+                              <span className="text-[11px] text-slate-500 font-medium">
+                                {selectedForAttr.length} selected
+                              </span>
+                            </div>
+
+                            {/* Dropdown Selector for Colors / Attributes */}
+                            <div className="flex gap-2">
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  const valId = Number(e.target.value)
+                                  if (valId && !selectedValueIds.includes(valId)) {
+                                    setSelectedValueIds((prev) => [...prev, valId])
+                                  }
+                                }}
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                               >
-                                {value.color_hex && (
-                                  <span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ backgroundColor: value.color_hex }} />
-                                )}
-                                {value.value}
-                              </button>
-                            ))}
+                                <option value="">Choose a {attribute.name} from list ({unselectedForAttr.length} available)…</option>
+                                {unselectedForAttr.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.value} {v.color_hex ? `(${v.color_hex})` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Selected Chips */}
+                            {selectedForAttr.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                {selectedForAttr.map((value) => (
+                                  <span
+                                    key={value.id}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800 shadow-2xs"
+                                  >
+                                    {value.color_hex && (
+                                      <span
+                                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                                        style={{ backgroundColor: value.color_hex }}
+                                      />
+                                    )}
+                                    {value.value}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAttributeValue(value.id)}
+                                      className="ml-0.5 text-indigo-400 hover:text-indigo-900 font-bold"
+                                    >
+                                      ✕
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-slate-500">Starting price &amp; tax for every generated variant (fine-tune individual variants afterward):</p>
+                <p className="text-xs text-slate-500 font-medium">Starting price &amp; tax for every generated variant:</p>
                 {priceFieldsCard}
+
+                <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
+                  <h3 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">Initial Stock &amp; Alert Threshold for Variants</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <TextField
+                      label="Opening Stock (per generated variant)"
+                      type="number"
+                      step="1"
+                      value={openingStock}
+                      onChange={(e) => setOpeningStock(e.target.value)}
+                      placeholder="e.g. 100"
+                    />
+                    <TextField
+                      label="Low Stock Alert Threshold"
+                      type="number"
+                      step="1"
+                      value={lowStockAlert}
+                      onChange={(e) => setLowStockAlert(e.target.value)}
+                      placeholder="Default: 5"
+                    />
+                  </div>
+                  <p className="text-[11px] text-indigo-700">
+                    ✓ This opening stock &amp; low stock alert count will be applied automatically to all generated variants (e.g. Blue/L, Red/XL).
+                  </p>
+                </div>
               </>
             )}
           </Card>
 
           <Card className={`space-y-4 p-5 ${activeSection === 'inventory' ? '' : 'hidden'}`}>
             <h2 className="text-sm font-semibold text-slate-900">Inventory</h2>
-            {productType === 'VARIABLE' ? (
-              <p className="text-sm text-slate-500">
-                Each variant gets its own stock count — set opening stock and low-stock alerts per variant on the product page
-                after they're generated.
+            <div className="grid grid-cols-2 gap-4">
+              <TextField
+                label="Opening Stock"
+                type="number"
+                step="1"
+                value={openingStock}
+                onChange={(e) => setOpeningStock(e.target.value)}
+                placeholder="e.g. 50"
+              />
+              <TextField
+                label="Low Stock Alert Threshold"
+                type="number"
+                step="1"
+                value={lowStockAlert}
+                onChange={(e) => setLowStockAlert(e.target.value)}
+                placeholder="Default: 5"
+              />
+            </div>
+            {productType === 'VARIABLE' && (
+              <p className="text-xs text-indigo-600 font-medium">
+                ✓ Opening stock and low stock alerts set here will be automatically applied to all created variants upon saving.
               </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <TextField label="Opening Stock" type="number" step="1" value={openingStock} onChange={(e) => setOpeningStock(e.target.value)} />
-                <TextField
-                  label="Low Stock Alert"
-                  type="number"
-                  step="1"
-                  value={lowStockAlert}
-                  onChange={(e) => setLowStockAlert(e.target.value)}
-                  placeholder="Default: 5"
-                />
-              </div>
             )}
           </Card>
 

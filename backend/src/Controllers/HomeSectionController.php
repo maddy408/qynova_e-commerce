@@ -55,6 +55,23 @@ final class HomeSectionController
         }
     }
 
+    public function uploadImage(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'banners.manage');
+
+        if (!isset($_FILES['file'])) {
+            Response::error('A file upload named "file" is required', 422);
+        }
+
+        try {
+            $path = $this->sections->uploadImage((int) $id, $_FILES['file']);
+            Response::json(['image_path' => $path]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
     public function destroy(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();

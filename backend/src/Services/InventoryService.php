@@ -174,17 +174,31 @@ final class InventoryService
      * Adjustment screen's product list (left-joined, not inner-joined —
      * a variant with no stock movement yet has no `inventory` row at
      * all, since that row is created lazily by apply()/setLowStockThreshold()).
+     * Also carries pricing/image/category columns so the POS Sale
+     * screen's product grid can reuse the same endpoint instead of a
+     * second variant-level listing query — pass $posOnly to restrict it
+     * to `is_pos_enabled` products, as Sale does (Stock Adjustment wants
+     * every product regardless of channel).
      *
      * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
      */
-    public function listAllStock(?string $search, int $page, int $limit): array
+    public function listAllStock(?string $search, int $page, int $limit, bool $posOnly = false, ?int $categoryId = null): array
     {
         $page = max(1, $page);
-        $limit = min(100, max(1, $limit));
+        $limit = min(200, max(1, $limit));
         $offset = ($page - 1) * $limit;
 
-        $where = ['v.deleted_at IS NULL', 'p.deleted_at IS NULL'];
+        $where = ['v.deleted_at IS NULL', 'p.deleted_at IS NULL', "v.status = 'ACTIVE'"];
         $params = [];
+
+        if ($posOnly) {
+            $where[] = 'p.is_pos_enabled = 1';
+        }
+
+        if ($categoryId !== null) {
+            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = :category_id)';
+            $params['category_id'] = $categoryId;
+        }
 
         if ($search !== null && trim($search) !== '') {
             // Three distinct placeholders for the same value — with
@@ -207,11 +221,14 @@ final class InventoryService
 
         $stmt = $this->pdo->prepare(
             "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name,
+                    v.mrp, v.retail_price, v.wholesale_price, g.gst_percent, g.tax_mode,
+                    (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
                     COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN inventory i ON i.variant_id = v.id
+             LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
              WHERE {$whereSql}
              ORDER BY p.name, v.sku
              LIMIT :limit OFFSET :offset"

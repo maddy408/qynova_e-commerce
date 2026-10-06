@@ -79,6 +79,8 @@ final class PurchaseController
                 purchaseDate: (string) ($body['purchase_date'] ?? date('Y-m-d')),
                 amountPaid: (string) ($body['amount_paid'] ?? '0'),
                 createdByUserId: (int) $claims['sub'],
+                paymentMethod: isset($body['payment_method']) ? (string) $body['payment_method'] : null,
+                notes: isset($body['notes']) ? (string) $body['notes'] : null,
             );
             Response::json(['purchase' => $this->purchases->find($id)], 201);
         } catch (RuntimeException $e) {
