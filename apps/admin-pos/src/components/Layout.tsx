@@ -31,7 +31,11 @@ const navGroups = [
   },
   {
     label: 'Marketing',
-    items: [{ to: '/referral-settings', label: 'Referral', icon: '🔗' }],
+    items: [
+      { to: '/referral-settings', label: 'Referral', icon: '🔗' },
+      { to: '/banners', label: 'Banners', icon: '🖼️' },
+      { to: '/home-sections', label: 'Home Sections', icon: '🏠' },
+    ],
   },
 ]
 

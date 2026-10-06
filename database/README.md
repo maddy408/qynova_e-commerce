@@ -34,6 +34,7 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0013_delivery.sql` | `deliveries`, `delivery_status_history` |
 | `0014_refunds.sql` | `refunds`, `refund_transactions` |
 | `0015_product_enrichment.sql` | Adds `bullet_points`, warranty/return/refund/SEO-keyword columns and `is_trending`/`is_deal` to `products`; adds `product_specifications` |
+| `0016_banners.sql` | `banners`, `banner_items`, `home_sections`; adds the `banners.manage` permission |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
@@ -149,6 +150,25 @@ frontend now only sends `variant_id` and `counted_qty`. This is the same
 "never trust the frontend for a derivable FK" rule the rest of the stock
 code already followed; this one call site had slipped through.
 
+**Banners + home sections** (`0016_banners.sql`) — scoped down from
+DOCUMENTATION.md section 10: `combos`/`deals` and the automatic
+"discount_group" banner target stay deferred (no backing tables exist),
+so `banners.target_type` omits `DISCOUNT_GROUP`, and `home_sections.type`
+keeps the `BEST_SELLERS`/`COMBOS`/`DEALS` enum values (so the column
+doesn't need a migration later) without any endpoint resolving them yet
+— `BEST_SELLERS` would need `product_stats` (also deferred), `COMBOS`/
+`DEALS` need their own tables. `target_id` is deliberately FK-less (it's
+polymorphic — product/category/subcategory/brand/coupon depending on
+`target_type`); `BannerService::resolveTarget()` validates it against the
+right table instead. `GET /api/banners` and `GET /api/banners/{id}` are
+public/unauthenticated, same reasoning as `CategoryController::index()` —
+the storefront will need banner data without a login, same as category
+navigation. Desktop/mobile images go through the same `ImageUploadService`
+pipeline as product images, each as its own upload endpoint (`POST
+/api/banners/{id}/image/desktop` / `.../mobile`) since a banner needs a
+real ID before it has anywhere to attach a file, same two-step reasoning
+as product images.
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Deferred from the Product Create spec (low practical value for a
@@ -159,8 +179,9 @@ code already followed; this one call site had slipped through.
 - **Automatic discounts** — `discounts` + its applicability join tables
   (DOCUMENTATION.md section 9's separate, code-less "Discount Master" —
   distinct from the `coupons` built in 0008, which always needs a code).
-- **Combos, deals, banners** — `combos`, `combo_items`, `deals`,
-  `deal_products`, `banners`, `banner_items`, `home_sections`.
+- **Combos and deals** — `combos`, `combo_items`, `deals`,
+  `deal_products` — banners/home_sections (0016) ship with schema-ready
+  placeholders for these but the tables themselves don't exist yet.
 - **Wishlist** — `wishlists`, `wishlist_items`.
 - **Partial order/invoice cancellation** — the coupon re-validate-on-
   cancel algorithm (DOCUMENTATION.md section 9); `order_item_discounts`

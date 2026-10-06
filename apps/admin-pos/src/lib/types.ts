@@ -126,6 +126,52 @@ export interface ProductSpecification {
   sort_order: number
 }
 
+export type BannerPosition = 'HOME_HERO' | 'HOME_MIDDLE' | 'CATEGORY_PAGE' | 'POPUP'
+export type BannerTargetType = 'PRODUCT' | 'CATEGORY' | 'SUBCATEGORY' | 'BRAND' | 'COUPON' | 'EXTERNAL_URL' | 'NONE'
+
+export interface BannerItem {
+  id: number
+  product_id: number
+  product_name: string
+  offer_text: string | null
+  sort_order: number
+}
+
+export interface Banner {
+  id: number
+  title: string
+  image_desktop_path: string | null
+  image_mobile_path: string | null
+  position: BannerPosition
+  target_type: BannerTargetType
+  target_id: number | null
+  target_url: string | null
+  starts_at: string | null
+  ends_at: string | null
+  sort_order: number
+  is_active: 0 | 1
+  items: BannerItem[]
+}
+
+export type HomeSectionType =
+  | 'BANNER'
+  | 'CATEGORIES'
+  | 'BEST_SELLERS'
+  | 'NEW_ARRIVALS'
+  | 'FEATURED'
+  | 'COMBOS'
+  | 'DEALS'
+  | 'CUSTOM'
+
+export interface HomeSection {
+  id: number
+  type: HomeSectionType
+  title: string | null
+  item_limit: number
+  sort_order: number
+  is_active: 0 | 1
+}
+
 export interface ProductDetail {
   id: number
   name: string

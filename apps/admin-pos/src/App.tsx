@@ -2,9 +2,11 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Spinner } from './components/ui'
 import { useAuth } from './lib/auth'
+import { BannersPage } from './pages/BannersPage'
 import { CategoriesPage } from './pages/CategoriesPage'
 import { CouponsPage } from './pages/CouponsPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { HomeSectionsPage } from './pages/HomeSectionsPage'
 import { LoginPage } from './pages/LoginPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
@@ -53,6 +55,8 @@ function App() {
         <Route path="/purchases" element={<PurchasesPage />} />
         <Route path="/stock-adjustments" element={<StockAdjustmentsPage />} />
         <Route path="/referral-settings" element={<ReferralSettingsPage />} />
+        <Route path="/banners" element={<BannersPage />} />
+        <Route path="/home-sections" element={<HomeSectionsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

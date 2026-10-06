@@ -94,7 +94,17 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
   toggle, discount percentages, caps, reward trigger, validity,
   code prefix) plus a live report panel from `/api/reports/referrals`.
 
+- Banners (`/banners`): card grid with a thumbnail, position/target
+  badges, and a "Manage" modal per banner — desktop/mobile image upload,
+  editing the title/position/link target (product, category,
+  subcategory, brand, coupon, or an external URL), and attaching
+  products to the banner's landing page with per-product offer text.
+- Home Sections (`/home-sections`): ordered list (↑/↓ reorder) of home
+  page layout blocks. Best Sellers/Combos/Deals are selectable but
+  flagged "not wired up yet" in the UI — those have no backend yet
+  either (see `database/README.md`).
+
 Not built yet: editing a product's basic info/classification after
-creation, POS billing screens, banners (no backend yet either), a
-dedicated Tax admin page, a unified Reports page, and a non-coupon
-automatic discount engine — see `docs/ECOMMERCE_POS_ADMIN_SPEC.md`.
+creation, POS billing screens, a dedicated Tax admin page, a unified
+Reports page, and a non-coupon automatic discount engine — see
+`docs/ECOMMERCE_POS_ADMIN_SPEC.md`.

@@ -6,12 +6,14 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/config/database.php';
 
 use App\Controllers\AuthController;
+use App\Controllers\BannerController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
 use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\DeliveryController;
+use App\Controllers\HomeSectionController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
 use App\Controllers\MasterDataController;
@@ -197,6 +199,26 @@ $router->get('/api/refunds/{id}', fn ($id) => $refunds->show($id));
 $router->post('/api/refunds/{id}/process', fn ($id) => $refunds->process($id));
 $router->post('/api/refunds/{id}/cancel', fn ($id) => $refunds->cancel($id));
 $router->get('/api/reports/refunds', fn () => $refunds->summary());
+
+// Banners + home sections (docs/DOCUMENTATION.md section 10)
+$banners = new BannerController($pdo);
+$router->get('/api/banners', fn () => $banners->index());
+$router->post('/api/banners', fn () => $banners->store());
+$router->put('/api/banners/reorder', fn () => $banners->reorder());
+$router->get('/api/banners/{id}', fn ($id) => $banners->show($id));
+$router->put('/api/banners/{id}', fn ($id) => $banners->update($id));
+$router->delete('/api/banners/{id}', fn ($id) => $banners->destroy($id));
+$router->post('/api/banners/{id}/image/desktop', fn ($id) => $banners->uploadDesktopImage($id));
+$router->post('/api/banners/{id}/image/mobile', fn ($id) => $banners->uploadMobileImage($id));
+$router->post('/api/banners/{id}/items', fn ($id) => $banners->addItem($id));
+$router->delete('/api/banners/{id}/items/{itemId}', fn ($id, $itemId) => $banners->removeItem($id, $itemId));
+
+$homeSections = new HomeSectionController($pdo);
+$router->get('/api/home-sections', fn () => $homeSections->index());
+$router->post('/api/home-sections', fn () => $homeSections->store());
+$router->put('/api/home-sections/reorder', fn () => $homeSections->reorder());
+$router->put('/api/home-sections/{id}', fn ($id) => $homeSections->update($id));
+$router->delete('/api/home-sections/{id}', fn ($id) => $homeSections->destroy($id));
 
 // Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)
 $dashboard = new DashboardController($pdo);

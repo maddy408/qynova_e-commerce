@@ -243,9 +243,21 @@ npm run dev
     `variant_id` — instead of resolving it server-side (see
     `database/README.md`).
 
+  - **Banners + home sections** — new backend (`banners`, `banner_items`,
+    `home_sections`, migration `0016`) plus admin frontend, scoped down
+    from DOCUMENTATION.md section 10 (combos/deals and the
+    `discount_group` banner target stay deferred — no backing tables).
+    Verified end-to-end: created a banner linked to a category, uploaded
+    its desktop image (through the same WebP pipeline as product images),
+    attached a product to its landing page, reordered two banners by
+    drag-free ↑/↓, and confirmed `target_id` validation rejects a
+    nonexistent category and `EXTERNAL_URL` without a `target_url`. Home
+    Sections got the same reorder treatment plus an explicit "not wired
+    up yet" label on the Best Sellers/Combos/Deals types, which are
+    schema-ready but have no resolving backend.
+
 Still ahead: editing a product's basic fields from the detail page, POS
-billing, the storefront app (still the default scaffold), banners (no
-backend yet either), a dedicated Tax admin page, a unified Reports page,
-an automatic (non-coupon) discount engine, Razorpay, and a real shipping
-provider adapter — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's
-phase order.
+billing, the storefront app (still the default scaffold), a dedicated Tax
+admin page, a unified Reports page, an automatic (non-coupon) discount
+engine, Razorpay, and a real shipping provider adapter — per
+`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
