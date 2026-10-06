@@ -1,0 +1,307 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use PDO;
+use RuntimeException;
+
+final class ProductService
+{
+    public function __construct(private readonly PDO $pdo)
+    {
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
+    public function list(array $filters): array
+    {
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $limit = min(100, max(1, (int) ($filters['limit'] ?? 20)));
+        $offset = ($page - 1) * $limit;
+
+        $where = ['p.deleted_at IS NULL'];
+        $params = [];
+
+        if (($filters['is_active'] ?? null) !== null) {
+            $where[] = 'p.is_active = :is_active';
+            $params['is_active'] = (int) (bool) $filters['is_active'];
+        }
+
+        if (!empty($filters['category_id'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = :category_id)';
+            $params['category_id'] = (int) $filters['category_id'];
+        }
+
+        if (!empty($filters['subcategory_id'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM product_subcategories ps WHERE ps.product_id = p.id AND ps.subcategory_id = :subcategory_id)';
+            $params['subcategory_id'] = (int) $filters['subcategory_id'];
+        }
+
+        if (!empty($filters['brand_id'])) {
+            $where[] = 'p.brand_id = :brand_id';
+            $params['brand_id'] = (int) $filters['brand_id'];
+        }
+
+        if (!empty($filters['channel']) && $filters['channel'] === 'pos') {
+            $where[] = 'p.is_pos_enabled = 1';
+        } elseif (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') {
+            $where[] = 'p.is_ecommerce_enabled = 1';
+        }
+
+        if (!empty($filters['search'])) {
+            $where[] = 'MATCH(p.name, p.tags, p.short_description) AGAINST (:search IN NATURAL LANGUAGE MODE)';
+            $params['search'] = (string) $filters['search'];
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM products p WHERE {$whereSql}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare(
+            "SELECT p.id, p.name, p.slug, p.product_code, p.is_active, p.is_pos_enabled, p.is_ecommerce_enabled,
+                    p.is_featured, b.name AS brand_name,
+                    (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
+                    (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS min_price,
+                    (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS max_price,
+                    (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS variant_count
+             FROM products p
+             LEFT JOIN brands b ON b.id = p.brand_id
+             WHERE {$whereSql}
+             ORDER BY p.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
+    }
+
+    /** @return array<string, mixed>|null */
+    public function find(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.*, b.name AS brand_name, u.name AS unit_name, u.short_code AS unit_short_code,
+                    h.code AS hsn_code, g.gst_percent
+             FROM products p
+             LEFT JOIN brands b ON b.id = p.brand_id
+             LEFT JOIN units u ON u.id = p.unit_id
+             LEFT JOIN hsn_codes h ON h.id = p.hsn_code_id
+             LEFT JOIN gst_rates g ON g.id = p.gst_rate_id
+             WHERE p.id = :id AND p.deleted_at IS NULL'
+        );
+        $stmt->execute(['id' => $id]);
+        $product = $stmt->fetch();
+
+        if ($product === false) {
+            return null;
+        }
+
+        $images = $this->pdo->prepare('SELECT * FROM product_images WHERE product_id = :id ORDER BY sort_order');
+        $images->execute(['id' => $id]);
+        $product['images'] = $images->fetchAll();
+
+        $categories = $this->pdo->prepare(
+            'SELECT c.id, c.name, pc.is_primary FROM product_categories pc
+             JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = :id'
+        );
+        $categories->execute(['id' => $id]);
+        $product['categories'] = $categories->fetchAll();
+
+        $subcategories = $this->pdo->prepare(
+            'SELECT s.id, s.name FROM product_subcategories ps
+             JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = :id'
+        );
+        $subcategories->execute(['id' => $id]);
+        $product['subcategories'] = $subcategories->fetchAll();
+
+        $variants = $this->pdo->prepare(
+            'SELECT v.*, i.on_hand, i.reserved, i.available
+             FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
+             WHERE v.product_id = :id AND v.deleted_at IS NULL ORDER BY v.is_default DESC, v.id'
+        );
+        $variants->execute(['id' => $id]);
+        $variantRows = $variants->fetchAll();
+
+        foreach ($variantRows as &$variant) {
+            $values = $this->pdo->prepare(
+                'SELECT va.id AS attribute_id, va.name AS attribute_name, vav.id AS value_id, vav.value, vav.color_hex
+                 FROM product_variant_values pvv
+                 JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                 JOIN variant_attributes va ON va.id = vav.attribute_id
+                 WHERE pvv.variant_id = :variant_id'
+            );
+            $values->execute(['variant_id' => $variant['id']]);
+            $variant['attribute_values'] = $values->fetchAll();
+
+            $variantImages = $this->pdo->prepare('SELECT * FROM variant_images WHERE variant_id = :variant_id ORDER BY sort_order');
+            $variantImages->execute(['variant_id' => $variant['id']]);
+            $variant['images'] = $variantImages->fetchAll();
+        }
+        unset($variant);
+
+        $product['variants'] = $variantRows;
+
+        return $product;
+    }
+
+    /** @param array<string, mixed> $data */
+    public function create(array $data): int
+    {
+        $name = trim((string) ($data['name'] ?? ''));
+
+        if ($name === '') {
+            throw new RuntimeException('Product name is required');
+        }
+
+        $slug = $this->uniqueSlug($this->slugify($data['slug'] ?? $name));
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO products (
+                name, slug, product_code, brand_id, unit_id, hsn_code_id, gst_rate_id,
+                short_description, description, material, manufacturer, country_of_origin,
+                is_active, is_pos_enabled, is_ecommerce_enabled, is_featured, show_discount
+            ) VALUES (
+                :name, :slug, :product_code, :brand_id, :unit_id, :hsn_code_id, :gst_rate_id,
+                :short_description, :description, :material, :manufacturer, :country_of_origin,
+                :is_active, :is_pos_enabled, :is_ecommerce_enabled, :is_featured, :show_discount
+            )'
+        );
+        $stmt->execute([
+            'name' => $name,
+            'slug' => $slug,
+            'product_code' => $data['product_code'] ?? null,
+            'brand_id' => $data['brand_id'] ?? null,
+            'unit_id' => $data['unit_id'] ?? null,
+            'hsn_code_id' => $data['hsn_code_id'] ?? null,
+            'gst_rate_id' => $data['gst_rate_id'] ?? null,
+            'short_description' => $data['short_description'] ?? null,
+            'description' => $data['description'] ?? null,
+            'material' => $data['material'] ?? null,
+            'manufacturer' => $data['manufacturer'] ?? null,
+            'country_of_origin' => $data['country_of_origin'] ?? null,
+            'is_active' => (int) (bool) ($data['is_active'] ?? true),
+            'is_pos_enabled' => (int) (bool) ($data['is_pos_enabled'] ?? true),
+            'is_ecommerce_enabled' => (int) (bool) ($data['is_ecommerce_enabled'] ?? true),
+            'is_featured' => (int) (bool) ($data['is_featured'] ?? false),
+            'show_discount' => (int) (bool) ($data['show_discount'] ?? true),
+        ]);
+
+        $productId = (int) $this->pdo->lastInsertId();
+
+        $this->syncCategories($productId, (array) ($data['category_ids'] ?? []), $data['primary_category_id'] ?? null);
+        $this->syncSubcategories($productId, (array) ($data['subcategory_ids'] ?? []));
+
+        return $productId;
+    }
+
+    /** @param array<string, mixed> $data */
+    public function update(int $id, array $data): void
+    {
+        $existing = $this->find($id);
+
+        if ($existing === null) {
+            throw new RuntimeException('Product not found');
+        }
+
+        $fields = [
+            'name', 'product_code', 'brand_id', 'unit_id', 'hsn_code_id', 'gst_rate_id',
+            'short_description', 'description', 'material', 'manufacturer', 'country_of_origin',
+            'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'show_discount',
+        ];
+
+        $sets = [];
+        $params = ['id' => $id];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) {
+                $sets[] = "{$field} = :{$field}";
+                $params[$field] = in_array($field, ['is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'show_discount'], true)
+                    ? (int) (bool) $data[$field]
+                    : $data[$field];
+            }
+        }
+
+        if ($sets !== []) {
+            $sql = 'UPDATE products SET ' . implode(', ', $sets) . ' WHERE id = :id';
+            $this->pdo->prepare($sql)->execute($params);
+        }
+
+        if (array_key_exists('category_ids', $data)) {
+            $this->syncCategories($id, (array) $data['category_ids'], $data['primary_category_id'] ?? null);
+        }
+
+        if (array_key_exists('subcategory_ids', $data)) {
+            $this->syncSubcategories($id, (array) $data['subcategory_ids']);
+        }
+    }
+
+    public function softDelete(int $id): void
+    {
+        $this->pdo->prepare('UPDATE products SET deleted_at = NOW() WHERE id = :id')->execute(['id' => $id]);
+    }
+
+    /** @param list<int> $categoryIds */
+    private function syncCategories(int $productId, array $categoryIds, ?int $primaryCategoryId): void
+    {
+        $this->pdo->prepare('DELETE FROM product_categories WHERE product_id = :id')->execute(['id' => $productId]);
+
+        foreach ($categoryIds as $categoryId) {
+            $this->pdo->prepare(
+                'INSERT INTO product_categories (product_id, category_id, is_primary) VALUES (:p, :c, :primary)'
+            )->execute([
+                'p' => $productId,
+                'c' => (int) $categoryId,
+                'primary' => (int) ((int) $categoryId === (int) $primaryCategoryId),
+            ]);
+        }
+    }
+
+    /** @param list<int> $subcategoryIds */
+    private function syncSubcategories(int $productId, array $subcategoryIds): void
+    {
+        $this->pdo->prepare('DELETE FROM product_subcategories WHERE product_id = :id')->execute(['id' => $productId]);
+
+        foreach ($subcategoryIds as $subcategoryId) {
+            $this->pdo->prepare(
+                'INSERT INTO product_subcategories (product_id, subcategory_id) VALUES (:p, :s)'
+            )->execute(['p' => $productId, 's' => (int) $subcategoryId]);
+        }
+    }
+
+    private function slugify(string $value): string
+    {
+        $slug = strtolower(trim($value));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug) ?? $slug;
+
+        return trim($slug, '-');
+    }
+
+    private function uniqueSlug(string $base): string
+    {
+        $slug = $base;
+        $suffix = 1;
+
+        while (true) {
+            $stmt = $this->pdo->prepare('SELECT 1 FROM products WHERE slug = :slug');
+            $stmt->execute(['slug' => $slug]);
+
+            if ($stmt->fetchColumn() === false) {
+                return $slug;
+            }
+
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+    }
+}
