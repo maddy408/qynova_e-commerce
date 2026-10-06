@@ -227,9 +227,25 @@ npm run dev
     during Excel import; a variant combination generator; and
     `product_specifications`.
 
+  - **Admin frontend for coupons/orders/referral/suppliers/purchases/
+    stock-adjustments** — the first batch against already-existing
+    backends, grouped into a Catalog/Sales/Inventory/Marketing sidebar
+    nav. Verified end-to-end in the browser against the live dev server,
+    not just code review: created a coupon (TEST10, 10% off) and saw it
+    list as ACTIVE; created a supplier and a purchase against it with a
+    scanned SKU, which correctly bumped `inventory` from 50 to 51 on
+    hand; created a stock adjustment against that same SKU (51 → 45,
+    -6 difference) that correctly resolved `product_id` server-side from
+    the variant rather than trusting the frontend; loaded Referral
+    Settings and confirmed its report panel. Caught and fixed a real bug
+    along the way: `InventoryService::createAdjustment()` was trusting a
+    caller-supplied `product_id` — a foreign key fully derivable from
+    `variant_id` — instead of resolving it server-side (see
+    `database/README.md`).
+
 Still ahead: editing a product's basic fields from the detail page, POS
-billing, the storefront app (still the default scaffold), admin frontend
-for coupons/orders/referral/purchases/stock-adjustment (all have working
-backends already — just no UI yet), banners (no backend yet either),
-Razorpay, a real shipping provider adapter, and a dedicated reports page
-— per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
+billing, the storefront app (still the default scaffold), banners (no
+backend yet either), a dedicated Tax admin page, a unified Reports page,
+an automatic (non-coupon) discount engine, Razorpay, and a real shipping
+provider adapter — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's
+phase order.

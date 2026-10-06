@@ -158,11 +158,38 @@ final class InventoryService
         )->fetchAll();
     }
 
+    /** @return list<array<string, mixed>> */
+    public function listAdjustments(): array
+    {
+        $adjustments = $this->pdo->query(
+            "SELECT sa.*, u.name AS created_by_name
+             FROM stock_adjustments sa JOIN users u ON u.id = sa.created_by
+             ORDER BY sa.created_at DESC LIMIT 200"
+        )->fetchAll();
+
+        foreach ($adjustments as &$adjustment) {
+            $items = $this->pdo->prepare(
+                'SELECT sai.*, v.sku, p.name AS product_name
+                 FROM stock_adjustment_items sai
+                 JOIN product_variants v ON v.id = sai.variant_id
+                 JOIN products p ON p.id = v.product_id
+                 WHERE sai.adjustment_id = :id'
+            );
+            $items->execute(['id' => $adjustment['id']]);
+            $adjustment['items'] = $items->fetchAll();
+        }
+        unset($adjustment);
+
+        return $adjustments;
+    }
+
     /**
      * Creates a stock_adjustments header + items, then applies each item
      * as a STOCK_ADJUSTMENT_IN/OUT movement, all in one transaction.
+     * product_id is resolved from each variant's own inventory row, not
+     * accepted from the caller.
      *
-     * @param list<array{variant_id: int, product_id: int, counted_qty: string}> $items
+     * @param list<array{variant_id: int, counted_qty: string}> $items
      */
     public function createAdjustment(array $items, string $reason, int $createdBy): int
     {
@@ -180,7 +207,12 @@ final class InventoryService
 
             foreach ($items as $index => $item) {
                 $stock = $this->getStock($item['variant_id']);
-                $systemQty = $stock['on_hand'] ?? '0.000';
+
+                if ($stock === null) {
+                    throw new RuntimeException("Variant {$item['variant_id']} has no inventory record");
+                }
+
+                $systemQty = $stock['on_hand'];
                 $countedQty = $item['counted_qty'];
                 $difference = bcsub($countedQty, (string) $systemQty, 3);
 
@@ -200,7 +232,11 @@ final class InventoryService
 
                 $this->apply(
                     variantId: $item['variant_id'],
-                    productId: $item['product_id'],
+                    // Resolved from the variant's own inventory row, never
+                    // trusted from the caller — product_id is a foreign
+                    // key, and the frontend has no business supplying it
+                    // when it's fully derivable from variant_id.
+                    productId: (int) $stock['product_id'],
                     movementType: bccomp($difference, '0', 3) > 0 ? 'STOCK_ADJUSTMENT_IN' : 'STOCK_ADJUSTMENT_OUT',
                     onHandDelta: $difference,
                     reservedDelta: '0',

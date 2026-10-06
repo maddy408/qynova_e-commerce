@@ -69,9 +69,32 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
     the variant table (SKU/MRP/price directly, stock shown read-only
     from the real inventory ledger).
 
+- Sidebar nav is grouped (Catalog / Sales / Inventory / Marketing) now
+  that the page count has grown past a flat list.
+- Coupons (`/coupons`): list + create modal — code, name, discount
+  type/value, min order, max discount, usage limits, first-order-only,
+  can-combine-with-referral, and a category multi-select. The backend
+  always re-validates and recomputes the discount at checkout; this form
+  only sets the rules.
+- Orders (`/orders`, `/orders/:id`): list with a status filter and
+  clickable rows; detail page shows items, status history, totals,
+  shipping address, and status-update/cancel actions (disabled once an
+  order is CANCELLED/DELIVERED/REFUNDED).
+- Suppliers (`/suppliers`): simple list + create modal.
+- Purchases (`/purchases`): list + create form — pick a supplier, then
+  scan/type a SKU or barcode and press Enter to add a line (reuses
+  `/api/variants/lookup`, the same endpoint POS billing will use).
+- Stock Adjustments (`/stock-adjustments`): list of past adjustments
+  (grouped by adjustment, with system/counted/difference per item) +
+  the same scan-based create flow. The frontend only ever sends
+  `variant_id` and `counted_qty` — `product_id` is resolved server-side
+  from the variant's own inventory row (see `database/README.md` for
+  the bug this fixed).
+- Referral Settings (`/referral-settings`): settings form (enable
+  toggle, discount percentages, caps, reward trigger, validity,
+  code prefix) plus a live report panel from `/api/reports/referrals`.
+
 Not built yet: editing a product's basic info/classification after
-creation, POS billing screens, and everything else in
-`docs/ECOMMERCE_POS_ADMIN_SPEC.md` beyond category/subcategory/product
-creation — coupons, orders, referral settings, purchases, stock
-adjustments, banners and reports all have working backends already but
-no frontend yet.
+creation, POS billing screens, banners (no backend yet either), a
+dedicated Tax admin page, a unified Reports page, and a non-coupon
+automatic discount engine — see `docs/ECOMMERCE_POS_ADMIN_SPEC.md`.

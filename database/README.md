@@ -138,6 +138,17 @@ reason instead of erroring out.
 replacing the full list per save rather than diffing individual rows —
 simplest correct semantics for how the UI edits it (a whole list at once).
 
+**Stock adjustment `product_id` fix** — `InventoryService::createAdjustment()`
+was accepting a caller-supplied `product_id` for each line item, a foreign
+key the frontend has no business sending since it's fully derivable from
+`variant_id`. Caught while wiring the Stock Adjustments frontend (the UI
+had no honest value to send and was about to fabricate one). Fixed by
+resolving `product_id` from the variant's own `inventory` row inside the
+service, with a `RuntimeException` guard if that row doesn't exist — the
+frontend now only sends `variant_id` and `counted_qty`. This is the same
+"never trust the frontend for a derivable FK" rule the rest of the stock
+code already followed; this one call site had slipped through.
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Deferred from the Product Create spec (low practical value for a

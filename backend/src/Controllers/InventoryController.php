@@ -40,6 +40,14 @@ final class InventoryController
         Response::json(['items' => (new InventoryService($this->pdo))->lowStock()]);
     }
 
+    public function indexAdjustments(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.view');
+
+        Response::json(['adjustments' => (new InventoryService($this->pdo))->listAdjustments()]);
+    }
+
     public function storeAdjustment(): void
     {
         $claims = JwtAuthMiddleware::authenticate();

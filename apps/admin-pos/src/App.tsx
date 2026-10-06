@@ -3,12 +3,19 @@ import { Layout } from './components/Layout'
 import { Spinner } from './components/ui'
 import { useAuth } from './lib/auth'
 import { CategoriesPage } from './pages/CategoriesPage'
+import { CouponsPage } from './pages/CouponsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
+import { OrdersPage } from './pages/OrdersPage'
 import { ProductCreatePage } from './pages/ProductCreatePage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { ProductsPage } from './pages/ProductsPage'
+import { PurchasesPage } from './pages/PurchasesPage'
+import { ReferralSettingsPage } from './pages/ReferralSettingsPage'
+import { StockAdjustmentsPage } from './pages/StockAdjustmentsPage'
 import { SubcategoriesPage } from './pages/SubcategoriesPage'
+import { SuppliersPage } from './pages/SuppliersPage'
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -39,6 +46,13 @@ function App() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/orders" element={<OrdersPage />} />
+        <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/coupons" element={<CouponsPage />} />
+        <Route path="/suppliers" element={<SuppliersPage />} />
+        <Route path="/purchases" element={<PurchasesPage />} />
+        <Route path="/stock-adjustments" element={<StockAdjustmentsPage />} />
+        <Route path="/referral-settings" element={<ReferralSettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
