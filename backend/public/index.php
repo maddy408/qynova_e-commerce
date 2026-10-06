@@ -15,6 +15,8 @@ use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
+use App\Controllers\ProductExportController;
+use App\Controllers\ProductImportController;
 use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
@@ -56,8 +58,22 @@ $router->get('/api/reports/referrals', fn () => $referral->report());
 // Products & variants (ECOMMERCE_POS_ADMIN_SPEC.md sections 5-7)
 $products = new ProductController($pdo);
 $router->get('/api/products', fn () => $products->index());
-$router->get('/api/products/{id}', fn ($id) => $products->show($id));
 $router->post('/api/products', fn () => $products->store());
+
+// Excel import/export (sections 11-13, 39-40) — registered before the
+// /api/products/{id} GET route below, since "export" would otherwise
+// bind to {id} (the router matches by registration order).
+$productImport = new ProductImportController($pdo);
+$router->get('/api/products/import/template', fn () => $productImport->template());
+$router->post('/api/products/import/preview', fn () => $productImport->preview());
+$router->post('/api/products/import', fn () => $productImport->commit());
+$router->post('/api/products/import/error-report', fn () => $productImport->errorReport());
+
+$productExport = new ProductExportController($pdo);
+$router->get('/api/products/export/stock-report', fn () => $productExport->exportStockReport());
+$router->get('/api/products/export', fn () => $productExport->export());
+
+$router->get('/api/products/{id}', fn ($id) => $products->show($id));
 $router->put('/api/products/{id}', fn ($id) => $products->update($id));
 $router->delete('/api/products/{id}', fn ($id) => $products->destroy($id));
 

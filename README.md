@@ -151,8 +151,23 @@ npm run dev
     against real multi-product, multi-channel test data, including
     catching and fixing a double-counting bug (an out-of-stock variant
     was being counted as both "low stock" and "out of stock")
+  - Excel import/export (PhpSpreadsheet): one row per variant, grouped
+    into one product by Product Code/Name; a downloadable sample
+    template; `preview` vs. `commit` share identical logic (a
+    transaction rolled back vs. committed), each row in its own
+    `SAVEPOINT` so one bad row doesn't take down the rows around it;
+    auto-create-or-reject for every master type (category/brand/unit/
+    HSN/GST/variant attribute); duplicate SKU/barcode rejection; a
+    downloadable error report with the original row data plus the
+    reason; export filters for all/selected/category/brand/active/
+    inactive products plus a stock report. Verified end-to-end,
+    including a real bug caught along the way — PhpSpreadsheet 5.x
+    removed the `setCellValueByColumnAndRow()` method the first draft
+    used, and an initial naive-pluralization bug turned "Category" into
+    "Categorie" in error messages (the spec's own example is literally
+    `"Row 41: Category not found"`)
 
 Still ahead: both frontend apps' actual UI (nothing built in React/Next.js
 yet beyond the default scaffolds), Razorpay, a real shipping provider
-adapter, Excel import/export, the admin dashboard, and reports — per
-`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
+adapter, and reports — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section
+46's phase order.

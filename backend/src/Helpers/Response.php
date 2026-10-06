@@ -18,4 +18,20 @@ final class Response
     {
         self::json(['error' => $message, ...$extra], $status);
     }
+
+    /**
+     * Streams a generated file to the client and deletes the temp copy
+     * afterward — every caller of this writes its file under
+     * sys_get_temp_dir() first (see Spreadsheet::writeRows() callers).
+     */
+    public static function file(string $path, string $downloadName, string $contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'): never
+    {
+        http_response_code(200);
+        header("Content-Type: {$contentType}");
+        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+        header('Content-Length: ' . (string) filesize($path));
+        readfile($path);
+        unlink($path);
+        exit;
+    }
 }

@@ -74,6 +74,24 @@ end-to-end: order-cancel → refund created → processed → `COMPLETED`;
 force-failure → `FAILED` → retried → `COMPLETED`; a still-`PENDING`
 refund can be cancelled outright (admin decides not to refund after all).
 
+**Excel import/export** (`ProductImportService`/`ProductExportService`,
+sections 11-13/39-40) added no new tables — it reads/writes the existing
+`products`/`product_variants`/`inventory` rows via PhpSpreadsheet. One row
+per variant; rows sharing a Product Code (or Product Name, if no code)
+attach as additional variants to one product. `preview()` and `commit()`
+run the exact same row-processing logic inside one transaction, each row
+wrapped in its own `SAVEPOINT` so a bad row rolls back alone without
+losing the rows already processed before it — `preview()` just rolls back
+the whole transaction at the end instead of committing. Verified
+end-to-end: multi-variant grouping, auto-create vs. reject-when-disabled
+for every master type (category/brand/unit/HSN/GST/variant attribute),
+duplicate-SKU/barcode rejection (including re-importing the same file
+after it already succeeded), the downloadable error report (original row
+data + reason, re-running the file through `preview()` to regenerate it),
+and every export filter (all/selected/category/active, stock report).
+Image URLs are stored as given, not downloaded/compressed — see "Not yet
+built" below.
+
 ## Not yet built (next migrations, roughly in this order)
 
 - **Automatic discounts** — `discounts` + its applicability join tables
@@ -101,7 +119,10 @@ refund can be cancelled outright (admin decides not to refund after all).
   `notification_logs`, `notification_preferences`.
 - **Content & settings** — `pages`, `faqs`, `contact_messages`,
   `settings`.
+- **Image download/compression** — docs section 8's WebP pipeline isn't
+  wired to product import/export; an `Image URL` cell is stored as given
+  (`variant_images.image_path`), not fetched, resized or compressed.
 
-`audit_logs` already exists (in `0001_access.sql`) since it's referenced
-conceptually from the start, but no code writes to it yet — that lands
-with the admin order-editing and product-management APIs.
+`audit_logs` (from `0001_access.sql`) is written to by `InvoiceService`
+(`CANCEL_INVOICE`/`DELETE_INVOICE`) and `PurchaseService` (`PURCHASE`) —
+still missing from catalog/order-editing and most other admin actions.
