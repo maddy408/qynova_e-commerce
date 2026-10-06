@@ -20,11 +20,18 @@ Specs this build follows (in order of precedence where they overlap):
 3. [docs/SHOP_FEATURES_REQUIREMENTS.md](docs/SHOP_FEATURES_REQUIREMENTS.md) —
    the original shorter customer brief; a subset of spec 2.
 
-**Open conflicts between spec 1 and spec 2 not yet resolved** (auth method:
-Google login vs. mobile+OTP; Firebase push notifications; wholesale
-customer type; combos/deals/banners; Razorpay vs. unspecified payment
-gateway) — see the conversation this was scaffolded in, or raise it before
-Phase 2 (auth + DB) lands.
+**Conflicts between spec 1 and spec 2, resolved:**
+
+- **Customer auth** — mobile number + OTP is the primary signup/login flow
+  (spec 2 section 2); "Continue with Google" stays available as an
+  additional option (spec 1 section 5), not a replacement.
+- **Firebase push, Razorpay, wholesale customer type, combos/deals/
+  banners/home-sections** — all kept from spec 1; spec 2 doesn't mention
+  them but doesn't exclude them either.
+- **Product Line** — stays removed (spec 1's decision). Spec 2's Product
+  Line field/master table/filter/coupon-scope do not apply; use the
+  existing multi-category/subcategory mapping wherever spec 2 says
+  "Product Line".
 
 ## Architecture
 
