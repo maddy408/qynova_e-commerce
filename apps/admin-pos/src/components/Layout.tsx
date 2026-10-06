@@ -4,7 +4,10 @@ import { useAuth } from '../lib/auth'
 const navGroups = [
   {
     label: null,
-    items: [{ to: '/', label: 'Dashboard', icon: '📊' }],
+    items: [
+      { to: '/', label: 'Dashboard', icon: '📊' },
+      { to: '/reports', label: 'Reports', icon: '📈' },
+    ],
   },
   {
     label: 'Catalog',

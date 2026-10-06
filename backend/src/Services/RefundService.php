@@ -199,10 +199,10 @@ final class RefundService
                 COUNT(*) AS total_refunds,
                 COALESCE(SUM(amount), 0) AS total_refund_amount,
                 COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) AS pending_refund_amount,
-                SUM(status = 'PENDING') AS pending_count,
+                COALESCE(SUM(status = 'PENDING'), 0) AS pending_count,
                 COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0) AS completed_refund_amount,
-                SUM(status = 'COMPLETED') AS completed_count,
-                SUM(status = 'FAILED') AS failed_count
+                COALESCE(SUM(status = 'COMPLETED'), 0) AS completed_count,
+                COALESCE(SUM(status = 'FAILED'), 0) AS failed_count
              FROM refunds"
         )->fetch();
     }

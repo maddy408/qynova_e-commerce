@@ -44,8 +44,8 @@ final class ReferralController
         $totals = $this->pdo->query(
             "SELECT
                 COUNT(*) AS total_referrals,
-                SUM(status IN ('ELIGIBLE', 'APPLIED')) AS successful_referrals,
-                SUM(status = 'PENDING') AS pending_referrals
+                COALESCE(SUM(status IN ('ELIGIBLE', 'APPLIED')), 0) AS successful_referrals,
+                COALESCE(SUM(status = 'PENDING'), 0) AS pending_referrals
              FROM referrals"
         )->fetch();
 

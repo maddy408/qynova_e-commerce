@@ -110,6 +110,13 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
   `ProductImportService` already uses, rather than asking the admin to
   type three more numbers that are almost always derived from the first.
 
+- Reports (`/reports`): pulls together the dashboard analytics endpoints
+  that existed since Phase 2 but had no UI consuming them — a sales
+  chart (daily/weekly/monthly, plain CSS bars, no charting library),
+  top-selling products/categories, an estimated gross-profit card,
+  customer analytics (one-time vs. returning, top customers), the
+  referral report, the refund summary, and recent sales/orders.
+
 Not built yet: editing a product's basic info/classification after
-creation, POS billing screens, a unified Reports page, and a non-coupon
-automatic discount engine — see `docs/ECOMMERCE_POS_ADMIN_SPEC.md`.
+creation, POS billing screens, and a non-coupon automatic discount
+engine — see `docs/ECOMMERCE_POS_ADMIN_SPEC.md`.

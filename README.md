@@ -256,6 +256,19 @@ npm run dev
     up yet" label on the Best Sellers/Combos/Deals types, which are
     schema-ready but have no resolving backend.
 
+  - **Reports page** — a unified `/reports` screen pulling together the
+    dashboard analytics endpoints that have existed since Phase 2 but had
+    no UI consuming most of them: a sales chart (plain CSS bars, no new
+    dependency), top products/categories, the gross-profit estimate,
+    customer analytics, the referral report, the refund summary, and
+    recent activity. Building it surfaced the same missing-`COALESCE`
+    null-vs-zero bug noted above (dashboard, Phase 2) for a third and
+    fourth time —
+    `ReferralController::report()`'s `successful_referrals`/
+    `pending_referrals` and `RefundService::summary()`'s `pending_count`/
+    `completed_count`/`failed_count` were returning `null` instead of `0`
+    on an empty table, exactly like the dashboard bug — fixed the same
+    way, with `COALESCE(SUM(...), 0)`.
   - **Tax admin page** — GST rates and HSN codes previously only
     reachable through Excel import's auto-create now have real CRUD
     (`MasterDataController`, no new migration — `gst_rates`/`hsn_codes`
