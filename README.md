@@ -79,8 +79,9 @@ cd backend
 composer install
 copy .env.example .env        # edit DB_*, JWT_SECRET, etc.
 mysql -u root -p -e "CREATE DATABASE unified_pos CHARACTER SET utf8mb4;"
-# migrations land in Phase 2 — see database/README.md
-php -S localhost:8000 -t public   # or serve public/ via Apache/XAMPP
+php database/migrate.php      # from repo root — applies database/migrations/*.sql
+php database/seed.php         # dev-only seed data — see database/README.md
+php -S localhost:8000 -t backend/public
 curl http://localhost:8000/api/health
 ```
 
@@ -104,7 +105,16 @@ npm run dev
 
 ## Build status
 
-Phase 1: monorepo skeleton — two app shells (admin-pos, storefront),
-backend skeleton with a working `/api/health` route, env examples, this
-README. Database schema, auth (OTP + referral), and every feature module
-land in the following phases per spec 1 section 46.
+- **Phase 1** — monorepo skeleton: two app shells (admin-pos, storefront),
+  backend skeleton with a working `/api/health` route, env examples.
+- **Phase 2 (in progress)** — database foundation: 39 tables across
+  access/roles/permissions, customers, OTP, referral, catalog, products,
+  variants, inventory (see `database/README.md` for the full list and
+  what's still missing — coupons, orders, payments, delivery, etc.).
+  Migrations verified against a live MySQL 9.4 instance, including the
+  append-only trigger on `inventory_movements`. Dev seed data (admin/
+  cashier/customer logins, seed categories/units/GST rates) in
+  `database/seed/`.
+
+Backend APIs, both frontends, and every feature module land next, per
+`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.
