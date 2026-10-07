@@ -291,7 +291,7 @@ final class InventoryService
      * product_id is resolved from each variant's own inventory row, not
      * accepted from the caller.
      *
-     * @param list<array{variant_id: int, counted_qty: string}> $items
+     * @param array<int, array<string, mixed>> $items
      */
     public function createAdjustment(array $items, string $reason, int $createdBy): int
     {
@@ -308,22 +308,27 @@ final class InventoryService
             $adjustmentId = (int) $this->pdo->lastInsertId();
 
             foreach ($items as $index => $item) {
-                $stock = $this->getStock($item['variant_id']);
-
-                if ($stock === null) {
-                    throw new RuntimeException("Variant {$item['variant_id']} has no inventory record");
+                if (!is_array($item) || !isset($item['variant_id'], $item['counted_qty'])) {
+                    continue;
                 }
 
-                $systemQty = $stock['on_hand'];
-                $countedQty = $item['counted_qty'];
-                $difference = bcsub($countedQty, (string) $systemQty, 3);
+                $variantId = (int) $item['variant_id'];
+                $countedQty = (string) $item['counted_qty'];
+                $stock = $this->getStock($variantId);
+
+                if ($stock === null) {
+                    throw new RuntimeException("Variant {$variantId} has no inventory record");
+                }
+
+                $systemQty = (string) ($stock['on_hand'] ?? '0');
+                $difference = bcsub($countedQty, $systemQty, 3);
 
                 $this->pdo->prepare(
                     'INSERT INTO stock_adjustment_items (adjustment_id, variant_id, system_qty, counted_qty)
                      VALUES (:adjustment_id, :variant_id, :system_qty, :counted_qty)'
                 )->execute([
                     'adjustment_id' => $adjustmentId,
-                    'variant_id' => $item['variant_id'],
+                    'variant_id' => $variantId,
                     'system_qty' => $systemQty,
                     'counted_qty' => $countedQty,
                 ]);
@@ -333,21 +338,17 @@ final class InventoryService
                 }
 
                 $this->apply(
-                    variantId: $item['variant_id'],
-                    // Resolved from the variant's own inventory row, never
-                    // trusted from the caller — product_id is a foreign
-                    // key, and the frontend has no business supplying it
-                    // when it's fully derivable from variant_id.
+                    variantId: $variantId,
                     productId: (int) $stock['product_id'],
                     movementType: bccomp($difference, '0', 3) > 0 ? 'STOCK_ADJUSTMENT_IN' : 'STOCK_ADJUSTMENT_OUT',
                     onHandDelta: $difference,
                     reservedDelta: '0',
                     referenceType: 'ADJUSTMENT',
                     referenceId: $adjustmentId,
-                    referenceItemId: $index,
+                    referenceItemId: (int) $index,
                     channel: 'ADMIN',
                     userId: $createdBy,
-                    idempotencyKey: "adjustment-{$adjustmentId}-{$item['variant_id']}",
+                    idempotencyKey: "adjustment-{$adjustmentId}-{$variantId}",
                     reason: $reason,
                 );
             }
@@ -362,19 +363,28 @@ final class InventoryService
     }
 
     /**
-     * @param list<array{variant_id: int, opening_stock: string}> $items
+     * Save/update opening stock for a list of variant items.
+     *
+     * @param array<int, array<string, mixed>> $items
      */
     public function saveOpeningStock(array $items, int $userId): void
     {
         $adjustmentItems = [];
         foreach ($items as $item) {
-            $variantId = (int) $item['variant_id'];
-            $newQty = (string) $item['opening_stock'];
-            if (!is_numeric($newQty) || bccomp($newQty, '0', 3) < 0) {
+            if (!is_array($item) || !isset($item['variant_id']) || !isset($item['opening_stock'])) {
                 continue;
             }
+
+            $variantId = (int) $item['variant_id'];
+            $newQty = (string) $item['opening_stock'];
+
+            if ($variantId <= 0 || !is_numeric($newQty) || bccomp($newQty, '0', 3) < 0) {
+                continue;
+            }
+
             $stock = $this->getStock($variantId);
-            $currentQty = $stock !== null ? (string) $stock['on_hand'] : '0';
+            $currentQty = $stock !== null ? (string) ($stock['on_hand'] ?? '0') : '0';
+
             if (bccomp($currentQty, $newQty, 3) !== 0) {
                 $adjustmentItems[] = [
                     'variant_id' => $variantId,
