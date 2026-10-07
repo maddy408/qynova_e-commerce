@@ -99,4 +99,53 @@ final class ProductController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    public function getPriceSettings(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $stmt = $this->pdo->query(
+            "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name,
+                    v.mrp, v.retail_price, v.wholesale_price, v.customer_price,
+                    (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image
+             FROM product_variants v
+             JOIN products p ON p.id = v.product_id
+             WHERE v.deleted_at IS NULL AND p.deleted_at IS NULL
+             ORDER BY p.name, v.sku"
+        );
+
+        Response::json(['variants' => $stmt->fetchAll()]);
+    }
+
+    public function updatePriceSettings(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $items = (array) ($body['items'] ?? []);
+
+        $stmt = $this->pdo->prepare(
+            "UPDATE product_variants SET
+             retail_price = :retail_price,
+             wholesale_price = :wholesale_price,
+             customer_price = :customer_price
+             WHERE id = :id"
+        );
+
+        foreach ($items as $item) {
+            if (!isset($item['variant_id'])) {
+                continue;
+            }
+            $stmt->execute([
+                'id' => (int) $item['variant_id'],
+                'retail_price' => (float) ($item['retail_price'] ?? 0),
+                'wholesale_price' => isset($item['wholesale_price']) && $item['wholesale_price'] !== '' && $item['wholesale_price'] !== null ? (float) $item['wholesale_price'] : null,
+                'customer_price' => isset($item['customer_price']) && $item['customer_price'] !== '' && $item['customer_price'] !== null ? (float) $item['customer_price'] : null,
+            ]);
+        }
+
+        Response::json(['updated' => true]);
+    }
 }

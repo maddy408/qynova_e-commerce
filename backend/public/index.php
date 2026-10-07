@@ -14,6 +14,7 @@ use App\Controllers\CustomerAuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\DeliveryController;
 use App\Controllers\HomeSectionController;
+use App\Controllers\HoldBillController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
 use App\Controllers\MasterDataController;
@@ -197,14 +198,24 @@ $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPa
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 
+$router->get('/api/products/price-settings', fn () => $products->getPriceSettings());
+$router->put('/api/products/price-settings', fn () => $products->updatePriceSettings());
+
 // Invoices (docs/DOCUMENTATION.md section 16) — POS billing + e-commerce
 // invoices (the latter auto-created by OrderService::confirmPayment)
 $invoices = new InvoiceController($pdo);
 $router->get('/api/invoices', fn () => $invoices->index());
 $router->get('/api/invoices/{id}', fn ($id) => $invoices->show($id));
 $router->post('/api/invoices/pos-sale', fn () => $invoices->storePosSale());
+$router->put('/api/invoices/{id}', fn ($id) => $invoices->update($id));
 $router->post('/api/invoices/{id}/cancel', fn ($id) => $invoices->cancel($id));
 $router->delete('/api/invoices/{id}', fn ($id) => $invoices->destroy($id));
+
+// Hold Bills (POS sale pause/resume)
+$holdBills = new HoldBillController($pdo);
+$router->get('/api/hold-bills', fn () => $holdBills->index());
+$router->post('/api/hold-bills', fn () => $holdBills->store());
+$router->delete('/api/hold-bills/{id}', fn ($id) => $holdBills->destroy($id));
 
 // Suppliers & purchases / GRN (docs/DOCUMENTATION.md section 11)
 $purchases = new PurchaseController($pdo);

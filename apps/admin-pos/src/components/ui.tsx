@@ -82,12 +82,13 @@ export function Select({
   )
 }
 
-export function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'red' | 'amber' }) {
+export function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'red' | 'amber' | 'teal' }) {
   const tones: Record<string, string> = {
     slate: 'bg-slate-100 text-slate-700',
     green: 'bg-emerald-100 text-emerald-700',
     red: 'bg-red-100 text-red-700',
     amber: 'bg-amber-100 text-amber-700',
+    teal: 'bg-teal-100 text-teal-700',
   }
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>
 }
@@ -177,18 +178,19 @@ export function EmptyState({ title, description }: { title: string; description?
   )
 }
 
-export function Spinner() {
+export function Spinner({ className = 'h-6 w-6' }: { className?: string }) {
   return (
     <div className="flex justify-center py-12">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+      <div className={`animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600 ${className}`} />
     </div>
   )
 }
 
-export function Alert({ tone = 'red', children }: { tone?: 'red' | 'green'; children: ReactNode }) {
+export function Alert({ tone = 'red', children }: { tone?: 'red' | 'green' | 'amber'; children: ReactNode }) {
   const tones = {
     red: 'bg-red-50 text-red-700 border-red-200',
     green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
   }
   return <div className={`rounded-lg border px-3 py-2 text-sm ${tones[tone]}`}>{children}</div>
 }

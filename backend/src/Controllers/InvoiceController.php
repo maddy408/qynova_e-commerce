@@ -100,4 +100,35 @@ final class InvoiceController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    public function update(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+
+        try {
+            $stmt = $this->pdo->prepare(
+                "UPDATE invoices SET
+                 payment_method = COALESCE(:payment_method, payment_method),
+                 amount_paid = COALESCE(:amount_paid, amount_paid),
+                 customer_id = COALESCE(:customer_id, customer_id),
+                 status = COALESCE(:status, status)
+                 WHERE id = :id"
+            );
+
+            $stmt->execute([
+                'id' => (int) $id,
+                'payment_method' => isset($body['payment_method']) ? (string) $body['payment_method'] : null,
+                'amount_paid' => isset($body['amount_paid']) ? (string) $body['amount_paid'] : null,
+                'customer_id' => isset($body['customer_id']) && $body['customer_id'] !== '' ? (int) $body['customer_id'] : null,
+                'status' => isset($body['status']) ? (string) $body['status'] : null,
+            ]);
+
+            Response::json(['invoice' => $this->invoices->find((int) $id)]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
 }

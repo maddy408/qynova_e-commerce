@@ -1,12 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Alert, Button, Card, PageHeader, TextField } from '../components/ui'
+import { Alert, Button, Card, PageHeader, Spinner, TextField } from '../components/ui'
+import { api, apiErrorMessage } from '../lib/api'
 
-export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'company' | 'prefix' | 'printer' | 'scanner' }) {
-  const [tab, setTab] = useState(defaultTab)
+interface PriceVariant {
+  variant_id: number
+  product_id: number
+  sku: string
+  barcode: string | null
+  product_name: string
+  mrp: string | number
+  retail_price: string | number
+  wholesale_price: string | number | null
+  customer_price: string | number | null
+}
 
-  // The route (and its defaultTab prop) changes when the outer Settings nav is
-  // clicked, but React Router keeps this same component instance mounted —
-  // without this, the inner tab would stay stuck on whatever it opened with.
+export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'company' | 'prefix' | 'printer' | 'scanner' | 'prices' }) {
+  const [tab, setTab] = useState<string>(defaultTab)
+
   useEffect(() => setTab(defaultTab), [defaultTab])
 
   // Company Details state
@@ -31,34 +41,106 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
   const [scannerMode, setScannerMode] = useState('HID / Wireless TCP')
   const [scannerBeep, setScannerBeep] = useState(true)
 
+  // Price Settings state
+  const [priceVariants, setPriceVariants] = useState<PriceVariant[]>([])
+  const [loadingPrices, setLoadingPrices] = useState(false)
+  const [savingPrices, setSavingPrices] = useState(false)
+  const [priceSearch, setPriceSearch] = useState('')
+  const [priceError, setPriceError] = useState('')
+
   const [savedMsg, setSavedMsg] = useState('')
 
+  useEffect(() => {
+    if (tab === 'prices') {
+      fetchPriceSettings()
+    }
+  }, [tab])
+
+  async function fetchPriceSettings() {
+    setLoadingPrices(true)
+    setPriceError('')
+    try {
+      const res = await api.get('/products/price-settings')
+      setPriceVariants(res.data.variants || [])
+    } catch (err) {
+      setPriceError(apiErrorMessage(err))
+    } finally {
+      setLoadingPrices(false)
+    }
+  }
+
+  function handlePriceChange(variantId: number, field: 'retail_price' | 'wholesale_price' | 'customer_price', value: string) {
+    setPriceVariants((prev) =>
+      prev.map((v) => (v.variant_id === variantId ? { ...v, [field]: value } : v))
+    )
+  }
+
+  async function handleSavePrices() {
+    setSavingPrices(true)
+    setPriceError('')
+    try {
+      const items = priceVariants.map((v) => ({
+        variant_id: v.variant_id,
+        retail_price: v.retail_price,
+        wholesale_price: v.wholesale_price,
+        customer_price: v.customer_price,
+      }))
+      await api.put('/products/price-settings', { items })
+      setSavedMsg('All Wholesale, Retail & Customer-Wise prices saved successfully!')
+      setTimeout(() => setSavedMsg(''), 4000)
+    } catch (err) {
+      setPriceError(apiErrorMessage(err))
+    } finally {
+      setSavingPrices(false)
+    }
+  }
+
   function handleSave() {
+    if (tab === 'prices') {
+      handleSavePrices()
+      return
+    }
     setSavedMsg('Settings saved successfully!')
     setTimeout(() => setSavedMsg(''), 3000)
   }
 
+  const filteredPriceVariants = priceVariants.filter(
+    (v) =>
+      v.product_name.toLowerCase().includes(priceSearch.toLowerCase()) ||
+      v.sku.toLowerCase().includes(priceSearch.toLowerCase()) ||
+      (v.barcode && v.barcode.toLowerCase().includes(priceSearch.toLowerCase()))
+  )
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Store & Hardware Settings"
-        description="Configure company details, invoice numbering prefix, thermal receipt printer, and wireless barcode scanners."
+        title="Store & Price Settings"
+        description="Configure company details, item wholesale/retail/customer-wise price rates, invoice prefixes, printer, and scanner setup."
       />
 
       {savedMsg && <Alert tone="green">{savedMsg}</Alert>}
+      {priceError && <Alert tone="red">{priceError}</Alert>}
 
-      <div className="flex border-b border-slate-200 text-xs font-semibold">
+      <div className="flex border-b border-slate-200 text-xs font-semibold overflow-x-auto">
         <button
           onClick={() => setTab('company')}
-          className={`px-4 py-2.5 border-b-2 transition-colors ${
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
             tab === 'company' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           Company Details
         </button>
         <button
+          onClick={() => setTab('prices')}
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
+            tab === 'prices' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Price Settings (Wholesale / Retail / Customer-Wise)
+        </button>
+        <button
           onClick={() => setTab('prefix')}
-          className={`px-4 py-2.5 border-b-2 transition-colors ${
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
             tab === 'prefix' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -66,7 +148,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         </button>
         <button
           onClick={() => setTab('printer')}
-          className={`px-4 py-2.5 border-b-2 transition-colors ${
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
             tab === 'printer' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -74,7 +156,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         </button>
         <button
           onClick={() => setTab('scanner')}
-          className={`px-4 py-2.5 border-b-2 transition-colors ${
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
             tab === 'scanner' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
@@ -82,9 +164,101 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         </button>
       </div>
 
-      <Card className="p-6 space-y-4 max-w-3xl">
-        {tab === 'company' && (
+      <Card className="p-6 space-y-4">
+        {tab === 'prices' && (
           <div className="space-y-4 text-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Item Pricing Matrix</h3>
+                <p className="text-slate-500 text-xs">Set Wholesale Selling Rate, Retail Rate, and Customer-Wise Special Rate for all product variants.</p>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <TextField
+                  placeholder="Search item by name or SKU..."
+                  value={priceSearch}
+                  onChange={(e) => setPriceSearch(e.target.value)}
+                  className="w-full sm:w-64"
+                />
+                <Button onClick={handleSavePrices} disabled={savingPrices}>
+                  {savingPrices ? <Spinner className="w-4 h-4" /> : 'Save Price Rates'}
+                </Button>
+              </div>
+            </div>
+
+            {loadingPrices ? (
+              <div className="flex justify-center py-12">
+                <Spinner className="w-8 h-8 text-indigo-600" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 uppercase font-semibold text-slate-600">
+                    <tr>
+                      <th className="px-3 py-2.5">Item / SKU</th>
+                      <th className="px-3 py-2.5 text-right">MRP (₹)</th>
+                      <th className="px-3 py-2.5 text-center bg-indigo-50/50">Retail Rate (₹)</th>
+                      <th className="px-3 py-2.5 text-center bg-amber-50/50">Wholesale Rate (₹)</th>
+                      <th className="px-3 py-2.5 text-center bg-teal-50/50">Customer-Wise Rate (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredPriceVariants.map((v) => (
+                      <tr key={v.variant_id} className="hover:bg-slate-50/70">
+                        <td className="px-3 py-2">
+                          <div className="font-semibold text-slate-900">{v.product_name}</div>
+                          <div className="text-[11px] font-mono text-slate-400">{v.sku}</div>
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium text-slate-500">
+                          ₹{Number(v.mrp || 0).toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 bg-indigo-50/20">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={v.retail_price ?? ''}
+                            onChange={(e) => handlePriceChange(v.variant_id, 'retail_price', e.target.value)}
+                            className="w-28 text-center font-semibold text-slate-900 rounded border border-slate-300 p-1 focus:ring-2 focus:ring-indigo-500"
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="px-3 py-2 bg-amber-50/20">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={v.wholesale_price ?? ''}
+                            onChange={(e) => handlePriceChange(v.variant_id, 'wholesale_price', e.target.value)}
+                            className="w-28 text-center font-semibold text-amber-900 rounded border border-amber-300 p-1 focus:ring-2 focus:ring-amber-500"
+                            placeholder="0.00"
+                          />
+                        </td>
+                        <td className="px-3 py-2 bg-teal-50/20">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={v.customer_price ?? ''}
+                            onChange={(e) => handlePriceChange(v.variant_id, 'customer_price', e.target.value)}
+                            className="w-28 text-center font-semibold text-teal-900 rounded border border-teal-300 p-1 focus:ring-2 focus:ring-teal-500"
+                            placeholder="0.00"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredPriceVariants.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                          No items found matching search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'company' && (
+          <div className="space-y-4 text-xs max-w-3xl">
             <h3 className="text-sm font-semibold text-slate-900">Company Information</h3>
             <TextField label="Store / Company Name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
             <TextField label="GSTIN / Tax ID" value={companyGstin} onChange={(e) => setCompanyGstin(e.target.value)} />
@@ -105,7 +279,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         )}
 
         {tab === 'prefix' && (
-          <div className="space-y-4 text-xs">
+          <div className="space-y-4 text-xs max-w-3xl">
             <h3 className="text-sm font-semibold text-slate-900">Invoice &amp; Document Numbering Format</h3>
             <div className="grid grid-cols-3 gap-4">
               <TextField label="POS Invoice Prefix" value={posInvoicePrefix} onChange={(e) => setPosInvoicePrefix(e.target.value)} placeholder="e.g. POS" />
@@ -122,7 +296,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         )}
 
         {tab === 'printer' && (
-          <div className="space-y-4 text-xs">
+          <div className="space-y-4 text-xs max-w-3xl">
             <h3 className="text-sm font-semibold text-slate-900">POS Thermal Receipt Printer Setup</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -162,7 +336,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         )}
 
         {tab === 'scanner' && (
-          <div className="space-y-4 text-xs">
+          <div className="space-y-4 text-xs max-w-3xl">
             <h3 className="text-sm font-semibold text-slate-900">WiFi &amp; Wireless Barcode Scanner Setup</h3>
             <div className="grid grid-cols-2 gap-4">
               <TextField label="Scanner IP Address / Host" value={scannerIp} onChange={(e) => setScannerIp(e.target.value)} placeholder="e.g. 192.168.1.120" />
