@@ -10,6 +10,7 @@ use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\VariantService;
 use PDO;
+use PDOException;
 use RuntimeException;
 
 final class VariantController
@@ -66,6 +67,14 @@ final class VariantController
         try {
             $id = (new VariantService($this->pdo))->createVariant((int) $productId, $body, $attributeValueIds);
             Response::json(['id' => $id], 201);
+        } catch (PDOException $e) {
+            // PDOException extends RuntimeException (PHP 8+) — this catch
+            // must come first, or the block below silently swallows it
+            // with the wrong status code and the raw SQL message.
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A variant with this SKU or barcode already exists', 409);
+            }
+            throw $e;
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }

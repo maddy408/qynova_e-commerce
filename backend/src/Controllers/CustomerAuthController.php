@@ -207,32 +207,88 @@ final class CustomerAuthController
         Response::json(['customer' => $customer, 'referral' => $referral]);
     }
 
-    /** Staff-facing customer search for POS billing's customer picker. */
+    /** Staff-facing customer listing & search for POS billing & customer management. */
     public function indexForStaff(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'pos.sell');
 
         $search = trim((string) ($_GET['search'] ?? ''));
-        $where = ['deleted_at IS NULL'];
+        $type = trim((string) ($_GET['type'] ?? ''));
+        $where = ['c.deleted_at IS NULL'];
         $params = [];
 
         if ($search !== '') {
-            $where[] = '(name LIKE :search1 OR phone LIKE :search2)';
+            $where[] = '(c.name LIKE :search1 OR c.phone LIKE :search2 OR c.email LIKE :search3)';
             $needle = '%' . $search . '%';
             $params['search1'] = $needle;
             $params['search2'] = $needle;
+            $params['search3'] = $needle;
+        }
+
+        if (in_array(strtoupper($type), ['RETAIL', 'WHOLESALE'], true)) {
+            $where[] = 'c.customer_type = :type';
+            $params['type'] = strtoupper($type);
         }
 
         $stmt = $this->pdo->prepare(
-            'SELECT c.id, c.name, c.phone, c.customer_type, c.created_at,
+            'SELECT c.id, c.name, c.phone, c.email, c.customer_type, c.status, c.created_at,
                     (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS order_count,
+                    (SELECT COALESCE(SUM(i.grand_total), 0) FROM invoices i WHERE i.customer_id = c.id AND i.status = "ACTIVE") AS total_spent,
                     (SELECT MAX(created_at) FROM orders o WHERE o.customer_id = c.id) AS latest_order_at
-             FROM customers c WHERE ' . implode(' AND ', $where) . ' ORDER BY latest_order_at DESC, c.name LIMIT 50'
+             FROM customers c WHERE ' . implode(' AND ', $where) . ' ORDER BY c.created_at DESC LIMIT 200'
         );
         $stmt->execute($params);
 
         Response::json(['customers' => $stmt->fetchAll()]);
+    }
+
+    /** Staff updating customer_type (Retail vs Wholesale mapping) & customer profile. */
+    public function updateForStaff(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+
+        $customerId = (int) $id;
+        $body = Request::json();
+
+        $fields = [];
+        $params = ['id' => $customerId];
+
+        if (array_key_exists('name', $body) && trim((string) $body['name']) !== '') {
+            $fields[] = 'name = :name';
+            $params['name'] = trim((string) $body['name']);
+        }
+
+        if (array_key_exists('customer_type', $body)) {
+            $type = strtoupper(trim((string) $body['customer_type']));
+            if (!in_array($type, ['RETAIL', 'WHOLESALE'], true)) {
+                Response::error('customer_type must be RETAIL or WHOLESALE', 422);
+            }
+            $fields[] = 'customer_type = :customer_type';
+            $params['customer_type'] = $type;
+        }
+
+        if (array_key_exists('status', $body)) {
+            $status = strtoupper(trim((string) $body['status']));
+            if (!in_array($status, ['ACTIVE', 'INACTIVE'], true)) {
+                Response::error('status must be ACTIVE or INACTIVE', 422);
+            }
+            $fields[] = 'status = :status';
+            $params['status'] = $status;
+        }
+
+        if (array_key_exists('email', $body)) {
+            $fields[] = 'email = :email';
+            $params['email'] = trim((string) $body['email']) ?: null;
+        }
+
+        if ($fields === []) {
+            Response::json(['updated' => false, 'message' => 'No fields to update']);
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE customers SET ' . implode(', ', $fields) . ' WHERE id = :id');
+        $stmt->execute($params);
+
+        Response::json(['updated' => true]);
     }
 
     private function issueToken(int $customerId, string $name, string $phone): string

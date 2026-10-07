@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
-import type { Category } from '../lib/types'
+import type { Brand, Category } from '../lib/types'
 
 interface Coupon {
   id: number
@@ -30,6 +30,7 @@ interface CustomerOption {
 export function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[] | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [brands, setBrands] = useState<Brand[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
@@ -46,6 +47,7 @@ export function CouponsPage() {
   const [firstOrderOnly, setFirstOrderOnly] = useState(false)
   const [canCombineWithReferral, setCanCombineWithReferral] = useState(false)
   const [categoryIds, setCategoryIds] = useState<number[]>([])
+  const [brandIds, setBrandIds] = useState<number[]>([])
 
   // Customer targeting
   const [targetType, setTargetType] = useState<'ALL' | 'SPECIFIC'>('ALL')
@@ -59,6 +61,7 @@ export function CouponsPage() {
   useEffect(() => {
     load()
     api.get('/categories').then((res) => setCategories(res.data.categories))
+    api.get('/brands').then((res) => setBrands(res.data.brands))
     api.get('/customers').then((res) => setCustomers(res.data.customers))
   }, [])
 
@@ -74,6 +77,7 @@ export function CouponsPage() {
     setFirstOrderOnly(false)
     setCanCombineWithReferral(false)
     setCategoryIds([])
+    setBrandIds([])
     setTargetType('ALL')
     setSelectedCustomerIds([])
     setCustomerSearch('')
@@ -96,6 +100,7 @@ export function CouponsPage() {
         first_order_only: firstOrderOnly,
         can_combine_with_referral: canCombineWithReferral,
         category_ids: categoryIds,
+        brand_ids: brandIds,
         customer_ids: targetType === 'SPECIFIC' ? selectedCustomerIds : [],
       })
       setShowForm(false)
@@ -115,6 +120,10 @@ export function CouponsPage() {
 
   function toggleCategory(id: number) {
     setCategoryIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]))
+  }
+
+  function toggleBrand(id: number) {
+    setBrandIds((prev) => (prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]))
   }
 
   function toggleCustomer(id: number) {
@@ -304,6 +313,26 @@ export function CouponsPage() {
                     {c.name}
                   </label>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="mb-1 block font-semibold text-slate-700">Applies Only to Brands</span>
+              <div className="grid max-h-36 grid-cols-3 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5">
+                {brands.map((b) => (
+                  <label key={b.id} className="flex items-center gap-2 text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={brandIds.includes(b.id)}
+                      onChange={() => toggleBrand(b.id)}
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {b.name}
+                  </label>
+                ))}
+                {brands.length === 0 && (
+                  <p className="text-xs text-slate-400 col-span-3 py-1">No brands created yet.</p>
+                )}
               </div>
             </div>
 

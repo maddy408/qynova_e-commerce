@@ -25,6 +25,7 @@ use App\Controllers\ProductImportController;
 use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
+use App\Controllers\ReportExportController;
 use App\Controllers\SubcategoryController;
 use App\Controllers\UserController;
 use App\Controllers\VariantController;
@@ -43,7 +44,7 @@ $router->get('/api/health', function (): void {
     Response::json(['status' => 'ok', 'time' => date('c')]);
 });
 
-// Customer auth (ECOMMERCE_POS_ADMIN_SPEC.md section 2)
+// Customer auth & management
 $customerAuth = new CustomerAuthController($pdo);
 $router->post('/api/customers/otp/send', fn () => $customerAuth->sendOtp());
 $router->post('/api/customers/otp/verify', fn () => $customerAuth->verifyOtp());
@@ -52,6 +53,7 @@ $router->post('/api/customers/login', fn () => $customerAuth->login());
 $router->post('/api/customers/otp/login', fn () => $customerAuth->loginWithOtp());
 $router->get('/api/customers/me', fn () => $customerAuth->me());
 $router->get('/api/customers', fn () => $customerAuth->indexForStaff());
+$router->put('/api/customers/{id}', fn ($id) => $customerAuth->updateForStaff($id));
 
 // Staff auth (docs/DOCUMENTATION.md section 5)
 $auth = new AuthController($pdo);
@@ -80,6 +82,8 @@ $router->delete('/api/subcategories/{id}', fn ($id) => $subcategories->destroy($
 $masters = new MasterDataController($pdo);
 $router->get('/api/brands', fn () => $masters->indexBrands());
 $router->post('/api/brands', fn () => $masters->storeBrand());
+$router->put('/api/brands/{id}', fn ($id) => $masters->updateBrand($id));
+$router->delete('/api/brands/{id}', fn ($id) => $masters->destroyBrand($id));
 $router->get('/api/units', fn () => $masters->indexUnits());
 $router->post('/api/units', fn () => $masters->storeUnit());
 $router->get('/api/gst-rates', fn () => $masters->indexGstRates());
@@ -92,6 +96,19 @@ $router->delete('/api/hsn-codes/{id}', fn ($id) => $masters->destroyHsnCode($id)
 $router->get('/api/payment-methods', fn () => $masters->indexPaymentMethods());
 $router->post('/api/payment-methods', fn () => $masters->storePaymentMethod());
 $router->put('/api/payment-methods/{id}', fn ($id) => $masters->updatePaymentMethod($id));
+
+// Returns (Sale Returns & Purchase Returns)
+$returns = new \App\Controllers\ReturnsController($pdo);
+$router->get('/api/returns/sales', fn () => $returns->indexSaleReturns());
+$router->post('/api/returns/sales', fn () => $returns->storeSaleReturn());
+$router->get('/api/returns/purchases', fn () => $returns->indexPurchaseReturns());
+$router->post('/api/returns/purchases', fn () => $returns->storePurchaseReturn());
+
+// Finance Management (Expense & Income)
+$finance = new \App\Controllers\FinanceController($pdo);
+$router->get('/api/finance', fn () => $finance->index());
+$router->post('/api/finance', fn () => $finance->store());
+$router->delete('/api/finance/{id}', fn ($id) => $finance->destroy($id));
 
 // Products & variants (ECOMMERCE_POS_ADMIN_SPEC.md sections 5-7)
 $products = new ProductController($pdo);
@@ -150,6 +167,7 @@ $router->get('/api/pos/products', fn () => $inventory->posIndex());
 $router->get('/api/inventory/low-stock', fn () => $inventory->lowStock());
 $router->get('/api/inventory/adjustments', fn () => $inventory->indexAdjustments());
 $router->post('/api/inventory/adjustments', fn () => $inventory->storeAdjustment());
+$router->post('/api/inventory/opening-stock', fn () => $inventory->saveOpeningStock());
 $router->put('/api/inventory/{variantId}/threshold', fn ($variantId) => $inventory->setLowStockThreshold($variantId));
 $router->get('/api/inventory/{variantId}', fn ($variantId) => $inventory->show($variantId));
 
@@ -243,6 +261,9 @@ $router->get('/api/dashboard/sales-chart', fn () => $dashboard->salesChart());
 $router->get('/api/dashboard/product-analytics', fn () => $dashboard->productAnalytics());
 $router->get('/api/dashboard/customer-analytics', fn () => $dashboard->customerAnalytics());
 $router->get('/api/dashboard/recent-activity', fn () => $dashboard->recentActivity());
+
+$reportExport = new ReportExportController($pdo);
+$router->get('/api/reports/export/excel', fn () => $reportExport->exportExcel());
 
 // Staff user management (docs/DOCUMENTATION.md section 3)
 $users = new UserController($pdo);

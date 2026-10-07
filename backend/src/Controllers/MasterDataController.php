@@ -24,9 +24,24 @@ final class MasterDataController
 
     public function indexBrands(): void
     {
-        Response::json(['brands' => $this->pdo->query(
+        $brands = $this->pdo->query(
             "SELECT * FROM brands WHERE deleted_at IS NULL ORDER BY name"
-        )->fetchAll()]);
+        )->fetchAll();
+
+        foreach ($brands as &$brand) {
+            $catStmt = $this->pdo->prepare(
+                "SELECT c.id, c.name FROM brand_categories bc
+                 JOIN categories c ON c.id = bc.category_id
+                 WHERE bc.brand_id = :id"
+            );
+            $catStmt->execute(['id' => $brand['id']]);
+            $categories = $catStmt->fetchAll();
+            $brand['categories'] = $categories;
+            $brand['category_ids'] = array_map(fn ($c) => (int) $c['id'], $categories);
+        }
+        unset($brand);
+
+        Response::json(['brands' => $brands]);
     }
 
     public function storeBrand(): void
@@ -34,20 +49,87 @@ final class MasterDataController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
-        $name = trim((string) (Request::json()['name'] ?? ''));
+        $body = Request::json();
+        $name = trim((string) ($body['name'] ?? ''));
+        $description = trim((string) ($body['description'] ?? ''));
+        $categoryIds = (array) ($body['category_ids'] ?? []);
+
         if ($name === '') {
             Response::error('Name is required', 422);
         }
 
         try {
-            $this->pdo->prepare('INSERT INTO brands (name) VALUES (:name)')->execute(['name' => $name]);
-            Response::json(['id' => (int) $this->pdo->lastInsertId()], 201);
+            $this->pdo->beginTransaction();
+            $stmt = $this->pdo->prepare('INSERT INTO brands (name, description) VALUES (:name, :desc)');
+            $stmt->execute(['name' => $name, 'desc' => $description ?: null]);
+            $brandId = (int) $this->pdo->lastInsertId();
+
+            if (!empty($categoryIds)) {
+                $insCat = $this->pdo->prepare('INSERT INTO brand_categories (brand_id, category_id) VALUES (:b_id, :c_id)');
+                foreach ($categoryIds as $catId) {
+                    $insCat->execute(['b_id' => $brandId, 'c_id' => (int) $catId]);
+                }
+            }
+
+            $this->pdo->commit();
+            Response::json(['id' => $brandId], 201);
         } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             if ((int) $e->getCode() === 23000) {
                 Response::error('A brand with this name already exists', 409);
             }
             throw $e;
         }
+    }
+
+    public function updateBrand(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $name = trim((string) ($body['name'] ?? ''));
+        $description = trim((string) ($body['description'] ?? ''));
+        $categoryIds = (array) ($body['category_ids'] ?? []);
+
+        if ($name === '') {
+            Response::error('Name is required', 422);
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+            $stmt = $this->pdo->prepare('UPDATE brands SET name = :name, description = :desc WHERE id = :id');
+            $stmt->execute(['name' => $name, 'desc' => $description ?: null, 'id' => (int) $id]);
+
+            // Sync brand_categories
+            $this->pdo->prepare('DELETE FROM brand_categories WHERE brand_id = :id')->execute(['id' => (int) $id]);
+
+            if (!empty($categoryIds)) {
+                $insCat = $this->pdo->prepare('INSERT INTO brand_categories (brand_id, category_id) VALUES (:b_id, :c_id)');
+                foreach ($categoryIds as $catId) {
+                    $insCat->execute(['b_id' => (int) $id, 'c_id' => (int) $catId]);
+                }
+            }
+
+            $this->pdo->commit();
+            Response::json(['message' => 'Brand updated successfully']);
+        } catch (PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    public function destroyBrand(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $this->pdo->prepare('UPDATE brands SET deleted_at = NOW() WHERE id = :id')->execute(['id' => (int) $id]);
+        Response::json(['message' => 'Brand deleted successfully']);
     }
 
     public function indexUnits(): void

@@ -69,7 +69,21 @@ final class ProductService
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS min_price,
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS max_price,
-                    (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS variant_count
+                    (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS variant_count,
+                    -- Section 18 of the merchant's variant-logic spec: the
+                    -- product list needs variant-level stock rolled up,
+                    -- not a separately-maintained product total.
+                    (SELECT COALESCE(SUM(i.available), 0)
+                     FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS total_stock,
+                    (SELECT COUNT(*)
+                     FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL
+                       AND COALESCE(i.available, 0) > 0 AND COALESCE(i.available, 0) <= COALESCE(i.low_stock_threshold, 5)) AS low_stock_variant_count,
+                    (SELECT COUNT(*)
+                     FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL
+                       AND COALESCE(i.available, 0) <= 0) AS out_of_stock_variant_count
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id
              WHERE {$whereSql}
@@ -132,7 +146,7 @@ final class ProductService
         $product['subcategories'] = $subcategories->fetchAll();
 
         $variants = $this->pdo->prepare(
-            'SELECT v.*, i.on_hand, i.reserved, i.available
+            'SELECT v.*, i.on_hand, i.reserved, i.available, COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
              FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
              WHERE v.product_id = :id AND v.deleted_at IS NULL ORDER BY v.is_default DESC, v.id'
         );

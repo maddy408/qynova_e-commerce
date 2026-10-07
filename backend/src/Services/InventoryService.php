@@ -145,6 +145,10 @@ final class InventoryService
      */
     public function setLowStockThreshold(int $variantId, string $threshold): void
     {
+        if (bccomp($threshold, '0', 3) < 0) {
+            throw new RuntimeException('Low stock threshold cannot be negative');
+        }
+
         $stmt = $this->pdo->prepare('SELECT product_id FROM product_variants WHERE id = :id AND deleted_at IS NULL');
         $stmt->execute(['id' => $variantId]);
         $productId = $stmt->fetchColumn();
@@ -354,6 +358,33 @@ final class InventoryService
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
             throw $e;
+        }
+    }
+
+    /**
+     * @param list<array{variant_id: int, opening_stock: string}> $items
+     */
+    public function saveOpeningStock(array $items, int $userId): void
+    {
+        $adjustmentItems = [];
+        foreach ($items as $item) {
+            $variantId = (int) $item['variant_id'];
+            $newQty = (string) $item['opening_stock'];
+            if (!is_numeric($newQty) || bccomp($newQty, '0', 3) < 0) {
+                continue;
+            }
+            $stock = $this->getStock($variantId);
+            $currentQty = $stock !== null ? (string) $stock['on_hand'] : '0';
+            if (bccomp($currentQty, $newQty, 3) !== 0) {
+                $adjustmentItems[] = [
+                    'variant_id' => $variantId,
+                    'counted_qty' => $newQty,
+                ];
+            }
+        }
+
+        if ($adjustmentItems !== []) {
+            $this->createAdjustment($adjustmentItems, 'Opening Stock Update', $userId);
         }
     }
 }

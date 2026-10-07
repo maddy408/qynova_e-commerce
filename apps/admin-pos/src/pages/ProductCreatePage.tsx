@@ -20,12 +20,33 @@ interface StagedImage {
   previewUrl: string
 }
 
+interface VariantRow {
+  key: string
+  valueIds: number[]
+  title: string
+  sku: string
+  wholesalePrice?: string
+  openingStock: string
+  lowStockThreshold: string
+  images: StagedImage[]
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+/** Same abbreviation rule VariantService::skuSlug()/generateCombinations() uses server-side — kept only as a starting point, the admin can edit every row's SKU before saving. */
+function skuAbbr(value: string) {
+  const clean = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return (clean || 'VAL').slice(0, 3)
+}
+
+function cartesianProduct<T>(groups: T[][]): T[][] {
+  return groups.reduce<T[][]>((acc, group) => acc.flatMap((combo) => group.map((value) => [...combo, value])), [[]])
 }
 
 export function ProductCreatePage() {
@@ -67,14 +88,64 @@ export function ProductCreatePage() {
   const [barcode, setBarcode] = useState('')
   const [mrp, setMrp] = useState('')
   const [sellingPrice, setSellingPrice] = useState('')
+  const [wholesalePrice, setWholesalePrice] = useState('')
   const [costPrice, setCostPrice] = useState('')
+  const [pricingType, setPricingType] = useState<'RETAIL_WHOLESALE' | 'RETAIL_ONLY' | 'WHOLESALE_ONLY' | 'CUSTOMERWISE'>('RETAIL_WHOLESALE')
   const [gstRateId, setGstRateId] = useState('')
   const [hsnCodeId, setHsnCodeId] = useState('')
   const [selectedValueIds, setSelectedValueIds] = useState<number[]>([])
+  const [addingValueForAttr, setAddingValueForAttr] = useState<number | null>(null)
+  const [newValueInput, setNewValueInput] = useState('')
+  const [newValueHexInput, setNewValueHexInput] = useState('')
+  const [savingNewValue, setSavingNewValue] = useState(false)
+  // Every variant is its own sellable SKU — image, opening stock and
+  // low-stock threshold are never shared across generated combinations,
+  // each row below holds its own.
+  const [variantRows, setVariantRows] = useState<VariantRow[]>([])
 
-  // 5. Inventory (Simple only — a Variable product's stock is set per
-  // generated variant on the product detail page, since there's no
-  // honest single "opening stock" before the variants exist).
+  async function handleAddCustomAttributeValue(attributeId: number) {
+    if (!newValueInput.trim()) return
+    setSavingNewValue(true)
+    try {
+      const res = await api.post(`/variant-attributes/${attributeId}/values`, {
+        value: newValueInput.trim(),
+        color_hex: newValueHexInput.trim() || null,
+      })
+      const newId = res.data.id
+      setVariantAttributes((prev) =>
+        prev.map((attr) =>
+          attr.id === attributeId
+            ? {
+                ...attr,
+                values: [
+                  ...attr.values,
+                  {
+                    id: newId,
+                    attribute_id: attributeId,
+                    value: newValueInput.trim(),
+                    color_hex: newValueHexInput.trim() || null,
+                    sort_order: attr.values.length + 1,
+                    status: 'ACTIVE',
+                    created_at: new Date().toISOString(),
+                  },
+                ],
+              }
+            : attr
+        )
+      )
+      setSelectedValueIds((prev) => [...prev, newId])
+      setNewValueInput('')
+      setNewValueHexInput('')
+      setAddingValueForAttr(null)
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to add custom attribute value'))
+    } finally {
+      setSavingNewValue(false)
+    }
+  }
+
+  // 5. Inventory (Simple product only — a Variable product's stock is
+  // configured per row above, never as one shared value for every variant).
   const [openingStock, setOpeningStock] = useState('')
   const [lowStockAlert, setLowStockAlert] = useState('')
 
@@ -179,6 +250,75 @@ export function ProductCreatePage() {
     setSelectedValueIds((prev) => (prev.includes(valueId) ? prev.filter((v) => v !== valueId) : [...prev, valueId]))
   }
 
+  const valueLookup = useMemo(() => {
+    const map = new Map<number, { value: string; colorHex: string | null }>()
+    for (const attribute of variantAttributes) {
+      for (const value of attribute.values) {
+        map.set(value.id, { value: value.value, colorHex: value.color_hex })
+      }
+    }
+    return map
+  }, [variantAttributes])
+
+  // Recomputes the per-variant row list whenever the attribute-value
+  // selection changes: adds a fresh row (auto title/SKU, blank stock) for
+  // every newly-possible combination, drops rows for combinations no
+  // longer selected, and leaves already-edited rows untouched.
+  useEffect(() => {
+    const groups = variantAttributes
+      .map((attribute) => attribute.values.map((v) => v.id).filter((id) => selectedValueIds.includes(id)))
+      .filter((group) => group.length > 0)
+
+    if (groups.length === 0) {
+      setVariantRows([])
+      return
+    }
+
+    const combinations = cartesianProduct(groups)
+    const baseSku = (productCode || slugify(name).toUpperCase() || 'PROD').replace(/[^A-Za-z0-9]/g, '').toUpperCase() || 'PROD'
+
+    setVariantRows((prev) => {
+      const byKey = new Map(prev.map((row) => [row.key, row]))
+      return combinations.map((valueIds) => {
+        const key = valueIds.join('-')
+        const existing = byKey.get(key)
+        if (existing) return existing
+
+        const labels = valueIds.map((id) => valueLookup.get(id)?.value ?? '?')
+        return {
+          key,
+          valueIds,
+          title: labels.join(' / '),
+          sku: `${baseSku}-${valueIds.map((id) => skuAbbr(valueLookup.get(id)?.value ?? '')).join('-')}`,
+          openingStock: '',
+          lowStockThreshold: '',
+          images: [],
+        }
+      })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedValueIds, variantAttributes])
+
+  function updateVariantRow(key: string, patch: Partial<VariantRow>) {
+    setVariantRows((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)))
+  }
+
+  function addVariantRowImages(key: string, files: FileList | null) {
+    if (!files) return
+    const next = Array.from(files).map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))
+    setVariantRows((prev) => prev.map((row) => (row.key === key ? { ...row, images: [...row.images, ...next] } : row)))
+  }
+
+  function removeVariantRowImage(key: string, index: number) {
+    setVariantRows((prev) =>
+      prev.map((row) => {
+        if (row.key !== key) return row
+        URL.revokeObjectURL(row.images[index].previewUrl)
+        return { ...row, images: row.images.filter((_, i) => i !== index) }
+      }),
+    )
+  }
+
   function updateSpec(index: number, field: 'name' | 'value', value: string) {
     setSpecs((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)))
   }
@@ -205,10 +345,32 @@ export function ProductCreatePage() {
       return
     }
 
-    if (productType === 'VARIABLE' && selectedValueIds.length === 0) {
-      setError('Pick at least one attribute value to generate variants from')
-      setActiveSection('type')
-      return
+    if (productType === 'VARIABLE') {
+      if (variantRows.length === 0) {
+        setError('Pick at least one attribute value to generate variants from')
+        setActiveSection('type')
+        return
+      }
+      const emptySkuRow = variantRows.find((r) => r.sku.trim() === '')
+      if (emptySkuRow) {
+        setError(`SKU is required for every variant (missing on "${emptySkuRow.title}")`)
+        setActiveSection('type')
+        return
+      }
+      const skuCounts = new Map<string, number>()
+      for (const row of variantRows) skuCounts.set(row.sku.trim(), (skuCounts.get(row.sku.trim()) ?? 0) + 1)
+      const dupeSku = [...skuCounts.entries()].find(([, count]) => count > 1)
+      if (dupeSku) {
+        setError(`SKU "${dupeSku[0]}" is used by more than one variant — SKUs must be unique`)
+        setActiveSection('type')
+        return
+      }
+      const negativeRow = variantRows.find((r) => Number(r.openingStock || '0') < 0 || Number(r.lowStockThreshold || '0') < 0)
+      if (negativeRow) {
+        setError(`Opening stock and low stock threshold cannot be negative (see "${negativeRow.title}")`)
+        setActiveSection('type')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -252,6 +414,7 @@ export function ProductCreatePage() {
           barcode: barcode || null,
           mrp,
           retail_price: sellingPrice,
+          wholesale_price: wholesalePrice || null,
           purchase_price: costPrice || null,
           gst_rate_id: gstRateId || null,
           hsn_code_id: hsnCodeId || null,
@@ -273,39 +436,51 @@ export function ProductCreatePage() {
           await api.put(`/inventory/${variantId}/threshold`, { low_stock_threshold: Number(lowStockAlert) })
         }
       } else {
-        setSubmitStep('Generating variants…')
-        const groupsByAttribute = new Map<number, number[]>()
-        for (const attribute of variantAttributes) {
-          const ids = attribute.values.map((v) => v.id).filter((id) => selectedValueIds.includes(id))
-          if (ids.length > 0) groupsByAttribute.set(attribute.id, ids)
-        }
+        // Every row is its own sellable SKU: created individually (not
+        // via the bulk generator, which only takes one shared opening
+        // stock/threshold for everything) so each combination's image,
+        // opening stock and low-stock threshold land on that exact
+        // variant and nowhere else.
+        for (let i = 0; i < variantRows.length; i++) {
+          const row = variantRows[i]
+          setSubmitStep(`Creating variant ${i + 1} of ${variantRows.length} (${row.title})…`)
 
-        const generateRes = await api.post(`/products/${productId}/variants/generate`, {
-          attribute_value_groups: Array.from(groupsByAttribute.values()),
-          defaults: {
-            mrp: mrp || undefined,
-            retail_price: sellingPrice || undefined,
-            purchase_price: costPrice || undefined,
-            gst_rate_id: gstRateId || undefined,
-            hsn_code_id: hsnCodeId || undefined,
-          },
-        })
-
-        const createdVariantIds: number[] = generateRes.data.created ?? []
-
-        const stock = openingStock.trim()
-        if (stock !== '' && Number(stock) > 0 && createdVariantIds.length > 0) {
-          setSubmitStep('Setting opening stock for variants…')
-          await api.post('/inventory/adjustments', {
-            reason: 'Opening stock',
-            items: createdVariantIds.map((varId) => ({ variant_id: varId, counted_qty: stock })),
+          const variantRes = await api.post(`/products/${productId}/variants`, {
+            sku: row.sku.trim(),
+            mrp: mrp || 0,
+            retail_price: sellingPrice || 0,
+            wholesale_price: row.wholesalePrice || wholesalePrice || null,
+            purchase_price: costPrice || null,
+            gst_rate_id: gstRateId || null,
+            hsn_code_id: hsnCodeId || null,
+            attribute_value_ids: row.valueIds,
           })
-        }
+          const variantId = variantRes.data.id
 
-        if (lowStockAlert.trim() !== '' && createdVariantIds.length > 0) {
-          setSubmitStep('Setting low stock alert for variants…')
-          for (const varId of createdVariantIds) {
-            await api.put(`/inventory/${varId}/threshold`, { low_stock_threshold: Number(lowStockAlert) })
+          if (row.images.length > 0) {
+            setSubmitStep(`Uploading images for ${row.title}…`)
+            for (let imgIndex = 0; imgIndex < row.images.length; imgIndex++) {
+              const formData = new FormData()
+              formData.append('file', row.images[imgIndex].file)
+              formData.append('is_primary', imgIndex === 0 ? '1' : '0')
+              await api.post(`/variants/${variantId}/images`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+              })
+            }
+          }
+
+          const stock = row.openingStock.trim()
+          if (stock !== '' && Number(stock) > 0) {
+            setSubmitStep(`Setting opening stock for ${row.title}…`)
+            await api.post('/inventory/adjustments', {
+              reason: 'Opening stock',
+              items: [{ variant_id: variantId, counted_qty: stock }],
+            })
+          }
+
+          if (row.lowStockThreshold.trim() !== '') {
+            setSubmitStep(`Setting low stock alert for ${row.title}…`)
+            await api.put(`/inventory/${variantId}/threshold`, { low_stock_threshold: Number(row.lowStockThreshold) })
           }
         }
       }
@@ -348,10 +523,28 @@ export function ProductCreatePage() {
 
   const priceFieldsCard = (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+          Pricing Type &amp; Selection Strategy
+        </label>
+        <Select value={pricingType} onChange={(e: any) => setPricingType(e.target.value)} className="w-full bg-white text-xs">
+          <option value="RETAIL_WHOLESALE">Wholesale &amp; Retail Price (Standard Dual Pricing)</option>
+          <option value="RETAIL_ONLY">Retail Price Only</option>
+          <option value="WHOLESALE_ONLY">Wholesale Price Only</option>
+          <option value="CUSTOMERWISE">Customer-wise / Custom Tier Price</option>
+        </Select>
+        <p className="text-[11px] text-slate-500">
+          {pricingType === 'RETAIL_WHOLESALE' && 'Set distinct retail price for standard customers and wholesale price for bulk buyers.'}
+          {pricingType === 'RETAIL_ONLY' && 'General retail pricing only. Wholesale buyers pay retail rate.'}
+          {pricingType === 'WHOLESALE_ONLY' && 'Exclusive bulk pricing reserved for wholesale buyers.'}
+          {pricingType === 'CUSTOMERWISE' && 'Base prices set here can be mapped to specific customer accounts via customer price lists.'}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <TextField label="MRP (₹)" required type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} placeholder="e.g. 999" />
         <TextField
-          label="Selling Price (₹)"
+          label="Retail / Selling Price (₹)"
           required
           type="number"
           step="0.01"
@@ -359,7 +552,18 @@ export function ProductCreatePage() {
           onChange={(e) => setSellingPrice(e.target.value)}
           placeholder="e.g. 799"
         />
-        <TextField label="Cost / Purchase Price (₹)" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="e.g. 500" />
+        <TextField
+          label="Wholesale Price (₹)"
+          type="number"
+          step="0.01"
+          value={wholesalePrice}
+          onChange={(e) => setWholesalePrice(e.target.value)}
+          placeholder="e.g. 550"
+        />
+        <TextField label="Cost / Purchase Price (₹)" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="e.g. 400" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
         <Select label="GST Rate" value={gstRateId} onChange={(e) => setGstRateId(e.target.value)}>
           <option value="">— None —</option>
           {gstRates.map((g) => (
@@ -619,9 +823,17 @@ export function ProductCreatePage() {
             ) : (
               <>
                 <div>
-                  <span className="mb-2 block text-sm font-medium text-slate-700">
-                    Attribute Values <span className="text-red-500">*</span>
-                  </span>
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <span className="block text-sm font-semibold text-slate-900">
+                        Attribute Values <span className="text-red-500">*</span>
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        Select values from master attributes (Color, Size, Weight, Volume, Flavor, Pack Size, Diet Type, etc.) to automatically generate sellable variant combinations.
+                      </p>
+                    </div>
+                  </div>
+
                   {variantAttributes.length === 0 ? (
                     <p className="text-sm text-slate-400">No variant attributes set up yet.</p>
                   ) : (
@@ -629,19 +841,29 @@ export function ProductCreatePage() {
                       {variantAttributes.map((attribute) => {
                         const selectedForAttr = attribute.values.filter((v) => selectedValueIds.includes(v.id))
                         const unselectedForAttr = attribute.values.filter((v) => !selectedValueIds.includes(v.id))
+                        const isAddingValue = addingValueForAttr === attribute.id
 
                         return (
-                          <div key={attribute.id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2">
+                          <div key={attribute.id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-2xs transition hover:border-slate-300">
                             <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                                Select {attribute.name}
-                              </label>
-                              <span className="text-[11px] text-slate-500 font-medium">
-                                {selectedForAttr.length} selected
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                                  {attribute.name}
+                                </label>
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                                  {selectedForAttr.length} selected
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setAddingValueForAttr(isAddingValue ? null : attribute.id)}
+                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                              >
+                                {isAddingValue ? 'Cancel' : `+ Add Custom ${attribute.name}`}
+                              </button>
                             </div>
 
-                            {/* Dropdown Selector for Colors / Attributes */}
+                            {/* Dropdown Selector for Attributes */}
                             <div className="flex gap-2">
                               <select
                                 value=""
@@ -651,9 +873,9 @@ export function ProductCreatePage() {
                                     setSelectedValueIds((prev) => [...prev, valId])
                                   }
                                 }}
-                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                               >
-                                <option value="">Choose a {attribute.name} from list ({unselectedForAttr.length} available)…</option>
+                                <option value="">Select a {attribute.name} ({unselectedForAttr.length} available)…</option>
                                 {unselectedForAttr.map((v) => (
                                   <option key={v.id} value={v.id}>
                                     {v.value} {v.color_hex ? `(${v.color_hex})` : ''}
@@ -662,17 +884,47 @@ export function ProductCreatePage() {
                               </select>
                             </div>
 
+                            {/* Inline Form to Add New Custom Value */}
+                            {isAddingValue && (
+                              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-2.5">
+                                <input
+                                  type="text"
+                                  placeholder={`New ${attribute.name} value (e.g. ${attribute.name === 'Color' ? 'Lime Green' : attribute.name === 'Weight' ? '500g' : 'Value'})`}
+                                  value={newValueInput}
+                                  onChange={(e) => setNewValueInput(e.target.value)}
+                                  className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                                {attribute.name.toLowerCase() === 'color' && (
+                                  <input
+                                    type="color"
+                                    title="Pick Color Hex"
+                                    value={newValueHexInput || '#3b82f6'}
+                                    onChange={(e) => setNewValueHexInput(e.target.value)}
+                                    className="h-7 w-9 cursor-pointer rounded border border-slate-300 p-0.5"
+                                  />
+                                )}
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={savingNewValue || !newValueInput.trim()}
+                                  onClick={() => handleAddCustomAttributeValue(attribute.id)}
+                                >
+                                  {savingNewValue ? 'Adding…' : 'Save & Select'}
+                                </Button>
+                              </div>
+                            )}
+
                             {/* Selected Chips */}
                             {selectedForAttr.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 pt-1">
                                 {selectedForAttr.map((value) => (
                                   <span
                                     key={value.id}
-                                    className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800 shadow-2xs"
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/80 px-3 py-1 text-xs font-semibold text-indigo-900 shadow-2xs transition hover:bg-indigo-100"
                                   >
                                     {value.color_hex && (
                                       <span
-                                        className="inline-block h-3 w-3 rounded-full border border-black/10"
+                                        className="inline-block h-3 w-3 rounded-full border border-black/10 shadow-2xs"
                                         style={{ backgroundColor: value.color_hex }}
                                       />
                                     )}
@@ -680,7 +932,8 @@ export function ProductCreatePage() {
                                     <button
                                       type="button"
                                       onClick={() => toggleAttributeValue(value.id)}
-                                      className="ml-0.5 text-indigo-400 hover:text-indigo-900 font-bold"
+                                      className="ml-1 text-indigo-400 hover:text-red-600 font-bold text-xs"
+                                      title="Remove"
                                     >
                                       ✕
                                     </button>
@@ -694,61 +947,164 @@ export function ProductCreatePage() {
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 font-medium">Starting price &amp; tax for every generated variant:</p>
+                <p className="text-xs text-slate-500 font-medium">Starting price &amp; tax for every generated variant (SKU, image and stock are set per variant below):</p>
                 {priceFieldsCard}
 
-                <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
-                  <h3 className="text-xs font-bold text-indigo-950 uppercase tracking-wider">Initial Stock &amp; Alert Threshold for Variants</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <TextField
-                      label="Opening Stock (per generated variant)"
-                      type="number"
-                      step="1"
-                      value={openingStock}
-                      onChange={(e) => setOpeningStock(e.target.value)}
-                      placeholder="e.g. 100"
-                    />
-                    <TextField
-                      label="Low Stock Alert Threshold"
-                      type="number"
-                      step="1"
-                      value={lowStockAlert}
-                      onChange={(e) => setLowStockAlert(e.target.value)}
-                      placeholder="Default: 5"
-                    />
+                {variantRows.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                        Generated Variant Combinations ({variantRows.length})
+                      </h3>
+                      <span className="text-xs text-slate-500">Each variant gets its own SKU, image and opening stock</span>
+                    </div>
+                    <div className="space-y-3">
+                      {variantRows.map((row, index) => (
+                        <div key={row.key} className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50/40 via-white to-slate-50 p-4 shadow-2xs space-y-3">
+                          <div className="flex items-center justify-between border-b border-indigo-100/60 pb-2">
+                            <span className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">{index + 1}</span>
+                              <span className="text-indigo-800">{row.title}</span>
+                            </span>
+                            <span className="text-[11px] font-semibold text-slate-500">SKU Code: {row.sku}</span>
+                          </div>
+                          <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                            <div>
+                              <label className="mb-1 block text-[11px] font-semibold text-slate-600">Variant Image</label>
+                              <label className="group relative flex h-16 w-16 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-500 hover:bg-indigo-50/50 transition">
+                                {row.images[0] ? (
+                                  <>
+                                    <img src={row.images[0].previewUrl} alt="" className="h-full w-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                      <span className="text-[10px] font-bold text-white">+ Add More</span>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-center p-1">
+                                    <span className="block text-indigo-600 text-xs font-bold">+ Image</span>
+                                  </div>
+                                )}
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => addVariantRowImages(row.key, e.target.files)}
+                                />
+                              </label>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              <TextField
+                                label="SKU"
+                                required
+                                value={row.sku}
+                                onChange={(e) => updateVariantRow(row.key, { sku: e.target.value })}
+                              />
+                              <TextField
+                                label="Opening Stock"
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={row.openingStock}
+                                onChange={(e) => updateVariantRow(row.key, { openingStock: e.target.value })}
+                                placeholder="0"
+                              />
+                              <TextField
+                                label="Low Stock Alert"
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={row.lowStockThreshold}
+                                onChange={(e) => updateVariantRow(row.key, { lowStockThreshold: e.target.value })}
+                                placeholder="Default: 5"
+                              />
+                            </div>
+                          </div>
+                          {row.images.length > 0 && (
+                            <div className="mt-2 flex items-center gap-2 pl-[96px]">
+                              {row.images.map((img, imgIndex) => (
+                                <div key={img.previewUrl} className="relative group">
+                                  <img src={img.previewUrl} alt="" className="h-10 w-10 rounded-lg border border-slate-200 object-cover shadow-2xs" />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeVariantRowImage(row.key, imgIndex)}
+                                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[9px] font-bold text-white shadow"
+                                    title="Delete Image"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-indigo-700">
-                    ✓ This opening stock &amp; low stock alert count will be applied automatically to all generated variants (e.g. Blue/L, Red/XL).
-                  </p>
-                </div>
+                )}
               </>
             )}
           </Card>
 
           <Card className={`space-y-4 p-5 ${activeSection === 'inventory' ? '' : 'hidden'}`}>
             <h2 className="text-sm font-semibold text-slate-900">Inventory</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <TextField
-                label="Opening Stock"
-                type="number"
-                step="1"
-                value={openingStock}
-                onChange={(e) => setOpeningStock(e.target.value)}
-                placeholder="e.g. 50"
-              />
-              <TextField
-                label="Low Stock Alert Threshold"
-                type="number"
-                step="1"
-                value={lowStockAlert}
-                onChange={(e) => setLowStockAlert(e.target.value)}
-                placeholder="Default: 5"
-              />
-            </div>
-            {productType === 'VARIABLE' && (
-              <p className="text-xs text-indigo-600 font-medium">
-                ✓ Opening stock and low stock alerts set here will be automatically applied to all created variants upon saving.
-              </p>
+            {productType === 'SIMPLE' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <TextField
+                  label="Opening Stock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={openingStock}
+                  onChange={(e) => setOpeningStock(e.target.value)}
+                  placeholder="e.g. 50"
+                />
+                <TextField
+                  label="Low Stock Alert Threshold"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={lowStockAlert}
+                  onChange={(e) => setLowStockAlert(e.target.value)}
+                  placeholder="Default: 5"
+                />
+              </div>
+            ) : variantRows.length === 0 ? (
+              <p className="text-sm text-slate-500">Pick attribute values in "4. Product Type" to configure each variant's own stock.</p>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500">
+                  Every variant holds its own stock — edit opening stock and low-stock alert per row in "4. Product Type". Summary:
+                </p>
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+                    <tr>
+                      <th className="py-1.5 font-medium">Variant</th>
+                      <th className="py-1.5 font-medium">SKU</th>
+                      <th className="py-1.5 font-medium">Opening Stock</th>
+                      <th className="py-1.5 font-medium">Low Stock Alert</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {variantRows.map((row) => (
+                      <tr key={row.key}>
+                        <td className="py-1.5 text-slate-900">{row.title}</td>
+                        <td className="py-1.5 text-slate-500">{row.sku || '—'}</td>
+                        <td className="py-1.5 text-slate-600">{row.openingStock || '0'}</td>
+                        <td className="py-1.5 text-slate-600">{row.lowStockThreshold || '5 (default)'}</td>
+                      </tr>
+                    ))}
+                    <tr className="font-semibold text-slate-900">
+                      <td className="py-1.5" colSpan={2}>
+                        Total Product Stock
+                      </td>
+                      <td className="py-1.5" colSpan={2}>
+                        {variantRows.reduce((sum, r) => sum + (Number(r.openingStock) || 0), 0)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </>
             )}
           </Card>
 
@@ -864,17 +1220,17 @@ export function ProductCreatePage() {
               </div>
               <div>
                 <dt className="text-slate-500">Type</dt>
-                <dd className="font-medium text-slate-900">{productType === 'SIMPLE' ? 'Simple Product' : `Variable Product (${selectedValueIds.length} value(s) selected)`}</dd>
+                <dd className="font-medium text-slate-900">{productType === 'SIMPLE' ? 'Simple Product' : `Variable Product (${variantRows.length} variant(s))`}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Categories</dt>
                 <dd className="font-medium text-slate-900">{categoryIds.length} selected</dd>
               </div>
               <div>
-                <dt className="text-slate-500">Images</dt>
+                <dt className="text-slate-500">Product Images</dt>
                 <dd className="font-medium text-slate-900">{stagedImages.length} staged</dd>
               </div>
-              {productType === 'SIMPLE' && (
+              {productType === 'SIMPLE' ? (
                 <>
                   <div>
                     <dt className="text-slate-500">SKU</dt>
@@ -889,6 +1245,13 @@ export function ProductCreatePage() {
                     <dd className="font-medium text-slate-900">{openingStock || '0'}</dd>
                   </div>
                 </>
+              ) : (
+                <div>
+                  <dt className="text-slate-500">Total Opening Stock</dt>
+                  <dd className="font-medium text-slate-900">
+                    {variantRows.reduce((sum, r) => sum + (Number(r.openingStock) || 0), 0)} across {variantRows.length} variant(s)
+                  </dd>
+                </div>
               )}
               <div>
                 <dt className="text-slate-500">Status</dt>

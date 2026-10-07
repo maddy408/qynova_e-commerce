@@ -1,13 +1,33 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
+import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
 import type { ProductDetail, ProductVariant, VariantAttribute } from '../lib/types'
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 
 function imageUrl(path: string) {
   return `${API_ORIGIN}/${path}`
+}
+
+function skuAbbr(value: string) {
+  const clean = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return (clean || 'VAL').slice(0, 3)
+}
+
+function cartesianProduct<T>(groups: T[][]): T[][] {
+  return groups.reduce<T[][]>((acc, group) => acc.flatMap((combo) => group.map((value) => [...combo, value])), [[]])
+}
+
+interface NewVariantRow {
+  key: string
+  valueIds: number[]
+  title: string
+  sku: string
+  openingStock: string
+  lowStockThreshold: string
+  image: { file: File; previewUrl: string } | null
 }
 
 export function ProductDetailPage() {
@@ -205,6 +225,7 @@ function SimpleVariantSection({
   const [sku, setSku] = useState(variant?.sku ?? '');
   const [mrp, setMrp] = useState(variant?.mrp ?? '');
   const [retailPrice, setRetailPrice] = useState(variant?.retail_price ?? '');
+  const [lowStockThreshold, setLowStockThreshold] = useState(variant?.low_stock_threshold ?? '5');
   const [saving, setSaving] = useState(false);
 
   if (!variant) {
@@ -215,11 +236,16 @@ function SimpleVariantSection({
     );
   }
 
+  const status = stockStatus(variant.available, variant.low_stock_threshold);
+
   async function save() {
     setSaving(true);
     onError('');
     try {
       await api.put(`/variants/${variant.id}`, { sku, mrp, retail_price: retailPrice });
+      if (lowStockThreshold.trim() !== '' && lowStockThreshold !== variant.low_stock_threshold) {
+        await api.put(`/inventory/${variant.id}/threshold`, { low_stock_threshold: Number(lowStockThreshold) });
+      }
       onChange();
     } catch (err) {
       onError(apiErrorMessage(err, 'Could not update pricing'));
@@ -230,8 +256,11 @@ function SimpleVariantSection({
 
   return (
     <Card className="space-y-4 p-5">
-      <h2 className="text-sm font-semibold text-slate-900">Pricing &amp; Inventory</h2>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">Pricing &amp; Inventory</h2>
+        <Badge tone={STOCK_STATUS_TONE[status]}>{STOCK_STATUS_LABEL[status]}</Badge>
+      </div>
+      <div className="grid grid-cols-5 gap-4">
         <TextField label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} />
         <TextField label="MRP" type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} />
         <TextField label="Selling Price" type="number" step="0.01" value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} />
@@ -239,6 +268,14 @@ function SimpleVariantSection({
           <span className="mb-1 block text-sm font-medium text-slate-700">Stock on hand</span>
           <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{variant.on_hand ?? '0'}</p>
         </div>
+        <TextField
+          label="Low Stock Alert"
+          type="number"
+          min="0"
+          step="1"
+          value={lowStockThreshold}
+          onChange={(e) => setLowStockThreshold(e.target.value)}
+        />
       </div>
       <Button size="sm" onClick={save} disabled={saving}>
         {saving ? 'Saving…' : 'Save'}
@@ -260,39 +297,159 @@ function VariantsSection({
   onChange: () => void
   onManageImages: (variant: ProductVariant) => void
 }) {
-  const [selectedValues, setSelectedValues] = useState<Record<number, number[]>>({});
-  const [generating, setGenerating] = useState(false);
+  const [selectedValueIds, setSelectedValueIds] = useState<number[]>([]);
+  const [newRows, setNewRows] = useState<NewVariantRow[]>([]);
+  const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Record<number, { mrp: string; retail_price: string }>>({});
+  const [editingThreshold, setEditingThreshold] = useState<Record<number, string>>({});
+  const [addingValueForAttr, setAddingValueForAttr] = useState<number | null>(null);
+  const [newValueInput, setNewValueInput] = useState('');
+  const [newValueHexInput, setNewValueHexInput] = useState('');
+  const [savingNewValue, setSavingNewValue] = useState(false);
 
-  function toggleValue(attributeId: number, valueId: number) {
-    setSelectedValues((prev) => {
-      const current = prev[attributeId] ?? [];
-      const next = current.includes(valueId) ? current.filter((v) => v !== valueId) : [...current, valueId];
-      return { ...prev, [attributeId]: next };
-    });
+  async function handleAddCustomAttributeValue(attributeId: number) {
+    if (!newValueInput.trim()) return;
+    setSavingNewValue(true);
+    try {
+      const res = await api.post(`/variant-attributes/${attributeId}/values`, {
+        value: newValueInput.trim(),
+        color_hex: newValueHexInput.trim() || null,
+      });
+      const newId = res.data.id;
+      // Trigger outer refresh to update attributes list from server
+      onChange();
+      setSelectedValueIds((prev) => [...prev, newId]);
+      setNewValueInput('');
+      setNewValueHexInput('');
+      setAddingValueForAttr(null);
+    } catch (err) {
+      onError(apiErrorMessage(err, 'Failed to add custom attribute value'));
+    } finally {
+      setSavingNewValue(false);
+    }
   }
 
-  async function generate() {
-    const groups = Object.values(selectedValues).filter((g) => g.length > 0);
+  const valueLookup = useMemo(() => {
+    const map = new Map<number, { value: string; colorHex: string | null }>();
+    for (const attribute of attributes) {
+      for (const value of attribute.values) {
+        map.set(value.id, { value: value.value, colorHex: value.color_hex });
+      }
+    }
+    return map;
+  }, [attributes]);
+
+  const existingCombinations = useMemo(() => {
+    const set = new Set<string>();
+    for (const v of product.variants) {
+      set.add(
+        v.attribute_values
+          .map((a) => a.value_id)
+          .sort((a, b) => a - b)
+          .join('-'),
+      );
+    }
+    return set;
+  }, [product.variants]);
+
+  function toggleValue(valueId: number) {
+    setSelectedValueIds((prev) => (prev.includes(valueId) ? prev.filter((v) => v !== valueId) : [...prev, valueId]));
+  }
+
+  // Recomputes the staged new-variant rows whenever the attribute-value
+  // selection changes — same per-row SKU/image/opening-stock/low-stock
+  // treatment as Product Create, skipping combinations that already
+  // exist on this product.
+  useEffect(() => {
+    const groups = attributes
+      .map((attribute) => attribute.values.map((v) => v.id).filter((id) => selectedValueIds.includes(id)))
+      .filter((group) => group.length > 0);
+
     if (groups.length === 0) {
-      onError('Select at least one attribute value to generate variants');
+      setNewRows([]);
       return;
     }
-    setGenerating(true);
+
+    const combinations = cartesianProduct(groups).filter((valueIds) => {
+      const key = [...valueIds].sort((a, b) => a - b).join('-');
+      return !existingCombinations.has(key);
+    });
+    const baseSku = (product.product_code || product.name.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6) || 'PROD');
+
+    setNewRows((prev) => {
+      const byKey = new Map(prev.map((row) => [row.key, row]));
+      return combinations.map((valueIds) => {
+        const key = valueIds.join('-');
+        const existing = byKey.get(key);
+        if (existing) return existing;
+
+        const labels = valueIds.map((id) => valueLookup.get(id)?.value ?? '?');
+        return {
+          key,
+          valueIds,
+          title: labels.join(' / '),
+          sku: `${baseSku}-${valueIds.map((id) => skuAbbr(valueLookup.get(id)?.value ?? '')).join('-')}`,
+          openingStock: '',
+          lowStockThreshold: '',
+          image: null,
+        };
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedValueIds, attributes, existingCombinations]);
+
+  function updateRow(key: string, patch: Partial<NewVariantRow>) {
+    setNewRows((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)));
+  }
+
+  function setRowImage(key: string, file: File | undefined) {
+    if (!file) return;
+    updateRow(key, { image: { file, previewUrl: URL.createObjectURL(file) } });
+  }
+
+  async function createVariants() {
+    if (newRows.length === 0) return;
+    const emptySku = newRows.find((r) => r.sku.trim() === '');
+    if (emptySku) {
+      onError(`SKU is required for every variant (missing on "${emptySku.title}")`);
+      return;
+    }
+
+    setCreating(true);
     onError('');
     try {
-      const res = await api.post(`/products/${product.id}/variants/generate`, {
-        attribute_value_groups: groups,
-        defaults: { mrp: 0, retail_price: 0 },
-      });
-      onChange();
-      if (res.data.skipped.length > 0) {
-        onError(`${res.data.created.length} created, ${res.data.skipped.length} already existed and were skipped.`);
+      for (const row of newRows) {
+        const variantRes = await api.post(`/products/${product.id}/variants`, {
+          sku: row.sku.trim(),
+          mrp: 0,
+          retail_price: 0,
+          attribute_value_ids: row.valueIds,
+        });
+        const variantId = variantRes.data.id;
+
+        if (row.image) {
+          const formData = new FormData();
+          formData.append('file', row.image.file);
+          formData.append('is_primary', '1');
+          await api.post(`/variants/${variantId}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
+
+        const stock = row.openingStock.trim();
+        if (stock !== '' && Number(stock) > 0) {
+          await api.post('/inventory/adjustments', { reason: 'Opening stock', items: [{ variant_id: variantId, counted_qty: stock }] });
+        }
+
+        if (row.lowStockThreshold.trim() !== '') {
+          await api.put(`/inventory/${variantId}/threshold`, { low_stock_threshold: Number(row.lowStockThreshold) });
+        }
       }
+      setSelectedValueIds([]);
+      setNewRows([]);
+      onChange();
     } catch (err) {
-      onError(apiErrorMessage(err, 'Could not generate variants'));
+      onError(apiErrorMessage(err, 'Could not create variants'));
     } finally {
-      setGenerating(false);
+      setCreating(false);
     }
   }
 
@@ -312,45 +469,226 @@ function VariantsSection({
     onChange();
   }
 
+  async function saveThreshold(variantId: number) {
+    const value = editingThreshold[variantId];
+    if (value === undefined || value.trim() === '') return;
+    await api.put(`/inventory/${variantId}/threshold`, { low_stock_threshold: Number(value) });
+    setEditingThreshold((prev) => {
+      const next = { ...prev };
+      delete next[variantId];
+      return next;
+    });
+    onChange();
+  }
+
+  async function toggleVariantActive(v: ProductVariant) {
+    await api.put(`/variants/${v.id}`, { status: v.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' });
+    onChange();
+  }
+
   return (
     <Card className="space-y-4 p-5">
       <div>
         <h2 className="text-sm font-semibold text-slate-900">Variants</h2>
-        <p className="text-xs text-slate-500">Pick attribute values, then generate every combination automatically.</p>
+        <p className="text-xs text-slate-500">
+          Every variant is its own sellable SKU — pick attribute values to stage new combinations, each with its own image,
+          opening stock and low-stock alert.
+        </p>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-slate-200 p-3">
-        {attributes.map((attr) => (
-          <div key={attr.id} className="flex items-start gap-3">
-            <span className="w-16 shrink-0 pt-1 text-sm font-medium text-slate-700">{attr.name}</span>
-            <div className="flex flex-wrap gap-2">
-              {attr.values.map((val) => {
-                const checked = (selectedValues[attr.id] ?? []).includes(val.id);
-                return (
-                  <button
-                    key={val.id}
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/30 p-4">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Add New Variant Combinations</h3>
+        {attributes.map((attr) => {
+          const selectedForAttr = attr.values.filter((v) => selectedValueIds.includes(v.id))
+          const unselectedForAttr = attr.values.filter((v) => !selectedValueIds.includes(v.id))
+          const isAddingValue = addingValueForAttr === attr.id
+
+          return (
+            <div key={attr.id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-2xs transition hover:border-slate-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    {attr.name}
+                  </label>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                    {selectedForAttr.length} selected
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAddingValueForAttr(isAddingValue ? null : attr.id)}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                >
+                  {isAddingValue ? 'Cancel' : `+ Add Custom ${attr.name}`}
+                </button>
+              </div>
+
+              {/* Dropdown Selector for Colors / Attributes */}
+              <div className="flex gap-2">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const valId = Number(e.target.value)
+                    if (valId && !selectedValueIds.includes(valId)) {
+                      toggleValue(valId)
+                    }
+                  }}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="">Select a {attr.name} ({unselectedForAttr.length} available)…</option>
+                  {unselectedForAttr.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.value} {v.color_hex ? `(${v.color_hex})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Inline Form to Add New Custom Value */}
+              {isAddingValue && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-2.5">
+                  <input
+                    type="text"
+                    placeholder={`New ${attr.name} value (e.g. ${attr.name === 'Color' ? 'Lime Green' : attr.name === 'Weight' ? '500g' : 'Value'})`}
+                    value={newValueInput}
+                    onChange={(e) => setNewValueInput(e.target.value)}
+                    className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {attr.name.toLowerCase() === 'color' && (
+                    <input
+                      type="color"
+                      title="Pick Color Hex"
+                      value={newValueHexInput || '#3b82f6'}
+                      onChange={(e) => setNewValueHexInput(e.target.value)}
+                      className="h-7 w-9 cursor-pointer rounded border border-slate-300 p-0.5"
+                    />
+                  )}
+                  <Button
                     type="button"
-                    onClick={() => toggleValue(attr.id, val.id)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                      checked ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-600'
-                    }`}
+                    size="sm"
+                    disabled={savingNewValue || !newValueInput.trim()}
+                    onClick={() => handleAddCustomAttributeValue(attr.id)}
                   >
-                    {val.color_hex && (
-                      <span
-                        className="mr-1 inline-block h-2.5 w-2.5 rounded-full align-middle"
-                        style={{ backgroundColor: val.color_hex }}
+                    {savingNewValue ? 'Adding…' : 'Save & Select'}
+                  </Button>
+                </div>
+              )}
+
+              {/* Selected Chips */}
+              {selectedForAttr.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {selectedForAttr.map((value) => (
+                    <span
+                      key={value.id}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/80 px-3 py-1 text-xs font-semibold text-indigo-900 shadow-2xs transition hover:bg-indigo-100"
+                    >
+                      {value.color_hex && (
+                        <span
+                          className="inline-block h-3 w-3 rounded-full border border-black/10 shadow-2xs"
+                          style={{ backgroundColor: value.color_hex }}
+                        />
+                      )}
+                      {value.value}
+                      <button
+                        type="button"
+                        onClick={() => toggleValue(value.id)}
+                        className="ml-1 text-indigo-400 hover:text-red-600 font-bold text-xs"
+                        title="Remove"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {newRows.length > 0 && (
+          <div className="space-y-3 border-t border-slate-200 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+                Staged Variants ({newRows.length} combination{newRows.length === 1 ? '' : 's'})
+              </h3>
+              <span className="text-[11px] font-medium text-slate-500">Attach images and initial stock before creating</span>
+            </div>
+            {newRows.map((row, index) => (
+              <div key={row.key} className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-slate-900">
+                    Variant {index + 1}: <span className="text-indigo-700">{row.title}</span>
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-600">Variant Image</label>
+                    <label className="group relative flex h-16 w-16 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-500 hover:bg-indigo-50/50 transition">
+                      {row.image ? (
+                        <>
+                          <img src={row.image.previewUrl} alt="" className="h-full w-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                            <span className="text-[10px] font-bold text-white">Change</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center p-1">
+                          <span className="block text-indigo-600 text-xs font-bold">+ Image</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => setRowImage(row.key, e.target.files?.[0])}
                       />
-                    )}
-                    {val.value}
-                  </button>
-                );
-              })}
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-700">SKU <span className="text-red-500">*</span></label>
+                      <input
+                        value={row.sku}
+                        onChange={(e) => updateRow(row.key, { sku: e.target.value })}
+                        placeholder="SKU"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-700">Opening Stock</label>
+                      <input
+                        value={row.openingStock}
+                        onChange={(e) => updateRow(row.key, { openingStock: e.target.value })}
+                        type="number"
+                        min="0"
+                        placeholder="Qty e.g. 10"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-700">Low Stock Alert</label>
+                      <input
+                        value={row.lowStockThreshold}
+                        onChange={(e) => updateRow(row.key, { lowStockThreshold: e.target.value })}
+                        type="number"
+                        min="0"
+                        placeholder="Threshold e.g. 5"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="pt-2">
+              <Button size="sm" onClick={createVariants} disabled={creating}>
+                {creating ? 'Creating Variants & Uploading Images…' : `Create ${newRows.length} Variant${newRows.length === 1 ? '' : 's'} With Images`}
+              </Button>
             </div>
           </div>
-        ))}
-        <Button size="sm" onClick={generate} disabled={generating}>
-          {generating ? 'Generating…' : 'Generate Combinations'}
-        </Button>
+        )}
       </div>
 
       {product.variants.length > 0 && (
@@ -363,6 +701,8 @@ function VariantsSection({
                 <th className="py-2 pr-3 font-medium">MRP</th>
                 <th className="py-2 pr-3 font-medium">Price</th>
                 <th className="py-2 pr-3 font-medium">Stock</th>
+                <th className="py-2 pr-3 font-medium">Low Stock Alert</th>
+                <th className="py-2 pr-3 font-medium">Status</th>
                 <th className="py-2 pr-3 font-medium">Images</th>
                 <th className="py-2 pr-3 font-medium"></th>
               </tr>
@@ -371,8 +711,10 @@ function VariantsSection({
               {product.variants.map((v) => {
                 const label = v.attribute_values.map((a) => a.value).join(' / ') || '—';
                 const editValues = editing[v.id];
+                const status = stockStatus(v.available, v.low_stock_threshold);
+                const thresholdEditing = editingThreshold[v.id];
                 return (
-                  <tr key={v.id}>
+                  <tr key={v.id} className={v.status === 'INACTIVE' ? 'opacity-50' : ''}>
                     <td className="py-2 pr-3 font-medium text-slate-900">{label}</td>
                     <td className="py-2 pr-3 text-slate-600">{v.sku}</td>
                     <td className="py-2 pr-3">
@@ -401,6 +743,19 @@ function VariantsSection({
                     </td>
                     <td className="py-2 pr-3 text-slate-600">{v.on_hand ?? '0'}</td>
                     <td className="py-2 pr-3">
+                      <input
+                        value={thresholdEditing ?? v.low_stock_threshold ?? '5'}
+                        onChange={(e) => setEditingThreshold((prev) => ({ ...prev, [v.id]: e.target.value }))}
+                        onBlur={() => saveThreshold(v.id)}
+                        type="number"
+                        min="0"
+                        className="w-16 rounded border border-slate-300 px-1.5 py-0.5 text-sm"
+                      />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <Badge tone={STOCK_STATUS_TONE[status]}>{STOCK_STATUS_LABEL[status]}</Badge>
+                    </td>
+                    <td className="py-2 pr-3">
                       <div className="flex -space-x-2">
                         {v.images.slice(0, 3).map((img) => (
                           <img
@@ -425,6 +780,9 @@ function VariantsSection({
                         )}
                         <button onClick={() => onManageImages(v)} className="text-xs font-medium text-slate-500 hover:text-slate-800">
                           Manage Images
+                        </button>
+                        <button onClick={() => toggleVariantActive(v)} className="text-xs font-medium text-slate-500 hover:text-slate-800">
+                          {v.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                         </button>
                       </div>
                     </td>

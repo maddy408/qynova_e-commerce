@@ -11,6 +11,7 @@ use App\Middleware\PermissionMiddleware;
 use App\Services\ProductService;
 use App\Services\ProductSpecificationService;
 use PDO;
+use PDOException;
 use RuntimeException;
 
 final class ProductController
@@ -44,6 +45,14 @@ final class ProductController
         try {
             $id = (new ProductService($this->pdo))->create(Request::json());
             Response::json(['id' => $id], 201);
+        } catch (PDOException $e) {
+            // PDOException extends RuntimeException (PHP 8+) — this catch
+            // must come first, or the block below silently swallows it
+            // with the wrong status code and the raw SQL message.
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A product with this code, slug, or SKU already exists', 409);
+            }
+            throw $e;
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }
@@ -57,6 +66,11 @@ final class ProductController
         try {
             (new ProductService($this->pdo))->update((int) $id, Request::json());
             Response::json(['updated' => true]);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A product with this code, slug, or SKU already exists', 409);
+            }
+            throw $e;
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }

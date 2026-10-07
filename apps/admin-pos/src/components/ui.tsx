@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react'
+import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 
 export function Button({
   variant = 'primary',
@@ -107,21 +107,61 @@ export function PageHeader({ title, description, actions }: { title: string; des
   )
 }
 
-export function Modal({ title, onClose, children, width = 'md' }: { title: string; onClose: () => void; children: ReactNode; width?: 'sm' | 'md' | 'lg' }) {
-  const widths = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' }
+export function Modal({
+  title,
+  onClose,
+  children,
+  width = 'md',
+}: {
+  title: string
+  onClose: () => void
+  children: ReactNode
+  width?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+}) {
+  const widths = {
+    sm: 'max-w-sm',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+    '2xl': 'max-w-5xl',
+  }
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 sm:p-6 backdrop-blur-xs transition-opacity"
+      onClick={onClose}
+    >
       <div
-        className={`w-full ${widths[width]} rounded-xl bg-white p-6 shadow-xl`}
+        className={`relative flex max-h-[90vh] w-full ${widths[width] ?? widths.md} flex-col rounded-2xl bg-white shadow-2xl border border-slate-200/80 overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">
+        {/* Sticky Header - Always visible at top */}
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 px-6 py-4 bg-slate-50/90 backdrop-blur-xs">
+          <h2 className="text-base font-bold text-slate-900">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/70 hover:text-slate-700 transition"
+            aria-label="Close modal"
+          >
             ✕
           </button>
         </div>
-        {children}
+
+        {/* Scrollable Body - Forms scroll smoothly inside modal */}
+        <div className="flex-1 overflow-y-auto p-6 text-sm">
+          {children}
+        </div>
       </div>
     </div>
   )

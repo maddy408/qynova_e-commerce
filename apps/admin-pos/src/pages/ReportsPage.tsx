@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Badge, Card, PageHeader, Select, Spinner } from '../components/ui'
+import { Badge, Button, Card, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api } from '../lib/api'
 
 function money(value: string | number) {
@@ -55,6 +55,11 @@ function SectionTitle({ children }: { children: string }) {
 
 export function ReportsPage() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [channelFilter, setChannelFilter] = useState<'ALL' | 'POS' | 'ECOMMERCE'>('ALL')
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<'ALL' | 'RETAIL' | 'WHOLESALE'>('ALL')
+
   const [chart, setChart] = useState<SalesChartPoint[] | null>(null)
   const [products, setProducts] = useState<ProductAnalytics | null>(null)
   const [customers, setCustomers] = useState<CustomerAnalytics | null>(null)
@@ -74,15 +79,118 @@ export function ReportsPage() {
     api.get('/reports/refunds').then((res) => setRefunds(res.data.summary))
   }, [])
 
+  function handleExportExcel() {
+    const params = new URLSearchParams()
+    if (startDate) params.append('start_date', startDate)
+    if (endDate) params.append('end_date', endDate)
+    if (channelFilter !== 'ALL') params.append('channel', channelFilter)
+    if (customerTypeFilter !== 'ALL') params.append('customer_type', customerTypeFilter)
+
+    const token = localStorage.getItem('token')
+    fetch(`/api/reports/export/excel?${params.toString()}`, {
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `sales-report-${new Date().toISOString().slice(0, 10)}.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+      })
+      .catch((err) => alert('Export failed: ' + err.message))
+  }
+
+  function handleExportPdf() {
+    window.print()
+  }
+
   const maxSales = chart && chart.length > 0 ? Math.max(...chart.map((c) => Number(c.sales_amount))) : 0
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Reports" description="Sales, products, customers, referrals and refunds in one place." />
+      <PageHeader
+        title="Reports & Analytics"
+        description="Comprehensive store analytics with Excel export, PDF export, and multi-filter options."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleExportExcel}>
+              📊 Export Excel (.xlsx)
+            </Button>
+            <Button onClick={handleExportPdf}>
+              📄 Export PDF / Print
+            </Button>
+          </div>
+        }
+      />
+
+      {/* Filter Options Bar */}
+      <Card className="p-4 bg-slate-50/70 border-slate-200">
+        <div className="flex flex-wrap items-end gap-4 text-xs">
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">Start Date</label>
+            <TextField
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40 bg-white"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">End Date</label>
+            <TextField
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40 bg-white"
+            />
+          </div>
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">Channel / Type</label>
+            <Select
+              value={channelFilter}
+              onChange={(e: any) => setChannelFilter(e.target.value)}
+              className="w-40 bg-white"
+            >
+              <option value="ALL">All Channels</option>
+              <option value="POS">POS Billing</option>
+              <option value="ECOMMERCE">E-Commerce</option>
+            </Select>
+          </div>
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">Customer Type</label>
+            <Select
+              value={customerTypeFilter}
+              onChange={(e: any) => setCustomerTypeFilter(e.target.value)}
+              className="w-40 bg-white"
+            >
+              <option value="ALL">All Customers</option>
+              <option value="RETAIL">Retail Customers</option>
+              <option value="WHOLESALE">Wholesale Buyers</option>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2 pb-0.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setStartDate('')
+                setEndDate('')
+                setChannelFilter('ALL')
+                setCustomerTypeFilter('ALL')
+              }}
+            >
+              Reset Filters
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <SectionTitle>Sales</SectionTitle>
+          <SectionTitle>Sales Trend</SectionTitle>
           <Select value={period} onChange={(e) => setPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')} className="w-36">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -189,7 +297,7 @@ export function ReportsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
-          <SectionTitle>Customers</SectionTitle>
+          <SectionTitle>Customers Analytics</SectionTitle>
           <Card className="p-5">
             {customers === null ? (
               <Spinner />
@@ -227,7 +335,7 @@ export function ReportsPage() {
         </div>
 
         <div>
-          <SectionTitle>Referrals</SectionTitle>
+          <SectionTitle>Referrals Report</SectionTitle>
           <Card className="p-5">
             {referrals === null ? (
               <Spinner />
@@ -269,7 +377,7 @@ export function ReportsPage() {
       </div>
 
       <div>
-        <SectionTitle>Refunds</SectionTitle>
+        <SectionTitle>Refunds Summary</SectionTitle>
         <Card className="p-5">
           {refunds === null ? (
             <Spinner />

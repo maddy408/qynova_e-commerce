@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Select, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
+import { STOCK_STATUS_LABEL, stockStatus } from '../lib/stock'
 import type { Category, PaymentMethod } from '../lib/types'
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
@@ -23,6 +24,7 @@ interface PosProduct {
   primary_image: string | null
   on_hand: string
   available: string
+  low_stock_threshold: string
 }
 
 interface Customer {
@@ -280,7 +282,8 @@ export function SalePage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {(products ?? []).map((p) => {
             const price = customer?.customer_type === 'WHOLESALE' ? p.wholesale_price ?? p.retail_price : p.retail_price
-            const outOfStock = Number(p.available) <= 0
+            const status = stockStatus(p.available, p.low_stock_threshold)
+            const outOfStock = status === 'OUT_OF_STOCK'
             return (
               <button
                 key={p.variant_id}
@@ -296,8 +299,14 @@ export function SalePage() {
                     <span className="text-xs text-slate-400">No image</span>
                   )}
                 </div>
-                {outOfStock && (
-                  <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white">Out of stock</span>
+                {status !== 'IN_STOCK' && (
+                  <span
+                    className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white ${
+                      status === 'OUT_OF_STOCK' ? 'bg-red-600' : 'bg-amber-500'
+                    }`}
+                  >
+                    {STOCK_STATUS_LABEL[status]}
+                  </span>
                 )}
                 <div className="truncate text-sm font-semibold text-slate-900">{p.product_name}</div>
                 <div className="mb-1 font-bold text-slate-900">₹{Number(price).toFixed(2)}</div>

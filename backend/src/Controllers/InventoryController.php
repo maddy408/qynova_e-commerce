@@ -118,4 +118,24 @@ final class InventoryController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    public function saveOpeningStock(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.adjust');
+
+        $body = Request::json();
+        $items = (array) ($body['items'] ?? []);
+
+        if ($items === []) {
+            Response::error('items list is required', 422);
+        }
+
+        try {
+            (new InventoryService($this->pdo))->saveOpeningStock($items, (int) $claims['sub']);
+            Response::json(['updated' => true]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
 }

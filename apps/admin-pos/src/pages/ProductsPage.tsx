@@ -53,6 +53,7 @@ export function ProductsPage() {
                 <th className="px-4 py-2.5 font-semibold">Brand</th>
                 <th className="px-4 py-2.5 font-semibold">Price Range</th>
                 <th className="px-4 py-2.5 font-semibold">Variants</th>
+                <th className="px-4 py-2.5 font-semibold">Stock</th>
                 <th className="px-4 py-2.5 font-semibold">Status</th>
                 <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
               </tr>
@@ -77,6 +78,16 @@ export function ProductsPage() {
                         : `₹${p.min_price} – ₹${p.max_price}`}
                   </td>
                   <td className="px-4 py-2.5 text-slate-600 font-semibold">{p.variant_count}</td>
+                  <td className="px-4 py-2.5">
+                    <p className="font-semibold text-slate-900">{Number(p.total_stock)}</p>
+                    {(p.low_stock_variant_count > 0 || p.out_of_stock_variant_count > 0) && (
+                      <p className="text-[11px] text-slate-500">
+                        {p.out_of_stock_variant_count > 0 && <span className="text-red-600">{p.out_of_stock_variant_count} out</span>}
+                        {p.out_of_stock_variant_count > 0 && p.low_stock_variant_count > 0 && ' · '}
+                        {p.low_stock_variant_count > 0 && <span className="text-amber-600">{p.low_stock_variant_count} low</span>}
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <Badge tone={p.is_active ? 'green' : 'slate'}>{p.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>

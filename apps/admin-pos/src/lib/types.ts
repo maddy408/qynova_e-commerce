@@ -43,6 +43,9 @@ export interface ProductListItem {
   min_price: string | null
   max_price: string | null
   variant_count: number
+  total_stock: string
+  low_stock_variant_count: number
+  out_of_stock_variant_count: number
 }
 
 export interface ApiError {
@@ -52,6 +55,27 @@ export interface ApiError {
 export interface Brand {
   id: number
   name: string
+  description?: string | null
+  categories?: { id: number; name: string }[]
+  category_ids?: number[]
+}
+
+export interface Customer {
+  id: number
+  name: string
+  phone: string
+  email?: string | null
+  customer_type?: 'RETAIL' | 'WHOLESALE'
+  order_count?: number
+  latest_order_at?: string | null
+}
+
+export interface Supplier {
+  id: number
+  name: string
+  contact_person?: string | null
+  phone?: string | null
+  email?: string | null
 }
 
 export interface Unit {
@@ -127,6 +151,7 @@ export interface ProductVariant {
   on_hand: string | null
   reserved: string | null
   available: string | null
+  low_stock_threshold: string | null
   attribute_values: VariantAttributeValueLink[]
   images: ProductImage[]
 }
