@@ -9,10 +9,9 @@ use RuntimeException;
 
 /**
  * Validates and stores an uploaded image: MIME-sniffed (not trusted from
- * the client), converted to WebP, resized, and iteratively re-encoded at
- * falling quality until it's under the configured target size — the
- * compression pipeline docs/DOCUMENTATION.md section 8 originally called
- * for but that was never wired to any upload endpoint (there wasn't one).
+ * the client). When the PHP GD extension is available, images are converted
+ * to WebP, resized, and iteratively compressed. When GD is not loaded,
+ * images are safely stored with randomized names directly.
  * Random filenames under public/uploads/, outside any executable path.
  */
 final class ImageUploadService
@@ -41,41 +40,66 @@ final class ImageUploadService
             throw new RuntimeException('Only JPG, PNG or WEBP images are allowed');
         }
 
-        $image = match ($mime) {
-            'image/jpeg' => @imagecreatefromjpeg($file['tmp_name']),
-            'image/png' => @imagecreatefrompng($file['tmp_name']),
-            'image/webp' => @imagecreatefromwebp($file['tmp_name']),
-            default => false,
-        };
-
-        if ($image === false) {
-            throw new RuntimeException('Could not read image file');
-        }
-
         $dir = dirname(__DIR__, 2) . "/public/uploads/{$subdir}";
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new RuntimeException("Could not create upload directory");
         }
 
         $basename = bin2hex(random_bytes(16));
-        $mainRelative = "uploads/{$subdir}/{$basename}.webp";
-        $thumbRelative = "uploads/{$subdir}/{$basename}-thumb.webp";
-
+        $ext = self::ALLOWED_MIME[$mime];
         $originalSize = $file['size'];
-        $finalSize = $this->saveResizedWebp(
-            $image,
-            dirname(__DIR__, 2) . "/public/{$mainRelative}",
-            self::MAIN_MAX_DIMENSION,
-            (int) Config::get('image.main_target_kb', 100),
-        );
-        $this->saveResizedWebp(
-            $image,
-            dirname(__DIR__, 2) . "/public/{$thumbRelative}",
-            self::THUMB_MAX_DIMENSION,
-            (int) Config::get('image.thumb_target_kb', 30),
-        );
 
-        imagedestroy($image);
+        // Check if GD extension is loaded and functional
+        $hasGd = extension_loaded('gd') && function_exists('imagecreatetruecolor');
+
+        if ($hasGd) {
+            $image = match ($mime) {
+                'image/jpeg' => function_exists('imagecreatefromjpeg') ? @imagecreatefromjpeg($file['tmp_name']) : false,
+                'image/png' => function_exists('imagecreatefrompng') ? @imagecreatefrompng($file['tmp_name']) : false,
+                'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($file['tmp_name']) : false,
+                default => false,
+            };
+
+            if ($image !== false) {
+                $mainRelative = "uploads/{$subdir}/{$basename}.webp";
+                $thumbRelative = "uploads/{$subdir}/{$basename}-thumb.webp";
+
+                $finalSize = $this->saveResizedWebp(
+                    $image,
+                    dirname(__DIR__, 2) . "/public/{$mainRelative}",
+                    self::MAIN_MAX_DIMENSION,
+                    (int) Config::get('image.main_target_kb', 100),
+                );
+                $this->saveResizedWebp(
+                    $image,
+                    dirname(__DIR__, 2) . "/public/{$thumbRelative}",
+                    self::THUMB_MAX_DIMENSION,
+                    (int) Config::get('image.thumb_target_kb', 30),
+                );
+
+                imagedestroy($image);
+
+                return [
+                    'path' => $mainRelative,
+                    'thumb_path' => $thumbRelative,
+                    'original_size' => $originalSize,
+                    'final_size' => $finalSize,
+                ];
+            }
+        }
+
+        // Direct storage fallback if GD is absent or image creation fails
+        $mainRelative = "uploads/{$subdir}/{$basename}.{$ext}";
+        $thumbRelative = "uploads/{$subdir}/{$basename}-thumb.{$ext}";
+        $mainFullPath = dirname(__DIR__, 2) . "/public/{$mainRelative}";
+        $thumbFullPath = dirname(__DIR__, 2) . "/public/{$thumbRelative}";
+
+        if (!move_uploaded_file($file['tmp_name'], $mainFullPath) && !copy($file['tmp_name'], $mainFullPath)) {
+            throw new RuntimeException('Could not save uploaded image file');
+        }
+
+        @copy($mainFullPath, $thumbFullPath);
+        $finalSize = filesize($mainFullPath) ?: $originalSize;
 
         return [
             'path' => $mainRelative,

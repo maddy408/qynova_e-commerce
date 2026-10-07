@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { EyeIcon, ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
-import { Alert, Button, Modal, Spinner, TextArea, TextField } from '../components/ui'
+import { Alert, Button, Modal, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Category } from '../lib/types'
 
@@ -124,12 +124,6 @@ export function CategoriesPage() {
     load()
   }
 
-  // Derived statistics
-  const totalCount = categories?.length ?? 0
-  const activeCount = categories?.filter((c) => c.status === 'ACTIVE').length ?? 0
-  const totalSubcategories = categories?.reduce((acc, c) => acc + (c.subcategory_count ?? 0), 0) ?? 0
-  const totalProducts = categories?.reduce((acc, c) => acc + (c.product_count ?? 0), 0) ?? 0
-
   // Filtered categories
   const filteredCategories = (categories ?? []).filter((c) => {
     const matchesSearch =
@@ -145,57 +139,7 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ================= TOP HERO BANNER ("Categories, curated.") ================= */}
-      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 text-white shadow-sm bg-gradient-to-r from-[#804652] via-[#78404C] to-[#6E3642]">
-        {/* Subtle decorative circles background */}
-        <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-white/5 pointer-events-none blur-xl"></div>
-        <div className="absolute right-1/4 -bottom-20 w-80 h-80 rounded-full bg-black/10 pointer-events-none blur-2xl"></div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-pink-200/90">
-              PRODUCT GROUPING
-            </span>
-            <h2 className="text-3xl lg:text-4xl font-serif font-bold text-white tracking-tight">
-              Categories, curated.
-            </h2>
-            <p className="text-xs sm:text-sm text-pink-100/90 max-w-lg font-light leading-relaxed">
-              Top-level product grouping — a product can belong to several, with one marked primary.
-            </p>
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={openCreateModal}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-[#7B3F4A] text-xs font-bold uppercase tracking-wider hover:bg-pink-50 transition-all shadow-md active:scale-98"
-              >
-                + NEW CATEGORY
-              </button>
-            </div>
-          </div>
-
-          {/* 4 Connected Frosted Metric Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center min-w-[95px] flex flex-col justify-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-pink-200/80 mb-1">CATEGORIES</p>
-              <p className="text-2xl lg:text-3xl font-bold font-serif text-white">{totalCount}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center min-w-[95px] flex flex-col justify-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-pink-200/80 mb-1">ACTIVE</p>
-              <p className="text-2xl lg:text-3xl font-bold font-serif text-white">{activeCount}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center min-w-[95px] flex flex-col justify-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-pink-200/80 mb-1">SUBCATEGORIES</p>
-              <p className="text-2xl lg:text-3xl font-bold font-serif text-white">{totalSubcategories}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15 text-center min-w-[95px] flex flex-col justify-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-pink-200/80 mb-1">PRODUCTS</p>
-              <p className="text-2xl lg:text-3xl font-bold font-serif text-white">{totalProducts}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= MIDDLE CARD: "QUICK VIEW BY CATEGORY" ================= */}
+      {/* ================= QUICK VIEW BY CATEGORY ================= */}
       {categories !== null && categories.length > 0 && (
         <div className="rounded-3xl bg-white p-6 border border-[#F2E5E7] shadow-2xs">
           <div className="flex items-center justify-center gap-4 mb-6">
@@ -236,14 +180,14 @@ export function CategoriesPage() {
         </div>
       )}
 
-      {/* ================= BOTTOM CARD: "ALL CATEGORIES" TABLE ================= */}
+      {/* ================= ALL CATEGORIES TABLE ================= */}
       {categories === null ? (
         <div className="p-12 text-center">
           <Spinner />
         </div>
       ) : (
         <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
-          {/* Card Header with Filters and Search */}
+          {/* Card Header with Filters, Search and New Category Button */}
           <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
               <h3 className="text-xl font-serif font-bold text-slate-900">All Categories</h3>
@@ -311,31 +255,40 @@ export function CategoriesPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search categories…"
-                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-48 sm:w-56"
+                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-44 sm:w-52"
                 />
               </div>
+
+              {/* + New Category Button */}
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
+              >
+                + New Category
+              </button>
             </div>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#F2E5E7] uppercase text-[#8A505D] bg-[#FCF7F8] text-[11px] font-bold tracking-wider">
+              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                 <tr>
-                  <th className="px-6 py-3.5">Category</th>
-                  <th className="px-6 py-3.5">Slug</th>
-                  <th className="px-6 py-3.5 text-center">Subcategories</th>
-                  <th className="px-6 py-3.5 text-center">Products</th>
-                  <th className="px-6 py-3.5 text-center">Status</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  <th className="px-6 py-4">Category</th>
+                  <th className="px-6 py-4">Slug</th>
+                  <th className="px-6 py-4 text-center">Subcategories</th>
+                  <th className="px-6 py-4 text-center">Products</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
+              <tbody className="divide-y divide-[#F0E0E3]">
                 {filteredCategories.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#FAF5F6]/70 transition-colors">
-                    <td className="px-6 py-3.5">
+                  <tr key={c.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#EEDDE0] bg-[#FAF2F4] shadow-2xs">
+                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-[#E2CBD0] bg-[#FAF2F4] shadow-2xs">
                           {imageUrl(c.thumb_path ?? c.image_path) ? (
                             <img
                               src={imageUrl(c.thumb_path ?? c.image_path)!}
@@ -343,80 +296,80 @@ export function CategoriesPage() {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[#804652]">
-                              <ImageIcon className="h-4 w-4" />
+                            <div className="flex h-full w-full items-center justify-center text-[#4A1821]">
+                              <ImageIcon className="h-5 w-5" />
                             </div>
                           )}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 text-sm">{c.name}</p>
+                          <p className="font-bold text-slate-950 text-sm">{c.name}</p>
                           {c.description && (
-                            <p className="text-[11px] text-slate-500 line-clamp-1">{c.description}</p>
+                            <p className="text-xs text-slate-600 font-medium line-clamp-1">{c.description}</p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-3.5">
-                      <span className="bg-[#FAF0F2] text-[#804652] px-2.5 py-1 rounded-full text-[11px] font-mono inline-block">
+                    <td className="px-6 py-4">
+                      <span className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-3 py-1 rounded-full text-xs font-mono font-bold inline-block shadow-2xs">
                         {c.slug}
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-center font-medium text-slate-700">
+                    <td className="px-6 py-4 text-center font-bold text-slate-900 text-sm">
                       {c.subcategory_count ?? 0}
                     </td>
-                    <td className="px-6 py-3.5 text-center font-medium text-slate-700">
+                    <td className="px-6 py-4 text-center font-bold text-slate-900 text-sm">
                       {c.product_count ?? 0}
                     </td>
-                    <td className="px-6 py-3.5 text-center">
+                    <td className="px-6 py-4 text-center">
                       {c.status === 'ACTIVE' ? (
-                        <span className="bg-[#EAF7EE] text-[#16A34A] border border-[#D0F0D8] font-bold text-[10px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>
+                        <span className="bg-[#E3F8E9] text-[#0E7A36] border border-[#B7EDC4] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-[#0E7A36]"></span>
                           ACTIVE
                         </span>
                       ) : (
-                        <span className="bg-[#FDF0F2] text-[#E11D48] border border-[#FCD9E0] font-bold text-[10px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#E11D48]"></span>
+                        <span className="bg-[#FDE8EC] text-[#B91C1C] border border-[#F9B6C2] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-[#B91C1C]"></span>
                           INACTIVE
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-3.5 text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
+                    <td className="px-6 py-4 text-right">
+                      <div className="inline-flex items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => setViewingCategory(c)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
+                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
                           title="View Details"
                         >
-                          <EyeIcon className="h-4 w-4" />
+                          <EyeIcon className="h-4 w-4 stroke-[2]" />
                         </button>
                         <button
                           type="button"
                           onClick={() => openEditModal(c)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
+                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
                           title="Edit Category"
                         >
-                          <PencilIcon className="h-4 w-4" />
+                          <PencilIcon className="h-4 w-4 stroke-[2]" />
                         </button>
                         <button
                           type="button"
                           onClick={() => toggleStatus(c)}
-                          className={`p-1.5 rounded-lg transition-colors ${
+                          className={`p-2 rounded-lg transition-colors ${
                             c.status === 'ACTIVE'
-                              ? 'text-emerald-600 hover:bg-emerald-50'
-                              : 'text-slate-400 hover:bg-slate-100'
+                              ? 'text-emerald-700 hover:bg-emerald-100/70'
+                              : 'text-slate-500 hover:bg-slate-200'
                           }`}
                           title={c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                         >
-                          <PowerIcon className="h-4 w-4" />
+                          <PowerIcon className="h-4 w-4 stroke-[2]" />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(c)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          className="p-2 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-800 transition-colors"
                           title="Soft Delete"
                         >
-                          <TrashIcon className="h-4 w-4" />
+                          <TrashIcon className="h-4 w-4 stroke-[2]" />
                         </button>
                       </div>
                     </td>
@@ -424,7 +377,7 @@ export function CategoriesPage() {
                 ))}
                 {filteredCategories.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-600 font-semibold text-sm">
                       No categories match the criteria.
                     </td>
                   </tr>
@@ -443,26 +396,44 @@ export function CategoriesPage() {
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <Alert tone="red">{error}</Alert>}
-            <TextField
-              label="Name"
-              required
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Toys"
-            />
-            <TextArea
-              label="Description"
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description"
-            />
 
-            <div className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Category Image</span>
-              <div className="flex items-center gap-3">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+            {/* Category Name */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Category Name <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Hair Accessories, Toys, Jewellery…"
+                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Description <span className="text-slate-400 font-normal normal-case">(Optional)</span>
+              </label>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Write a brief description or note about this category…"
+                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs resize-none"
+              />
+            </div>
+
+            {/* Image Uploader Card */}
+            <div className="rounded-2xl border-2 border-dashed border-[#EEDDE0] bg-[#FAF5F6]/70 p-4 transition-colors">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#804652] mb-2.5">
+                Category Image &amp; Thumbnail
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[#EEDDE0] bg-white shadow-2xs flex items-center justify-center">
                   {imagePreview || (editingCategory && !imageRemoved && imageUrl(editingCategory.image_path)) ? (
                     <img
                       src={imagePreview ?? imageUrl(editingCategory!.image_path)!}
@@ -470,44 +441,46 @@ export function CategoriesPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-slate-300">
+                    <div className="flex h-full w-full items-center justify-center text-[#804652]/60">
                       <ImageIcon className="h-6 w-6" />
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex gap-2">
-                    <Button
+
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
                       type="button"
-                      variant="secondary"
-                      size="sm"
                       onClick={() => fileInput.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#7B3F4A] text-white text-xs font-semibold hover:bg-[#68333D] transition-all shadow-2xs active:scale-98"
                     >
+                      <ImageIcon className="h-3.5 w-3.5" />
                       {imagePreview || (editingCategory && !imageRemoved && editingCategory.image_path)
                         ? 'Change Image'
                         : 'Upload Image'}
-                    </Button>
-                    {(imagePreview ||
-                      (editingCategory && !imageRemoved && editingCategory.image_path)) && (
-                      <Button
+                    </button>
+
+                    {(imagePreview || (editingCategory && !imageRemoved && editingCategory.image_path)) && (
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
                         onClick={() => {
                           setImageFile(null)
                           setImagePreview(null)
                           setImageRemoved(true)
                           if (fileInput.current) fileInput.current.value = ''
                         }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-medium transition-colors"
                       >
-                        Remove Image
-                      </Button>
+                        <TrashIcon className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Supported: JPG, JPEG, PNG, WEBP • Images are automatically optimized and stored as WEBP
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    JPG, PNG, WEBP supported • Automatically compressed &amp; stored as WebP
                   </p>
                 </div>
+
                 <input
                   ref={fileInput}
                   type="file"
@@ -518,13 +491,22 @@ export function CategoriesPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-              <Button type="button" variant="secondary" onClick={closeModals}>
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+              <button
+                type="button"
+                onClick={closeModals}
+                className="px-5 py-2 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition-colors"
+              >
                 Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+              >
                 {submitting ? 'Saving…' : editingCategory ? 'Save Changes' : 'Create Category'}
-              </Button>
+              </button>
             </div>
           </form>
         </Modal>
