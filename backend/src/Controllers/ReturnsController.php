@@ -20,7 +20,7 @@ final class ReturnsController
     public function indexSaleReturns(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'orders.read');
+        PermissionMiddleware::require($claims, 'orders.manage');
 
         $stmt = $this->pdo->query(
             "SELECT sr.*, c.name as customer_name, c.phone as customer_phone, u.name as created_by_name
@@ -50,7 +50,7 @@ final class ReturnsController
     public function storeSaleReturn(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'orders.update');
+        PermissionMiddleware::require($claims, 'pos.returns.process');
 
         $body = Request::json();
         $orderId = !empty($body['order_id']) ? (int) $body['order_id'] : null;
@@ -87,7 +87,7 @@ final class ReturnsController
                 'total_amount' => $totalAmount,
                 'reason' => $reason,
                 'notes' => $notes ?: null,
-                'created_by' => $claims->sub,
+                'created_by' => $claims['sub'],
             ]);
             $returnId = (int) $this->pdo->lastInsertId();
 
@@ -101,7 +101,7 @@ final class ReturnsController
             $this->pdo->prepare(
                 "INSERT INTO stock_adjustments (adjustment_no, reason, status, created_by)
                  VALUES (:no, :reason, 'APPROVED', :created_by)"
-            )->execute(['no' => $adjNo, 'reason' => 'Sale Return: ' . $returnNo, 'created_by' => $claims->sub]);
+            )->execute(['no' => $adjNo, 'reason' => 'Sale Return: ' . $returnNo, 'created_by' => $claims['sub']]);
             $adjId = (int) $this->pdo->lastInsertId();
 
             $adjItemStmt = $this->pdo->prepare(
@@ -154,7 +154,7 @@ final class ReturnsController
     public function indexPurchaseReturns(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'inventory.read');
+        PermissionMiddleware::require($claims, 'purchases.manage');
 
         $stmt = $this->pdo->query(
             "SELECT pr.*, s.name as supplier_name, s.contact_person as supplier_contact, u.name as created_by_name
@@ -184,7 +184,7 @@ final class ReturnsController
     public function storePurchaseReturn(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'inventory.manage');
+        PermissionMiddleware::require($claims, 'pos.returns.process');
 
         $body = Request::json();
         $purchaseId = !empty($body['purchase_id']) ? (int) $body['purchase_id'] : null;
@@ -221,7 +221,7 @@ final class ReturnsController
                 'total_amount' => $totalAmount,
                 'reason' => $reason,
                 'notes' => $notes ?: null,
-                'created_by' => $claims->sub,
+                'created_by' => $claims['sub'],
             ]);
             $returnId = (int) $this->pdo->lastInsertId();
 
@@ -235,7 +235,7 @@ final class ReturnsController
             $this->pdo->prepare(
                 "INSERT INTO stock_adjustments (adjustment_no, reason, status, created_by)
                  VALUES (:no, :reason, 'APPROVED', :created_by)"
-            )->execute(['no' => $adjNo, 'reason' => 'Purchase Return: ' . $returnNo, 'created_by' => $claims->sub]);
+            )->execute(['no' => $adjNo, 'reason' => 'Purchase Return: ' . $returnNo, 'created_by' => $claims['sub']]);
             $adjId = (int) $this->pdo->lastInsertId();
 
             $adjItemStmt = $this->pdo->prepare(

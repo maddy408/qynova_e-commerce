@@ -133,7 +133,7 @@ export function CustomersPage() {
                         className="inline-flex items-center gap-1.5 focus:outline-none"
                       >
                         <Badge tone={c.customer_type === 'WHOLESALE' ? 'amber' : 'green'}>
-                          {c.customer_type === 'WHOLESALE' ? '🏷️ WHOLESALE PRICE' : '🛍️ RETAIL PRICE'}
+                          {c.customer_type === 'WHOLESALE' ? 'WHOLESALE PRICE' : 'RETAIL PRICE'}
                         </Badge>
                         <span className="text-[10px] text-slate-400 hover:text-indigo-600 font-medium">(Switch)</span>
                       </button>

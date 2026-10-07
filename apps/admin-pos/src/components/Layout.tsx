@@ -15,6 +15,7 @@ interface SectionConfig {
   to: string
   matchPrefixes: string[]
   items: SubItem[]
+  permission?: string
 }
 
 const SECTIONS: SectionConfig[] = [
@@ -31,6 +32,7 @@ const SECTIONS: SectionConfig[] = [
     to: '/sale',
     matchPrefixes: ['/sale'],
     items: [],
+    permission: 'pos.sell',
   },
   {
     id: 'catalog',
@@ -38,12 +40,12 @@ const SECTIONS: SectionConfig[] = [
     to: '/categories',
     matchPrefixes: ['/categories', '/subcategories', '/brands', '/products', '/units', '/tax'],
     items: [
-      { to: '/categories', label: 'Category' },
-      { to: '/subcategories', label: 'Subcategory' },
-      { to: '/brands', label: 'Brands & Mapping' },
-      { to: '/products', label: 'Products' },
-      { to: '/tax', label: 'Tax' },
-      { to: '/units', label: 'Unit' },
+      { to: '/categories', label: 'Category', permission: 'catalog.manage' },
+      { to: '/subcategories', label: 'Subcategory', permission: 'catalog.manage' },
+      { to: '/brands', label: 'Brands & Mapping', permission: 'catalog.manage' },
+      { to: '/products', label: 'Products', permission: 'catalog.manage' },
+      { to: '/tax', label: 'Tax', permission: 'catalog.manage' },
+      { to: '/units', label: 'Unit', permission: 'catalog.manage' },
     ],
   },
   {
@@ -52,13 +54,13 @@ const SECTIONS: SectionConfig[] = [
     to: '/orders',
     matchPrefixes: ['/orders', '/invoices', '/customers', '/deliveries', '/returns', '/finance', '/reports'],
     items: [
-      { to: '/orders', label: 'Orders' },
-      { to: '/invoices', label: 'Invoices' },
+      { to: '/orders', label: 'Orders', permission: 'orders.manage' },
+      { to: '/invoices', label: 'Invoices', permission: 'orders.manage' },
       { to: '/customers', label: 'Customers' },
-      { to: '/deliveries', label: 'Delivery' },
-      { to: '/returns', label: 'Returns' },
-      { to: '/finance', label: 'Expenses & Income' },
-      { to: '/reports', label: 'Reports' },
+      { to: '/deliveries', label: 'Delivery', permission: 'delivery.manage' },
+      { to: '/returns', label: 'Returns', permission: 'orders.manage' },
+      { to: '/finance', label: 'Expenses & Income', permission: 'reports.financial.view' },
+      { to: '/reports', label: 'Reports', permission: 'reports.financial.view' },
     ],
   },
   {
@@ -67,9 +69,9 @@ const SECTIONS: SectionConfig[] = [
     to: '/stock-adjustments',
     matchPrefixes: ['/stock-adjustments', '/suppliers', '/purchases'],
     items: [
-      { to: '/stock-adjustments', label: 'Stock Adjustment' },
-      { to: '/suppliers', label: 'Supplier' },
-      { to: '/purchases', label: 'Purchase' },
+      { to: '/stock-adjustments', label: 'Stock Adjustment', permission: 'inventory.view' },
+      { to: '/suppliers', label: 'Supplier', permission: 'suppliers.manage' },
+      { to: '/purchases', label: 'Purchase', permission: 'purchases.manage' },
     ],
   },
   {
@@ -78,9 +80,9 @@ const SECTIONS: SectionConfig[] = [
     to: '/referral-settings',
     matchPrefixes: ['/referral-settings', '/banners', '/home-sections'],
     items: [
-      { to: '/referral-settings', label: 'Referral' },
-      { to: '/banners', label: 'Banner' },
-      { to: '/home-sections', label: 'Home Sections' },
+      { to: '/referral-settings', label: 'Referral', permission: 'settings.manage' },
+      { to: '/banners', label: 'Banner', permission: 'banners.manage' },
+      { to: '/home-sections', label: 'Home Sections', permission: 'banners.manage' },
     ],
   },
   {
@@ -89,14 +91,13 @@ const SECTIONS: SectionConfig[] = [
     to: '/settings/company',
     matchPrefixes: ['/settings', '/coupons', '/payment-methods', '/users'],
     items: [
-      { to: '/settings/company', label: 'Company Details' },
-      { to: '/settings/prefix', label: 'Invoice Prefix' },
-      { to: '/coupons', label: 'Coupons' },
-      { to: '/tax', label: 'Tax' },
-      { to: '/payment-methods', label: 'Payment Methods' },
-      { to: '/users', label: 'User Management' },
-      { to: '/settings/printer', label: 'Thermal Printer Setup' },
-      { to: '/settings/scanner', label: 'WiFi Scanner Setup' },
+      { to: '/settings/company', label: 'Company Details', permission: 'settings.manage' },
+      { to: '/settings/prefix', label: 'Invoice Prefix', permission: 'settings.manage' },
+      { to: '/coupons', label: 'Coupons', permission: 'coupons.manage' },
+      { to: '/payment-methods', label: 'Payment Methods', permission: 'payment_methods.manage' },
+      { to: '/users', label: 'User Management', permission: 'users.manage' },
+      { to: '/settings/printer', label: 'Thermal Printer Setup', permission: 'settings.manage' },
+      { to: '/settings/scanner', label: 'WiFi Scanner Setup', permission: 'settings.manage' },
     ],
   },
 ]
@@ -124,8 +125,26 @@ export function Layout() {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Determine currently active top section
-  const activeSection = SECTIONS.find((sec) => isPathActive(location.pathname, sec))
+  // Sections/items the signed-in user actually has permission to see. A
+  // section with sub-items (Catalog, Inventory, ...) disappears entirely
+  // once every one of its items is filtered out; Dashboard/POS Sale (no
+  // items to begin with) are instead gated by the section's own `permission`.
+  const visibleSections = SECTIONS.map((sec) => {
+    const items = sec.items.filter((item) => !item.permission || hasPermission(item.permission))
+    // If permission filtering dropped the section's default landing item,
+    // land on the first one this user can actually open instead — otherwise
+    // clicking the section parks them on a page that 403s forever.
+    const to = items.length > 0 && !items.some((item) => item.to === sec.to) ? items[0].to : sec.to
+    return { ...sec, items, to }
+  }).filter((sec) => {
+    if (sec.permission && !hasPermission(sec.permission)) return false
+    const hadItems = SECTIONS.find((s) => s.id === sec.id)!.items.length > 0
+    return !hadItems || sec.items.length > 0
+  })
+
+  // Determine currently active top section (permission-filtered, so the tab
+  // bar below only ever lists/counts items this user can actually open)
+  const activeSection = visibleSections.find((sec) => isPathActive(location.pathname, sec))
   const breadcrumb = getBreadcrumb(location.pathname, activeSection)
 
   return (
@@ -147,7 +166,7 @@ export function Layout() {
 
             {/* Desktop Top Navbar Links */}
             <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
-              {SECTIONS.map((sec) => {
+              {visibleSections.map((sec) => {
                 const isActive = isPathActive(location.pathname, sec)
                 const isPosSale = sec.id === 'pos-sale'
 
@@ -226,7 +245,7 @@ export function Layout() {
         {/* Mobile Dropdown Menu (No Left Sidebar) */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2 shadow-lg">
-            {SECTIONS.map((sec) => {
+            {visibleSections.map((sec) => {
               const isActive = isPathActive(location.pathname, sec)
               return (
                 <div key={sec.id} className="space-y-1">

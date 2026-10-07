@@ -376,7 +376,7 @@ export function PurchasesPage() {
                       paymentMode === 'SPLIT' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    ⚡ Split Payment
+                    Split Payment
                   </button>
                 </div>
               </div>
@@ -390,11 +390,11 @@ export function PurchasesPage() {
                   value={singlePaymentMethod}
                   onChange={(e: any) => setSinglePaymentMethod(e.target.value)}
                 >
-                  <option value="CASH">💵 Cash</option>
-                  <option value="UPI">📱 UPI / GPay / PhonePe</option>
-                  <option value="CARD">💳 Credit / Debit Card</option>
-                  <option value="BANK_TRANSFER">🏦 Bank Transfer / NEFT</option>
-                  <option value="CREDIT">📝 Credit / Pending Due</option>
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI / GPay / PhonePe</option>
+                  <option value="CARD">Credit / Debit Card</option>
+                  <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
+                  <option value="CREDIT">Credit / Pending Due</option>
                 </Select>
                 <TextField
                   label="Amount Paid (₹)"
@@ -420,7 +420,7 @@ export function PurchasesPage() {
 
                 <div className="grid grid-cols-5 gap-2">
                   <TextField
-                    label="💵 Cash (₹)"
+                    label="Cash (₹)"
                     type="number"
                     step="0.01"
                     value={splitCash}
@@ -428,7 +428,7 @@ export function PurchasesPage() {
                     placeholder="0"
                   />
                   <TextField
-                    label="📱 UPI / Online (₹)"
+                    label="UPI / Online (₹)"
                     type="number"
                     step="0.01"
                     value={splitUpi}
@@ -436,7 +436,7 @@ export function PurchasesPage() {
                     placeholder="0"
                   />
                   <TextField
-                    label="💳 Card (₹)"
+                    label="Card (₹)"
                     type="number"
                     step="0.01"
                     value={splitCard}
@@ -444,7 +444,7 @@ export function PurchasesPage() {
                     placeholder="0"
                   />
                   <TextField
-                    label="🏦 Bank Transfer (₹)"
+                    label="Bank Transfer (₹)"
                     type="number"
                     step="0.01"
                     value={splitBank}
@@ -452,7 +452,7 @@ export function PurchasesPage() {
                     placeholder="0"
                   />
                   <TextField
-                    label="📝 Credit / Due (₹)"
+                    label="Credit / Due (₹)"
                     type="number"
                     step="0.01"
                     value={splitCredit}

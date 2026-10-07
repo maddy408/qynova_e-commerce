@@ -289,7 +289,7 @@ export function StockAdjustmentsPage() {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          📦 Opening Stock Section
+          Opening Stock Section
         </button>
         <button
           onClick={() => setActiveTab('ADJUSTMENTS')}
@@ -299,7 +299,7 @@ export function StockAdjustmentsPage() {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          🔧 Stock Adjustments &amp; History
+          Stock Adjustments &amp; History
         </button>
       </div>
 

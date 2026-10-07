@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Button, Card, PageHeader, TextField } from '../components/ui'
 
 export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'company' | 'prefix' | 'printer' | 'scanner' }) {
   const [tab, setTab] = useState(defaultTab)
+
+  // The route (and its defaultTab prop) changes when the outer Settings nav is
+  // clicked, but React Router keeps this same component instance mounted —
+  // without this, the inner tab would stay stuck on whatever it opened with.
+  useEffect(() => setTab(defaultTab), [defaultTab])
 
   // Company Details state
   const [companyName, setCompanyName] = useState('Unified POS Store Ltd')
@@ -49,7 +54,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
             tab === 'company' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          🏢 Company Details
+          Company Details
         </button>
         <button
           onClick={() => setTab('prefix')}
@@ -57,7 +62,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
             tab === 'prefix' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          🧾 Invoice Prefix
+          Invoice Prefix
         </button>
         <button
           onClick={() => setTab('printer')}
@@ -65,7 +70,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
             tab === 'printer' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          🖨️ Thermal Printer Setup
+          Thermal Printer Setup
         </button>
         <button
           onClick={() => setTab('scanner')}
@@ -73,7 +78,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
             tab === 'scanner' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          📶 WiFi Scanner Setup
+          WiFi Scanner Setup
         </button>
       </div>
 

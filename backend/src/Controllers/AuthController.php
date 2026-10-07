@@ -45,9 +45,24 @@ final class AuthController
             Response::error('Invalid email or password', 401);
         }
 
+        $permissions = $this->pdo->prepare(
+            'SELECT p.code FROM role_permissions rp
+             JOIN permissions p ON p.id = rp.permission_id
+             JOIN roles r ON r.id = rp.role_id
+             WHERE r.code = :role'
+        );
+        $permissions->execute(['role' => $user['role']]);
+
         Response::json([
             'token' => $this->issueToken((int) $user['id'], $user['name'], $user['role']),
-            'user' => ['id' => (int) $user['id'], 'name' => $user['name'], 'role' => $user['role']],
+            'user' => [
+                'id' => (int) $user['id'],
+                'name' => $user['name'],
+                'role' => $user['role'],
+                // Needed right after login so the nav can filter by permission
+                // before the next /auth/me refresh (see me() below).
+                'permissions' => $permissions->fetchAll(PDO::FETCH_COLUMN),
+            ],
         ]);
     }
 

@@ -83,7 +83,7 @@ export function DashboardPage() {
             {/* Popular Items Section */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900">🔥 Popular Items</h2>
+                <h2 className="text-base font-semibold text-slate-900">Popular Items</h2>
                 <span className="text-xs font-medium text-slate-400">Top selling by quantity</span>
               </div>
               <Card>
@@ -122,7 +122,7 @@ export function DashboardPage() {
             {/* Latest Sale Items List Section */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900">🧾 Latest Sale Items</h2>
+                <h2 className="text-base font-semibold text-slate-900">Latest Sale Items</h2>
                 <span className="text-xs font-medium text-slate-400">Recent transactions</span>
               </div>
               <Card>

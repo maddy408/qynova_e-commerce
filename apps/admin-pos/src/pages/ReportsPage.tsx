@@ -117,10 +117,10 @@ export function ReportsPage() {
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" onClick={handleExportExcel}>
-              📊 Export Excel (.xlsx)
+              Export Excel (.xlsx)
             </Button>
             <Button onClick={handleExportPdf}>
-              📄 Export PDF / Print
+              Export PDF / Print
             </Button>
           </div>
         }

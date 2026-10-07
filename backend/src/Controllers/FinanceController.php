@@ -20,7 +20,7 @@ final class FinanceController
     public function index(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'reports.read');
+        PermissionMiddleware::require($claims, 'reports.financial.view');
 
         $type = $_GET['type'] ?? null;
         $category = $_GET['category'] ?? null;
@@ -66,7 +66,7 @@ final class FinanceController
     public function store(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'reports.read');
+        PermissionMiddleware::require($claims, 'reports.financial.view');
 
         $body = Request::json();
         $type = strtoupper(trim((string) ($body['type'] ?? 'EXPENSE')));
@@ -102,7 +102,7 @@ final class FinanceController
             'ref' => $referenceNo ?: null,
             'date' => $transactionDate,
             'notes' => $notes ?: null,
-            'created_by' => $claims->sub,
+            'created_by' => $claims['sub'],
         ]);
 
         Response::json(['id' => (int) $this->pdo->lastInsertId(), 'transaction_no' => $transactionNo], 201);
@@ -111,7 +111,7 @@ final class FinanceController
     public function destroy(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'reports.read');
+        PermissionMiddleware::require($claims, 'reports.financial.view');
 
         $stmt = $this->pdo->prepare("DELETE FROM finance_transactions WHERE id = :id");
         $stmt->execute(['id' => (int) $id]);
