@@ -160,12 +160,12 @@ export function DashboardPage() {
                         className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
                       >
                         {/* Image background / Thumbnail container */}
-                        <div className="relative mb-3 flex h-36 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
+                        <div className="relative mb-3 flex h-44 items-center justify-center overflow-hidden rounded-xl bg-white p-2 border border-slate-100 shadow-2xs">
                           {imageUrl(item.primary_image || null) ? (
                             <img
                               src={imageUrl(item.primary_image || null)!}
                               alt={item.name}
-                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                             />
                           ) : (
                             <div className="flex flex-col items-center justify-center text-slate-400">

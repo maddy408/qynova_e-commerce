@@ -488,9 +488,9 @@ export function SalePage() {
                 onClick={() => addToCart(p)}
                 className="group relative flex flex-col rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xs transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <div className="mb-2 flex h-20 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+                <div className="mb-2 flex h-24 items-center justify-center overflow-hidden rounded-lg bg-slate-50 p-1 border border-slate-100">
                   {imageUrl(p.primary_image) ? (
-                    <img src={imageUrl(p.primary_image)!} alt="" className="h-full w-full object-cover" />
+                    <img src={imageUrl(p.primary_image)!} alt="" className="h-full w-full object-contain" />
                   ) : (
                     <span className="text-xs text-slate-400">No image</span>
                   )}
@@ -550,8 +550,8 @@ export function SalePage() {
           <div className="mb-3 flex max-h-96 flex-col gap-2 overflow-y-auto">
             {cart.map((line) => (
               <div key={line.variant_id} className="flex gap-2 rounded-lg border border-slate-200 p-2 bg-white">
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-slate-100">
-                  {imageUrl(line.image) && <img src={imageUrl(line.image)!} alt="" className="h-full w-full object-cover" />}
+                <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-slate-50 p-0.5 border border-slate-100 flex items-center justify-center">
+                  {imageUrl(line.image) && <img src={imageUrl(line.image)!} alt="" className="h-full w-full object-contain" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-start justify-between gap-2">

@@ -1,8 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { EyeIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { EyeIcon, ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Spinner, TextArea, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Category } from '../lib/types'
+
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
+
+function imageUrl(path: string | null) {
+  return path ? `${API_ORIGIN}/${path}` : null
+}
 
 export function CategoriesPage() {
   const [categories, setCategories] = useState<Category[] | null>(null)
@@ -15,16 +21,32 @@ export function CategoriesPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Image: a newly-picked file is staged client-side and only uploaded
+  // after the category row exists (create) or directly on edit (row already
+  // exists). `imageRemoved` tracks an explicit "Remove Image" on edit.
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
+
   function load() {
     api.get('/categories').then((res) => setCategories(res.data.categories))
   }
 
   useEffect(load, [])
 
+  function resetImageState() {
+    setImageFile(null)
+    setImagePreview(null)
+    setImageRemoved(false)
+    if (fileInput.current) fileInput.current.value = ''
+  }
+
   function openCreateModal() {
     setName('')
     setDescription('')
     setError('')
+    resetImageState()
     setShowForm(true)
   }
 
@@ -33,6 +55,20 @@ export function CategoriesPage() {
     setName(c.name)
     setDescription(c.description ?? '')
     setError('')
+    resetImageState()
+  }
+
+  function closeModals() {
+    setShowForm(false)
+    setEditingCategory(null)
+    resetImageState()
+  }
+
+  function pickImage(file: File | undefined) {
+    if (!file) return
+    setImageFile(file)
+    setImageRemoved(false)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -40,13 +76,26 @@ export function CategoriesPage() {
     setError('')
     setSubmitting(true)
     try {
+      let categoryId: number
       if (editingCategory) {
         await api.put(`/categories/${editingCategory.id}`, { name, description })
-        setEditingCategory(null)
+        categoryId = editingCategory.id
       } else {
-        await api.post('/categories', { name, description })
-        setShowForm(false)
+        const res = await api.post('/categories', { name, description })
+        categoryId = res.data.id
       }
+
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+        await api.post(`/categories/${categoryId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      } else if (imageRemoved) {
+        await api.delete(`/categories/${categoryId}/image`)
+      }
+
+      closeModals()
       setName('')
       setDescription('')
       load()
@@ -88,6 +137,7 @@ export function CategoriesPage() {
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
               <tr>
+                <th className="px-4 py-2.5 font-semibold">Image</th>
                 <th className="px-4 py-2.5 font-semibold">Name</th>
                 <th className="px-4 py-2.5 font-semibold">Slug</th>
                 <th className="px-4 py-2.5 font-semibold">Subcategories</th>
@@ -99,6 +149,17 @@ export function CategoriesPage() {
             <tbody className="divide-y divide-slate-100">
               {categories.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                      {imageUrl(c.thumb_path ?? c.image_path) ? (
+                        <img src={imageUrl(c.thumb_path ?? c.image_path)!} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-slate-300">
+                          <ImageIcon className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5">
                     <p className="font-semibold text-slate-900">{c.name}</p>
                     {c.description && <p className="text-[11px] text-slate-500 line-clamp-1">{c.description}</p>}
@@ -143,7 +204,7 @@ export function CategoriesPage() {
               ))}
               {categories.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                     No categories found.
                   </td>
                 </tr>
@@ -155,7 +216,7 @@ export function CategoriesPage() {
 
       {/* Create / Edit Modal */}
       {(showForm || editingCategory) && (
-        <Modal title={editingCategory ? `Edit Category: ${editingCategory.name}` : 'New Category'} onClose={() => { setShowForm(false); setEditingCategory(null); }}>
+        <Modal title={editingCategory ? `Edit Category: ${editingCategory.name}` : 'New Category'} onClose={closeModals}>
           <form onSubmit={handleSubmit} className="space-y-3">
             {error && <Alert>{error}</Alert>}
             <TextField label="Name" required autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Toys" />
@@ -166,8 +227,60 @@ export function CategoriesPage() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
             />
+
+            <div className="block text-sm">
+              <span className="mb-1 block font-medium text-slate-700">Category Image</span>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                  {imagePreview || (editingCategory && !imageRemoved && imageUrl(editingCategory.image_path)) ? (
+                    <img
+                      src={imagePreview ?? imageUrl(editingCategory!.image_path)!}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-300">
+                      <ImageIcon className="h-6 w-6" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={() => fileInput.current?.click()}>
+                      {imagePreview || (editingCategory && !imageRemoved && editingCategory.image_path) ? 'Change Image' : 'Upload Image'}
+                    </Button>
+                    {(imagePreview || (editingCategory && !imageRemoved && editingCategory.image_path)) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImagePreview(null)
+                          setImageRemoved(true)
+                          if (fileInput.current) fileInput.current.value = ''
+                        }}
+                      >
+                        Remove Image
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Supported: JPG, JPEG, PNG, WEBP • Images are automatically optimized and stored as WEBP
+                  </p>
+                </div>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => pickImage(e.target.files?.[0])}
+                />
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => { setShowForm(false); setEditingCategory(null); }}>
+              <Button type="button" variant="secondary" onClick={closeModals}>
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
@@ -182,6 +295,15 @@ export function CategoriesPage() {
       {viewingCategory && (
         <Modal title={`Category Details: ${viewingCategory.name}`} onClose={() => setViewingCategory(null)}>
           <div className="space-y-3 text-xs">
+            <div className="h-28 w-28 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              {imageUrl(viewingCategory.image_path) ? (
+                <img src={imageUrl(viewingCategory.image_path)!} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-slate-300">
+                  <ImageIcon className="h-8 w-8" />
+                </div>
+              )}
+            </div>
             <div>
               <span className="font-semibold text-slate-500 block uppercase tracking-wider text-[10px]">Name</span>
               <p className="text-sm font-semibold text-slate-900 mt-0.5">{viewingCategory.name}</p>

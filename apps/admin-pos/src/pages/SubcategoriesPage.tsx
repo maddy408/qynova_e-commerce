@@ -1,8 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { EyeIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { EyeIcon, ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Category, Subcategory } from '../lib/types'
+
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
+
+function imageUrl(path: string | null) {
+  return path ? `${API_ORIGIN}/${path}` : null
+}
 
 export function SubcategoriesPage() {
   const [subcategories, setSubcategories] = useState<Subcategory[] | null>(null)
@@ -15,6 +21,11 @@ export function SubcategoriesPage() {
   const [categoryIds, setCategoryIds] = useState<number[]>([])
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
 
   function load() {
     api.get('/subcategories').then((res) => setSubcategories(res.data.subcategories))
@@ -31,10 +42,18 @@ export function SubcategoriesPage() {
       .join(', ')
   }
 
+  function resetImageState() {
+    setImageFile(null)
+    setImagePreview(null)
+    setImageRemoved(false)
+    if (fileInput.current) fileInput.current.value = ''
+  }
+
   function openCreateModal() {
     setName('')
     setCategoryIds([])
     setError('')
+    resetImageState()
     setShowForm(true)
   }
 
@@ -43,6 +62,20 @@ export function SubcategoriesPage() {
     setName(s.name)
     setCategoryIds(s.category_ids ?? [])
     setError('')
+    resetImageState()
+  }
+
+  function closeModals() {
+    setShowForm(false)
+    setEditingSubcategory(null)
+    resetImageState()
+  }
+
+  function pickImage(file: File | undefined) {
+    if (!file) return
+    setImageFile(file)
+    setImageRemoved(false)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   function toggleCategory(id: number) {
@@ -58,13 +91,26 @@ export function SubcategoriesPage() {
     }
     setSubmitting(true)
     try {
+      let subcategoryId: number
       if (editingSubcategory) {
         await api.put(`/subcategories/${editingSubcategory.id}`, { name, category_ids: categoryIds })
-        setEditingSubcategory(null)
+        subcategoryId = editingSubcategory.id
       } else {
-        await api.post('/subcategories', { name, category_ids: categoryIds })
-        setShowForm(false)
+        const res = await api.post('/subcategories', { name, category_ids: categoryIds })
+        subcategoryId = res.data.id
       }
+
+      if (imageFile) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+        await api.post(`/subcategories/${subcategoryId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      } else if (imageRemoved) {
+        await api.delete(`/subcategories/${subcategoryId}/image`)
+      }
+
+      closeModals()
       setName('')
       setCategoryIds([])
       load()
@@ -110,6 +156,7 @@ export function SubcategoriesPage() {
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
               <tr>
+                <th className="px-4 py-2.5 font-semibold">Image</th>
                 <th className="px-4 py-2.5 font-semibold">Name</th>
                 <th className="px-4 py-2.5 font-semibold">Parent Categories</th>
                 <th className="px-4 py-2.5 font-semibold">Products</th>
@@ -120,6 +167,17 @@ export function SubcategoriesPage() {
             <tbody className="divide-y divide-slate-100">
               {subcategories.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-4 py-2.5">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                      {imageUrl(s.thumb_path ?? s.image_path) ? (
+                        <img src={imageUrl(s.thumb_path ?? s.image_path)!} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-slate-300">
+                          <ImageIcon className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5 font-semibold text-slate-900">{s.name}</td>
                   <td className="px-4 py-2.5 text-slate-600 font-medium">{categoryNames(s.category_ids)}</td>
                   <td className="px-4 py-2.5 text-slate-600 font-medium">{s.product_count ?? 0}</td>
@@ -160,7 +218,7 @@ export function SubcategoriesPage() {
               ))}
               {subcategories.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     No subcategories found.
                   </td>
                 </tr>
@@ -174,7 +232,7 @@ export function SubcategoriesPage() {
       {(showForm || editingSubcategory) && (
         <Modal
           title={editingSubcategory ? `Edit Subcategory: ${editingSubcategory.name}` : 'New Subcategory'}
-          onClose={() => { setShowForm(false); setEditingSubcategory(null); }}
+          onClose={closeModals}
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             {error && <Alert>{error}</Alert>}
@@ -197,8 +255,60 @@ export function SubcategoriesPage() {
                 ))}
               </div>
             </div>
+
+            <div className="block text-sm">
+              <span className="mb-1 block font-medium text-slate-700">Subcategory Image</span>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                  {imagePreview || (editingSubcategory && !imageRemoved && imageUrl(editingSubcategory.image_path)) ? (
+                    <img
+                      src={imagePreview ?? imageUrl(editingSubcategory!.image_path)!}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-300">
+                      <ImageIcon className="h-6 w-6" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" size="sm" onClick={() => fileInput.current?.click()}>
+                      {imagePreview || (editingSubcategory && !imageRemoved && editingSubcategory.image_path) ? 'Change Image' : 'Upload Image'}
+                    </Button>
+                    {(imagePreview || (editingSubcategory && !imageRemoved && editingSubcategory.image_path)) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImagePreview(null)
+                          setImageRemoved(true)
+                          if (fileInput.current) fileInput.current.value = ''
+                        }}
+                      >
+                        Remove Image
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Supported: JPG, JPEG, PNG, WEBP • Images are automatically optimized and stored as WEBP
+                  </p>
+                </div>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => pickImage(e.target.files?.[0])}
+                />
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => { setShowForm(false); setEditingSubcategory(null); }}>
+              <Button type="button" variant="secondary" onClick={closeModals}>
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
@@ -213,6 +323,15 @@ export function SubcategoriesPage() {
       {viewingSubcategory && (
         <Modal title={`Subcategory Details: ${viewingSubcategory.name}`} onClose={() => setViewingSubcategory(null)}>
           <div className="space-y-3 text-xs">
+            <div className="h-28 w-28 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              {imageUrl(viewingSubcategory.image_path) ? (
+                <img src={imageUrl(viewingSubcategory.image_path)!} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-slate-300">
+                  <ImageIcon className="h-8 w-8" />
+                </div>
+              )}
+            </div>
             <div>
               <span className="font-semibold text-slate-500 block uppercase tracking-wider text-[10px]">Name</span>
               <p className="text-sm font-semibold text-slate-900 mt-0.5">{viewingSubcategory.name}</p>

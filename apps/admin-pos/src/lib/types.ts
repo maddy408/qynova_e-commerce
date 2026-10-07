@@ -10,6 +10,8 @@ export interface Category {
   name: string
   slug: string
   description: string | null
+  image_path: string | null
+  thumb_path: string | null
   sort_order: number
   status: 'ACTIVE' | 'INACTIVE'
   created_at: string
@@ -22,6 +24,8 @@ export interface Subcategory {
   name: string
   slug: string
   description: string | null
+  image_path: string | null
+  thumb_path: string | null
   sort_order: number
   status: 'ACTIVE' | 'INACTIVE'
   created_at: string
@@ -73,9 +77,14 @@ export interface Customer {
 export interface Supplier {
   id: number
   name: string
-  contact_person?: string | null
-  phone?: string | null
-  email?: string | null
+  contact_person: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  gstin: string | null
+  status: 'ACTIVE' | 'INACTIVE'
+  created_at: string
+  updated_at: string
 }
 
 export interface Unit {
