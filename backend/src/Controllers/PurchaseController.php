@@ -9,6 +9,7 @@ use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\InventoryService;
+use App\Services\PaymentService;
 use App\Services\PurchaseService;
 use PDO;
 use PDOException;
@@ -17,10 +18,12 @@ use RuntimeException;
 final class PurchaseController
 {
     private readonly PurchaseService $purchases;
+    private readonly PaymentService $payments;
 
     public function __construct(private readonly PDO $pdo)
     {
-        $this->purchases = new PurchaseService($pdo, new InventoryService($pdo));
+        $this->payments = new PaymentService($pdo);
+        $this->purchases = new PurchaseService($pdo, new InventoryService($pdo), $this->payments);
     }
 
     public function indexSuppliers(): void
@@ -150,6 +153,7 @@ final class PurchaseController
                 createdByUserId: (int) $claims['sub'],
                 paymentMethod: isset($body['payment_method']) ? (string) $body['payment_method'] : null,
                 notes: isset($body['notes']) ? (string) $body['notes'] : null,
+                paymentLines: (array) ($body['lines'] ?? []),
             );
             Response::json(['purchase' => $this->purchases->find($id)], 201);
         } catch (RuntimeException $e) {
@@ -194,5 +198,103 @@ final class PurchaseController
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }
+    }
+
+    public function updatePayment(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireRole($claims, 'ADMIN');
+
+        $body = Request::json();
+
+        try {
+            $updated = $this->purchases->updatePayment(
+                purchaseId: (int) $id,
+                data: $body,
+                userId: (int) $claims['sub'],
+                clientIp: Request::clientIp()
+            );
+            Response::json(['purchase' => $updated]);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'Purchase not found') {
+                Response::error($e->getMessage(), 404);
+            }
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function collectPayment(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireRole($claims, 'ADMIN');
+
+        $body = Request::json();
+
+        try {
+            $result = $this->purchases->collectPayment(
+                purchaseId: (int) $id,
+                data: $body,
+                userId: (int) $claims['sub'],
+                clientIp: Request::clientIp()
+            );
+            Response::json($result, 201);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'Purchase not found') {
+                Response::error($e->getMessage(), 404);
+            }
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function reversePayment(string $purchaseId, string $paymentId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireRole($claims, 'ADMIN');
+
+        $body = Request::json();
+        $reason = trim((string) ($body['reason'] ?? ''));
+
+        if ($reason === '') {
+            Response::error('A reason is required to reverse payment', 422);
+        }
+
+        try {
+            $result = $this->purchases->reversePayment(
+                purchaseId: (int) $purchaseId,
+                paymentId: (int) $paymentId,
+                reason: $reason,
+                userId: (int) $claims['sub'],
+                clientIp: Request::clientIp()
+            );
+            Response::json($result);
+        } catch (RuntimeException $e) {
+            if ($e->getMessage() === 'Purchase not found' || $e->getMessage() === 'Payment not found for this purchase') {
+                Response::error($e->getMessage(), 404);
+            }
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function listPayments(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'purchases.manage');
+
+        $purchase = $this->purchases->find((int) $id);
+        if ($purchase === null) {
+            Response::error('Purchase not found', 404);
+        }
+
+        $payments = $this->purchases->listPayments((int) $id);
+        Response::json(['payments' => $payments]);
+    }
+
+    public function supplierOutstanding(string $supplierId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'purchases.manage');
+
+        $outstanding = $this->purchases->getSupplierOutstanding((int) $supplierId);
+        Response::json($outstanding);
     }
 }

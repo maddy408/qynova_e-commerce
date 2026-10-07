@@ -14,10 +14,14 @@ use RuntimeException;
  */
 final class PurchaseService
 {
+    private readonly PaymentService $paymentService;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
+        ?PaymentService $paymentService = null,
     ) {
+        $this->paymentService = $paymentService ?? new PaymentService($pdo);
     }
 
     /** @param array<string, mixed> $data */
@@ -136,6 +140,7 @@ final class PurchaseService
 
     /**
      * @param list<array{variant_id: int, quantity: string, unit_cost: string, mrp?: string, discount_amount?: string}> $items
+     * @param list<array{method: string, amount: string|numeric, reference_no?: string|null}> $paymentLines
      */
     public function createPurchase(
         int $supplierId,
@@ -144,7 +149,8 @@ final class PurchaseService
         string $amountPaid,
         int $createdByUserId,
         ?string $paymentMethod = null,
-        ?string $notes = null
+        ?string $notes = null,
+        array $paymentLines = []
     ): int {
         if ($items === []) {
             throw new RuntimeException('At least one item is required');
@@ -198,7 +204,66 @@ final class PurchaseService
         );
         $taxTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['tax_amount'], 2), '0.00');
         $grandTotal = bcadd($subtotal, $taxTotal, 2);
-        $paymentStatus = bccomp($amountPaid, $grandTotal, 2) >= 0 ? 'PAID' : (bccomp($amountPaid, '0', 2) > 0 ? 'PARTIAL' : 'UNPAID');
+
+        $cleanPaid = bccomp($amountPaid, '0', 2) > 0 ? (bccomp($amountPaid, $grandTotal, 2) >= 0 ? $grandTotal : $amountPaid) : '0.00';
+        $paymentStatus = bccomp($cleanPaid, $grandTotal, 2) >= 0 && bccomp($grandTotal, '0', 2) > 0
+            ? 'PAID'
+            : (bccomp($cleanPaid, '0', 2) > 0 ? 'PARTIALLY_PAID' : 'UNPAID');
+        $balanceAmount = bcsub($grandTotal, $cleanPaid, 2);
+
+        // Validate and parse payment lines if paid amount > 0
+        $parsedPayLines = [];
+        if (bccomp($cleanPaid, '0', 2) > 0 && $paymentLines !== []) {
+            $allowedMethods = ['CASH', 'UPI', 'CARD', 'NETBANKING'];
+            $refRequired = ['UPI', 'CARD', 'NETBANKING'];
+            $usedMethods = [];
+            $linesSum = '0.00';
+
+            foreach ($paymentLines as $pLine) {
+                $m = strtoupper(trim((string) ($pLine['method'] ?? '')));
+                if ($m === 'CREDIT') {
+                    throw new RuntimeException('Credit/Due cannot be used as a payment line method');
+                }
+                if (!in_array($m, $allowedMethods, true)) {
+                    throw new RuntimeException("Invalid payment method: {$m}");
+                }
+                if (isset($usedMethods[$m])) {
+                    throw new RuntimeException("Duplicate payment method {$m} in one payment is not allowed");
+                }
+                $usedMethods[$m] = true;
+
+                $amtRaw = $pLine['amount'] ?? null;
+                if ($amtRaw === null || !is_numeric($amtRaw)) {
+                    throw new RuntimeException("Line amount for {$m} must be numeric");
+                }
+                $amt = bcadd((string) $amtRaw, '0', 2);
+                if (bccomp($amt, '0', 2) <= 0) {
+                    throw new RuntimeException("Line amount for {$m} must be greater than 0");
+                }
+
+                $refNo = isset($pLine['reference_no']) ? trim((string) $pLine['reference_no']) : '';
+                if (in_array($m, $refRequired, true) && $refNo === '') {
+                    throw new RuntimeException("Reference number is required for {$m}");
+                }
+
+                $parsedPayLines[] = [
+                    'method' => $m,
+                    'amount' => $amt,
+                    'reference_no' => $refNo !== '' ? $refNo : null,
+                ];
+                $linesSum = bcadd($linesSum, $amt, 2);
+            }
+
+            if (bccomp($linesSum, $cleanPaid, 2) !== 0) {
+                throw new RuntimeException("Sum of payment lines (₹{$linesSum}) must equal paid amount (₹{$cleanPaid})");
+            }
+
+            if (count($usedMethods) > 1) {
+                $paymentMethod = 'SPLIT';
+            } elseif (count($usedMethods) === 1) {
+                $paymentMethod = array_key_first($usedMethods);
+            }
+        }
 
         $this->pdo->beginTransaction();
 
@@ -208,10 +273,10 @@ final class PurchaseService
             $this->pdo->prepare(
                 "INSERT INTO purchases (
                     purchase_no, supplier_id, status, subtotal, tax_total, grand_total,
-                    amount_paid, payment_method, payment_status, purchase_date, notes, created_by
+                    paid_amount, balance_amount, amount_paid, payment_method, payment_status, purchase_date, notes, created_by
                 ) VALUES (
                     :purchase_no, :supplier_id, 'ACTIVE', :subtotal, :tax_total, :grand_total,
-                    :amount_paid, :payment_method, :payment_status, :purchase_date, :notes, :created_by
+                    :paid_amount, :balance_amount, :amount_paid, :payment_method, :payment_status, :purchase_date, :notes, :created_by
                 )"
             )->execute([
                 'purchase_no' => $purchaseNo,
@@ -219,7 +284,9 @@ final class PurchaseService
                 'subtotal' => $subtotal,
                 'tax_total' => $taxTotal,
                 'grand_total' => $grandTotal,
-                'amount_paid' => $amountPaid,
+                'paid_amount' => $cleanPaid,
+                'balance_amount' => $balanceAmount,
+                'amount_paid' => $cleanPaid,
                 'payment_method' => $paymentMethod,
                 'payment_status' => $paymentStatus,
                 'purchase_date' => $purchaseDate,
@@ -261,6 +328,68 @@ final class PurchaseService
                     unitCost: $line['unit_cost'],
                 );
             }
+
+            // If initial payment was made, record in purchase_payments + lines
+            if (bccomp($cleanPaid, '0', 2) > 0) {
+                $receiptNo = 'REC-PUR-' . $purchaseId . '-INIT';
+                $this->pdo->prepare(
+                    "INSERT INTO purchase_payments (
+                        purchase_id, supplier_id, receipt_no, payment_date, total_amount, notes, status, created_by
+                    ) VALUES (
+                        :purchase_id, :supplier_id, :receipt_no, :payment_date, :amount, 'Initial payment upon purchase creation', 'ACTIVE', :created_by
+                    )"
+                )->execute([
+                    'purchase_id' => $purchaseId,
+                    'supplier_id' => $supplierId,
+                    'receipt_no' => $receiptNo,
+                    'payment_date' => $purchaseDate,
+                    'amount' => $cleanPaid,
+                    'created_by' => $createdByUserId,
+                ]);
+
+                $paymentId = (int) $this->pdo->lastInsertId();
+
+                if ($parsedPayLines !== []) {
+                    $pLineStmt = $this->pdo->prepare(
+                        'INSERT INTO purchase_payment_lines (payment_id, payment_method, amount, reference_no)
+                         VALUES (:payment_id, :method, :amount, :reference_no)'
+                    );
+                    foreach ($parsedPayLines as $pLine) {
+                        $pLineStmt->execute([
+                            'payment_id' => $paymentId,
+                            'method' => $pLine['method'],
+                            'amount' => $pLine['amount'],
+                            'reference_no' => $pLine['reference_no'],
+                        ]);
+                    }
+                } else {
+                    $method = in_array($paymentMethod, ['CASH', 'UPI', 'CARD', 'NETBANKING'], true)
+                        ? $paymentMethod
+                        : 'CASH';
+
+                    $this->pdo->prepare(
+                        'INSERT INTO purchase_payment_lines (payment_id, payment_method, amount, reference_no)
+                         VALUES (:payment_id, :method, :amount, NULL)'
+                    )->execute([
+                        'payment_id' => $paymentId,
+                        'method' => $method,
+                        'amount' => $cleanPaid,
+                    ]);
+                }
+            }
+
+            // Record initial supplier ledger entry
+            $this->pdo->prepare(
+                "INSERT INTO supplier_ledger (supplier_id, transaction_type, reference_type, reference_id, amount, paid_amount_delta, notes, created_by)
+                 VALUES (:supplier_id, 'PURCHASE', 'PURCHASE', :reference_id, :amount, :paid_delta, :notes, :created_by)"
+            )->execute([
+                'supplier_id' => $supplierId,
+                'reference_id' => $purchaseId,
+                'amount' => $grandTotal,
+                'paid_delta' => $cleanPaid,
+                'notes' => "Purchase {$purchaseNo} created",
+                'created_by' => $createdByUserId,
+            ]);
 
             $this->pdo->prepare(
                 "INSERT INTO audit_logs (actor_type, actor_id, action, entity_type, entity_id)
@@ -317,6 +446,41 @@ final class PurchaseService
                 "UPDATE purchases SET status = 'CANCELLED', cancelled_at = NOW(), cancelled_by = :by, cancellation_reason = :reason
                  WHERE id = :id"
             )->execute(['by' => $cancelledByUserId, 'reason' => $reason, 'id' => $purchaseId]);
+
+            // Mark any active payments as REVERSED
+            $this->pdo->prepare(
+                "UPDATE purchase_payments SET
+                    status = 'REVERSED',
+                    reversed_by = :by,
+                    reversed_at = NOW(),
+                    reverse_reason = :reason
+                 WHERE purchase_id = :id AND status = 'ACTIVE'"
+            )->execute([
+                'by' => $cancelledByUserId,
+                'reason' => 'Purchase cancelled: ' . $reason,
+                'id' => $purchaseId,
+            ]);
+
+            // Insert cancellation reversal row in supplier_ledger (Task C3)
+            $this->pdo->prepare(
+                "INSERT INTO supplier_ledger (
+                    supplier_id, transaction_type, reference_type, reference_id, amount, paid_amount_delta, notes, created_by
+                ) VALUES (
+                    :supplier_id, 'PURCHASE_CANCEL', 'PURCHASE', :reference_id, :amount, :paid_delta, :notes, :created_by
+                )"
+            )->execute([
+                'supplier_id' => $purchase['supplier_id'],
+                'reference_id' => $purchaseId,
+                'amount' => '-' . $purchase['grand_total'],
+                'paid_delta' => '-' . $purchase['paid_amount'],
+                'notes' => "Purchase {$purchase['purchase_no']} cancelled: {$reason}",
+                'created_by' => $cancelledByUserId,
+            ]);
+
+            $this->pdo->prepare(
+                "INSERT INTO audit_logs (actor_type, actor_id, action, entity_type, entity_id, reason)
+                 VALUES ('USER', :actor, 'PURCHASE_CANCEL', 'purchase', :id, :reason)"
+            )->execute(['actor' => $cancelledByUserId, 'id' => $purchaseId, 'reason' => $reason]);
 
             $this->pdo->commit();
         } catch (\Throwable $e) {
@@ -422,6 +586,26 @@ final class PurchaseService
             $this->pdo->prepare('UPDATE purchase_returns SET grand_total = :total WHERE id = :id')
                 ->execute(['total' => $grandTotal, 'id' => $returnId]);
 
+            // Insert supplier_ledger row for the return (Task C1)
+            $this->pdo->prepare(
+                "INSERT INTO supplier_ledger (
+                    supplier_id, transaction_type, reference_type, reference_id, amount, paid_amount_delta, notes, created_by
+                ) VALUES (
+                    :supplier_id, 'PURCHASE_RETURN', 'PURCHASE_RETURN', :reference_id, :amount, 0.00, :notes, :created_by
+                )"
+            )->execute([
+                'supplier_id' => $purchase['supplier_id'],
+                'reference_id' => $returnId,
+                'amount' => $grandTotal,
+                'notes' => "Purchase Return {$returnNo} for purchase {$purchase['purchase_no']}",
+                'created_by' => $createdByUserId,
+            ]);
+
+            $this->pdo->prepare(
+                "INSERT INTO audit_logs (actor_type, actor_id, action, entity_type, entity_id, reason)
+                 VALUES ('USER', :actor, 'PURCHASE_RETURN', 'purchase_return', :id, :reason)"
+            )->execute(['actor' => $createdByUserId, 'id' => $returnId, 'reason' => $reason]);
+
             $this->pdo->commit();
 
             return $returnId;
@@ -481,6 +665,63 @@ final class PurchaseService
         $purchase['returns'] = $returns->fetchAll();
 
         return $purchase;
+    }
+
+    /**
+     * Updates payment details for a purchase using the unified PaymentService.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function updatePayment(int $purchaseId, array $data, int $userId, ?string $clientIp = null): array
+    {
+        return $this->paymentService->updatePayment($purchaseId, $data, $userId, $clientIp);
+    }
+
+    /**
+     * Collects a new payment with single or split lines using PaymentService.
+     *
+     * @param array<string, mixed> $data
+     * @return array{purchase: array<string, mixed>, payment: array<string, mixed>}
+     */
+    public function collectPayment(int $purchaseId, array $data, int $userId, ?string $clientIp = null): array
+    {
+        return $this->paymentService->collectPayment($purchaseId, $data, $userId, $clientIp);
+    }
+
+    /**
+     * Reverses a payment using PaymentService.
+     *
+     * @return array{purchase: array<string, mixed>, reversed_payment_id: int}
+     */
+    public function reversePayment(int $purchaseId, int $paymentId, string $reason, int $userId, ?string $clientIp = null): array
+    {
+        return $this->paymentService->reversePayment($purchaseId, $paymentId, $reason, $userId, $clientIp);
+    }
+
+    /**
+     * Lists payment history for a purchase.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listPayments(int $purchaseId): array
+    {
+        return $this->paymentService->listPayments($purchaseId);
+    }
+
+    /**
+     * Gets supplier outstanding balance using both ledger and entity formulas.
+     *
+     * @return array{
+     *     supplier_id: int,
+     *     ledger_outstanding: string,
+     *     entity_outstanding: string,
+     *     is_reconciled: bool
+     * }
+     */
+    public function getSupplierOutstanding(int $supplierId): array
+    {
+        return $this->paymentService->getSupplierOutstanding($supplierId);
     }
 
     private function generatePurchaseNumber(): string

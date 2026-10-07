@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { PencilIcon, WalletIcon, ReceiptIcon } from '../components/Icons'
+import {
+  SplitPaymentFields,
+  INITIAL_SPLIT_PAYMENT_VALUES,
+  extractSplitPaymentPayload,
+  type SplitPaymentValues,
+} from '../components/SplitPaymentFields'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 
@@ -11,13 +18,42 @@ interface Purchase {
   id: number
   purchase_no: string
   supplier_name: string
+  supplier_id: number
   status: 'ACTIVE' | 'CANCELLED'
   grand_total: string
+  paid_amount?: string
+  balance_amount?: string
   amount_paid: string
   payment_method?: string | null
   payment_status: string
   purchase_date: string
   notes?: string | null
+  updated_at?: string
+}
+
+interface PaymentLine {
+  id?: number
+  payment_method: string
+  amount: string
+  reference_no?: string | null
+}
+
+interface PurchasePayment {
+  id: number
+  purchase_id: number
+  supplier_id: number
+  receipt_no: string
+  payment_date: string
+  total_amount: string
+  notes?: string | null
+  status: 'ACTIVE' | 'REVERSED'
+  reversed_by?: number | null
+  reversed_by_name?: string | null
+  reversed_at?: string | null
+  reverse_reason?: string | null
+  created_by_name?: string | null
+  created_at: string
+  lines: PaymentLine[]
 }
 
 interface VariantOption {
@@ -48,20 +84,39 @@ export function PurchasesPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const [supplierId, setSupplierId] = useState('')
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10))
-  const [paymentMode, setPaymentMode] = useState<'SINGLE' | 'SPLIT'>('SINGLE')
-  const [singlePaymentMethod, setSinglePaymentMethod] = useState<'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER' | 'CREDIT'>('CASH')
-  const [paymentStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID'>('PAID')
-  const [amountPaid, setAmountPaid] = useState('')
-  const [items, setItems] = useState<LineItem[]>([])
+  // Payment Edit Modal State
+  const [editPurchase, setEditPurchase] = useState<Purchase | null>(null)
+  const [editSplitValues, setEditSplitValues] = useState<SplitPaymentValues>(INITIAL_SPLIT_PAYMENT_VALUES)
+  const [editError, setEditError] = useState('')
+  const [editSuccess, setEditSuccess] = useState('')
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
-  // Split payment breakdown fields
-  const [splitCash, setSplitCash] = useState('')
-  const [splitUpi, setSplitUpi] = useState('')
-  const [splitCard, setSplitCard] = useState('')
-  const [splitBank, setSplitBank] = useState('')
-  const [splitCredit, setSplitCredit] = useState('')
+  // Collect Payment Modal State
+  const [collectPurchase, setCollectPurchase] = useState<Purchase | null>(null)
+  const [collectAmount, setCollectAmount] = useState<string>('')
+  const [collectDate, setCollectDate] = useState<string>(new Date().toISOString().slice(0, 10))
+  const [collectNotes, setCollectNotes] = useState<string>('')
+  const [collectSplitValues, setCollectSplitValues] = useState<SplitPaymentValues>(INITIAL_SPLIT_PAYMENT_VALUES)
+  const [collectIdempotencyKey, setCollectIdempotencyKey] = useState<string>('')
+  const [collectError, setCollectError] = useState<string>('')
+  const [collectSuccess, setCollectSuccess] = useState<string>('')
+  const [collectSubmitting, setCollectSubmitting] = useState<boolean>(false)
+
+  // Payment History State
+  const [historyPurchase, setHistoryPurchase] = useState<Purchase | null>(null)
+  const [paymentsHistory, setPaymentsHistory] = useState<PurchasePayment[]>([])
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false)
+  const [reversingPaymentId, setReversingPaymentId] = useState<number | null>(null)
+  const [reverseReason, setReverseReason] = useState<string>('')
+  const [reverseSubmitting, setReverseSubmitting] = useState<boolean>(false)
+  const [historyError, setHistoryError] = useState<string>('')
+  const [historySuccess, setHistorySuccess] = useState<string>('')
+
+  // New Purchase Creation State
+  const [supplierId, setSupplierId] = useState('')
+  const [items, setItems] = useState<LineItem[]>([])
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10))
+  const [newPurchaseSplit, setNewPurchaseSplit] = useState<SplitPaymentValues>(INITIAL_SPLIT_PAYMENT_VALUES)
 
   // Autocomplete dropdown state
   const [searchQuery, setSearchQuery] = useState('')
@@ -94,6 +149,300 @@ export function PurchasesPage() {
     api.get('/suppliers').then((res) => setSuppliers(res.data.suppliers))
     fetchVariants()
   }, [])
+
+  // ================= EDIT PAYMENT MODAL =================
+  function openEditPaymentModal(p: Purchase) {
+    setEditPurchase(p)
+    const paid = p.paid_amount ?? p.amount_paid ?? '0.00'
+    const isSplit = p.payment_method === 'SPLIT'
+
+    setEditSplitValues({
+      mode: isSplit ? 'SPLIT' : 'SINGLE',
+      singleMethod: p.payment_method && p.payment_method !== 'SPLIT' ? p.payment_method : 'CASH',
+      singleAmount: paid !== '0.00' ? paid : '',
+      singleRef: '',
+      cash: isSplit ? paid : (p.payment_method === 'CASH' ? paid : ''),
+      upi: p.payment_method === 'UPI' ? paid : '',
+      card: p.payment_method === 'CARD' ? paid : '',
+      bank: p.payment_method === 'NETBANKING' ? paid : '',
+      upiRef: '',
+      cardRef: '',
+      bankRef: '',
+    })
+    setEditError('')
+    setEditSuccess('')
+  }
+
+  async function handleEditPaymentSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!editPurchase) return
+    setEditError('')
+    setEditSuccess('')
+
+    const grandTotalNum = Number(editPurchase.grand_total) || 0
+    const payload = extractSplitPaymentPayload(editSplitValues, grandTotalNum)
+
+    if (!payload.isValid) {
+      setEditError(payload.errorMessage || 'Invalid payment amounts or missing required references')
+      return
+    }
+
+    setEditSubmitting(true)
+    try {
+      const res = await api.patch(`/purchases/${editPurchase.id}/payment`, {
+        payment_status: payload.paymentStatus,
+        payment_method: payload.paymentMethod,
+        paid_amount: payload.paidAmount,
+        lines: payload.lines,
+      })
+
+      const updatedPurchase = res.data.purchase
+      setEditSuccess('Payment details saved successfully!')
+      setPurchases((prev) =>
+        prev ? prev.map((item) => (item.id === updatedPurchase.id ? { ...item, ...updatedPurchase } : item)) : null
+      )
+      setTimeout(() => {
+        setEditPurchase(null)
+        load()
+      }, 500)
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        window.location.href = '/login'
+        return
+      }
+      setEditError(apiErrorMessage(err, 'Failed to update payment'))
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  // ================= COLLECT PAYMENT MODAL =================
+  function openCollectPaymentModal(p: Purchase) {
+    const currentPaid = p.paid_amount ?? p.amount_paid ?? '0.00'
+    const balance = p.balance_amount ?? Math.max(0, (Number(p.grand_total) || 0) - (Number(currentPaid) || 0)).toFixed(2)
+
+    setCollectPurchase(p)
+    setCollectAmount(balance)
+    setCollectDate(new Date().toISOString().slice(0, 10))
+    setCollectNotes('')
+    setCollectSplitValues({
+      mode: 'SINGLE',
+      singleMethod: 'CASH',
+      singleAmount: balance,
+      singleRef: '',
+      cash: balance,
+      upi: '',
+      card: '',
+      bank: '',
+      upiRef: '',
+      cardRef: '',
+      bankRef: '',
+    })
+    setCollectIdempotencyKey(`col-${p.id}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`)
+    setCollectError('')
+    setCollectSuccess('')
+  }
+
+  const collectBalanceNum = collectPurchase
+    ? Number(
+        collectPurchase.balance_amount ??
+          Math.max(
+            0,
+            (Number(collectPurchase.grand_total) || 0) -
+              (Number(collectPurchase.paid_amount ?? collectPurchase.amount_paid) || 0)
+          )
+      )
+    : 0
+
+  const collectAmountNum = Number(collectAmount) || 0
+
+  async function handleCollectPaymentSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!collectPurchase) return
+    setCollectError('')
+    setCollectSuccess('')
+
+    if (collectAmountNum <= 0) {
+      setCollectError('Payment amount must be greater than 0')
+      return
+    }
+
+    if (collectAmountNum > collectBalanceNum + 0.001) {
+      setCollectError('Payment exceeds balance')
+      return
+    }
+
+    const payload = extractSplitPaymentPayload(collectSplitValues, collectAmountNum)
+    if (!payload.isValid) {
+      setCollectError(payload.errorMessage || 'Invalid payment amounts or missing required references')
+      return
+    }
+
+    const allocatedNum = Number(payload.paidAmount) || 0
+    if (Math.abs(allocatedNum - collectAmountNum) > 0.009) {
+      setCollectError(
+        `Total allocated (₹${allocatedNum.toFixed(2)}) must exactly equal Amount to Collect (₹${collectAmountNum.toFixed(2)})`
+      )
+      return
+    }
+
+    if (payload.lines.length === 0) {
+      setCollectError('At least one payment method with amount > 0 is required')
+      return
+    }
+
+    setCollectSubmitting(true)
+    try {
+      const res = await api.post(`/purchases/${collectPurchase.id}/payments`, {
+        amount: collectAmountNum.toFixed(2),
+        payment_date: collectDate,
+        notes: collectNotes.trim() || undefined,
+        idempotency_key: collectIdempotencyKey,
+        lines: payload.lines,
+      })
+
+      const updatedPurchase = res.data.purchase
+      setCollectSuccess('Payment collected successfully!')
+      setPurchases((prev) =>
+        prev ? prev.map((item) => (item.id === updatedPurchase.id ? { ...item, ...updatedPurchase } : item)) : null
+      )
+      setTimeout(() => {
+        setCollectPurchase(null)
+        load()
+      }, 500)
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        window.location.href = '/login'
+        return
+      }
+      setCollectError(apiErrorMessage(err, 'Failed to collect payment'))
+    } finally {
+      setCollectSubmitting(false)
+    }
+  }
+
+  // ================= PAYMENT HISTORY MODAL =================
+  async function openPaymentHistoryModal(p: Purchase) {
+    setHistoryPurchase(p)
+    setPaymentsHistory([])
+    setLoadingHistory(true)
+    setHistoryError('')
+    setHistorySuccess('')
+    setReversingPaymentId(null)
+    setReverseReason('')
+
+    try {
+      const res = await api.get(`/purchases/${p.id}/payments`)
+      setPaymentsHistory(res.data.payments || [])
+    } catch (err: any) {
+      setHistoryError(apiErrorMessage(err, 'Failed to load payment history'))
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  async function handleReversePaymentSubmit(paymentId: number) {
+    if (!historyPurchase) return
+    if (!reverseReason.trim()) {
+      setHistoryError('A reason is required to reverse the payment')
+      return
+    }
+
+    setReverseSubmitting(true)
+    setHistoryError('')
+    setHistorySuccess('')
+
+    try {
+      const res = await api.post(`/purchases/${historyPurchase.id}/payments/${paymentId}/reverse`, {
+        reason: reverseReason.trim(),
+      })
+
+      const updatedPurchase = res.data.purchase
+      setHistorySuccess('Payment reversed successfully')
+      setPurchases((prev) =>
+        prev ? prev.map((item) => (item.id === updatedPurchase.id ? { ...item, ...updatedPurchase } : item)) : null
+      )
+      setHistoryPurchase(updatedPurchase)
+      setReversingPaymentId(null)
+      setReverseReason('')
+
+      // Reload payments
+      const pRes = await api.get(`/purchases/${updatedPurchase.id}/payments`)
+      setPaymentsHistory(pRes.data.payments || [])
+    } catch (err: any) {
+      setHistoryError(apiErrorMessage(err, 'Failed to reverse payment'))
+    } finally {
+      setReverseSubmitting(false)
+    }
+  }
+
+  // ================= NEW PURCHASE MODAL =================
+  const grandTotal = items.reduce(
+    (sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)),
+    0
+  )
+
+  function updateItem(variantId: number, field: keyof LineItem, value: string) {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.variant_id !== variantId) return item
+        return { ...item, [field]: value }
+      })
+    )
+  }
+
+  function removeItem(variantId: number) {
+    setItems((prev) => prev.filter((i) => i.variant_id !== variantId))
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setError('')
+
+    if (!supplierId) {
+      setError('Please select a supplier')
+      return
+    }
+
+    if (items.length === 0) {
+      setError('Please add at least one item to the purchase')
+      return
+    }
+
+    const payload = extractSplitPaymentPayload(newPurchaseSplit, grandTotal)
+    if (!payload.isValid) {
+      setError(payload.errorMessage || 'Invalid payment amounts or missing required references')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await api.post('/purchases', {
+        supplier_id: supplierId,
+        purchase_date: purchaseDate,
+        payment_method: payload.paymentMethod,
+        payment_status: payload.paymentStatus,
+        amount_paid: payload.paidAmount,
+        lines: payload.lines,
+        items: items.map((i) => ({
+          variant_id: i.variant_id,
+          quantity: i.quantity,
+          unit_cost: i.unit_cost,
+          mrp: i.mrp,
+          discount_amount: i.discount_amount || '0',
+        })),
+      })
+      setShowForm(false)
+      setItems([])
+      setSupplierId('')
+      setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
+      load()
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not create purchase'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const filteredVariants = allVariants.filter((v) => {
     if (!searchQuery.trim()) return true
@@ -151,126 +500,6 @@ export function PurchasesPage() {
     }
   }
 
-  function updateItem(variantId: number, field: 'quantity' | 'unit_cost' | 'mrp' | 'discount_amount', value: string) {
-    setItems((prev) => prev.map((i) => (i.variant_id === variantId ? { ...i, [field]: value } : i)))
-  }
-
-  function removeItem(variantId: number) {
-    setItems((prev) => prev.filter((i) => i.variant_id !== variantId))
-  }
-
-  const grandTotal = items.reduce(
-    (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0),
-    0,
-  )
-
-  // Split calculation helpers
-  const splitCashNum = Number(splitCash) || 0
-  const splitUpiNum = Number(splitUpi) || 0
-  const splitCardNum = Number(splitCard) || 0
-  const splitBankNum = Number(splitBank) || 0
-  const splitTotalPaid = splitCashNum + splitUpiNum + splitCardNum + splitBankNum
-  const splitCreditCalculated = Math.max(0, grandTotal - splitTotalPaid)
-
-  // Auto-calculate split credit whenever cash/upi/card/bank amounts change
-  function updateSplitField(field: 'cash' | 'upi' | 'card' | 'bank', value: string) {
-    let nextCash = splitCash
-    let nextUpi = splitUpi
-    let nextCard = splitCard
-    let nextBank = splitBank
-
-    if (field === 'cash') { nextCash = value; setSplitCash(value); }
-    if (field === 'upi') { nextUpi = value; setSplitUpi(value); }
-    if (field === 'card') { nextCard = value; setSplitCard(value); }
-    if (field === 'bank') { nextBank = value; setSplitBank(value); }
-
-    const paidSum = (Number(nextCash) || 0) + (Number(nextUpi) || 0) + (Number(nextCard) || 0) + (Number(nextBank) || 0)
-    const remaining = Math.max(0, grandTotal - paidSum)
-    setSplitCredit(remaining > 0 ? remaining.toFixed(2) : '0')
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError('')
-    if (!supplierId) {
-      setError('Select a supplier')
-      return
-    }
-    if (items.length === 0) {
-      setError('Select at least one item for stock purchase')
-      return
-    }
-
-    let finalAmountPaid = '0'
-    let finalPaymentMethod = ''
-    let splitNotes = ''
-
-    if (paymentMode === 'SINGLE') {
-      finalPaymentMethod = singlePaymentMethod
-      if (singlePaymentMethod === 'CREDIT') {
-        finalAmountPaid = '0'
-      } else {
-        finalAmountPaid = amountPaid !== '' ? amountPaid : String(grandTotal)
-      }
-    } else {
-      // SPLIT mode
-      finalAmountPaid = String(splitTotalPaid)
-      const parts: string[] = []
-      if (splitCashNum > 0) parts.push(`Cash: ₹${splitCashNum.toFixed(2)}`)
-      if (splitUpiNum > 0) parts.push(`UPI: ₹${splitUpiNum.toFixed(2)}`)
-      if (splitCardNum > 0) parts.push(`Card: ₹${splitCardNum.toFixed(2)}`)
-      if (splitBankNum > 0) parts.push(`Bank: ₹${splitBankNum.toFixed(2)}`)
-      const dueCredit = Number(splitCredit) || splitCreditCalculated
-      if (dueCredit > 0) parts.push(`Credit: ₹${dueCredit.toFixed(2)}`)
-
-      finalPaymentMethod = `SPLIT (${parts.join(', ')})`
-      splitNotes = `Split Payment Details: ${parts.join(' | ')}`
-    }
-
-    // Auto compute payment status
-    let autoStatus = paymentStatus
-    if (Number(finalAmountPaid) >= grandTotal && grandTotal > 0) {
-      autoStatus = 'PAID'
-    } else if (Number(finalAmountPaid) > 0) {
-      autoStatus = 'PARTIAL'
-    } else {
-      autoStatus = 'UNPAID'
-    }
-
-    setSubmitting(true)
-    try {
-      await api.post('/purchases', {
-        supplier_id: supplierId,
-        purchase_date: purchaseDate,
-        payment_method: finalPaymentMethod,
-        payment_status: autoStatus,
-        amount_paid: finalAmountPaid,
-        notes: splitNotes || undefined,
-        items: items.map((i) => ({
-          variant_id: i.variant_id,
-          quantity: i.quantity,
-          unit_cost: i.unit_cost,
-          mrp: i.mrp,
-          discount_amount: i.discount_amount || '0',
-        })),
-      })
-      setShowForm(false)
-      setItems([])
-      setSupplierId('')
-      setAmountPaid('')
-      setSplitCash('')
-      setSplitUpi('')
-      setSplitCard('')
-      setSplitBank('')
-      setSplitCredit('')
-      load()
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Could not create purchase'))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
     <div>
       <PageHeader
@@ -280,6 +509,7 @@ export function PurchasesPage() {
           <Button
             onClick={() => {
               setShowForm(true)
+              setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
               fetchVariants()
             }}
           >
@@ -292,57 +522,432 @@ export function PurchasesPage() {
         <Spinner />
       ) : (
         <Card>
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
-              <tr>
-                <th className="px-4 py-2.5 font-semibold">Purchase No</th>
-                <th className="px-4 py-2.5 font-semibold">Supplier</th>
-                <th className="px-4 py-2.5 font-semibold">Grand Total</th>
-                <th className="px-4 py-2.5 font-semibold">Paid Amount</th>
-                <th className="px-4 py-2.5 font-semibold">Payment Method</th>
-                <th className="px-4 py-2.5 font-semibold">Payment Status</th>
-                <th className="px-4 py-2.5 font-semibold">Status</th>
-                <th className="px-4 py-2.5 font-semibold">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {purchases.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-2.5 font-mono font-semibold text-slate-900">{p.purchase_no}</td>
-                  <td className="px-4 py-2.5 text-slate-700 font-medium">{p.supplier_name}</td>
-                  <td className="px-4 py-2.5 text-slate-900 font-bold">₹{p.grand_total}</td>
-                  <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{p.amount_paid}</td>
-                  <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[200px] truncate" title={p.payment_method ?? ''}>
-                    {p.payment_method || 'CASH'}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <Badge tone={p.payment_status === 'PAID' ? 'green' : p.payment_status === 'PARTIAL' ? 'amber' : 'red'}>
-                      {p.payment_status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
-                  </td>
-                  <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{p.purchase_date}</td>
-                </tr>
-              ))}
-              {purchases.length === 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                    No purchases recorded yet.
-                  </td>
+                  <th className="px-4 py-2.5 font-semibold">Purchase No</th>
+                  <th className="px-4 py-2.5 font-semibold">Supplier</th>
+                  <th className="px-4 py-2.5 font-semibold">Grand Total</th>
+                  <th className="px-4 py-2.5 font-semibold">Paid Amount</th>
+                  <th className="px-4 py-2.5 font-semibold">Balance</th>
+                  <th className="px-4 py-2.5 font-semibold">Payment Method</th>
+                  <th className="px-4 py-2.5 font-semibold">Payment Status</th>
+                  <th className="px-4 py-2.5 font-semibold">Status</th>
+                  <th className="px-4 py-2.5 font-semibold">Date</th>
+                  <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {purchases.map((p) => {
+                  const effectivePaid = p.paid_amount ?? p.amount_paid ?? '0.00'
+                  const effectiveBalance =
+                    p.balance_amount ??
+                    Math.max(0, (Number(p.grand_total) || 0) - (Number(effectivePaid) || 0)).toFixed(2)
+                  const balanceNum = Number(effectiveBalance) || 0
+                  const isPaid = p.payment_status === 'PAID'
+                  const isPartial = p.payment_status === 'PARTIAL' || p.payment_status === 'PARTIALLY_PAID'
+                  const isCancelled = p.status === 'CANCELLED'
+                  const canCollect = !isCancelled && balanceNum > 0
+
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-2.5 font-mono font-semibold text-slate-900">{p.purchase_no}</td>
+                      <td className="px-4 py-2.5 text-slate-700 font-medium">{p.supplier_name}</td>
+                      <td className="px-4 py-2.5 text-slate-900 font-bold">₹{p.grand_total}</td>
+                      <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{effectivePaid}</td>
+                      <td className="px-4 py-2.5 text-amber-700 font-bold">₹{effectiveBalance}</td>
+                      <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
+                        {p.payment_method === 'SPLIT' ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            ⚡ Split
+                          </span>
+                        ) : (
+                          p.payment_method || '—'
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge tone={isPaid ? 'green' : isPartial ? 'amber' : 'red'}>
+                          {isPaid ? 'PAID' : isPartial ? 'PARTIALLY PAID' : 'UNPAID'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{p.purchase_date}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="inline-flex items-center justify-end gap-1.5">
+                          {/* 1. Collect Payment Icon Button */}
+                          <button
+                            type="button"
+                            disabled={!canCollect}
+                            onClick={() => openCollectPaymentModal(p)}
+                            title={
+                              isCancelled
+                                ? 'Purchase is cancelled'
+                                : balanceNum <= 0
+                                ? 'Purchase is fully paid'
+                                : 'Collect Payment'
+                            }
+                            aria-label="Collect Payment"
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          >
+                            <WalletIcon className="h-4 w-4" />
+                          </button>
+
+                          {/* 2. Edit Payment Icon Button */}
+                          <button
+                            type="button"
+                            disabled={isCancelled}
+                            onClick={() => openEditPaymentModal(p)}
+                            title={isCancelled ? 'Purchase is cancelled' : 'Edit Payment'}
+                            aria-label="Edit Payment"
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 bg-indigo-50/80 border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+
+                          {/* 3. Payment History Icon Button */}
+                          <button
+                            type="button"
+                            onClick={() => openPaymentHistoryModal(p)}
+                            title="Payment History & Receipts"
+                            aria-label="Payment History"
+                            className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-slate-700 bg-slate-50 border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                          >
+                            <ReceiptIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {purchases.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                      No purchases recorded yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
+      {/* ================= COLLECT PAYMENT MODAL ================= */}
+      {collectPurchase && (
+        <Modal
+          title={`Collect Payment — ${collectPurchase.purchase_no}`}
+          onClose={() => {
+            if (!collectSubmitting) setCollectPurchase(null)
+          }}
+          width="lg"
+        >
+          <form onSubmit={handleCollectPaymentSubmit} className="space-y-4">
+            {collectError && <Alert tone="red">{collectError}</Alert>}
+            {collectSuccess && <Alert tone="green">{collectSuccess}</Alert>}
+
+            {/* Read-only Financial Summary Header */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>Supplier: <strong className="text-slate-900">{collectPurchase.supplier_name}</strong></span>
+                <span>Purchase Date: <strong className="text-slate-900 font-mono">{collectPurchase.purchase_date}</strong></span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center">
+                <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500">Total Purchase</p>
+                  <p className="text-sm font-bold text-slate-900">₹{Number(collectPurchase.grand_total).toFixed(2)}</p>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
+                  <p className="text-[10px] uppercase font-semibold text-emerald-600">Already Paid</p>
+                  <p className="text-sm font-bold text-emerald-700">
+                    ₹{Number(collectPurchase.paid_amount ?? collectPurchase.amount_paid ?? 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-amber-200 bg-amber-50/40 shadow-2xs">
+                  <p className="text-[10px] uppercase font-semibold text-amber-700">Outstanding Balance</p>
+                  <p className="text-sm font-extrabold text-amber-800">₹{collectBalanceNum.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Amount to Collect & Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <TextField
+                label="Amount to Collect (₹)"
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={collectBalanceNum}
+                required
+                value={collectAmount}
+                onChange={(e) => {
+                  setCollectAmount(e.target.value)
+                  setCollectError('')
+                }}
+                placeholder={`Max ₹${collectBalanceNum.toFixed(2)}`}
+              />
+              <TextField
+                label="Payment Date"
+                type="date"
+                required
+                value={collectDate}
+                onChange={(e) => setCollectDate(e.target.value)}
+              />
+            </div>
+
+            {/* Reusable SplitPaymentFields for Collect Modal */}
+            <SplitPaymentFields
+              total={collectAmountNum}
+              values={collectSplitValues}
+              onChange={setCollectSplitValues}
+              isCollectMode={true}
+            />
+
+            <TextField
+              label="Payment Notes (Optional)"
+              value={collectNotes}
+              onChange={(e) => setCollectNotes(e.target.value)}
+              placeholder="e.g. Part payment received via Cheque / Bank Transfer"
+            />
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={collectSubmitting}
+                onClick={() => setCollectPurchase(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  collectSubmitting ||
+                  collectAmountNum <= 0 ||
+                  collectAmountNum > collectBalanceNum + 0.001
+                }
+              >
+                {collectSubmitting ? 'Recording Payment…' : `Collect ₹${collectAmountNum.toFixed(2)}`}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ================= PAYMENT EDIT MODAL ================= */}
+      {editPurchase && (
+        <Modal
+          title={`Edit Payment Details — ${editPurchase.purchase_no}`}
+          onClose={() => {
+            if (!editSubmitting) setEditPurchase(null)
+          }}
+          width="lg"
+        >
+          <form onSubmit={handleEditPaymentSubmit} className="space-y-4">
+            {editError && <Alert tone="red">{editError}</Alert>}
+            {editSuccess && <Alert tone="green">{editSuccess}</Alert>}
+
+            {/* Financial Overview Card */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>Supplier: <strong className="text-slate-900">{editPurchase.supplier_name}</strong></span>
+                <span>Date: <strong className="text-slate-900 font-mono">{editPurchase.purchase_date}</strong></span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 text-center">
+                <div className="bg-white p-2 rounded-lg border border-slate-200">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500">Grand Total</p>
+                  <p className="text-sm font-bold text-slate-900">₹{Number(editPurchase.grand_total).toFixed(2)}</p>
+                </div>
+                <div className="bg-white p-2 rounded-lg border border-slate-200">
+                  <p className="text-[10px] uppercase font-semibold text-slate-500">Current Status</p>
+                  <p className="text-sm font-bold text-indigo-700">{editPurchase.payment_status}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reusable SplitPaymentFields for Edit Modal */}
+            <SplitPaymentFields
+              total={Number(editPurchase.grand_total) || 0}
+              values={editSplitValues}
+              onChange={setEditSplitValues}
+            />
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={editSubmitting}
+                onClick={() => setEditPurchase(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editSubmitting}>
+                {editSubmitting ? 'Saving Changes…' : 'Save Payment Changes'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ================= PAYMENT HISTORY DRAWER / MODAL ================= */}
+      {historyPurchase && (
+        <Modal
+          title={`Payment History & Receipts — ${historyPurchase.purchase_no}`}
+          onClose={() => setHistoryPurchase(null)}
+          width="lg"
+        >
+          <div className="space-y-4">
+            {historyError && <Alert tone="red">{historyError}</Alert>}
+            {historySuccess && <Alert tone="green">{historySuccess}</Alert>}
+
+            {/* Financial Overview Header */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 flex items-center justify-between text-xs">
+              <div>
+                <span className="text-slate-500">Supplier: </span>
+                <strong className="text-slate-900">{historyPurchase.supplier_name}</strong>
+              </div>
+              <div className="flex items-center gap-4">
+                <span>Grand Total: <strong className="text-slate-900">₹{historyPurchase.grand_total}</strong></span>
+                <span>Paid: <strong className="text-emerald-700">₹{historyPurchase.paid_amount ?? historyPurchase.amount_paid}</strong></span>
+                <span>Balance: <strong className="text-amber-700">₹{historyPurchase.balance_amount}</strong></span>
+              </div>
+            </div>
+
+            {loadingHistory ? (
+              <div className="p-8 text-center"><Spinner /></div>
+            ) : paymentsHistory.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500 border border-dashed rounded-xl">
+                No payment transactions recorded for this purchase yet.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                {paymentsHistory.map((pay) => {
+                  const isActive = pay.status === 'ACTIVE'
+                  const isReversingThis = reversingPaymentId === pay.id
+
+                  return (
+                    <div
+                      key={pay.id}
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        isActive ? 'bg-white border-slate-200 shadow-2xs' : 'bg-red-50/30 border-red-200 opacity-80'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-900">{pay.receipt_no}</span>
+                          <span className="text-slate-400">•</span>
+                          <span className="text-slate-600 font-mono text-[11px]">{pay.payment_date}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge tone={isActive ? 'green' : 'red'}>{pay.status}</Badge>
+                          <span className="font-extrabold text-sm text-slate-900">₹{pay.total_amount}</span>
+                        </div>
+                      </div>
+
+                      {/* Payment Lines */}
+                      <div className="pt-2 text-xs">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Payment Breakdown:</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {pay.lines.map((l, lIdx) => (
+                            <div key={lIdx} className="bg-slate-50 p-2 rounded-lg border border-slate-200/80 flex items-center justify-between">
+                              <span className="font-medium text-slate-800">{l.payment_method}</span>
+                              <div className="text-right">
+                                <span className="font-bold text-slate-900">₹{l.amount}</span>
+                                {l.reference_no && (
+                                  <p className="text-[10px] text-slate-500 font-mono">Ref: {l.reference_no}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {pay.notes && (
+                        <p className="mt-2 text-[11px] text-slate-600 bg-slate-50/50 p-1.5 rounded border border-slate-100">
+                          <span className="font-semibold">Notes:</span> {pay.notes}
+                        </p>
+                      )}
+
+                      {!isActive && (
+                        <div className="mt-2 p-2 rounded-lg bg-red-100/60 text-[11px] text-red-900">
+                          <p>
+                            <strong>Reversed:</strong> {pay.reverse_reason || 'No reason provided'}
+                          </p>
+                          <p className="text-[10px] text-red-700 font-mono">
+                            By {pay.reversed_by_name || 'Admin'} on {pay.reversed_at}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Reverse Action */}
+                      {isActive && (
+                        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-end">
+                          {!isReversingThis ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReversingPaymentId(pay.id)
+                                setReverseReason('')
+                              }}
+                              className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline inline-flex items-center gap-1"
+                            >
+                              ↩ Reverse Payment
+                            </button>
+                          ) : (
+                            <div className="w-full p-2.5 rounded-lg border border-red-200 bg-red-50/60 space-y-2">
+                              <p className="text-xs font-bold text-red-900">Confirm Payment Reversal</p>
+                              <TextField
+                                label="Reversal Reason *"
+                                required
+                                value={reverseReason}
+                                onChange={(e) => setReverseReason(e.target.value)}
+                                placeholder="State reason for payment reversal…"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  disabled={reverseSubmitting}
+                                  onClick={() => setReversingPaymentId(null)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="button"
+                                  disabled={reverseSubmitting || !reverseReason.trim()}
+                                  onClick={() => handleReversePaymentSubmit(pay.id)}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  {reverseSubmitting ? 'Reversing…' : 'Confirm Reversal'}
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-3 border-t border-slate-200">
+              <Button type="button" variant="secondary" onClick={() => setHistoryPurchase(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ================= NEW PURCHASE CREATION MODAL ================= */}
       {showForm && (
         <Modal title="New Stock Purchase" onClose={() => setShowForm(false)} width="lg">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <Alert>{error}</Alert>}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Select label="Supplier" required value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
                 <option value="">Select Supplier…</option>
                 {suppliers.map((s) => (
@@ -352,133 +957,15 @@ export function PurchasesPage() {
                 ))}
               </Select>
               <TextField label="Purchase Date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Mode</label>
-                <div className="flex gap-1.5 p-0.5 rounded-lg border border-slate-200 bg-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('SINGLE')}
-                    className={`flex-1 py-1 text-xs font-semibold rounded-md transition-colors ${
-                      paymentMode === 'SINGLE' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Single Mode
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentMode('SPLIT')
-                      // Pre-fill credit automatically
-                      const rem = Math.max(0, grandTotal - (Number(splitCash) + Number(splitUpi) + Number(splitCard) + Number(splitBank)))
-                      setSplitCredit(rem > 0 ? rem.toFixed(2) : '0')
-                    }}
-                    className={`flex-1 py-1 text-xs font-semibold rounded-md transition-colors ${
-                      paymentMode === 'SPLIT' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Split Payment
-                  </button>
-                </div>
-              </div>
             </div>
 
-            {/* Single Mode Payment Selector */}
-            {paymentMode === 'SINGLE' ? (
-              <div className="grid grid-cols-2 gap-3 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
-                <Select
-                  label="Payment Method"
-                  value={singlePaymentMethod}
-                  onChange={(e: any) => setSinglePaymentMethod(e.target.value)}
-                >
-                  <option value="CASH">Cash</option>
-                  <option value="UPI">UPI / GPay / PhonePe</option>
-                  <option value="CARD">Credit / Debit Card</option>
-                  <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
-                  <option value="CREDIT">Credit / Pending Due</option>
-                </Select>
-                <TextField
-                  label="Amount Paid (₹)"
-                  type="number"
-                  step="0.01"
-                  disabled={singlePaymentMethod === 'CREDIT'}
-                  value={singlePaymentMethod === 'CREDIT' ? '0' : amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                  placeholder={singlePaymentMethod === 'CREDIT' ? '0.00' : String(grandTotal.toFixed(2))}
-                />
-              </div>
-            ) : (
-              /* Split Payment Mode breakdown across Cash, UPI, Card, Bank, Credit */
-              <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-3.5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">
-                    Split Payment Breakdown (Multi-Mode Pay)
-                  </h4>
-                  <span className="text-[11px] font-semibold text-indigo-700">
-                    Grand Total: <strong className="text-slate-900">₹{grandTotal.toFixed(2)}</strong>
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-5 gap-2">
-                  <TextField
-                    label="Cash (₹)"
-                    type="number"
-                    step="0.01"
-                    value={splitCash}
-                    onChange={(e) => updateSplitField('cash', e.target.value)}
-                    placeholder="0"
-                  />
-                  <TextField
-                    label="UPI / Online (₹)"
-                    type="number"
-                    step="0.01"
-                    value={splitUpi}
-                    onChange={(e) => updateSplitField('upi', e.target.value)}
-                    placeholder="0"
-                  />
-                  <TextField
-                    label="Card (₹)"
-                    type="number"
-                    step="0.01"
-                    value={splitCard}
-                    onChange={(e) => updateSplitField('card', e.target.value)}
-                    placeholder="0"
-                  />
-                  <TextField
-                    label="Bank Transfer (₹)"
-                    type="number"
-                    step="0.01"
-                    value={splitBank}
-                    onChange={(e) => updateSplitField('bank', e.target.value)}
-                    placeholder="0"
-                  />
-                  <TextField
-                    label="Credit / Due (₹)"
-                    type="number"
-                    step="0.01"
-                    value={splitCredit}
-                    onChange={(e) => setSplitCredit(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-
-                {/* Calculation Summary Bar */}
-                <div className="flex items-center justify-between rounded-lg bg-white p-2.5 border border-indigo-100 text-xs">
-                  <div className="flex items-center gap-4">
-                    <span>
-                      Total Paid Upfront: <strong className="text-emerald-700">₹{splitTotalPaid.toFixed(2)}</strong>
-                    </span>
-                    <span>
-                      Pending Credit Due: <strong className="text-amber-700">₹{(Number(splitCredit) || 0).toFixed(2)}</strong>
-                    </span>
-                  </div>
-                  <Badge tone={splitTotalPaid >= grandTotal && grandTotal > 0 ? 'green' : splitTotalPaid > 0 ? 'amber' : 'red'}>
-                    {splitTotalPaid >= grandTotal && grandTotal > 0 ? 'FULL PAID' : splitTotalPaid > 0 ? 'PARTIAL PAYMENT' : 'CREDIT / UNPAID'}
-                  </Badge>
-                </div>
-              </div>
-            )}
-
-            {/* Auto-opening Item Searchbar Dropdown with Keyboard Navigation */}
+            {/* Reusable SplitPaymentFields for New Purchase */}
+            <SplitPaymentFields
+              total={grandTotal}
+              values={newPurchaseSplit}
+              onChange={setNewPurchaseSplit}
+              disabled={items.length === 0}
+            />
             <div className="relative">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Search Items / Variants (Type item name, SKU or press Down Arrow to browse)

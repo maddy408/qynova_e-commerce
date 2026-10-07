@@ -230,11 +230,16 @@ $router->post('/api/suppliers', fn () => $purchases->storeSupplier());
 $router->get('/api/suppliers/{id}', fn ($id) => $purchases->showSupplier($id));
 $router->put('/api/suppliers/{id}', fn ($id) => $purchases->updateSupplier($id));
 $router->delete('/api/suppliers/{id}', fn ($id) => $purchases->destroySupplier($id));
+$router->get('/api/suppliers/{id}/outstanding', fn ($id) => $purchases->supplierOutstanding($id));
 $router->get('/api/purchases', fn () => $purchases->index());
 $router->get('/api/purchases/{id}', fn ($id) => $purchases->show($id));
 $router->post('/api/purchases', fn () => $purchases->store());
 $router->post('/api/purchases/{id}/cancel', fn ($id) => $purchases->cancel($id));
 $router->post('/api/purchases/{id}/returns', fn ($id) => $purchases->storeReturn($id));
+$router->patch('/api/purchases/{id}/payment', fn ($id) => $purchases->updatePayment($id));
+$router->get('/api/purchases/{id}/payments', fn ($id) => $purchases->listPayments($id));
+$router->post('/api/purchases/{id}/payments', fn ($id) => $purchases->collectPayment($id));
+$router->post('/api/purchases/{purchaseId}/payments/{paymentId}/reverse', fn ($purchaseId, $paymentId) => $purchases->reversePayment($purchaseId, $paymentId));
 
 // Delivery (ECOMMERCE_POS_ADMIN_SPEC.md sections 21-22)
 $delivery = new DeliveryController($pdo);
