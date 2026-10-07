@@ -1,4 +1,5 @@
 import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { XMarkIcon } from './Icons'
 
 export function Button({
   variant = 'primary',
@@ -154,7 +155,7 @@ export function Modal({
             className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200/70 hover:text-slate-700 transition"
             aria-label="Close modal"
           >
-            ✕
+            <XMarkIcon className="h-4 w-4" />
           </button>
         </div>
 

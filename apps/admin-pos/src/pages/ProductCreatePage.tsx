@@ -204,6 +204,12 @@ export function ProductCreatePage() {
     [subcategories, categoryIds],
   )
 
+  const eligibleBrands = useMemo(() => {
+    if (categoryIds.length === 0) return brands
+    const mapped = brands.filter((b) => (b.category_ids ?? []).some((id) => categoryIds.includes(id)))
+    return mapped.length > 0 ? mapped : brands
+  }, [brands, categoryIds])
+
   function toggleCategory(id: number) {
     setCategoryIds((prev) => {
       const next = prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
@@ -675,11 +681,14 @@ export function ProductCreatePage() {
             <div className="grid grid-cols-2 gap-4">
               <Select label="Brand" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
                 <option value="">— None —</option>
-                {brands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
+                {eligibleBrands.map((b) => {
+                  const isMapped = (b.category_ids ?? []).some((id) => categoryIds.includes(id))
+                  return (
+                    <option key={b.id} value={b.id}>
+                      {b.name} {isMapped ? '✓ (Mapped to Category)' : ''}
+                    </option>
+                  )
+                })}
               </Select>
               <Select label="Unit" value={unitId} onChange={(e) => setUnitId(e.target.value)}>
                 <option value="">— None —</option>

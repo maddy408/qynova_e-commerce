@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
 interface SubItem {
   to: string
@@ -161,7 +162,7 @@ export function Layout() {
                           : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
                       }`}
                     >
-                      <span>⚡</span>
+                      <ZapIcon className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
                       {sec.label}
                     </Link>
                   )
@@ -205,7 +206,7 @@ export function Layout() {
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
                 title="Log out of Admin Panel"
               >
-                ⎋
+                <LogoutIcon className="h-4 w-4" />
               </button>
             </div>
 
@@ -216,7 +217,7 @@ export function Layout() {
                 className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100"
                 aria-label="Toggle Navigation Menu"
               >
-                {mobileOpen ? '✕' : '☰'}
+                {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
               </button>
             </div>
           </div>
