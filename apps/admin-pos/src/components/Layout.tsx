@@ -298,25 +298,25 @@ export function Layout() {
 
       {/* Section Sub-Header & Horizontal Tab Navigation */}
       {activeSection && activeSection.items.length > 0 && (
-        <div className="bg-white border-b border-slate-200 shadow-2xs">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+        <div className="bg-white border-b border-slate-200/80 shadow-2xs">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3.5">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               {/* Breadcrumb & Section Name */}
               <div>
                 {breadcrumb && (
-                  <nav className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">
+                  <nav className="flex items-center gap-1.5 text-[10px] font-bold text-[#804652]/80 uppercase tracking-[0.2em] mb-0.5">
                     <span>{breadcrumb.sectionLabel}</span>
-                    <span>/</span>
-                    <span className="text-indigo-600">{breadcrumb.itemLabel}</span>
+                    <span>&gt;</span>
+                    <span className="text-[#804652]">{breadcrumb.itemLabel}</span>
                   </nav>
                 )}
-                <h1 className="text-base font-bold text-slate-900 uppercase tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 tracking-tight">
                   {activeSection.label}
                 </h1>
               </div>
 
               {/* Horizontal Sub-Navigation Tab Bar */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <div className="inline-flex items-center gap-1 bg-[#F9F3F4] p-1 rounded-full border border-[#EEDDE0] text-xs overflow-x-auto max-w-full scrollbar-none shadow-2xs self-start sm:self-auto">
                 {activeSection.items.map((sub) => {
                   if (sub.permission && !hasPermission(sub.permission)) return null
                   const isSubActive = location.pathname.startsWith(sub.to)
@@ -324,10 +324,10 @@ export function Layout() {
                     <NavLink
                       key={sub.to}
                       to={sub.to}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-all ${
+                      className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
                         isSubActive
-                          ? 'bg-slate-900 text-white shadow-2xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+                          ? 'bg-[#7B3F4A] text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                       }`}
                     >
                       {sub.label}
