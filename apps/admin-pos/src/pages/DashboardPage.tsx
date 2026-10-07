@@ -79,47 +79,47 @@ export function DashboardPage() {
               </div>
 
               {/* 2. This Month */}
-              <div className="relative flex-1 rounded-full border border-blue-200/80 bg-gradient-to-r from-blue-50/90 to-cyan-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">This Month</span>
-                <div className="text-base font-extrabold text-blue-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">This Month</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
               </div>
 
               {/* 3. Total Sales */}
-              <div className="relative flex-1 rounded-full border border-purple-200/80 bg-gradient-to-r from-purple-50/90 to-pink-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500">Total Sales</span>
-                <div className="text-base font-extrabold text-purple-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Sales</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
               </div>
 
               {/* 4. Total Orders */}
-              <div className="relative flex-1 rounded-full border border-pink-200/80 bg-gradient-to-r from-pink-50/90 to-rose-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-500">Total Orders</span>
-                <div className="text-base font-extrabold text-pink-950 mt-0.5">{summary.orders.total_orders}</div>
-                <span className="text-[10px] font-medium text-pink-400">{summary.orders.pending_orders} pending</span>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Orders</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.orders.total_orders}</div>
+                <span className="text-[10px] font-medium text-indigo-400">{summary.orders.pending_orders} pending</span>
               </div>
 
               {/* 5. Total Customers */}
-              <div className="relative flex-1 rounded-full border border-teal-200/80 bg-gradient-to-r from-teal-50/90 to-emerald-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600">Total Customers</span>
-                <div className="text-base font-extrabold text-teal-950 mt-0.5">{summary.customers.total_customers}</div>
-                <span className="text-[10px] font-medium text-teal-500">+{summary.customers.new_customers_today} today</span>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Customers</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.customers.total_customers}</div>
+                <span className="text-[10px] font-medium text-indigo-400">+{summary.customers.new_customers_today} today</span>
               </div>
 
               {/* 6. Total Products */}
-              <div className="relative flex-1 rounded-full border border-emerald-200/80 bg-gradient-to-r from-emerald-50/90 to-green-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Total Products</span>
-                <div className="text-base font-extrabold text-emerald-950 mt-0.5">{summary.products.total_products}</div>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Products</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.products.total_products}</div>
               </div>
 
               {/* 7. Low Stock */}
-              <div className="relative flex-1 rounded-full border border-amber-200/80 bg-gradient-to-r from-amber-50/90 to-orange-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Low Stock</span>
-                <div className="text-base font-extrabold text-amber-950 mt-0.5">{summary.products.low_stock_products}</div>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Low Stock</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.products.low_stock_products}</div>
               </div>
 
               {/* 8. Out of Stock */}
-              <div className="relative flex-1 rounded-full border border-rose-200/80 bg-gradient-to-r from-rose-50/90 to-red-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Out of Stock</span>
-                <div className="text-base font-extrabold text-rose-950 mt-0.5">{summary.products.out_of_stock_products}</div>
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Out of Stock</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.products.out_of_stock_products}</div>
               </div>
             </div>
           </div>
