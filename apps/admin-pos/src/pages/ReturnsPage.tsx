@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
-import type { Customer, ProductDetail, Supplier } from '../lib/types'
+import type { Customer, Supplier } from '../lib/types'
 
 interface ReturnItemInput {
   variant_id: number
@@ -15,7 +15,6 @@ export function ReturnsPage() {
   const [activeTab, setActiveTab] = useState<'SALE' | 'PURCHASE'>('SALE')
   const [saleReturns, setSaleReturns] = useState<any[]>([])
   const [purchaseReturns, setPurchaseReturns] = useState<any[]>([])
-  const [products, setProducts] = useState<ProductDetail[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
 
@@ -37,19 +36,21 @@ export function ReturnsPage() {
   const [itemQty, setItemQty] = useState('1')
   const [itemUnitPrice, setItemUnitPrice] = useState('0')
 
+  const [posProducts, setPosProducts] = useState<any[]>([])
+
   function load() {
     setLoading(true)
     Promise.all([
       api.get('/returns/sales'),
       api.get('/returns/purchases'),
-      api.get('/products'),
+      api.get('/pos/products', { params: { limit: 500 } }),
       api.get('/customers'),
       api.get('/suppliers'),
     ])
-      .then(([srRes, prRes, prodRes, custRes, suppRes]) => {
+      .then(([srRes, prRes, posRes, custRes, suppRes]) => {
         setSaleReturns(srRes.data.sale_returns || [])
         setPurchaseReturns(prRes.data.purchase_returns || [])
-        setProducts(prodRes.data.products || [])
+        setPosProducts(posRes.data.items || [])
         setCustomers(custRes.data.customers || [])
         setSuppliers(suppRes.data.suppliers || [])
       })
@@ -61,13 +62,14 @@ export function ReturnsPage() {
     load()
   }, [])
 
-  const allVariants = products.flatMap((p) =>
-    (p.variants || []).map((v) => ({
-      ...v,
-      product_name: p.name,
-      label: `${p.name} — ${v.attribute_values?.map((a) => a.value).join('/') || v.sku} (₹${v.retail_price})`,
-    }))
-  )
+  const allVariants = posProducts.map((p) => ({
+    id: p.variant_id,
+    product_name: p.product_name,
+    sku: p.sku,
+    retail_price: p.retail_price,
+    wholesale_price: p.wholesale_price,
+    label: `${p.product_name} (${p.sku}) — ₹${p.retail_price}`,
+  }))
 
   function openCreateModal(tab: 'SALE' | 'PURCHASE') {
     setActiveTab(tab)
@@ -104,7 +106,7 @@ export function ReturnsPage() {
         ...prev,
         {
           variant_id: vId,
-          variant_label: `${v.product_name} (${v.attribute_values?.map((a) => a.value).join('/') || v.sku})`,
+          variant_label: `${v.product_name} (${v.sku})`,
           sku: v.sku,
           qty,
           unit_price: price,

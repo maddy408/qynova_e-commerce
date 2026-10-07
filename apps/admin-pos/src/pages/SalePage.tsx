@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Select, TextField } from '../components/ui'
 import { ClockIcon, PauseIcon, TrashIcon } from '../components/Icons'
@@ -78,11 +78,20 @@ export function SalePage() {
   const [priceType, setPriceType] = useState<'RETAIL' | 'WHOLESALE' | 'CUSTOMER_WISE'>('RETAIL')
 
   // Customer search & keyboard navigation state
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([])
   const [customerQuery, setCustomerQuery] = useState('')
   const [customerResults, setCustomerResults] = useState<Customer[]>([])
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const [customerHighlightIndex, setCustomerHighlightIndex] = useState<number>(0)
+
+  // Quick Customer Creation Modal State
+  const [showNewCustModal, setShowNewCustModal] = useState(false)
+  const [newCustName, setNewCustName] = useState('')
+  const [newCustPhone, setNewCustPhone] = useState('')
+  const [newCustEmail, setNewCustEmail] = useState('')
+  const [newCustType, setNewCustType] = useState<'RETAIL' | 'WHOLESALE' | 'CUSTOMER_WISE'>('RETAIL')
+  const [creatingCust, setCreatingCust] = useState(false)
 
   // Cart & Hold Bills state
   const [cart, setCart] = useState<CartLine[]>([])
@@ -110,6 +119,13 @@ export function SalePage() {
     api.get('/hold-bills').then((res) => setHoldBills(res.data.hold_bills || []))
   }
 
+  function fetchCustomers() {
+    api.get('/customers').then((res) => {
+      setAllCustomers(res.data.customers || [])
+      setCustomerResults(res.data.customers || [])
+    })
+  }
+
   useEffect(() => {
     api.get('/categories').then((res) => setCategories(res.data.categories))
     api.get('/payment-methods').then((res) => {
@@ -117,6 +133,7 @@ export function SalePage() {
       if (res.data.payment_methods.length > 0) setPaymentMethod(res.data.payment_methods[0].code)
     })
     fetchHoldBills()
+    fetchCustomers()
   }, [])
 
   useEffect(() => {
@@ -126,18 +143,17 @@ export function SalePage() {
 
   useEffect(() => {
     if (customerQuery.trim() === '') {
-      setCustomerResults([])
+      setCustomerResults(allCustomers)
       setCustomerHighlightIndex(0)
       return
     }
-    const t = setTimeout(() => {
-      api.get('/customers', { params: { search: customerQuery } }).then((res) => {
-        setCustomerResults(res.data.customers || [])
-        setCustomerHighlightIndex(0)
-      })
-    }, 250)
-    return () => clearTimeout(t)
-  }, [customerQuery])
+    const q = customerQuery.toLowerCase()
+    const filtered = allCustomers.filter(
+      (c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q))
+    )
+    setCustomerResults(filtered)
+    setCustomerHighlightIndex(0)
+  }, [customerQuery, allCustomers])
 
   function resolveVariantPrice(p: PosProduct, mode: 'RETAIL' | 'WHOLESALE' | 'CUSTOMER_WISE'): number {
     if (mode === 'CUSTOMER_WISE' && p.customer_price && Number(p.customer_price) > 0) {
@@ -193,6 +209,32 @@ export function SalePage() {
       }
     } else if (e.key === 'Escape') {
       setShowCustomerDropdown(false)
+    }
+  }
+
+  async function handleCreateCustomer(e: FormEvent) {
+    e.preventDefault()
+    if (!newCustName || !newCustPhone) return
+    setCreatingCust(true)
+    setError('')
+    try {
+      const res = await api.post('/customers', {
+        name: newCustName,
+        phone: newCustPhone,
+        email: newCustEmail || null,
+        customer_type: newCustType,
+      })
+      const created = res.data.customer || res.data
+      await fetchCustomers()
+      selectCustomer(created)
+      setShowNewCustModal(false)
+      setNewCustName('')
+      setNewCustPhone('')
+      setNewCustEmail('')
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to create customer'))
+    } finally {
+      setCreatingCust(false)
     }
   }
 
@@ -398,6 +440,14 @@ export function SalePage() {
               }`}
             >
               Walk-in Customer
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowNewCustModal(true)}
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+            >
+              + Add Customer
             </button>
 
             {/* Customer Search with Keyboard Navigation (Up/Down + Enter) */}
@@ -733,6 +783,54 @@ export function SalePage() {
               </Button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Quick Create Customer Modal */}
+      {showNewCustModal && (
+        <Modal title="Create New Customer" onClose={() => setShowNewCustModal(false)} width="md">
+          <form onSubmit={handleCreateCustomer} className="space-y-4">
+            {error && <Alert>{error}</Alert>}
+            <TextField
+              label="Customer Name"
+              required
+              autoFocus
+              value={newCustName}
+              onChange={(e) => setNewCustName(e.target.value)}
+              placeholder="e.g. John Doe"
+            />
+            <TextField
+              label="Phone Number"
+              required
+              value={newCustPhone}
+              onChange={(e) => setNewCustPhone(e.target.value)}
+              placeholder="e.g. 9876543210"
+            />
+            <TextField
+              label="Email Address (Optional)"
+              type="email"
+              value={newCustEmail}
+              onChange={(e) => setNewCustEmail(e.target.value)}
+              placeholder="e.g. john@example.com"
+            />
+            <Select
+              label="Customer Type (Price Tier)"
+              value={newCustType}
+              onChange={(e) => setNewCustType(e.target.value as any)}
+            >
+              <option value="RETAIL">Retail Customer (Standard Price)</option>
+              <option value="WHOLESALE">Wholesale Customer (Bulk Price)</option>
+              <option value="CUSTOMER_WISE">Customer-Wise (Special Tier Price)</option>
+            </Select>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button type="button" variant="secondary" onClick={() => setShowNewCustModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creatingCust}>
+                {creatingCust ? 'Creating…' : 'Save & Select Customer'}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>

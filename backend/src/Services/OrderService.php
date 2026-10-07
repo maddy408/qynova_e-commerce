@@ -372,6 +372,17 @@ final class OrderService
 
         $this->logStatus($orderId, $order['status'], $newStatus, $actorUserId, 'ADMIN', $note);
 
+        if ($newStatus === 'DELIVERED') {
+            $invCheck = $this->pdo->prepare('SELECT id FROM invoices WHERE order_id = :id');
+            $invCheck->execute(['id' => $orderId]);
+            if (!$invCheck->fetch()) {
+                $fullOrder = $this->find($orderId);
+                if ($fullOrder) {
+                    $this->invoices->createFromOrder($fullOrder);
+                }
+            }
+        }
+
         return $this->find($orderId) ?? throw new RuntimeException('Order not found after status update');
     }
 

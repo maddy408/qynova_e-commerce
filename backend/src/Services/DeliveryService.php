@@ -149,6 +149,18 @@ final class DeliveryService
                         'note' => "Synced from delivery status: {$newStatus}",
                     ]);
                 }
+
+                if ($mappedOrderStatus === 'DELIVERED') {
+                    $invCheck = $this->pdo->prepare('SELECT id FROM invoices WHERE order_id = :id');
+                    $invCheck->execute(['id' => $delivery['order_id']]);
+                    if (!$invCheck->fetch()) {
+                        $orderSvc = new OrderService($this->pdo);
+                        $fullOrder = $orderSvc->find($delivery['order_id']);
+                        if ($fullOrder) {
+                            (new InvoiceService($this->pdo))->createFromOrder($fullOrder);
+                        }
+                    }
+                }
             }
 
             $this->pdo->commit();

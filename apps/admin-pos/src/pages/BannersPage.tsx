@@ -276,14 +276,17 @@ function BannerFormModal({
     setError('')
     setSubmitting(true)
     try {
+      const formattedStarts = startsAt ? (startsAt.includes('T') || startsAt.includes(' ') ? startsAt : `${startsAt} 00:00:00`) : null
+      const formattedEnds = endsAt ? (endsAt.includes('T') || endsAt.includes(' ') ? endsAt : `${endsAt} 23:59:59`) : null
+
       const res = await api.post('/banners', {
         title: name,
         position,
         target_type: targetType,
         target_id: targetId || null,
         target_url: targetType === 'EXTERNAL_URL' ? targetUrl : null,
-        starts_at: startsAt || null,
-        ends_at: endsAt || null,
+        starts_at: formattedStarts,
+        ends_at: formattedEnds,
         sort_order: Number(sortOrder) || 0,
       })
       const bannerId = res.data.id
@@ -381,8 +384,8 @@ function BannerFormModal({
         />
 
         <div className="grid grid-cols-3 gap-4">
-          <TextField label="Starts" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-          <TextField label="Ends" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+          <TextField label="Starts (Optional)" type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          <TextField label="Ends (Optional)" type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
           <TextField label="Sort Order" type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </div>
 
