@@ -330,7 +330,10 @@ final class InvoiceService
     /** @param array<string, mixed> $filters */
     public function list(array $filters): array
     {
-        $where = ['deleted_at IS NULL'];
+        // Every column here must be qualified with i. — this now joins
+        // customers and users, both of which also have a deleted_at
+        // column, so a bare `deleted_at` is ambiguous to MySQL.
+        $where = ['i.deleted_at IS NULL'];
         $params = [];
 
         if (!empty($filters['include_deleted'])) {
@@ -338,17 +341,17 @@ final class InvoiceService
         }
 
         if (!empty($filters['channel'])) {
-            $where[] = 'channel = :channel';
+            $where[] = 'i.channel = :channel';
             $params['channel'] = $filters['channel'];
         }
 
         if (!empty($filters['customer_id'])) {
-            $where[] = 'customer_id = :customer_id';
+            $where[] = 'i.customer_id = :customer_id';
             $params['customer_id'] = (int) $filters['customer_id'];
         }
 
         if (!empty($filters['status'])) {
-            $where[] = 'status = :status';
+            $where[] = 'i.status = :status';
             $params['status'] = $filters['status'];
         }
 

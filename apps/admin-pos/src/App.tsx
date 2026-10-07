@@ -6,7 +6,11 @@ import { BannersPage } from './pages/BannersPage'
 import { CategoriesPage } from './pages/CategoriesPage'
 import { CouponsPage } from './pages/CouponsPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { DeliveriesPage } from './pages/DeliveriesPage'
+import { DeliveryDetailPage } from './pages/DeliveryDetailPage'
 import { HomeSectionsPage } from './pages/HomeSectionsPage'
+import { InvoiceDetailPage } from './pages/InvoiceDetailPage'
+import { InvoicesPage } from './pages/InvoicesPage'
 import { LoginPage } from './pages/LoginPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
 import { OrdersPage } from './pages/OrdersPage'
@@ -17,10 +21,12 @@ import { ProductsPage } from './pages/ProductsPage'
 import { PurchasesPage } from './pages/PurchasesPage'
 import { ReferralSettingsPage } from './pages/ReferralSettingsPage'
 import { ReportsPage } from './pages/ReportsPage'
+import { SalePage } from './pages/SalePage'
 import { StockAdjustmentsPage } from './pages/StockAdjustmentsPage'
 import { SubcategoriesPage } from './pages/SubcategoriesPage'
 import { SuppliersPage } from './pages/SuppliersPage'
 import { TaxPage } from './pages/TaxPage'
+import { UsersPage } from './pages/UsersPage'
 
 function ProtectedLayout() {
   const { user, loading } = useAuth()
@@ -51,8 +57,13 @@ function App() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/sale" element={<SalePage />} />
+        <Route path="/invoices" element={<InvoicesPage />} />
+        <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/deliveries" element={<DeliveriesPage />} />
+        <Route path="/deliveries/:id" element={<DeliveryDetailPage />} />
         <Route path="/coupons" element={<CouponsPage />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/purchases" element={<PurchasesPage />} />
@@ -62,6 +73,7 @@ function App() {
         <Route path="/home-sections" element={<HomeSectionsPage />} />
         <Route path="/tax" element={<TaxPage />} />
         <Route path="/payment-methods" element={<PaymentMethodsPage />} />
+        <Route path="/users" element={<UsersPage />} />
         <Route path="/reports" element={<ReportsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

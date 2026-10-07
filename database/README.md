@@ -36,6 +36,8 @@ README.md "Conflicts ... resolved" at the repo root.
 | `0015_product_enrichment.sql` | Adds `bullet_points`, warranty/return/refund/SEO-keyword columns and `is_trending`/`is_deal` to `products`; adds `product_specifications` |
 | `0016_banners.sql` | `banners`, `banner_items`, `home_sections`; adds the `banners.manage` permission |
 | `0017_product_shipping.sql` | Adds `shipping_required`, `cod_available` to `products` |
+| `0018_payment_methods.sql` | `payment_methods` (admin-manageable master); switches `invoices.payment_method` from a fixed ENUM to VARCHAR; adds `purchases.payment_method`, `purchase_items.mrp`/`discount_amount`; adds the `payment_methods.manage` permission |
+| `0019_home_sections_image.sql` | Adds `home_sections.image_path` — folds in a schema change an ad-hoc `alter_home_sections.php` script had applied directly, bypassing `migrate.php` (see below) |
 
 All verified against a live MySQL 9.4 instance: migrations apply cleanly,
 the append-only triggers actually block `UPDATE`/`DELETE` on
@@ -216,6 +218,66 @@ there). Hit the project's own documented `PDO::ATTR_EMULATE_PREPARES`
 gotcha again — the search clause needed three distinct placeholders
 (`:search1/2/3`) for the one value across `p.name`/`v.sku`/`v.barcode`,
 not one reused `:search`.
+
+**Payment methods master, Sale (POS billing) and Invoice pages** — built
+against the already-working `InvoiceService::createPosSale()` backend
+from Phase 2, which had a POS billing endpoint but no frontend. Added
+`payment_methods` (0018) so payment options are admin-manageable instead
+of a fixed set — `invoices.payment_method` and the new
+`purchases.payment_method` both store a plain code string now, not an
+ENUM, same reasoning as `banners.target_type`: a historical record
+should keep showing what it was actually paid with even if that method
+is later renamed or deactivated. Also added `purchase_items.mrp` and
+`discount_amount` so the Purchases screen can show/collect them (the
+merchant asked for this explicitly) — `PurchaseService::createPurchase()`
+now computes each line's subtotal as `unit_cost * qty - discount_amount`
+and taxes that discounted amount, not the gross.
+
+A large batch of this work (Sale/Invoices/Payment Methods pages, the
+0018 migration, Purchases enhancements, Categories/Subcategories/
+Products polish) landed in one commit without the usual build-before-
+commit discipline this project otherwise follows, and without doc
+updates — picked up and fixed in a follow-up pass:
+- `SalePage`/`InvoicesPage`/`InvoiceDetailPage` existed as files but were
+  never imported into `App.tsx` or linked from `Layout.tsx` — completely
+  unreachable in the running app. Wired up.
+- `InvoiceService::list()`/`find()` were changed to join `customers` and
+  `users` for display names, but the `WHERE deleted_at IS NULL` filter
+  was left unqualified — `customers` and `users` both have their own
+  `deleted_at`, so MySQL rejected every `/api/invoices` call as an
+  ambiguous column reference (a real 500, not a style nit). Qualified
+  every column in that query with `i.`.
+- `BannersPage.tsx`'s create form had `error`/`submitting`/`sortOrder`
+  state referenced but never declared (removed somewhere along the way);
+  `HomeSectionsPage.tsx` referenced `home_sections.image_path` which
+  didn't exist in the TS type; a few unused variables elsewhere
+  (`colorSearch` in Product Create, `setPaymentStatus` in Purchases,
+  `priceField` in Sale) — all build-breaking under `tsc`'s unused-locals
+  check. Fixed.
+- An ad-hoc `database/alter_home_sections.php` script had added
+  `home_sections.image_path` directly, outside `migrate.php` — removed
+  and replaced with `0019_home_sections_image.sql`, registered in
+  `schema_migrations` to match what this dev database already had so a
+  fresh install gets the same schema without a duplicate-column error.
+
+**User management** — `users`/`roles` existed since `0001_access.sql`
+but had no CRUD beyond login; added `UserService`/`UserController`
+(list, create, update — role/status/password, bcrypt-hashed) so an admin
+can create cashiers and other admins from the UI instead of a seed file.
+No migration needed, the tables already supported it.
+
+**Delivery management frontend** — `DeliveryController`/`DeliveryService`
+existed since `0013_delivery.sql` (Phase 2) with a working create/list/
+find/updateStatus API, including automatic order-status syncing
+(`DELIVERY_TO_ORDER_STATUS`: ASSIGNED→PACKED, PICKED_UP/IN_TRANSIT→
+SHIPPED, OUT_FOR_DELIVERY→OUT_FOR_DELIVERY, DELIVERED→DELIVERED,
+RETURNED→RETURNED) but no admin screen. Added a Deliveries list +
+detail page, and a "Create Delivery" / "View Delivery" card on the
+Order Detail page (creation is gated server-side on `payment_status =
+PAID`, same rule the backend already enforced). Verified end-to-end
+against a real order: created a delivery, updated its status to
+ASSIGNED, and confirmed the parent order's status flipped to PACKED
+automatically.
 
 ## Not yet built (next migrations, roughly in this order)
 

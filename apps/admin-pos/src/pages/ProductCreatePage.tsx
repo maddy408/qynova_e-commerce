@@ -99,7 +99,6 @@ export function ProductCreatePage() {
   const [isFeatured, setIsFeatured] = useState(false)
   const [isActive, setIsActive] = useState(true)
   const [showDiscount, setShowDiscount] = useState(true)
-  const [colorSearch, setColorSearch] = useState('')
 
   // Specifications (kept from the previous build — free-form name/value rows)
   const [specs, setSpecs] = useState<{ name: string; value: string }[]>([{ name: '', value: '' }])
@@ -628,7 +627,6 @@ export function ProductCreatePage() {
                   ) : (
                     <div className="space-y-4">
                       {variantAttributes.map((attribute) => {
-                        const isColor = attribute.name.toLowerCase().includes('color')
                         const selectedForAttr = attribute.values.filter((v) => selectedValueIds.includes(v.id))
                         const unselectedForAttr = attribute.values.filter((v) => !selectedValueIds.includes(v.id))
 

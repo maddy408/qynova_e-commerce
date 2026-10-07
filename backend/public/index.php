@@ -26,6 +26,7 @@ use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
 use App\Controllers\SubcategoryController;
+use App\Controllers\UserController;
 use App\Controllers\VariantController;
 use App\Controllers\VariantImageController;
 use App\Helpers\Config;
@@ -242,6 +243,13 @@ $router->get('/api/dashboard/sales-chart', fn () => $dashboard->salesChart());
 $router->get('/api/dashboard/product-analytics', fn () => $dashboard->productAnalytics());
 $router->get('/api/dashboard/customer-analytics', fn () => $dashboard->customerAnalytics());
 $router->get('/api/dashboard/recent-activity', fn () => $dashboard->recentActivity());
+
+// Staff user management (docs/DOCUMENTATION.md section 3)
+$users = new UserController($pdo);
+$router->get('/api/users', fn () => $users->index());
+$router->get('/api/roles', fn () => $users->indexRoles());
+$router->post('/api/users', fn () => $users->store());
+$router->put('/api/users/{id}', fn ($id) => $users->update($id));
 
 try {
     $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI'] ?? '/');

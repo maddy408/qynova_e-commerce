@@ -37,6 +37,7 @@ interface LineItem {
   quantity: string
   unit_cost: string
   mrp: string
+  discount_amount: string
 }
 
 export function PurchasesPage() {
@@ -51,7 +52,7 @@ export function PurchasesPage() {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10))
   const [paymentMode, setPaymentMode] = useState<'SINGLE' | 'SPLIT'>('SINGLE')
   const [singlePaymentMethod, setSinglePaymentMethod] = useState<'CASH' | 'UPI' | 'CARD' | 'BANK_TRANSFER' | 'CREDIT'>('CASH')
-  const [paymentStatus, setPaymentStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID'>('PAID')
+  const [paymentStatus] = useState<'PAID' | 'PARTIAL' | 'UNPAID'>('PAID')
   const [amountPaid, setAmountPaid] = useState('')
   const [items, setItems] = useState<LineItem[]>([])
 
@@ -119,6 +120,7 @@ export function PurchasesPage() {
           quantity: '1',
           unit_cost: v.purchase_price || '0',
           mrp: v.mrp || '0',
+          discount_amount: '0',
         },
       ]
     })
@@ -149,7 +151,7 @@ export function PurchasesPage() {
     }
   }
 
-  function updateItem(variantId: number, field: 'quantity' | 'unit_cost' | 'mrp', value: string) {
+  function updateItem(variantId: number, field: 'quantity' | 'unit_cost' | 'mrp' | 'discount_amount', value: string) {
     setItems((prev) => prev.map((i) => (i.variant_id === variantId ? { ...i, [field]: value } : i)))
   }
 
@@ -157,7 +159,10 @@ export function PurchasesPage() {
     setItems((prev) => prev.filter((i) => i.variant_id !== variantId))
   }
 
-  const grandTotal = items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0), 0)
+  const grandTotal = items.reduce(
+    (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0),
+    0,
+  )
 
   // Split calculation helpers
   const splitCashNum = Number(splitCash) || 0
@@ -246,6 +251,7 @@ export function PurchasesPage() {
           quantity: i.quantity,
           unit_cost: i.unit_cost,
           mrp: i.mrp,
+          discount_amount: i.discount_amount || '0',
         })),
       })
       setShowForm(false)
@@ -538,13 +544,14 @@ export function PurchasesPage() {
                       <th className="px-3 py-2 font-semibold">Qty</th>
                       <th className="px-3 py-2 font-semibold">Purchase Price (₹)</th>
                       <th className="px-3 py-2 font-semibold">MRP (₹)</th>
+                      <th className="px-3 py-2 font-semibold">Discount (₹)</th>
                       <th className="px-3 py-2 font-semibold">Subtotal</th>
                       <th className="px-3 py-2 font-semibold text-right"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {items.map((item) => {
-                      const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0)
+                      const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)
                       return (
                         <tr key={item.variant_id}>
                           <td className="px-3 py-2">
@@ -576,6 +583,16 @@ export function PurchasesPage() {
                               value={item.mrp}
                               onChange={(e) => updateItem(item.variant_id, 'mrp', e.target.value)}
                               className="w-24 rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-indigo-500"
+                            />
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.discount_amount}
+                              onChange={(e) => updateItem(item.variant_id, 'discount_amount', e.target.value)}
+                              className="w-20 rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-indigo-500"
                             />
                           </td>
                           <td className="px-3 py-2 font-bold text-slate-900">₹{sub.toFixed(2)}</td>

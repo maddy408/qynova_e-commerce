@@ -55,12 +55,33 @@ export function OrderDetailPage() {
   const [error, setError] = useState('')
   const [nextStatus, setNextStatus] = useState('')
   const [busy, setBusy] = useState(false)
+  const [deliveryId, setDeliveryId] = useState<number | null>(null)
+  const [deliveryChecked, setDeliveryChecked] = useState(false)
+  const [creatingDelivery, setCreatingDelivery] = useState(false)
 
   const load = useCallback(() => {
     api.get(`/orders/${id}`).then((res) => setOrder(res.data.order))
+    api
+      .get(`/orders/${id}/delivery`)
+      .then((res) => setDeliveryId(res.data.delivery.id))
+      .catch(() => setDeliveryId(null))
+      .finally(() => setDeliveryChecked(true))
   }, [id])
 
   useEffect(load, [load])
+
+  async function createDelivery() {
+    setCreatingDelivery(true)
+    setError('')
+    try {
+      const res = await api.post(`/orders/${id}/delivery`, {})
+      navigate(`/deliveries/${res.data.delivery.id}`)
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not create delivery'))
+    } finally {
+      setCreatingDelivery(false)
+    }
+  }
 
   async function updateStatus() {
     if (!nextStatus) return
@@ -211,6 +232,23 @@ export function OrderDetailPage() {
               {order.shipping_city_district}, {order.shipping_state} {order.shipping_pincode}
             </p>
           </Card>
+
+          {deliveryChecked && (
+            <Card className="space-y-2 p-5">
+              <h2 className="text-sm font-semibold text-slate-900">Delivery</h2>
+              {deliveryId ? (
+                <Button size="sm" variant="secondary" onClick={() => navigate(`/deliveries/${deliveryId}`)}>
+                  View Delivery
+                </Button>
+              ) : order.payment_status === 'PAID' ? (
+                <Button size="sm" onClick={createDelivery} disabled={creatingDelivery}>
+                  {creatingDelivery ? 'Creating…' : 'Create Delivery'}
+                </Button>
+              ) : (
+                <p className="text-xs text-slate-500">A delivery can be created once this order is paid.</p>
+              )}
+            </Card>
+          )}
 
           {canModify && (
             <Card className="space-y-3 p-5">

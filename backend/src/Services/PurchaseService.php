@@ -51,7 +51,7 @@ final class PurchaseService
     }
 
     /**
-     * @param list<array{variant_id: int, quantity: string, unit_cost: string}> $items
+     * @param list<array{variant_id: int, quantity: string, unit_cost: string, mrp?: string, discount_amount?: string}> $items
      */
     public function createPurchase(
         int $supplierId,
@@ -83,7 +83,15 @@ final class PurchaseService
 
             $quantity = (string) $item['quantity'];
             $unitCost = (string) $item['unit_cost'];
-            $lineSubtotal = bcmul($unitCost, $quantity, 2);
+            $discountAmount = (string) ($item['discount_amount'] ?? '0');
+            $mrp = isset($item['mrp']) && $item['mrp'] !== '' ? (string) $item['mrp'] : null;
+            $grossLineSubtotal = bcmul($unitCost, $quantity, 2);
+            $lineSubtotal = bcsub($grossLineSubtotal, $discountAmount, 2);
+
+            if (bccomp($lineSubtotal, '0', 2) < 0) {
+                throw new RuntimeException("Discount cannot exceed the line total for {$variant['sku']}");
+            }
+
             $taxAmount = bcdiv(bcmul($lineSubtotal, (string) ($variant['gst_percent'] ?? '0'), 4), '100', 2);
 
             $lines[] = [
@@ -92,12 +100,18 @@ final class PurchaseService
                 'sku' => $variant['sku'],
                 'quantity' => $quantity,
                 'unit_cost' => $unitCost,
+                'mrp' => $mrp,
+                'discount_amount' => $discountAmount,
                 'tax_amount' => $taxAmount,
                 'line_total' => bcadd($lineSubtotal, $taxAmount, 2),
             ];
         }
 
-        $subtotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, bcmul($l['unit_cost'], $l['quantity'], 2), 2), '0.00');
+        $subtotal = array_reduce(
+            $lines,
+            fn (string $c, array $l) => bcadd($c, bcsub(bcmul($l['unit_cost'], $l['quantity'], 2), $l['discount_amount'], 2), 2),
+            '0.00',
+        );
         $taxTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['tax_amount'], 2), '0.00');
         $grandTotal = bcadd($subtotal, $taxTotal, 2);
         $paymentStatus = bccomp($amountPaid, $grandTotal, 2) >= 0 ? 'PAID' : (bccomp($amountPaid, '0', 2) > 0 ? 'PARTIAL' : 'UNPAID');
@@ -133,8 +147,8 @@ final class PurchaseService
 
             foreach ($lines as $line) {
                 $this->pdo->prepare(
-                    'INSERT INTO purchase_items (purchase_id, product_id, variant_id, sku_snapshot, quantity, unit_cost, tax_amount, line_total)
-                     VALUES (:purchase_id, :product_id, :variant_id, :sku, :quantity, :unit_cost, :tax_amount, :line_total)'
+                    'INSERT INTO purchase_items (purchase_id, product_id, variant_id, sku_snapshot, quantity, unit_cost, mrp, discount_amount, tax_amount, line_total)
+                     VALUES (:purchase_id, :product_id, :variant_id, :sku, :quantity, :unit_cost, :mrp, :discount_amount, :tax_amount, :line_total)'
                 )->execute([
                     'purchase_id' => $purchaseId,
                     'product_id' => $line['product_id'],
@@ -142,6 +156,8 @@ final class PurchaseService
                     'sku' => $line['sku'],
                     'quantity' => $line['quantity'],
                     'unit_cost' => $line['unit_cost'],
+                    'mrp' => $line['mrp'],
+                    'discount_amount' => $line['discount_amount'],
                     'tax_amount' => $line['tax_amount'],
                     'line_total' => $line['line_total'],
                 ]);

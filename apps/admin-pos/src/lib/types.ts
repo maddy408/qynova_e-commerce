@@ -179,6 +179,7 @@ export interface HomeSection {
   id: number
   type: HomeSectionType
   title: string | null
+  image_path: string | null
   item_limit: number
   sort_order: number
   is_active: 0 | 1

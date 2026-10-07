@@ -267,6 +267,9 @@ function BannerFormModal({
   const [mobileFile, setMobileFile] = useState<File | null>(null)
   const [desktopPreview, setDesktopPreview] = useState<string>('')
   const [mobilePreview, setMobilePreview] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState('0')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()

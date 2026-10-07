@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
+import { useEffect, useState, type FormEvent } from 'react'
+import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { HomeSection, HomeSectionType } from '../lib/types'
@@ -23,7 +23,6 @@ export function HomeSectionsPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function load() {
     api.get('/home-sections').then((res) => setSections(res.data.sections))

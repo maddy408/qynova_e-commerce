@@ -128,7 +128,39 @@ Sign in with the seeded admin login (`database/seed/0001_seed.sql`):
   top-selling products/categories, an estimated gross-profit card,
   customer analytics (one-time vs. returning, top customers), the
   referral report, the refund summary, and recent sales/orders.
+- Sale (`/sale`): POS billing — customer picker (walk-in by default,
+  search by name/phone), barcode/SKU/name search with Enter-adds-first-
+  match, category pill filters, a product grid with live stock, a cart
+  panel with qty steppers and a coupon code field, and a payment modal
+  (method from the Payment Methods master, amount paid, partial-payment
+  aware) that calls the existing `POST /api/invoices/pos-sale` and lands
+  on the new invoice's print view. Pricing automatically follows the
+  selected customer's type (RETAIL/WHOLESALE) server-side — there's no
+  manual price-type toggle, unlike some POS UIs, because the backend
+  already resolves that from the customer.
+- Invoices (`/invoices`, `/invoices/:id`): a list (filterable by
+  channel) and a print-formatted detail view with A4/Thermal (80mm)
+  toggle, Print button, and a WhatsApp share link when the invoice has a
+  customer phone number — mirroring the two-format tax-invoice layout
+  common to POS systems. Print CSS hides the app chrome (sidebar,
+  toolbar) so only the invoice itself prints.
+- Payment Methods (`/payment-methods`): the master list Sale's payment
+  modal and (eventually) other payment pickers read from — code, display
+  name, active/inactive.
+- Users (`/users`): staff account management — create cashiers and
+  admins, assign a role, reset a password, deactivate (blocks login,
+  keeps history — never a hard delete, same pattern as every other
+  master in this app).
+- Deliveries (`/deliveries`, `/deliveries/:id`): order fulfillment —
+  list with a status filter, detail view with shipping address,
+  courier/AWB/tracking link, full status history, and a status-update
+  control. A "Create Delivery" / "View Delivery" card on the Order
+  Detail page is the entry point (only shown once an order is PAID).
+  Updating a delivery's status automatically moves the parent order's
+  status too (e.g. marking a delivery ASSIGNED flips the order to
+  PACKED) — that sync was already in the Phase 2 backend, this just
+  gives it a screen.
 
 Not built yet: editing a product's basic info/classification after
-creation, POS billing screens, and a non-coupon automatic discount
-engine — see `docs/ECOMMERCE_POS_ADMIN_SPEC.md`.
+creation, and a non-coupon automatic discount engine — see
+`docs/ECOMMERCE_POS_ADMIN_SPEC.md`.

@@ -278,8 +278,31 @@ npm run dev
     created a 28% rate (confirmed 14%/14% CGST/SGST), deactivated and
     reactivated it, and created an HSN code.
 
-Still ahead: editing a product's basic fields from the detail page, POS
-billing, the storefront app (still the default scaffold), a unified
-Reports page, an automatic (non-coupon) discount engine, Razorpay, and a
-real shipping provider adapter — per `docs/ECOMMERCE_POS_ADMIN_SPEC.md`
-section 46's phase order.
+  - **Sale (POS billing), Invoices, Payment Methods, Users, Deliveries**
+    — the last batch against DOCUMENTATION.md's core workflows. Sale is
+    a full POS screen (product grid, cart, coupon, payment modal) built
+    against the `createPosSale` backend that had existed since Phase 2
+    with no frontend; Invoices adds an A4/Thermal print view with
+    WhatsApp share; Payment Methods replaces a fixed ENUM with an
+    admin-manageable master (migration `0018`, also used by the new
+    `purchases.payment_method` and `purchase_items.mrp`/
+    `discount_amount`); Users adds staff CRUD (the `users`/`roles`
+    tables existed since Phase 1 with no admin UI beyond login); and
+    Deliveries adds a screen for the Phase 2 delivery backend, including
+    its automatic order-status sync. A chunk of this (Sale/Invoices/
+    Payment Methods, the 0018 migration, Purchases polish) had landed in
+    one uncommitted-build-discipline commit with real breakage — not
+    wired into the router, an ambiguous-SQL-column 500 on
+    `GET /api/invoices`, several TypeScript build errors, and a
+    schema change applied by an ad-hoc script outside `migrate.php` —
+    all caught and fixed in a verification pass (see
+    `database/README.md` for the specifics) before building the
+    remaining two screens. Verified end-to-end in the browser: a full
+    Sale → payment → invoice print flow, a Purchase with MRP and a
+    per-line discount, a new cashier login, and a delivery whose status
+    update correctly flipped its order from CONFIRMED to PACKED.
+
+Still ahead: editing a product's basic fields from the detail page, the
+storefront app (still the default scaffold), an automatic (non-coupon)
+discount engine, Razorpay, and a real shipping provider adapter — per
+`docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.

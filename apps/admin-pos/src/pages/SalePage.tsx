@@ -103,8 +103,6 @@ export function SalePage() {
     return () => clearTimeout(t)
   }, [customerQuery])
 
-  const priceField = customer?.customer_type === 'WHOLESALE' ? 'wholesale_price' : 'retail_price'
-
   function addToCart(p: PosProduct) {
     const rawPrice = (customer?.customer_type === 'WHOLESALE' ? p.wholesale_price : null) ?? p.retail_price
     setCart((prev) => {

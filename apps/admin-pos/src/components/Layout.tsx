@@ -6,6 +6,7 @@ const navGroups = [
     label: null,
     items: [
       { to: '/', label: 'Dashboard', icon: '📊' },
+      { to: '/sale', label: 'Sale', icon: '🛒' },
       { to: '/reports', label: 'Reports', icon: '📈' },
     ],
   },
@@ -20,7 +21,9 @@ const navGroups = [
   {
     label: 'Sales',
     items: [
-      { to: '/orders', label: 'Orders', icon: '🧾' },
+      { to: '/orders', label: 'Orders', icon: '📋' },
+      { to: '/invoices', label: 'Invoices', icon: '🧾' },
+      { to: '/deliveries', label: 'Deliveries', icon: '🚛' },
       { to: '/coupons', label: 'Coupons', icon: '🎟️' },
     ],
   },
@@ -45,6 +48,7 @@ const navGroups = [
     items: [
       { to: '/tax', label: 'Tax', icon: '🧾' },
       { to: '/payment-methods', label: 'Payment Methods', icon: '💳' },
+      { to: '/users', label: 'Users', icon: '👤' },
     ],
   },
 ]
