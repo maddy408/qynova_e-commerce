@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, PageHeader, Spinner } from '../components/ui'
+import { Card, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
@@ -61,7 +61,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      <PageHeader title="Dashboard" description="Store performance at a glance" />
+      {/* Dashboard Title Header (Matching Reference Image 2) */}
+      <div>
+        <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1 font-sans">Store performance at a glance</p>
+      </div>
 
       {loading ? (
         <Spinner />
@@ -69,74 +73,66 @@ export function DashboardPage() {
         <p className="text-sm text-slate-500">Could not load dashboard data from backend server.</p>
       ) : (
         <>
-          {/* Connected Pastel Capsule KPI Metrics Track */}
-          <div className="relative overflow-x-auto py-2">
+          {/* Pastel Capsule KPI Metrics Track (Matching Reference Image 2) */}
+          <div className="relative overflow-x-auto py-1">
             <div className="flex items-center gap-3 min-w-[980px] px-1">
               {/* 1. Today's Sales */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Today's Sales</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
+              <div className="relative flex-1 rounded-full border border-indigo-200/90 bg-gradient-to-r from-indigo-100/80 via-purple-50/70 to-indigo-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Today's Sales</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
               </div>
 
               {/* 2. This Month */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">This Month</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
+              <div className="relative flex-1 rounded-full border border-blue-200/90 bg-gradient-to-r from-blue-100/80 via-cyan-50/70 to-blue-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">This Month</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
               </div>
 
               {/* 3. Total Sales */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Sales</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
+              <div className="relative flex-1 rounded-full border border-amber-200/90 bg-gradient-to-r from-amber-100/80 via-yellow-50/70 to-amber-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Total Sales</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
               </div>
 
               {/* 4. Total Orders */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Orders</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.orders.total_orders}</div>
-                <span className="text-[10px] font-medium text-indigo-400">{summary.orders.pending_orders} pending</span>
+              <div className="relative flex-1 rounded-full border border-pink-200/90 bg-gradient-to-r from-pink-100/80 via-rose-50/70 to-purple-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Total Orders</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{summary.orders.total_orders}</div>
+                <span className="text-[9px] font-medium text-slate-500 block leading-none">{summary.orders.pending_orders} pending</span>
               </div>
 
               {/* 5. Total Customers */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Customers</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.customers.total_customers}</div>
-                <span className="text-[10px] font-medium text-indigo-400">+{summary.customers.new_customers_today} today</span>
+              <div className="relative flex-1 rounded-full border border-teal-200/90 bg-gradient-to-r from-teal-100/80 via-emerald-50/70 to-teal-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Total Customers</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{summary.customers.total_customers}</div>
+                <span className="text-[9px] font-medium text-slate-500 block leading-none">+{summary.customers.new_customers_today} today</span>
               </div>
 
               {/* 6. Total Products */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Total Products</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.products.total_products}</div>
+              <div className="relative flex-1 rounded-full border border-emerald-200/90 bg-gradient-to-r from-emerald-100/80 via-green-50/70 to-emerald-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Total Products</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{summary.products.total_products}</div>
               </div>
 
               {/* 7. Low Stock */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Low Stock</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.products.low_stock_products}</div>
+              <div className="relative flex-1 rounded-full border border-amber-300/90 bg-gradient-to-r from-amber-100/80 via-orange-50/70 to-amber-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Low Stock</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{summary.products.low_stock_products}</div>
               </div>
 
               {/* 8. Out of Stock */}
-              <div className="relative flex-1 rounded-full border border-black bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Out of Stock</span>
-                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{summary.products.out_of_stock_products}</div>
+              <div className="relative flex-1 rounded-full border border-blue-200/90 bg-gradient-to-r from-blue-100/80 via-indigo-50/70 to-blue-100/80 px-4 py-2.5 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold text-slate-800 tracking-tight">Out of Stock</span>
+                <div className="text-sm font-extrabold text-slate-950 mt-0.5">{summary.products.out_of_stock_products}</div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-            {/* Left Column: Popular Items Cards Grid */}
+            {/* Left Column: Popular Items Grid (Matching Reference Image 2) */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    Popular Items
-                  </h2>
-                  <p className="text-xs text-slate-500">Top selling items calculated from live invoice history</p>
-                </div>
-                <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
-                  Live Sales Feed
-                </span>
+                <h2 className="font-serif text-2xl font-semibold text-slate-900">Popular Items</h2>
               </div>
 
               {popularItems.length === 0 ? (
@@ -144,49 +140,48 @@ export function DashboardPage() {
                   No popular items recorded yet.
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {popularItems.map((item, idx) => {
-                    const badgeText = idx === 0 ? 'BESTSELLER' : idx === 1 ? 'TRENDING' : 'POPULAR'
-                    const badgeColor =
+                    const badgeText = idx === 0 ? 'BESTSELLER' : idx === 1 ? 'TRENDING' : 'LOW STOCK'
+                    const badgeClass =
                       idx === 0
-                        ? 'bg-amber-500 text-white'
+                        ? 'bg-[#f3e6d2] text-amber-950 border border-amber-200/80'
                         : idx === 1
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-emerald-600 text-white'
+                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-200/80'
+                        : 'bg-amber-100 text-amber-900 border border-amber-200/80'
 
                     return (
                       <div
                         key={item.id}
-                        className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+                        className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-slate-900 shadow-md border border-slate-800/80 transition-all hover:-translate-y-1 hover:shadow-xl h-56"
                       >
-                        {/* Image background / Thumbnail container */}
-                        <div className="relative mb-3 flex h-44 items-center justify-center overflow-hidden rounded-xl bg-white p-2 border border-slate-100 shadow-2xs">
+                        {/* Full Image Container */}
+                        <div className="absolute inset-0 bg-slate-950 flex items-center justify-center overflow-hidden">
                           {imageUrl(item.primary_image || null) ? (
                             <img
                               src={imageUrl(item.primary_image || null)!}
                               alt={item.name}
-                              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90"
                             />
                           ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-400">
+                            <div className="flex flex-col items-center justify-center text-slate-500">
                               <span className="text-xs font-semibold">No Image</span>
                             </div>
                           )}
-                          <span className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-xs ${badgeColor}`}>
+                        </div>
+
+                        {/* Top Badge */}
+                        <div className="relative z-10 p-3 flex justify-end">
+                          <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide shadow-xs ${badgeClass}`}>
                             {badgeText}
                           </span>
                         </div>
 
-                        {/* Product Info & Sales Summary Footer */}
-                        <div>
-                          <h3 className="text-base font-bold text-slate-900 truncate">{item.name}</h3>
-                          <div className="mt-1 flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">
-                              {item.units_sold} units sold
-                            </span>
-                            <span className="text-base font-extrabold text-slate-900">
-                              {formatCurrency(item.revenue)}
-                            </span>
+                        {/* Bottom Gradient Overlay & Product Summary */}
+                        <div className="relative z-10 p-4 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10">
+                          <h3 className="text-base font-bold text-white truncate font-sans tracking-tight">{item.name}</h3>
+                          <div className="mt-0.5 text-xs text-slate-300 font-medium">
+                            {item.units_sold} {Number(item.units_sold) === 1 ? 'unit' : 'units'} • {formatCurrency(item.revenue)}
                           </div>
                         </div>
                       </div>
@@ -196,66 +191,56 @@ export function DashboardPage() {
               )}
             </div>
 
-            {/* Right Column: Authentic Torn Thermal Receipt Timeline Widget */}
+            {/* Right Column: Authentic Paper Receipt Timeline (Matching Reference Image 2) */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">Receipt Timeline</h2>
-                  <p className="text-xs text-slate-500">Recent completed transactions</p>
-                </div>
+                <h2 className="font-serif text-2xl font-semibold text-slate-900">Receipt Timeline</h2>
+                <span className="text-xs text-slate-500 font-sans">Recent transactions</span>
               </div>
 
-              {/* Realistic Perforated Receipt Container */}
-              <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-lg bg-[#FAF8F5] p-5 shadow-lg border border-amber-200/60 font-serif text-slate-800">
-                {/* Receipt Header */}
-                <div className="text-center pb-3 border-b border-dashed border-slate-300">
-                  <div className="text-xs font-bold uppercase tracking-widest text-slate-500">Receipt Timeline Feed</div>
-                  <div className="text-sm font-extrabold text-slate-900 mt-0.5">UNIFIED POS BILLS</div>
-                </div>
+              {/* Serrated Edge Authentic Receipt Slip */}
+              <div className="receipt-paper mx-auto w-full rounded-sm p-6 text-slate-800 font-sans shadow-xl my-3">
+                <div className="space-y-4 text-xs">
+                  {latestSales.slice(0, 5).map((sale, idx) => {
+                    const dotColor = idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-indigo-500' : 'bg-purple-500'
+                    return (
+                      <div key={sale.id} className="relative pl-5 border-l-2 border-slate-200/80 space-y-0.5">
+                        {/* Status Dot */}
+                        <span className={`absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ${dotColor} ring-2 ring-[#f4efe6]`} />
 
-                {/* Receipt Timeline Entries */}
-                <div className="py-4 space-y-4 font-sans text-xs">
-                  {latestSales.slice(0, 5).map((sale) => (
-                    <div key={sale.id} className="relative pl-6 border-l-2 border-dashed border-indigo-300">
-                      {/* Node Circle Indicator */}
-                      <span className="absolute -left-[7px] top-0.5 h-3 w-3 rounded-full bg-indigo-600 ring-4 ring-[#FAF8F5]" />
-
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-mono font-bold text-slate-900">{sale.invoice_no}</div>
-                          <div className="text-[11px] text-slate-500">
-                            {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
+                        <div className="flex items-center justify-between font-medium">
+                          <span className="font-bold text-slate-900">
+                            {sale.invoice_no} • {new Date(sale.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })}, {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
+                          </span>
                         </div>
-                        <div className="text-right">
-                          <div className="font-extrabold text-slate-900">{formatCurrency(sale.grand_total)}</div>
-                          <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                        {sale.items_summary && (
+                          <div className="text-[11px] text-slate-600 truncate">
+                            {sale.items_summary}
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between pt-0.5 text-[11px]">
+                          <span className="font-extrabold text-slate-900">{formatCurrency(sale.grand_total)}</span>
+                          <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.2 rounded border border-emerald-200">
                             {sale.payment_status} ✓
                           </span>
                         </div>
                       </div>
-
-                      {sale.items_summary && (
-                        <div className="mt-1 text-[11px] text-slate-600 truncate font-mono">
-                          {sale.items_summary}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
 
                   {latestSales.length === 0 && (
                     <p className="py-6 text-center text-xs text-slate-400 italic">No sale receipts available yet.</p>
                   )}
                 </div>
 
-                {/* Receipt Bottom Total Summary */}
-                <div className="pt-3 border-t border-dashed border-slate-300 font-sans">
+                {/* Receipt Footer Total */}
+                <div className="mt-5 pt-3 border-t border-dashed border-slate-300/80">
                   <div className="flex items-center justify-between font-bold text-slate-900 text-sm">
-                    <span>Recent Sales Total:</span>
-                    <span>{formatCurrency(totalReceiptsSum)}</span>
+                    <span>Total:</span>
+                    <span className="text-base">{formatCurrency(totalReceiptsSum)}</span>
                   </div>
-                  <div className="mt-3 text-center text-[11px] text-slate-400 font-serif italic">
-                    Thank you for your business!
+                  <div className="mt-3 text-center text-[11px] font-serif italic text-slate-500">
+                    Thank you for your purchase
                   </div>
                 </div>
               </div>

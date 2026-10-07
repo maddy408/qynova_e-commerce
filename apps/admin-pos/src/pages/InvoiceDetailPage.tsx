@@ -122,12 +122,12 @@ export function InvoiceDetailPage() {
       </div>
 
       <div
-        className={`print-area mx-auto w-full overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm ${
+        className={`print-area mx-auto w-full rounded-lg border border-slate-200 bg-white shadow-sm ${
           format === 'a4' ? 'max-w-[780px] p-6 sm:p-8' : 'max-w-[320px] p-4'
         }`}
       >
         {format === 'a4' ? (
-          <div className="min-w-[640px]">
+          <div>
             {/* Header: business info + invoice info */}
             <div className="flex items-start justify-between gap-6 border-b border-slate-200 pb-5">
               <div>
@@ -161,8 +161,11 @@ export function InvoiceDetailPage() {
               </div>
             </div>
 
-            {/* Items */}
-            <table className="mt-5 w-full text-left text-xs">
+            {/* Items — only this scrolls horizontally on narrow screens, so
+                totals/payment/footer below stay fully visible without the
+                reader having to scroll sideways to find them. */}
+            <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-xs">
               <thead className="border-b border-slate-300 uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="py-2 pr-2 font-semibold">#</th>
@@ -193,6 +196,7 @@ export function InvoiceDetailPage() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* Totals */}
             <div className="mt-5 flex justify-end">

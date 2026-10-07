@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 @import 'tailwindcss';
 
 :root {
@@ -12,9 +13,42 @@ body,
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', Georgia, Cambria, serif;
+}
+
+/* Paper receipt serrated edge utility */
+.receipt-paper {
+  background-color: #f4efe6;
+  position: relative;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.receipt-paper::before,
+.receipt-paper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background-size: 16px 16px;
+  background-repeat: repeat-x;
+  z-index: 10;
+}
+
+.receipt-paper::before {
+  top: -10px;
+  background-image: radial-gradient(circle at 8px -4px, transparent 8px, #f4efe6 9px);
+}
+
+.receipt-paper::after {
+  bottom: -10px;
+  background-image: radial-gradient(circle at 8px 14px, transparent 8px, #f4efe6 9px);
 }
 
 /* Invoice print view (InvoiceDetailPage): hide the on-screen toolbar and

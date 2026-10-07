@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
+import { BellIcon, LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
 interface SubItem {
   to: string
@@ -148,24 +148,24 @@ export function Layout() {
   const breadcrumb = getBreadcrumb(location.pathname, activeSection)
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 antialiased">
+    <div className="min-h-screen bg-[#faf8fc] flex flex-col font-sans text-slate-900 antialiased">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-2xs">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-2xs">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white font-black text-base shadow-sm group-hover:bg-indigo-700 transition-colors">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 text-white font-black text-base shadow-sm group-hover:scale-105 transition-transform">
                 UP
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold tracking-tight text-slate-900">Unified POS</span>
-                <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-widest leading-none">Admin Panel</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none">ADMIN PANEL</span>
               </div>
             </Link>
 
             {/* Desktop Top Navbar Links */}
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+            <nav className="hidden lg:flex items-center gap-1.5 xl:gap-2">
               {visibleSections.map((sec) => {
                 const isActive = isPathActive(location.pathname, sec)
                 const isPosSale = sec.id === 'pos-sale'
@@ -175,13 +175,13 @@ export function Layout() {
                     <Link
                       key={sec.id}
                       to={sec.to}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all border ${
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full transition-all border ${
                         isActive
-                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                          : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300'
+                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                          : 'bg-amber-100/70 text-amber-950 border-amber-200/80 hover:bg-amber-200/80 shadow-2xs'
                       }`}
                     >
-                      <ZapIcon className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                      <ZapIcon className="h-3.5 w-3.5 text-amber-600 fill-amber-500" />
                       {sec.label}
                     </Link>
                   )
@@ -191,16 +191,13 @@ export function Layout() {
                   <Link
                     key={sec.id}
                     to={sec.to}
-                    className={`relative px-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
                       isActive
-                        ? 'bg-indigo-50 text-indigo-700 shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                        ? 'bg-[#e7e2f5] text-indigo-950 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                     }`}
                   >
                     {sec.label}
-                    {isActive && (
-                      <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-indigo-600 rounded-full" />
-                    )}
                   </Link>
                 )
               })}
@@ -208,21 +205,28 @@ export function Layout() {
 
             {/* User Profile & Logout (Right Side) */}
             <div className="hidden sm:flex items-center gap-3 shrink-0">
-              <div className="flex items-center gap-2.5 border-l border-slate-200 pl-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
-                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100 border border-purple-200/70 text-xs font-extrabold text-purple-900 shadow-2xs">
+                  {user?.name?.charAt(0).toUpperCase() || 'A'}
                 </div>
                 <div className="text-left leading-tight">
-                  <p className="text-xs font-bold text-slate-900">{user?.name}</p>
-                  <span className="inline-block px-1.5 py-0.2 text-[9px] font-bold text-indigo-700 bg-indigo-50 rounded uppercase">
-                    {user?.role}
+                  <p className="text-xs font-bold text-slate-900">{user?.name || 'Admin'}</p>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    {user?.role || 'ADMIN'}
                   </span>
                 </div>
               </div>
 
               <button
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors"
+                title="Notifications"
+              >
+                <BellIcon className="h-4 w-4 text-slate-600" />
+              </button>
+
+              <button
                 onClick={logout}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors shadow-2xs"
                 title="Log out of Admin Panel"
               >
                 <LogoutIcon className="h-4 w-4" />
