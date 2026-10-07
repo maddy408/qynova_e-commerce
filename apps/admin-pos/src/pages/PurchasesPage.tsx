@@ -78,6 +78,8 @@ interface LineItem {
 
 export function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[] | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [allVariants, setAllVariants] = useState<VariantOption[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -539,99 +541,153 @@ export function PurchasesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {purchases.map((p) => {
-                  const effectivePaid = p.paid_amount ?? p.amount_paid ?? '0.00'
-                  const effectiveBalance =
-                    p.balance_amount ??
-                    Math.max(0, (Number(p.grand_total) || 0) - (Number(effectivePaid) || 0)).toFixed(2)
-                  const balanceNum = Number(effectiveBalance) || 0
-                  const isPaid = p.payment_status === 'PAID'
-                  const isPartial = p.payment_status === 'PARTIAL' || p.payment_status === 'PARTIALLY_PAID'
-                  const isCancelled = p.status === 'CANCELLED'
-                  const canCollect = !isCancelled && balanceNum > 0
+                {(() => {
+                  const totalPurchases = purchases.length
+                  const totalPages = Math.max(1, Math.ceil(totalPurchases / pageSize))
+                  const safeCurrentPage = Math.min(currentPage, totalPages)
+                  const startIndex = (safeCurrentPage - 1) * pageSize
+                  const endIndex = Math.min(startIndex + pageSize, totalPurchases)
+                  const paginatedPurchases = purchases.slice(startIndex, endIndex)
 
-                  return (
-                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-2.5 font-mono font-semibold text-slate-900">{p.purchase_no}</td>
-                      <td className="px-4 py-2.5 text-slate-700 font-medium">{p.supplier_name}</td>
-                      <td className="px-4 py-2.5 text-slate-900 font-bold">₹{p.grand_total}</td>
-                      <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{effectivePaid}</td>
-                      <td className="px-4 py-2.5 text-amber-700 font-bold">₹{effectiveBalance}</td>
-                      <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
-                        {p.payment_method === 'SPLIT' ? (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            ⚡ Split
-                          </span>
-                        ) : (
-                          p.payment_method || '—'
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Badge tone={isPaid ? 'green' : isPartial ? 'amber' : 'red'}>
-                          {isPaid ? 'PAID' : isPartial ? 'PARTIALLY PAID' : 'UNPAID'}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{p.purchase_date}</td>
-                      <td className="px-4 py-2.5 text-right">
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          {/* 1. Collect Payment Icon Button */}
-                          <button
-                            type="button"
-                            disabled={!canCollect}
-                            onClick={() => openCollectPaymentModal(p)}
-                            title={
-                              isCancelled
-                                ? 'Purchase is cancelled'
-                                : balanceNum <= 0
-                                ? 'Purchase is fully paid'
-                                : 'Collect Payment'
-                            }
-                            aria-label="Collect Payment"
-                            className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          >
-                            <WalletIcon className="h-4 w-4" />
-                          </button>
+                  if (paginatedPurchases.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                          No purchases recorded yet.
+                        </td>
+                      </tr>
+                    )
+                  }
 
-                          {/* 2. Edit Payment Icon Button */}
-                          <button
-                            type="button"
-                            disabled={isCancelled}
-                            onClick={() => openEditPaymentModal(p)}
-                            title={isCancelled ? 'Purchase is cancelled' : 'Edit Payment'}
-                            aria-label="Edit Payment"
-                            className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 bg-indigo-50/80 border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
+                  return paginatedPurchases.map((p) => {
+                    const effectivePaid = p.paid_amount ?? p.amount_paid ?? '0.00'
+                    const effectiveBalance =
+                      p.balance_amount ??
+                      Math.max(0, (Number(p.grand_total) || 0) - (Number(effectivePaid) || 0)).toFixed(2)
+                    const balanceNum = Number(effectiveBalance) || 0
+                    const isPaid = p.payment_status === 'PAID'
+                    const isPartial = p.payment_status === 'PARTIAL' || p.payment_status === 'PARTIALLY_PAID'
+                    const isCancelled = p.status === 'CANCELLED'
+                    const canCollect = !isCancelled && balanceNum > 0
 
-                          {/* 3. Payment History Icon Button */}
-                          <button
-                            type="button"
-                            onClick={() => openPaymentHistoryModal(p)}
-                            title="Payment History & Receipts"
-                            aria-label="Payment History"
-                            className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-slate-700 bg-slate-50 border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
-                          >
-                            <ReceiptIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-                {purchases.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
-                      No purchases recorded yet.
-                    </td>
-                  </tr>
-                )}
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-2.5 font-mono font-semibold text-slate-900">{p.purchase_no}</td>
+                        <td className="px-4 py-2.5 text-slate-700 font-medium">{p.supplier_name}</td>
+                        <td className="px-4 py-2.5 text-slate-900 font-bold">₹{p.grand_total}</td>
+                        <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{effectivePaid}</td>
+                        <td className="px-4 py-2.5 text-amber-700 font-bold">₹{effectiveBalance}</td>
+                        <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
+                          {p.payment_method === 'SPLIT' ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              ⚡ Split
+                            </span>
+                          ) : (
+                            p.payment_method || '—'
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge tone={isPaid ? 'green' : isPartial ? 'amber' : 'red'}>
+                            {isPaid ? 'PAID' : isPartial ? 'PARTIALLY PAID' : 'UNPAID'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
+                        </td>
+                        <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{p.purchase_date}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            {/* 1. Collect Payment Icon Button */}
+                            <button
+                              type="button"
+                              disabled={!canCollect}
+                              onClick={() => openCollectPaymentModal(p)}
+                              title={
+                                isCancelled
+                                  ? 'Purchase is cancelled'
+                                  : balanceNum <= 0
+                                  ? 'Purchase is fully paid'
+                                  : 'Collect Payment'
+                              }
+                              aria-label="Collect Payment"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            >
+                              <WalletIcon className="h-4 w-4" />
+                            </button>
+
+                            {/* 2. Edit Payment Icon Button */}
+                            <button
+                              type="button"
+                              disabled={isCancelled}
+                              onClick={() => openEditPaymentModal(p)}
+                              title={isCancelled ? 'Purchase is cancelled' : 'Edit Payment'}
+                              aria-label="Edit Payment"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 bg-indigo-50/80 border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+
+                            {/* 3. Payment History Icon Button */}
+                            <button
+                              type="button"
+                              onClick={() => openPaymentHistoryModal(p)}
+                              title="Payment History & Receipts"
+                              aria-label="Payment History"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-slate-700 bg-slate-50 border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                            >
+                              <ReceiptIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                })()}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls Footer */}
+          {purchases.length > 0 && (() => {
+            const totalPurchases = purchases.length
+            const totalPages = Math.max(1, Math.ceil(totalPurchases / pageSize))
+            const safeCurrentPage = Math.min(currentPage, totalPages)
+            const startIndex = (safeCurrentPage - 1) * pageSize
+            const endIndex = Math.min(startIndex + pageSize, totalPurchases)
+
+            return (
+              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 bg-slate-50/60 text-xs text-slate-600">
+                <div>
+                  Showing <span className="font-semibold text-slate-900">{totalPurchases > 0 ? startIndex + 1 : 0}</span> to{' '}
+                  <span className="font-semibold text-slate-900">{endIndex}</span> of{' '}
+                  <span className="font-semibold text-slate-900">{totalPurchases}</span> purchases
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={safeCurrentPage <= 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="px-2 font-medium text-slate-700">
+                    Page {safeCurrentPage} of {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={safeCurrentPage >= totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
         </Card>
       )}
 
