@@ -18,8 +18,10 @@ use RuntimeException;
  */
 final class SubcategoryService
 {
-    public function __construct(private readonly PDO $pdo)
-    {
+    public function __construct(
+        private readonly PDO $pdo,
+        private readonly ImageUploadService $images = new ImageUploadService(),
+    ) {
     }
 
     /** @return list<array<string, mixed>> */
@@ -41,6 +43,28 @@ final class SubcategoryService
         unset($subcategory);
 
         return $subcategories;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function find(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT s.*, (SELECT COUNT(*) FROM product_subcategories ps WHERE ps.subcategory_id = s.id) AS product_count
+             FROM subcategories s
+             WHERE s.id = :id AND s.deleted_at IS NULL"
+        );
+        $stmt->execute(['id' => $id]);
+        $subcategory = $stmt->fetch();
+
+        if ($subcategory === false) {
+            return null;
+        }
+
+        $catStmt = $this->pdo->prepare('SELECT category_id FROM category_subcategory WHERE subcategory_id = :id');
+        $catStmt->execute(['id' => $id]);
+        $subcategory['category_ids'] = array_map('intval', $catStmt->fetchAll(PDO::FETCH_COLUMN));
+
+        return $subcategory;
     }
 
     /**
@@ -116,6 +140,37 @@ final class SubcategoryService
     public function delete(int $id): void
     {
         $this->pdo->prepare("UPDATE subcategories SET deleted_at = NOW(), status = 'INACTIVE' WHERE id = :id")->execute(['id' => $id]);
+    }
+
+    /** @param array{tmp_name: string, size: int, error: int, name: string} $file */
+    public function setImage(int $id, array $file): string
+    {
+        $subcategory = $this->find($id);
+        if ($subcategory === null) {
+            throw new RuntimeException('Subcategory not found');
+        }
+
+        $stored = $this->images->store($file, 'subcategories');
+
+        $this->pdo->prepare('UPDATE subcategories SET image_path = :path, thumb_path = :thumb WHERE id = :id')
+            ->execute(['path' => $stored['path'], 'thumb' => $stored['thumb_path'], 'id' => $id]);
+
+        $this->images->delete($subcategory['image_path'] ?? null);
+        $this->images->delete($subcategory['thumb_path'] ?? null);
+
+        return $stored['path'];
+    }
+
+    public function removeImage(int $id): void
+    {
+        $subcategory = $this->find($id);
+        if ($subcategory === null) {
+            throw new RuntimeException('Subcategory not found');
+        }
+
+        $this->pdo->prepare('UPDATE subcategories SET image_path = NULL, thumb_path = NULL WHERE id = :id')->execute(['id' => $id]);
+        $this->images->delete($subcategory['image_path'] ?? null);
+        $this->images->delete($subcategory['thumb_path'] ?? null);
     }
 
     /** @param list<int> $categoryIds */

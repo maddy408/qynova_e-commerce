@@ -127,7 +127,8 @@ final class DashboardService
     public function productAnalytics(int $limit = 10): array
     {
         $topProducts = $this->pdo->prepare(
-            "SELECT p.id, p.name, SUM(ii.quantity) AS units_sold, SUM(ii.line_total) AS revenue
+            "SELECT p.id, p.name, SUM(ii.quantity) AS units_sold, SUM(ii.line_total) AS revenue,
+                    (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image
              FROM invoice_items ii
              JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL
              JOIN products p ON p.id = ii.product_id
@@ -246,8 +247,11 @@ final class DashboardService
     public function recentActivity(int $limit = 10): array
     {
         $sales = $this->pdo->prepare(
-            "SELECT id, invoice_no, channel, customer_id, grand_total, payment_status, created_at
-             FROM invoices WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT :limit"
+            "SELECT i.id, i.invoice_no, i.channel, i.customer_id, c.name AS customer_name, i.grand_total, i.payment_status, i.created_at,
+                    (SELECT GROUP_CONCAT(CONCAT(product_name_snapshot, ' x', quantity) SEPARATOR ', ') FROM invoice_items ii WHERE ii.invoice_id = i.id) AS items_summary
+             FROM invoices i
+             LEFT JOIN customers c ON c.id = i.customer_id
+             WHERE i.deleted_at IS NULL ORDER BY i.created_at DESC LIMIT :limit"
         );
         $sales->bindValue('limit', $limit, PDO::PARAM_INT);
         $sales->execute();

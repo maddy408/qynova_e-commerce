@@ -28,6 +28,17 @@ final class SubcategoryController
         Response::json(['subcategories' => $this->subcategories->list()]);
     }
 
+    public function show(string $id): void
+    {
+        $subcategory = $this->subcategories->find((int) $id);
+
+        if ($subcategory === null) {
+            Response::error('Subcategory not found', 404);
+        }
+
+        Response::json(['subcategory' => $subcategory]);
+    }
+
     public function store(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
@@ -80,5 +91,35 @@ final class SubcategoryController
 
         $this->subcategories->delete((int) $id);
         Response::json(['deleted' => true]);
+    }
+
+    public function uploadImage(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        if (!isset($_FILES['file'])) {
+            Response::error('A file upload named "file" is required', 422);
+        }
+
+        try {
+            $path = $this->subcategories->setImage((int) $id, $_FILES['file']);
+            Response::json(['image_path' => $path]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function removeImage(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        try {
+            $this->subcategories->removeImage((int) $id);
+            Response::json(['updated' => true]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 404);
+        }
     }
 }

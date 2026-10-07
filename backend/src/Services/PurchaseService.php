@@ -44,10 +44,94 @@ final class PurchaseService
         return (int) $this->pdo->lastInsertId();
     }
 
-    /** @return list<array<string, mixed>> */
-    public function listSuppliers(): array
+    /** @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int} */
+    public function listSuppliers(?string $search, ?string $status, int $page, int $limit): array
     {
-        return $this->pdo->query("SELECT * FROM suppliers WHERE deleted_at IS NULL ORDER BY name")->fetchAll();
+        $page = max(1, $page);
+        $limit = min(200, max(1, $limit));
+        $offset = ($page - 1) * $limit;
+
+        $where = ['deleted_at IS NULL'];
+        $params = [];
+
+        if ($status !== null && $status !== '' && in_array($status, ['ACTIVE', 'INACTIVE'], true)) {
+            $where[] = 'status = :status';
+            $params['status'] = $status;
+        }
+
+        if ($search !== null && trim($search) !== '') {
+            $where[] = '(name LIKE :search1 OR phone LIKE :search2 OR gstin LIKE :search3)';
+            $needle = '%' . trim($search) . '%';
+            $params['search1'] = $needle;
+            $params['search2'] = $needle;
+            $params['search3'] = $needle;
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM suppliers WHERE {$whereSql}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare("SELECT * FROM suppliers WHERE {$whereSql} ORDER BY name LIMIT :limit OFFSET :offset");
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
+    }
+
+    public function findSupplier(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM suppliers WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->fetch() ?: null;
+    }
+
+    /** @param array<string, mixed> $data */
+    public function updateSupplier(int $id, array $data): void
+    {
+        if ($this->findSupplier($id) === null) {
+            throw new RuntimeException('Supplier not found');
+        }
+
+        $fields = ['name', 'contact_person', 'phone', 'email', 'address', 'gstin', 'status'];
+        $sets = [];
+        $params = ['id' => $id];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) {
+                if ($field === 'name' && trim((string) $data['name']) === '') {
+                    throw new RuntimeException('Supplier name is required');
+                }
+                $sets[] = "{$field} = :{$field}";
+                $params[$field] = $data[$field];
+            }
+        }
+
+        if ($sets === []) {
+            return;
+        }
+
+        $this->pdo->prepare('UPDATE suppliers SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($params);
+    }
+
+    /**
+     * Soft delete, same as every other catalog/master record in this app —
+     * purchases.supplier_id keeps pointing at the row, so historical GRNs
+     * and payables stay intact; the supplier just disappears from pickers.
+     */
+    public function deleteSupplier(int $id): void
+    {
+        if ($this->findSupplier($id) === null) {
+            throw new RuntimeException('Supplier not found');
+        }
+
+        $this->pdo->prepare("UPDATE suppliers SET deleted_at = NOW(), status = 'INACTIVE' WHERE id = :id")->execute(['id' => $id]);
     }
 
     /**

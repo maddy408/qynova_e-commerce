@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { Card, PageHeader, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
+function imageUrl(path: string | null) {
+  return path ? `${API_ORIGIN}/${path}` : null
+}
+
 interface DashboardSummary {
   sales: { total_sales: string; today_sales: string; this_month_sales: string }
   orders: { total_orders: number; pending_orders: string; cancelled_orders: string }
@@ -14,29 +19,22 @@ interface PopularProduct {
   name: string
   units_sold: string
   revenue: string
+  primary_image?: string | null
 }
 
 interface SaleItem {
   id: number
   invoice_no: string
   channel: string
+  customer_name?: string | null
+  items_summary?: string | null
   grand_total: string
   payment_status: string
   created_at: string
 }
 
 function formatCurrency(value: string | number) {
-  return `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-}
-
-function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <Card className="p-5">
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
-    </Card>
-  )
+  return `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export function DashboardPage() {
@@ -59,122 +57,208 @@ export function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const totalReceiptsSum = latestSales.reduce((acc, curr) => acc + Number(curr.grand_total || 0), 0)
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       <PageHeader title="Dashboard" description="Store performance at a glance" />
+
       {loading ? (
         <Spinner />
       ) : !summary ? (
-        <p className="text-sm text-slate-500">Could not load dashboard data.</p>
+        <p className="text-sm text-slate-500">Could not load dashboard data from backend server.</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Today's Sales" value={formatCurrency(summary.sales.today_sales)} />
-            <StatCard label="This Month" value={formatCurrency(summary.sales.this_month_sales)} />
-            <StatCard label="Total Sales" value={formatCurrency(summary.sales.total_sales)} />
-            <StatCard label="Total Orders" value={String(summary.orders.total_orders)} hint={`${summary.orders.pending_orders} pending`} />
-            <StatCard label="Total Customers" value={String(summary.customers.total_customers)} hint={`+${summary.customers.new_customers_today} today`} />
-            <StatCard label="Total Products" value={String(summary.products.total_products)} />
-            <StatCard label="Low Stock" value={String(summary.products.low_stock_products)} />
-            <StatCard label="Out of Stock" value={String(summary.products.out_of_stock_products)} />
+          {/* Connected Pastel Capsule KPI Metrics Track */}
+          <div className="relative overflow-x-auto py-2">
+            <div className="flex items-center gap-3 min-w-[980px] px-1">
+              {/* 1. Today's Sales */}
+              <div className="relative flex-1 rounded-full border border-indigo-200/80 bg-gradient-to-r from-indigo-50/90 to-purple-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Today's Sales</span>
+                <div className="text-base font-extrabold text-indigo-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
+              </div>
+
+              {/* 2. This Month */}
+              <div className="relative flex-1 rounded-full border border-blue-200/80 bg-gradient-to-r from-blue-50/90 to-cyan-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500">This Month</span>
+                <div className="text-base font-extrabold text-blue-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
+              </div>
+
+              {/* 3. Total Sales */}
+              <div className="relative flex-1 rounded-full border border-purple-200/80 bg-gradient-to-r from-purple-50/90 to-pink-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500">Total Sales</span>
+                <div className="text-base font-extrabold text-purple-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
+              </div>
+
+              {/* 4. Total Orders */}
+              <div className="relative flex-1 rounded-full border border-pink-200/80 bg-gradient-to-r from-pink-50/90 to-rose-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-500">Total Orders</span>
+                <div className="text-base font-extrabold text-pink-950 mt-0.5">{summary.orders.total_orders}</div>
+                <span className="text-[10px] font-medium text-pink-400">{summary.orders.pending_orders} pending</span>
+              </div>
+
+              {/* 5. Total Customers */}
+              <div className="relative flex-1 rounded-full border border-teal-200/80 bg-gradient-to-r from-teal-50/90 to-emerald-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600">Total Customers</span>
+                <div className="text-base font-extrabold text-teal-950 mt-0.5">{summary.customers.total_customers}</div>
+                <span className="text-[10px] font-medium text-teal-500">+{summary.customers.new_customers_today} today</span>
+              </div>
+
+              {/* 6. Total Products */}
+              <div className="relative flex-1 rounded-full border border-emerald-200/80 bg-gradient-to-r from-emerald-50/90 to-green-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Total Products</span>
+                <div className="text-base font-extrabold text-emerald-950 mt-0.5">{summary.products.total_products}</div>
+              </div>
+
+              {/* 7. Low Stock */}
+              <div className="relative flex-1 rounded-full border border-amber-200/80 bg-gradient-to-r from-amber-50/90 to-orange-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">Low Stock</span>
+                <div className="text-base font-extrabold text-amber-950 mt-0.5">{summary.products.low_stock_products}</div>
+              </div>
+
+              {/* 8. Out of Stock */}
+              <div className="relative flex-1 rounded-full border border-rose-200/80 bg-gradient-to-r from-rose-50/90 to-red-50/90 px-4 py-3 text-center shadow-xs transition-all hover:scale-105 hover:shadow-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500">Out of Stock</span>
+                <div className="text-base font-extrabold text-rose-950 mt-0.5">{summary.products.out_of_stock_products}</div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Popular Items Section */}
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900">Popular Items</h2>
-                <span className="text-xs font-medium text-slate-400">Top selling by quantity</span>
-              </div>
-              <Card>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">#</th>
-                        <th className="px-4 py-3 font-semibold">Product Name</th>
-                        <th className="px-4 py-3 font-semibold text-right">Units Sold</th>
-                        <th className="px-4 py-3 font-semibold text-right">Total Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {popularItems.map((item, idx) => (
-                        <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-2.5 font-bold text-slate-400">{idx + 1}</td>
-                          <td className="px-4 py-2.5 font-semibold text-slate-900">{item.name}</td>
-                          <td className="px-4 py-2.5 text-right font-medium text-indigo-600 bg-indigo-50/30 rounded">{item.units_sold} units</td>
-                          <td className="px-4 py-2.5 text-right font-bold text-slate-900">{formatCurrency(item.revenue)}</td>
-                        </tr>
-                      ))}
-                      {popularItems.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
-                            No popular items recorded yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
+            {/* Left Column: Popular Items Cards Grid */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    Popular Items
+                  </h2>
+                  <p className="text-xs text-slate-500">Top selling items calculated from live invoice history</p>
                 </div>
-              </Card>
+                <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
+                  Live Sales Feed
+                </span>
+              </div>
+
+              {popularItems.length === 0 ? (
+                <Card className="p-8 text-center text-sm text-slate-500">
+                  No popular items recorded yet.
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {popularItems.map((item, idx) => {
+                    const badgeText = idx === 0 ? 'BESTSELLER' : idx === 1 ? 'TRENDING' : 'POPULAR'
+                    const badgeColor =
+                      idx === 0
+                        ? 'bg-amber-500 text-white'
+                        : idx === 1
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-emerald-600 text-white'
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        {/* Image background / Thumbnail container */}
+                        <div className="relative mb-3 flex h-36 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
+                          {imageUrl(item.primary_image || null) ? (
+                            <img
+                              src={imageUrl(item.primary_image || null)!}
+                              alt={item.name}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-slate-400">
+                              <span className="text-xs font-semibold">No Image</span>
+                            </div>
+                          )}
+                          <span className={`absolute right-3 top-3 rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-xs ${badgeColor}`}>
+                            {badgeText}
+                          </span>
+                        </div>
+
+                        {/* Product Info & Sales Summary Footer */}
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 truncate">{item.name}</h3>
+                          <div className="mt-1 flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-500">
+                              {item.units_sold} units sold
+                            </span>
+                            <span className="text-base font-extrabold text-slate-900">
+                              {formatCurrency(item.revenue)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Latest Sale Items List Section */}
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-slate-900">Latest Sale Items</h2>
-                <span className="text-xs font-medium text-slate-400">Recent transactions</span>
-              </div>
-              <Card>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Invoice No</th>
-                        <th className="px-4 py-3 font-semibold">Channel</th>
-                        <th className="px-4 py-3 font-semibold">Date &amp; Time</th>
-                        <th className="px-4 py-3 font-semibold text-right">Amount</th>
-                        <th className="px-4 py-3 font-semibold text-right">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {latestSales.map((sale) => (
-                        <tr key={sale.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="px-4 py-2.5 font-mono font-bold text-indigo-700">{sale.invoice_no}</td>
-                          <td className="px-4 py-2.5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                              sale.channel === 'POS' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {sale.channel}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-slate-500">
-                            {new Date(sale.created_at).toLocaleString('en-IN', {
-                              dateStyle: 'short',
-                              timeStyle: 'short',
-                            })}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-bold text-slate-900">{formatCurrency(sale.grand_total)}</td>
-                          <td className="px-4 py-2.5 text-right">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                              sale.payment_status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {sale.payment_status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {latestSales.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                            No recent sales recorded yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+            {/* Right Column: Authentic Torn Thermal Receipt Timeline Widget */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Receipt Timeline</h2>
+                  <p className="text-xs text-slate-500">Recent completed transactions</p>
                 </div>
-              </Card>
+              </div>
+
+              {/* Realistic Perforated Receipt Container */}
+              <div className="relative mx-auto w-full max-w-sm overflow-hidden rounded-lg bg-[#FAF8F5] p-5 shadow-lg border border-amber-200/60 font-serif text-slate-800">
+                {/* Receipt Header */}
+                <div className="text-center pb-3 border-b border-dashed border-slate-300">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-500">Receipt Timeline Feed</div>
+                  <div className="text-sm font-extrabold text-slate-900 mt-0.5">UNIFIED POS BILLS</div>
+                </div>
+
+                {/* Receipt Timeline Entries */}
+                <div className="py-4 space-y-4 font-sans text-xs">
+                  {latestSales.slice(0, 5).map((sale) => (
+                    <div key={sale.id} className="relative pl-6 border-l-2 border-dashed border-indigo-300">
+                      {/* Node Circle Indicator */}
+                      <span className="absolute -left-[7px] top-0.5 h-3 w-3 rounded-full bg-indigo-600 ring-4 ring-[#FAF8F5]" />
+
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-mono font-bold text-slate-900">{sale.invoice_no}</div>
+                          <div className="text-[11px] text-slate-500">
+                            {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-extrabold text-slate-900">{formatCurrency(sale.grand_total)}</div>
+                          <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                            {sale.payment_status} ✓
+                          </span>
+                        </div>
+                      </div>
+
+                      {sale.items_summary && (
+                        <div className="mt-1 text-[11px] text-slate-600 truncate font-mono">
+                          {sale.items_summary}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {latestSales.length === 0 && (
+                    <p className="py-6 text-center text-xs text-slate-400 italic">No sale receipts available yet.</p>
+                  )}
+                </div>
+
+                {/* Receipt Bottom Total Summary */}
+                <div className="pt-3 border-t border-dashed border-slate-300 font-sans">
+                  <div className="flex items-center justify-between font-bold text-slate-900 text-sm">
+                    <span>Recent Sales Total:</span>
+                    <span>{formatCurrency(totalReceiptsSum)}</span>
+                  </div>
+                  <div className="mt-3 text-center text-[11px] text-slate-400 font-serif italic">
+                    Thank you for your business!
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </>

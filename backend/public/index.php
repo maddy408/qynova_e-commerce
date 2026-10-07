@@ -70,15 +70,21 @@ $router->get('/api/reports/referrals', fn () => $referral->report());
 // Catalog masters (docs/DOCUMENTATION.md section 7)
 $categories = new CategoryController($pdo);
 $router->get('/api/categories', fn () => $categories->index());
+$router->get('/api/categories/{id}', fn ($id) => $categories->show($id));
 $router->post('/api/categories', fn () => $categories->store());
 $router->put('/api/categories/{id}', fn ($id) => $categories->update($id));
 $router->delete('/api/categories/{id}', fn ($id) => $categories->destroy($id));
+$router->post('/api/categories/{id}/image', fn ($id) => $categories->uploadImage($id));
+$router->delete('/api/categories/{id}/image', fn ($id) => $categories->removeImage($id));
 
 $subcategories = new SubcategoryController($pdo);
 $router->get('/api/subcategories', fn () => $subcategories->index());
+$router->get('/api/subcategories/{id}', fn ($id) => $subcategories->show($id));
 $router->post('/api/subcategories', fn () => $subcategories->store());
 $router->put('/api/subcategories/{id}', fn ($id) => $subcategories->update($id));
 $router->delete('/api/subcategories/{id}', fn ($id) => $subcategories->destroy($id));
+$router->post('/api/subcategories/{id}/image', fn ($id) => $subcategories->uploadImage($id));
+$router->delete('/api/subcategories/{id}/image', fn ($id) => $subcategories->removeImage($id));
 
 $masters = new MasterDataController($pdo);
 $router->get('/api/brands', fn () => $masters->indexBrands());
@@ -221,6 +227,9 @@ $router->delete('/api/hold-bills/{id}', fn ($id) => $holdBills->destroy($id));
 $purchases = new PurchaseController($pdo);
 $router->get('/api/suppliers', fn () => $purchases->indexSuppliers());
 $router->post('/api/suppliers', fn () => $purchases->storeSupplier());
+$router->get('/api/suppliers/{id}', fn ($id) => $purchases->showSupplier($id));
+$router->put('/api/suppliers/{id}', fn ($id) => $purchases->updateSupplier($id));
+$router->delete('/api/suppliers/{id}', fn ($id) => $purchases->destroySupplier($id));
 $router->get('/api/purchases', fn () => $purchases->index());
 $router->get('/api/purchases/{id}', fn ($id) => $purchases->show($id));
 $router->post('/api/purchases', fn () => $purchases->store());
