@@ -2,12 +2,22 @@ import axios from 'axios'
 
 const TOKEN_KEY = 'admin_pos_token'
 
-const defaultBaseUrl = typeof window !== 'undefined'
-  ? `http://${window.location.hostname}:8080/api`
-  : 'http://localhost:8080/api'
+export function getApiBaseUrl(): string {
+  if (import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.trim() !== '') {
+    return import.meta.env.VITE_API_BASE_URL
+  }
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    return `http://${window.location.hostname}:8080/api`
+  }
+  return 'http://localhost:8080/api'
+}
+
+export function getApiOrigin(): string {
+  return getApiBaseUrl().replace(/\/api\/?$/, '')
+}
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || defaultBaseUrl,
+  baseURL: getApiBaseUrl(),
 })
 
 export function getToken(): string | null {
@@ -23,6 +33,7 @@ export function clearToken(): void {
 }
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl()
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
