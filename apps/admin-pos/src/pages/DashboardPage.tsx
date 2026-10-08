@@ -65,7 +65,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
-      {/* Top Header with Store Pulse & Action Button */}
+      {/* Top Header with Store Pulse */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#F2E5E7]/70">
         <div>
           <div className="flex items-center gap-3">
@@ -80,24 +80,6 @@ export function DashboardPage() {
           <p className="text-xs sm:text-sm text-[#804652] mt-1 font-medium">
             Real-time business performance, billing velocity, and store analytics
           </p>
-        </div>
-
-        {/* Quick Launch Buttons on Header */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <Link
-            to="/pos-sale"
-            className="inline-flex items-center gap-2 rounded-full bg-[#7B3F4A] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#68343E] hover:shadow-md transition-all hover:scale-[1.02] active:scale-95"
-          >
-            <span>⚡</span>
-            <span>New POS Bill</span>
-          </Link>
-          <Link
-            to="/catalog/products"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#EEDDE0] bg-[#FAF2F4] px-4 py-2 text-xs font-bold text-[#7B3F4A] hover:bg-[#F2E5E7] transition-all"
-          >
-            <span>📦</span>
-            <span className="hidden sm:inline">Add Product</span>
-          </Link>
         </div>
       </div>
 
@@ -257,56 +239,6 @@ export function DashboardPage() {
                 </div>
               </div>
               <div className="text-[10px] font-medium text-slate-500">Zero inventory</div>
-            </div>
-          </div>
-
-          {/* Quick Actions & Store Shortcuts Banner */}
-          <div className="rounded-2xl border border-[#EEDDE0] bg-gradient-to-r from-white via-[#FAF2F4]/60 to-white p-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7B3F4A] text-white shadow-xs">
-                <span className="text-lg">⚡</span>
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-slate-900 tracking-tight uppercase">
-                  Quick Navigation & Terminal Shortcuts
-                </h3>
-                <p className="text-[11px] text-[#804652] font-medium">
-                  Instant access to billing counters, orders, catalog and customer mappings
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to="/pos-sale"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#7B3F4A] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#68343E] transition-all"
-              >
-                <span>POS Counter</span>
-              </Link>
-              <Link
-                to="/catalog/products"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#EEDDE0] bg-white px-3.5 py-1.5 text-xs font-bold text-[#7B3F4A] hover:bg-[#FAF2F4] transition-all shadow-2xs"
-              >
-                <span>Catalog</span>
-              </Link>
-              <Link
-                to="/sales/orders"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#EEDDE0] bg-white px-3.5 py-1.5 text-xs font-bold text-[#7B3F4A] hover:bg-[#FAF2F4] transition-all shadow-2xs"
-              >
-                <span>Orders</span>
-              </Link>
-              <Link
-                to="/sales/invoices"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#EEDDE0] bg-white px-3.5 py-1.5 text-xs font-bold text-[#7B3F4A] hover:bg-[#FAF2F4] transition-all shadow-2xs"
-              >
-                <span>Invoices</span>
-              </Link>
-              <Link
-                to="/sales/customers"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#EEDDE0] bg-white px-3.5 py-1.5 text-xs font-bold text-[#7B3F4A] hover:bg-[#FAF2F4] transition-all shadow-2xs"
-              >
-                <span>Customers</span>
-              </Link>
             </div>
           </div>
 
