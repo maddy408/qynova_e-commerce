@@ -149,38 +149,38 @@ export function CouponsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#F2E5E7] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[10px] font-bold tracking-wider">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Discount</th>
-                <th className="px-4 py-3">Limits</th>
-                <th className="px-4 py-3">First Order</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Action</th>
+                <th className="px-6 py-4 font-black">Code</th>
+                <th className="px-6 py-4 font-black">Name</th>
+                <th className="px-6 py-4 font-black">Discount</th>
+                <th className="px-6 py-4 font-black">Limits</th>
+                <th className="px-6 py-4 font-black">First Order</th>
+                <th className="px-6 py-4 font-black">Status</th>
+                <th className="px-6 py-4 font-black text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2E5E7]">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {coupons.map((c) => (
-                <tr key={c.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
-                  <td className="px-4 py-2.5 font-mono font-bold text-indigo-700 bg-indigo-50/50 rounded">{c.code}</td>
-                  <td className="px-4 py-2.5 font-semibold text-slate-900">{c.name}</td>
-                  <td className="px-4 py-2.5 text-slate-900 font-bold">
+                <tr key={c.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                  <td className="px-6 py-4 font-mono font-extrabold text-[#804652]">{c.code}</td>
+                  <td className="px-6 py-4 font-bold text-slate-950">{c.name}</td>
+                  <td className="px-6 py-4 text-emerald-800 font-extrabold">
                     {c.discount_type === 'PERCENTAGE' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
                   </td>
-                  <td className="px-4 py-2.5 text-slate-600 font-medium">
+                  <td className="px-6 py-4 text-slate-700 font-semibold">
                     {c.usage_limit ? `${c.usage_limit} total uses` : 'Unlimited'}
                   </td>
-                  <td className="px-4 py-2.5">
-                    {c.first_order_only ? <Badge tone="amber">1st Order Only</Badge> : <span className="text-slate-400">—</span>}
+                  <td className="px-6 py-4">
+                    {c.first_order_only ? <Badge tone="amber">1st Order Only</Badge> : <span className="text-slate-500 font-bold">—</span>}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-6 py-4">
                     <Badge tone={c.status === 'ACTIVE' ? 'green' : 'slate'}>{c.status}</Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => toggleStatus(c)}
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                      className="text-xs font-bold text-[#804652] hover:text-[#5a2c36] transition-colors cursor-pointer"
                     >
                       {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                     </button>
@@ -189,7 +189,7 @@ export function CouponsPage() {
               ))}
               {coupons.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
                     No coupons created yet.
                   </td>
                 </tr>

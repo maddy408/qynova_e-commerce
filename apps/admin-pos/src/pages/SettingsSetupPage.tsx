@@ -158,27 +158,47 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
       {savedMsg && <Alert tone="green">{savedMsg}</Alert>}
       {priceError && <Alert tone="red">{priceError}</Alert>}
 
-      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[#F9F3F4] border-[#EEDDE0]">
-        {[
-          { id: 'company', label: 'Company Details' },
-          { id: 'prices', label: 'Price Settings (Wholesale / Retail / Customer-Wise)' },
-          { id: 'prefix', label: 'Invoice Prefix' },
-          { id: 'printer', label: 'Thermal Printer Setup' },
-          { id: 'scanner', label: 'WiFi Scanner Setup' },
-        ].map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
-              tab === t.id
-                ? 'bg-[#7B3F4A] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex border-b border-slate-200 text-xs font-semibold overflow-x-auto">
+        <button
+          onClick={() => setTab('company')}
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
+            tab === 'company' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Company Details
+        </button>
+        <button
+          onClick={() => setTab('prices')}
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
+            tab === 'prices' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Price Settings (Wholesale / Retail / Customer-Wise)
+        </button>
+        <button
+          onClick={() => setTab('prefix')}
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
+            tab === 'prefix' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Invoice Prefix
+        </button>
+        <button
+          onClick={() => setTab('printer')}
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
+            tab === 'printer' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Thermal Printer Setup
+        </button>
+        <button
+          onClick={() => setTab('scanner')}
+          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
+            tab === 'scanner' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          WiFi Scanner Setup
+        </button>
       </div>
 
       <Card className="p-6 space-y-4">
@@ -245,52 +265,52 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
             ) : (
               <div className="overflow-x-auto border border-[#F2E5E7] rounded-2xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF2F4]/80 border-b border-[#F2E5E7] uppercase font-bold text-[#804652] text-[10px] tracking-wider">
+                  <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                     <tr>
-                      <th className="px-3 py-3">Item / SKU</th>
-                      <th className="px-3 py-3 text-right">MRP (₹)</th>
-                      <th className="px-3 py-3 text-center bg-[#FAF2F4]">Retail Rate (₹)</th>
-                      <th className="px-3 py-3 text-center bg-amber-50/50">Wholesale Rate (₹)</th>
-                      <th className="px-3 py-3 text-center bg-rose-50/40">Customer-Wise Rate (₹)</th>
+                      <th className="px-4 py-3">Item / SKU</th>
+                      <th className="px-4 py-3 text-right">MRP (₹)</th>
+                      <th className="px-4 py-3 text-center bg-[#F2E5E7]/60">Retail Rate (₹)</th>
+                      <th className="px-4 py-3 text-center bg-[#EEDDE0]/60">Wholesale Rate (₹)</th>
+                      <th className="px-4 py-3 text-center bg-[#FAF2F4]/60">Customer-Wise Rate (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2E5E7]">
+                  <tbody className="divide-y divide-[#F0E0E3]">
                     {filteredPriceVariants.map((v) => (
-                      <tr key={v.variant_id} className="hover:bg-slate-50/70">
-                        <td className="px-3 py-2">
-                          <div className="font-semibold text-slate-900">{v.product_name}</div>
-                          <div className="text-[11px] font-mono text-slate-400">{v.sku}</div>
+                      <tr key={v.variant_id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-bold text-slate-950 text-sm">{v.product_name}</div>
+                          <div className="text-[11px] font-mono text-slate-600 font-semibold">{v.sku}</div>
                         </td>
-                        <td className="px-3 py-2 text-right font-medium text-slate-500">
+                        <td className="px-4 py-2.5 text-right font-bold text-slate-900">
                           ₹{Number(v.mrp || 0).toFixed(2)}
                         </td>
-                        <td className="px-3 py-2 bg-indigo-50/20">
+                        <td className="px-4 py-2.5 bg-[#FAF2F4]/40">
                           <input
                             type="number"
                             step="0.01"
                             value={v.retail_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'retail_price', e.target.value)}
-                            className="w-28 text-center font-semibold text-slate-900 rounded border border-slate-300 p-1 focus:ring-2 focus:ring-indigo-500"
+                            className="w-28 text-center font-bold text-slate-950 rounded-lg border border-[#E8CCD1] bg-white p-1.5 focus:ring-2 focus:ring-[#804652]"
                             placeholder="0.00"
                           />
                         </td>
-                        <td className="px-3 py-2 bg-amber-50/20">
+                        <td className="px-4 py-2.5 bg-[#F8EAED]/40">
                           <input
                             type="number"
                             step="0.01"
                             value={v.wholesale_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'wholesale_price', e.target.value)}
-                            className="w-28 text-center font-semibold text-amber-900 rounded border border-amber-300 p-1 focus:ring-2 focus:ring-amber-500"
+                            className="w-28 text-center font-bold text-[#804652] rounded-lg border border-[#E8CCD1] bg-white p-1.5 focus:ring-2 focus:ring-[#804652]"
                             placeholder="0.00"
                           />
                         </td>
-                        <td className="px-3 py-2 bg-teal-50/20">
+                        <td className="px-4 py-2.5 bg-[#FAF2F4]/40">
                           <input
                             type="number"
                             step="0.01"
                             value={v.customer_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'customer_price', e.target.value)}
-                            className="w-28 text-center font-semibold text-teal-900 rounded border border-teal-300 p-1 focus:ring-2 focus:ring-teal-500"
+                            className="w-28 text-center font-bold text-emerald-950 rounded-lg border border-[#E8CCD1] bg-white p-1.5 focus:ring-2 focus:ring-emerald-700"
                             placeholder="0.00"
                           />
                         </td>
@@ -298,7 +318,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                     ))}
                     {filteredPriceVariants.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={5} className="px-4 py-8 text-center font-semibold text-slate-500">
                           No items found matching search.
                         </td>
                       </tr>

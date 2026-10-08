@@ -272,20 +272,20 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       <div className="inline-flex items-center gap-1 bg-white border border-[#F2E5E7] p-1 rounded-full shadow-sm">
         <button
           onClick={() => handleMainTabChange('OPENING_STOCK')}
-          className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
+          className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-all cursor-pointer ${
             mainTab === 'OPENING_STOCK'
-              ? 'bg-[#7B3F4A] text-white shadow-sm'
-              : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
+              ? 'bg-[#804652] text-white shadow-xs'
+              : 'text-slate-700 hover:text-slate-950 font-bold'
           }`}
         >
           📦 Opening Stock
         </button>
         <button
           onClick={() => handleMainTabChange('ADJUSTMENTS')}
-          className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
+          className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-all cursor-pointer ${
             mainTab === 'ADJUSTMENTS'
-              ? 'bg-[#7B3F4A] text-white shadow-sm'
-              : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
+              ? 'bg-[#804652] text-white shadow-xs'
+              : 'text-slate-700 hover:text-slate-950 font-bold'
           }`}
         >
           🔧 Adjustments &amp; History
@@ -296,14 +296,14 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         <div className="space-y-4">
           <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-xl font-serif font-bold text-slate-900">Manual Opening Stock Entry</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h2 className="text-base font-bold text-slate-950">Manual Opening Stock Entry</h2>
+              <p className="text-xs text-slate-600 font-medium">
                 Enter opening stock quantities and click Save. Unsaved edits auto-save when paginating.
               </p>
             </div>
             <div className="flex items-center gap-3">
               {autoSaveStatus && (
-                <span className="text-xs font-semibold text-[#804652] animate-pulse bg-[#FAF2F4] px-2.5 py-1 rounded-full border border-[#EEDDE0]">
+                <span className="text-xs font-bold text-[#804652] animate-pulse bg-[#FAF2F4] px-2.5 py-1 rounded-full border border-[#EEDDE0]">
                   {autoSaveStatus}
                 </span>
               )}
@@ -323,7 +323,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               <button
                 onClick={handleManualSaveOpening}
                 disabled={savingOpening}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#7B3F4A] hover:bg-[#6a3340] text-white text-xs font-semibold transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#804652] hover:bg-[#6e3743] text-white text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
               >
                 {savingOpening ? 'Saving Stock…' : 'Save Opening Stock'}
               </button>
@@ -336,28 +336,28 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#F2E5E7] bg-[#FAF2F4]">
-                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Product Title</th>
-                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">SKU / Barcode</th>
-                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Current On-Hand</th>
-                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Manual Opening Stock Input</th>
-                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Status</th>
+                  <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4 font-black">Product Title</th>
+                      <th className="px-6 py-4 font-black">SKU / Barcode</th>
+                      <th className="px-6 py-4 font-black">Current On-Hand</th>
+                      <th className="px-6 py-4 font-black">Manual Opening Stock Input</th>
+                      <th className="px-6 py-4 font-black text-right">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2E5E7]">
+                  <tbody className="divide-y divide-[#F0E0E3]">
                     {openingItems.map((item) => {
                       const isDirty = dirtyVariantIds.has(item.variant_id)
                       const currentVal = openingInputs[item.variant_id] ?? String(Number(item.on_hand) || 0)
 
                       return (
-                        <tr key={item.variant_id} className={`hover:bg-[#FAF2F4]/60 transition-colors ${isDirty ? 'bg-[#FAF2F4]/40' : ''}`}>
-                          <td className="px-6 py-3 font-semibold text-slate-900">{item.product_name}</td>
-                          <td className="px-6 py-3 font-mono text-slate-600">
+                        <tr key={item.variant_id} className={`hover:bg-[#FAF2F4]/80 transition-colors ${isDirty ? 'bg-[#FAF2F4]/50' : ''}`}>
+                          <td className="px-6 py-4 font-bold text-slate-950">{item.product_name}</td>
+                          <td className="px-6 py-4 font-mono font-bold text-[#804652]">
                             {item.sku} {item.barcode ? `(${item.barcode})` : ''}
                           </td>
-                          <td className="px-6 py-3 font-bold text-slate-700">{item.on_hand} units</td>
-                          <td className="px-6 py-3">
+                          <td className="px-6 py-4 font-extrabold text-slate-900">{item.on_hand} units</td>
+                          <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
@@ -365,13 +365,13 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 step="1"
                                 value={currentVal}
                                 onChange={(e) => handleOpeningInputChange(item.variant_id, e.target.value)}
-                                className={`w-32 rounded-full border px-3 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 ${
-                                  isDirty ? 'border-[#804652] bg-[#FAF2F4] ring-1 ring-[#EEDDE0]' : 'border-[#EEDDE0] bg-white'
+                                className={`w-32 rounded-2xl border px-3.5 py-1.5 text-xs font-extrabold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652] ${
+                                  isDirty ? 'border-[#804652] bg-[#FAF2F4] ring-1 ring-[#804652]' : 'border-[#EEDDE0] bg-[#FAF2F4]/30'
                                 }`}
                               />
                             </div>
                           </td>
-                          <td className="px-6 py-3 text-right">
+                          <td className="px-6 py-4 text-right">
                             {isDirty ? (
                               <Badge tone="amber">Unsaved Edits</Badge>
                             ) : (
@@ -383,7 +383,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     })}
                     {openingItems.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                        <td colSpan={5} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
                           No items match "{openingSearch}".
                         </td>
                       </tr>
@@ -394,16 +394,16 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             )}
 
             {/* Pagination with Background Auto-Save */}
-            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs">
-              <span className="text-stone-500">
-                Page <span className="font-bold text-stone-900">{openingPage}</span> of <span className="font-bold text-stone-900">{totalPages}</span> ({openingTotal} total items)
+            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-4 bg-[#FAF2F4]/30 text-xs">
+              <span className="text-slate-600 font-medium">
+                Page <span className="font-extrabold text-slate-950">{openingPage}</span> of <span className="font-extrabold text-slate-950">{totalPages}</span> ({openingTotal} total items)
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={openingPage <= 1}
                   onClick={() => handlePageChange(openingPage - 1)}
-                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs"
+                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs cursor-pointer"
                 >
                   ← Previous
                 </button>
@@ -417,8 +417,8 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <button
                       key={pNum}
                       onClick={() => handlePageChange(pNum)}
-                      className={`h-7 w-7 rounded-full font-bold text-xs transition-colors ${
-                        pNum === openingPage ? 'bg-[#7B3F4A] text-white' : 'bg-white border border-[#EEDDE0] text-slate-700 hover:bg-[#FAF2F4]'
+                      className={`h-7 w-7 rounded-full font-bold text-xs transition-colors cursor-pointer ${
+                        pNum === openingPage ? 'bg-[#804652] text-white shadow-xs' : 'bg-white border border-[#EEDDE0] text-slate-800 hover:bg-[#FAF2F4]'
                       }`}
                     >
                       {pNum}
@@ -428,7 +428,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                 <button
                   disabled={openingPage >= totalPages}
                   onClick={() => handlePageChange(openingPage + 1)}
-                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs"
+                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs cursor-pointer"
                 >
                   Next →
                 </button>

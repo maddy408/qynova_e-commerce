@@ -51,25 +51,29 @@ export function PaymentMethodsPage() {
         <Spinner />
       ) : (
         <Card>
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-[#F2E5E7] text-[10px] font-bold uppercase tracking-wider text-[#804652] bg-[#FAF2F4]/80">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
-                <th className="px-5 py-3">Code</th>
-                <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3"></th>
+                <th className="px-6 py-4 font-black">Code</th>
+                <th className="px-6 py-4 font-black">Name</th>
+                <th className="px-6 py-4 font-black">Status</th>
+                <th className="px-6 py-4 font-black text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2E5E7]">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {methods.map((m) => (
-                <tr key={m.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
-                  <td className="px-5 py-3 font-mono text-xs text-slate-600 font-bold">{m.code}</td>
-                  <td className="px-5 py-3 font-semibold text-slate-900">{m.name}</td>
-                  <td className="px-5 py-3">
+                <tr key={m.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                  <td className="px-6 py-4 font-mono font-bold text-[#804652]">{m.code}</td>
+                  <td className="px-6 py-4 font-bold text-slate-950">{m.name}</td>
+                  <td className="px-6 py-4">
                     <Badge tone={m.is_active ? 'green' : 'slate'}>{m.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <button type="button" onClick={() => toggleActive(m)} className="text-xs font-bold text-[#7B3F4A] hover:underline">
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(m)}
+                      className="text-xs font-bold text-[#804652] hover:text-[#5a2c36] transition-colors cursor-pointer"
+                    >
                       {m.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                   </td>
@@ -77,7 +81,7 @@ export function PaymentMethodsPage() {
               ))}
               {methods.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
                     No payment methods yet.
                   </td>
                 </tr>

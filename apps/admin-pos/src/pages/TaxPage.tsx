@@ -172,8 +172,8 @@ export function TaxPage() {
       <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
         <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex items-center justify-between bg-white">
           <div>
-            <h3 className="text-xl font-serif font-bold text-slate-900">GST Rates &amp; Split Slabs</h3>
-            <p className="text-xs text-slate-500 mt-0.5">CGST, SGST, IGST breakup for invoices and purchases</p>
+            <h3 className="text-xl font-bold text-slate-950">GST Rates &amp; Split Slabs</h3>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">CGST, SGST, IGST breakup for invoices and purchases</p>
           </div>
           <button
             type="button"
@@ -275,8 +275,8 @@ export function TaxPage() {
       <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
         <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex items-center justify-between bg-white">
           <div>
-            <h3 className="text-xl font-serif font-bold text-slate-900">HSN &amp; SAC Codes</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Harmonized System Nomenclature mapping for GST filing</p>
+            <h3 className="text-xl font-bold text-slate-950">HSN &amp; SAC Codes</h3>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">Harmonized System Nomenclature mapping for GST filing</p>
           </div>
           <button
             type="button"

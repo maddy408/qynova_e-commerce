@@ -694,20 +694,20 @@ function VariantsSection({
       {product.variants.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
-                <th className="py-2 pr-3 font-medium">Variant</th>
-                <th className="py-2 pr-3 font-medium">SKU</th>
-                <th className="py-2 pr-3 font-medium">MRP</th>
-                <th className="py-2 pr-3 font-medium">Price</th>
-                <th className="py-2 pr-3 font-medium">Stock</th>
-                <th className="py-2 pr-3 font-medium">Low Stock Alert</th>
-                <th className="py-2 pr-3 font-medium">Status</th>
-                <th className="py-2 pr-3 font-medium">Images</th>
-                <th className="py-2 pr-3 font-medium"></th>
+                <th className="py-3 px-3">Variant</th>
+                <th className="py-3 px-3">SKU</th>
+                <th className="py-3 px-3">MRP</th>
+                <th className="py-3 px-3">Price</th>
+                <th className="py-3 px-3">Stock</th>
+                <th className="py-3 px-3">Low Stock Alert</th>
+                <th className="py-3 px-3">Status</th>
+                <th className="py-3 px-3">Images</th>
+                <th className="py-3 px-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {product.variants.map((v) => {
                 const label = v.attribute_values.map((a) => a.value).join(' / ') || '—';
                 const editValues = editing[v.id];

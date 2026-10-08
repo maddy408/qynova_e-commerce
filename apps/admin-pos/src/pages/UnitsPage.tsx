@@ -90,8 +90,8 @@ export function UnitsPage() {
           {/* Card Header with Search and New Unit Button */}
           <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
-              <h3 className="text-xl font-serif font-bold text-slate-900">All Measurement Units</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h3 className="text-xl font-bold text-slate-950">All Measurement Units</h3>
+              <p className="text-xs text-slate-600 mt-0.5 font-medium">
                 Showing {filteredUnits.length} of {units.length} units
               </p>
             </div>

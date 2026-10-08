@@ -55,17 +55,17 @@ export function LoginPage() {
             </svg>
           </div>
           <div>
-            <span className="font-serif text-base font-bold tracking-widest text-[#4A1821] uppercase">
+            <span className="text-base font-extrabold tracking-widest text-[#4A1821] uppercase">
               QYNOVA
             </span>
-            <p className="text-[8px] font-bold tracking-[0.2em] text-[#804652]/80 uppercase">
+            <p className="text-[8px] font-bold tracking-[0.2em] text-[#804652]/90 uppercase">
               Unified Commerce &amp; POS
             </p>
           </div>
         </div>
 
         <div className="hidden sm:flex items-center gap-3">
-          <span className="text-xs font-serif italic text-[#7A4550]">
+          <span className="text-xs font-semibold text-[#7A4550]">
             Craft Your Store Experience
           </span>
           <div className="w-6 h-[1px] bg-[#804652]/40" />
@@ -88,10 +88,10 @@ export function LoginPage() {
           </div>
 
           {/* Heading & Subtitle */}
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#4A1821] tracking-tight mb-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#4A1821] tracking-tight mb-1">
             Welcome
           </h1>
-          <p className="text-xs text-[#7A4550] font-light leading-relaxed mb-4">
+          <p className="text-xs text-[#7A4550] font-medium leading-relaxed mb-4">
             Log in to manage your unified store &amp; POS
           </p>
 

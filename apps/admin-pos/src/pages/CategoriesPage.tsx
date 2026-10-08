@@ -139,47 +139,6 @@ export function CategoriesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ================= QUICK VIEW BY CATEGORY ================= */}
-      {categories !== null && categories.length > 0 && (
-        <div className="rounded-3xl bg-white p-6 border border-[#F2E5E7] shadow-2xs">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="h-[1px] bg-[#EEDDE0] flex-1 max-w-[140px]"></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#804652]">
-              QUICK VIEW BY CATEGORY
-            </span>
-            <div className="h-[1px] bg-[#EEDDE0] flex-1 max-w-[140px]"></div>
-          </div>
-
-          <div className="flex items-center justify-center gap-6 sm:gap-10 overflow-x-auto py-2 scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setViewingCategory(cat)}
-                className="group flex flex-col items-center gap-2.5 shrink-0 focus:outline-none"
-              >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-[#EEDDE0] group-hover:border-[#7B3F4A] group-hover:scale-105 transition-all p-0.5 bg-white shadow-2xs">
-                  {imageUrl(cat.thumb_path ?? cat.image_path) ? (
-                    <img
-                      src={imageUrl(cat.thumb_path ?? cat.image_path)!}
-                      alt={cat.name}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-[#FAF2F4] flex items-center justify-center text-[#804652]">
-                      <span className="font-bold text-sm">{cat.name.slice(0, 2).toUpperCase()}</span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 group-hover:text-[#7B3F4A] transition-colors max-w-[105px] text-center truncate">
-                  {cat.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ================= ALL CATEGORIES TABLE ================= */}
       {categories === null ? (
         <div className="p-12 text-center">
@@ -190,8 +149,8 @@ export function CategoriesPage() {
           {/* Card Header with Filters, Search and New Category Button */}
           <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
-              <h3 className="text-xl font-serif font-bold text-slate-900">All Categories</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h3 className="text-xl font-bold text-slate-950">All Categories</h3>
+              <p className="text-xs text-slate-600 mt-0.5 font-medium">
                 Showing {filteredCategories.length} of {categories.length}
               </p>
             </div>

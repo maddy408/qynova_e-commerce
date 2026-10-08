@@ -54,37 +54,37 @@ export function OrdersPage() {
         <Spinner />
       ) : (
         <Card>
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
-                <th className="px-5 py-3 font-medium">Order</th>
-                <th className="px-5 py-3 font-medium">Customer</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Payment</th>
-                <th className="px-5 py-3 font-medium">Total</th>
-                <th className="px-5 py-3 font-medium">Date</th>
+                <th className="px-6 py-4">Order</th>
+                <th className="px-6 py-4">Customer</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Payment</th>
+                <th className="px-6 py-4">Total</th>
+                <th className="px-6 py-4">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {orders.map((o) => (
-                <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer hover:bg-slate-50">
-                  <td className="px-5 py-3 font-medium text-slate-900">{o.order_no}</td>
-                  <td className="px-5 py-3 text-slate-600">{o.customer_name}</td>
-                  <td className="px-5 py-3">
+                <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer hover:bg-[#FAF2F4]/80 transition-colors">
+                  <td className="px-6 py-4 font-bold text-slate-950">{o.order_no}</td>
+                  <td className="px-6 py-4 font-semibold text-slate-800">{o.customer_name}</td>
+                  <td className="px-6 py-4">
                     <Badge tone={STATUS_TONE[o.status] ?? 'slate'}>{o.status.replace(/_/g, ' ')}</Badge>
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-6 py-4">
                     <Badge tone={o.payment_status === 'PAID' ? 'green' : o.payment_status === 'FAILED' ? 'red' : 'amber'}>
                       {o.payment_status}
                     </Badge>
                   </td>
-                  <td className="px-5 py-3 text-slate-600">₹{o.grand_total}</td>
-                  <td className="px-5 py-3 text-slate-500">{new Date(o.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 font-extrabold text-slate-950">₹{o.grand_total}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-slate-700">{new Date(o.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
                     No orders found.
                   </td>
                 </tr>

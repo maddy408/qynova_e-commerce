@@ -210,8 +210,8 @@ export function SubcategoriesPage() {
           {/* Card Header with Filters, Search and New Subcategory Button */}
           <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
-              <h3 className="text-xl font-serif font-bold text-slate-900">All Subcategories</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <h3 className="text-xl font-bold text-slate-950">All Subcategories</h3>
+              <p className="text-xs text-slate-600 mt-0.5 font-medium">
                 Showing {filteredSubcategories.length} of {subcategories.length}
               </p>
             </div>

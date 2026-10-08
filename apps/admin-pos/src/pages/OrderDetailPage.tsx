@@ -146,29 +146,29 @@ export function OrderDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card className="p-5">
-            <h2 className="mb-3 text-sm font-semibold text-slate-900">Items</h2>
+          <Card className="p-6 border border-[#F2E5E7]">
+            <h2 className="mb-4 text-base font-bold text-slate-950">Items</h2>
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                 <tr>
-                  <th className="pb-2 font-medium">Product</th>
-                  <th className="pb-2 font-medium">Qty</th>
-                  <th className="pb-2 font-medium">Price</th>
-                  <th className="pb-2 font-medium">Total</th>
+                  <th className="px-4 py-3">Product</th>
+                  <th className="px-4 py-3">Qty</th>
+                  <th className="px-4 py-3">Price</th>
+                  <th className="px-4 py-3">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#F0E0E3]">
                 {order.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="py-2">
-                      <p className="font-medium text-slate-900">{item.product_name_snapshot}</p>
-                      <p className="text-xs text-slate-500">
-                        {item.variant_label_snapshot} · {item.sku_snapshot}
+                  <tr key={item.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                    <td className="px-4 py-3.5">
+                      <p className="font-bold text-slate-950">{item.product_name_snapshot}</p>
+                      <p className="text-xs font-semibold text-slate-600">
+                        {item.variant_label_snapshot} · <span className="font-mono">{item.sku_snapshot}</span>
                       </p>
                     </td>
-                    <td className="py-2 text-slate-600">{item.quantity}</td>
-                    <td className="py-2 text-slate-600">₹{item.unit_price}</td>
-                    <td className="py-2 text-slate-600">₹{item.line_total}</td>
+                    <td className="px-4 py-3.5 font-bold text-slate-900">{item.quantity}</td>
+                    <td className="px-4 py-3.5 font-bold text-slate-900">₹{item.unit_price}</td>
+                    <td className="px-4 py-3.5 font-black text-slate-950">₹{item.line_total}</td>
                   </tr>
                 ))}
               </tbody>

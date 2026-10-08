@@ -1158,13 +1158,6 @@ export function ProductCreatePage() {
                 ))}
               </Select>
             </div>
-
-            <TextField
-              label="Tags / Search Keywords"
-              value={searchKeywords}
-              onChange={(e) => setSearchKeywords(e.target.value)}
-              placeholder="e.g. summer, cotton, top"
-            />
           </Card>
 
           {/* Search Engine Listing Preview Card (SEO) */}
@@ -1196,6 +1189,12 @@ export function ProductCreatePage() {
               value={metaDescription}
               onChange={(e) => setMetaDescription(e.target.value)}
               placeholder="SEO Meta Description"
+            />
+            <TextField
+              label="Search Tags / Keywords"
+              value={searchKeywords}
+              onChange={(e) => setSearchKeywords(e.target.value)}
+              placeholder="e.g. summer, cotton, top"
             />
           </Card>
         </div>

@@ -176,23 +176,23 @@ export function ProductsPage() {
         /* Table View */
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
-                <th className="px-4 py-2.5 font-semibold">Product</th>
-                <th className="px-4 py-2.5 font-semibold">Brand</th>
-                <th className="px-4 py-2.5 font-semibold">Price Range</th>
-                <th className="px-4 py-2.5 font-semibold">Variants</th>
-                <th className="px-4 py-2.5 font-semibold">Stock</th>
-                <th className="px-4 py-2.5 font-semibold">Status</th>
-                <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
+                <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">Brand</th>
+                <th className="px-4 py-3">Price Range</th>
+                <th className="px-4 py-3">Variants</th>
+                <th className="px-4 py-3">Stock</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {products.map((p) => (
                 <tr
                   key={p.id}
                   onClick={() => navigate(`/products/${p.id}`)}
-                  className="cursor-pointer hover:bg-slate-50/50 transition-colors"
+                  className="cursor-pointer hover:bg-[#FAF2F4]/80 transition-colors"
                 >
                   <td className="px-4 py-2.5 flex items-center gap-3">
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded bg-slate-100 border border-slate-200 flex items-center justify-center">

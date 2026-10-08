@@ -67,44 +67,44 @@ export function BannersPage() {
       {banners === null ? (
         <Spinner />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {banners.map((b) => (
-            <Card key={b.id} className="overflow-hidden">
-              <div className="flex h-32 items-center justify-center bg-slate-100">
+            <Card key={b.id} className="overflow-hidden border border-[#F2E5E7] hover:shadow-md transition-shadow">
+              <div className="flex h-36 items-center justify-center bg-[#FAF2F4]">
                 {b.image_desktop_path ? (
                   <img src={imageUrl(b.image_desktop_path)} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-xs text-slate-400">No image</span>
+                  <span className="text-xs font-bold text-[#804652]">No image</span>
                 )}
               </div>
               <div className="p-4">
                 <div className="mb-2 flex items-start justify-between gap-2">
-                  <p className="font-medium text-slate-900">{b.title}</p>
+                  <p className="font-bold text-slate-950 text-base">{b.title}</p>
                   <Badge tone={b.is_active ? 'green' : 'slate'}>{b.is_active ? 'Active' : 'Inactive'}</Badge>
                 </div>
-                <div className="mb-3 flex flex-wrap gap-1 text-xs text-slate-500">
+                <div className="mb-3 flex flex-wrap gap-1.5 text-xs text-slate-700 font-semibold">
                   <Badge>{b.position.replace('_', ' ')}</Badge>
                   <Badge>{b.target_type}</Badge>
                   {b.items.length > 0 && <Badge tone="amber">{b.items.length} item(s)</Badge>}
                 </div>
-                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-[#F2E5E7]">
+                <div className="flex items-center justify-end gap-1.5 pt-3 border-t border-[#F0E0E3]">
                   <button
                     onClick={() => setEditing(b)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
+                    className="p-1.5 rounded-lg text-slate-600 hover:bg-[#FAF2F4] hover:text-[#804652] transition-colors cursor-pointer"
                     title="Manage / Edit Banner"
                   >
                     <PencilIcon />
                   </button>
                   <button
                     onClick={() => toggleActive(b)}
-                    className={`p-1.5 rounded-lg transition-colors ${b.is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[#FAF2F4]'}`}
+                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${b.is_active ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[#FAF2F4]'}`}
                     title={b.is_active ? 'Deactivate Banner' : 'Activate Banner'}
                   >
                     <PowerIcon />
                   </button>
                   <button
                     onClick={() => removeBanner(b.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                     title="Delete Banner"
                   >
                     <TrashIcon />
@@ -114,7 +114,7 @@ export function BannersPage() {
             </Card>
           ))}
           {banners.length === 0 && (
-            <Card className="col-span-full p-8 text-center text-sm text-slate-500">No banners yet.</Card>
+            <Card className="col-span-full p-8 text-center text-sm font-semibold text-slate-500">No banners yet.</Card>
           )}
         </div>
       )}

@@ -296,9 +296,9 @@ export function SuppliersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs">
-              <span className="text-slate-500">
-                Page <span className="font-bold text-slate-900">{page}</span> of <span className="font-bold text-slate-900">{totalPages}</span> ({total} suppliers)
+            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-4 text-xs font-semibold text-slate-700 bg-[#FAF2F4]/30">
+              <span>
+                Page <span className="font-extrabold text-slate-950">{page}</span> of <span className="font-extrabold text-slate-950">{totalPages}</span> ({total} suppliers)
               </span>
               <div className="flex items-center gap-2">
                 <button

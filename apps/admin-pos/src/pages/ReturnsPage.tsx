@@ -189,67 +189,67 @@ export function ReturnsPage() {
       {error && <Alert>{error}</Alert>}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 p-1 bg-[#FAF2F4] rounded-full border border-[#EEDDE0] w-fit">
         <button
           onClick={() => setActiveTab('SALE')}
-          className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
-            activeTab === 'SALE' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-100'
+          className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
+            activeTab === 'SALE' ? 'bg-[#804652] text-white shadow-xs' : 'text-slate-700 hover:text-slate-950 font-bold'
           }`}
         >
           Sale Returns ({saleReturns.length})
         </button>
         <button
           onClick={() => setActiveTab('PURCHASE')}
-          className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
-            activeTab === 'PURCHASE' ? 'bg-indigo-600 text-white shadow' : 'bg-white text-slate-600 hover:bg-slate-100'
+          className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
+            activeTab === 'PURCHASE' ? 'bg-[#804652] text-white shadow-xs' : 'text-slate-700 hover:text-slate-950 font-bold'
           }`}
         >
           Purchase Returns ({purchaseReturns.length})
         </button>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card>
         {loading ? (
-          <div className="p-8 text-center text-sm text-slate-500">Loading return records…</div>
+          <div className="p-8 text-center text-xs font-semibold text-slate-500">Loading return records…</div>
         ) : activeTab === 'SALE' ? (
           saleReturns.length === 0 ? (
-            <div className="p-12 text-center text-sm text-slate-500">
+            <div className="p-12 text-center text-xs font-semibold text-slate-500">
               No sale returns recorded yet. Click "+ New Sale Return" above to process one.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Return No</th>
-                    <th className="px-4 py-3 font-semibold">Customer</th>
-                    <th className="px-4 py-3 font-semibold">Reason</th>
-                    <th className="px-4 py-3 font-semibold">Items Returned</th>
-                    <th className="px-4 py-3 font-semibold">Total Amount</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Date</th>
+                    <th className="px-6 py-4 font-black">Return No</th>
+                    <th className="px-6 py-4 font-black">Customer</th>
+                    <th className="px-6 py-4 font-black">Reason</th>
+                    <th className="px-6 py-4 font-black">Items Returned</th>
+                    <th className="px-6 py-4 font-black">Total Amount</th>
+                    <th className="px-6 py-4 font-black">Status</th>
+                    <th className="px-6 py-4 font-black">Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[#F0E0E3]">
                   {saleReturns.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-4 py-3 font-mono font-bold text-indigo-700">{r.return_no}</td>
-                      <td className="px-4 py-3 font-medium text-slate-900">{r.customer_name || 'Walk-in Customer'}</td>
-                      <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.reason}</td>
-                      <td className="px-4 py-3">
-                        <div className="space-y-0.5 text-xs text-slate-700">
+                    <tr key={r.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-[#804652]">{r.return_no}</td>
+                      <td className="px-6 py-4 font-bold text-slate-950">{r.customer_name || 'Walk-in Customer'}</td>
+                      <td className="px-6 py-4 font-medium text-slate-700 max-w-xs truncate">{r.reason}</td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-0.5 text-xs text-slate-800">
                           {r.items?.map((item: any) => (
                             <div key={item.id}>
-                              <span className="font-semibold">{item.qty}x</span> {item.product_name} ({item.sku})
+                              <span className="font-bold">{item.qty}x</span> {item.product_name} ({item.sku})
                             </div>
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-bold text-emerald-700">₹{Number(r.total_amount).toFixed(2)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4 font-extrabold text-emerald-800">₹{Number(r.total_amount).toFixed(2)}</td>
+                      <td className="px-6 py-4">
                         <Badge tone="green">{r.refund_status}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-600">{new Date(r.created_at).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -257,43 +257,43 @@ export function ReturnsPage() {
             </div>
           )
         ) : purchaseReturns.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-500">
+          <div className="p-12 text-center text-xs font-semibold text-slate-500">
             No purchase returns recorded yet. Click "+ New Purchase Return" above to process one.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Return No</th>
-                  <th className="px-4 py-3 font-semibold">Supplier</th>
-                  <th className="px-4 py-3 font-semibold">Reason</th>
-                  <th className="px-4 py-3 font-semibold">Items Returned</th>
-                  <th className="px-4 py-3 font-semibold">Total Amount</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-6 py-4 font-black">Return No</th>
+                  <th className="px-6 py-4 font-black">Supplier</th>
+                  <th className="px-6 py-4 font-black">Reason</th>
+                  <th className="px-6 py-4 font-black">Items Returned</th>
+                  <th className="px-6 py-4 font-black">Total Amount</th>
+                  <th className="px-6 py-4 font-black">Status</th>
+                  <th className="px-6 py-4 font-black">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#F0E0E3]">
                 {purchaseReturns.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/80 transition">
-                    <td className="px-4 py-3 font-mono font-bold text-indigo-700">{r.return_no}</td>
-                    <td className="px-4 py-3 font-medium text-slate-900">{r.supplier_name || 'General Supplier'}</td>
-                    <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.reason}</td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-0.5 text-xs text-slate-700">
+                  <tr key={r.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                    <td className="px-6 py-4 font-mono font-bold text-[#804652]">{r.return_no}</td>
+                    <td className="px-6 py-4 font-bold text-slate-950">{r.supplier_name || 'General Supplier'}</td>
+                    <td className="px-6 py-4 font-medium text-slate-700 max-w-xs truncate">{r.reason}</td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-0.5 text-xs text-slate-800">
                         {r.items?.map((item: any) => (
                           <div key={item.id}>
-                            <span className="font-semibold">{item.qty}x</span> {item.product_name} ({item.sku})
+                            <span className="font-bold">{item.qty}x</span> {item.product_name} ({item.sku})
                           </div>
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-bold text-emerald-700">₹{Number(r.total_amount).toFixed(2)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4 font-extrabold text-emerald-800">₹{Number(r.total_amount).toFixed(2)}</td>
+                    <td className="px-6 py-4">
                       <Badge tone="green">{r.refund_status}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-600">{new Date(r.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

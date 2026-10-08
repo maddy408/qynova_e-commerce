@@ -58,37 +58,37 @@ export function DeliveriesPage() {
         <Spinner />
       ) : (
         <Card>
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
-                <th className="px-5 py-3 font-medium">Order No</th>
-                <th className="px-5 py-3 font-medium">Customer</th>
-                <th className="px-5 py-3 font-medium">Courier</th>
-                <th className="px-5 py-3 font-medium">AWB</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Expected</th>
-                <th className="px-5 py-3 font-medium">Created</th>
+                <th className="px-6 py-4">Order No</th>
+                <th className="px-6 py-4">Customer</th>
+                <th className="px-6 py-4">Courier</th>
+                <th className="px-6 py-4">AWB</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Expected</th>
+                <th className="px-6 py-4">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {deliveries.map((d) => (
-                <tr key={d.id} onClick={() => navigate(`/deliveries/${d.id}`)} className="cursor-pointer hover:bg-slate-50">
-                  <td className="px-5 py-3 font-medium text-slate-900">{d.order_no}</td>
-                  <td className="px-5 py-3 text-slate-600">
-                    {d.customer_name} <span className="text-xs text-slate-400">({d.customer_phone})</span>
+                <tr key={d.id} onClick={() => navigate(`/deliveries/${d.id}`)} className="cursor-pointer hover:bg-[#FAF2F4]/80 transition-colors">
+                  <td className="px-6 py-4 font-bold text-slate-950">{d.order_no}</td>
+                  <td className="px-6 py-4 font-semibold text-slate-800">
+                    {d.customer_name} <span className="text-xs text-slate-600 font-medium">({d.customer_phone})</span>
                   </td>
-                  <td className="px-5 py-3 text-slate-600">{d.courier ?? '—'}</td>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-500">{d.awb ?? '—'}</td>
-                  <td className="px-5 py-3">
+                  <td className="px-6 py-4 font-semibold text-slate-800">{d.courier ?? '—'}</td>
+                  <td className="px-6 py-4 font-mono text-xs font-bold text-[#804652]">{d.awb ?? '—'}</td>
+                  <td className="px-6 py-4">
                     <Badge tone={STATUS_TONE[d.status] ?? 'slate'}>{d.status.replace(/_/g, ' ')}</Badge>
                   </td>
-                  <td className="px-5 py-3 text-slate-500">{d.expected_delivery_date ?? '—'}</td>
-                  <td className="px-5 py-3 text-slate-500">{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-slate-700">{d.expected_delivery_date ?? '—'}</td>
+                  <td className="px-6 py-4 text-xs font-semibold text-slate-700">{new Date(d.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
               {deliveries.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
                     No deliveries yet — create one from a paid order's detail page.
                   </td>
                 </tr>

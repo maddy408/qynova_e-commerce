@@ -29,6 +29,11 @@ interface Purchase {
   purchase_date: string
   notes?: string | null
   updated_at?: string
+  can_collect_payment?: boolean
+  can_edit_payment?: boolean
+  can_cancel?: boolean
+  disabled_reason?: string | null
+  cancel_disabled_reason?: string | null
 }
 
 interface PaymentLine {
@@ -76,6 +81,15 @@ interface LineItem {
   discount_amount: string
 }
 
+// Feature Flag: When true, all 3 action buttons always look enabled and handle permissions via click-time toast notifications.
+const ACTION_BUTTONS_ALWAYS_ENABLED = true
+
+interface ToastNotification {
+  id: number
+  message: string
+  type: 'info' | 'warning' | 'error' | 'success'
+}
+
 export function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[] | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -85,6 +99,32 @@ export function PurchasesPage() {
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Toast Notification State
+  const [toast, setToast] = useState<ToastNotification | null>(null)
+  const toastTimeoutRef = useRef<any>(null)
+
+  function showToast(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'warning') {
+    if (!message) return
+    // De-duplicate identical consecutive toasts so repeated clicks do not stack
+    if (toast && toast.message === message && toast.type === type) {
+      return
+    }
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    setToast({ id: Date.now(), message, type })
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null)
+    }, 4000)
+  }
+
+  function dismissToast() {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    setToast(null)
+  }
 
   // Payment Edit Modal State
   const [editPurchase, setEditPurchase] = useState<Purchase | null>(null)
@@ -113,6 +153,33 @@ export function PurchasesPage() {
   const [reverseSubmitting, setReverseSubmitting] = useState<boolean>(false)
   const [historyError, setHistoryError] = useState<string>('')
   const [historySuccess, setHistorySuccess] = useState<string>('')
+
+  // Action Click Handlers with Toast Feedback for Invalid Actions
+  function handleCollectAction(p: Purchase) {
+    const isCancelled = p.status === 'CANCELLED'
+    const canCollect = p.can_collect_payment !== undefined ? p.can_collect_payment : !isCancelled
+    if (canCollect) {
+      openCollectPaymentModal(p)
+    } else if (ACTION_BUTTONS_ALWAYS_ENABLED) {
+      const reason = p.disabled_reason || (isCancelled ? 'Purchase is cancelled' : 'Already fully paid')
+      showToast(reason, 'warning')
+    }
+  }
+
+  function handleEditAction(p: Purchase) {
+    const isCancelled = p.status === 'CANCELLED'
+    const canEdit = p.can_edit_payment !== undefined ? p.can_edit_payment : !isCancelled
+    if (canEdit) {
+      openEditPaymentModal(p)
+    } else if (ACTION_BUTTONS_ALWAYS_ENABLED) {
+      const reason = p.disabled_reason || (isCancelled ? 'Purchase is cancelled' : 'Cannot edit payment on this purchase')
+      showToast(reason, 'warning')
+    }
+  }
+
+  function handleHistoryAction(p: Purchase) {
+    openPaymentHistoryModal(p)
+  }
 
   // New Purchase Creation State
   const [supplierId, setSupplierId] = useState('')
@@ -212,7 +279,9 @@ export function PurchasesPage() {
         window.location.href = '/login'
         return
       }
-      setEditError(apiErrorMessage(err, 'Failed to update payment'))
+      const msg = apiErrorMessage(err, 'Failed to update payment')
+      setEditError(msg)
+      showToast(msg, 'error')
     } finally {
       setEditSubmitting(false)
     }
@@ -317,7 +386,9 @@ export function PurchasesPage() {
         window.location.href = '/login'
         return
       }
-      setCollectError(apiErrorMessage(err, 'Failed to collect payment'))
+      const msg = apiErrorMessage(err, 'Failed to collect payment')
+      setCollectError(msg)
+      showToast(msg, 'error')
     } finally {
       setCollectSubmitting(false)
     }
@@ -504,7 +575,39 @@ export function PurchasesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ================= ALL PURCHASES TABLE ================= */}
+      {/* Toast Notifications */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-top-3 duration-200">
+          <div
+            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border shadow-lg backdrop-blur-xs text-xs font-semibold ${
+              toast.type === 'error'
+                ? 'bg-rose-50/95 border-rose-200 text-rose-950'
+                : toast.type === 'success'
+                ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950'
+                : toast.type === 'info'
+                ? 'bg-blue-50/95 border-blue-200 text-blue-950'
+                : 'bg-amber-50/95 border-amber-200 text-amber-950'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm">
+                {toast.type === 'error' ? '⚠️' : toast.type === 'success' ? '✓' : 'ℹ️'}
+              </span>
+              <span>{toast.message}</span>
+            </div>
+            <button
+              type="button"
+              onClick={dismissToast}
+              className="ml-2 text-slate-400 hover:text-slate-700 font-bold text-base leading-none p-0.5 rounded focus:outline-none cursor-pointer"
+              aria-label="Close notification"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
+
+
       {purchases === null ? (
         <div className="p-12 text-center">
           <Spinner />
@@ -536,19 +639,19 @@ export function PurchasesPage() {
             <table className="w-full text-left text-xs">
               <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">Purchase No</th>
-                  <th className="px-6 py-4">Supplier</th>
-                  <th className="px-6 py-4">Grand Total</th>
-                  <th className="px-6 py-4">Paid Amount</th>
-                  <th className="px-6 py-4">Balance</th>
-                  <th className="px-6 py-4">Payment Method</th>
-                  <th className="px-6 py-4 text-center">Payment Status</th>
-                  <th className="px-6 py-4 text-center">Status</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-4 py-3">Purchase No</th>
+                  <th className="px-4 py-3">Supplier</th>
+                  <th className="px-4 py-3">Grand Total</th>
+                  <th className="px-4 py-3">Paid Amount</th>
+                  <th className="px-4 py-3">Balance</th>
+                  <th className="px-4 py-3">Payment Method</th>
+                  <th className="px-4 py-3 text-center">Payment Status</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F2E5E7]">
+              <tbody className="divide-y divide-[#F0E0E3]">
                 {(() => {
                   const totalPurchases = purchases.length
                   const totalPages = Math.max(1, Math.ceil(totalPurchases / pageSize))
@@ -560,7 +663,7 @@ export function PurchasesPage() {
                   if (paginatedPurchases.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={10} className="px-6 py-12 text-center text-sm text-slate-400">
+                        <td colSpan={10} className="px-4 py-8 text-center font-semibold text-slate-500">
                           No purchases recorded yet.
                         </td>
                       </tr>
@@ -572,19 +675,16 @@ export function PurchasesPage() {
                     const effectiveBalance =
                       p.balance_amount ??
                       Math.max(0, (Number(p.grand_total) || 0) - (Number(effectivePaid) || 0)).toFixed(2)
-                    const balanceNum = Number(effectiveBalance) || 0
                     const isPaid = p.payment_status === 'PAID'
                     const isPartial = p.payment_status === 'PARTIAL' || p.payment_status === 'PARTIALLY_PAID'
-                    const isCancelled = p.status === 'CANCELLED'
-                    const canCollect = !isCancelled && balanceNum > 0
 
                     return (
-                      <tr key={p.id} className="hover:bg-[#FAF2F4]/60 transition-colors group">
-                        <td className="px-6 py-3.5 font-mono font-semibold text-slate-900 text-xs">{p.purchase_no}</td>
-                        <td className="px-4 py-2.5 text-stone-700 font-medium">{p.supplier_name}</td>
-                        <td className="px-4 py-2.5 text-stone-900 font-bold">₹{p.grand_total}</td>
-                        <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{effectivePaid}</td>
-                        <td className="px-4 py-2.5 text-amber-700 font-bold">₹{effectiveBalance}</td>
+                      <tr key={p.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                        <td className="px-4 py-3 font-mono font-bold text-slate-950">{p.purchase_no}</td>
+                        <td className="px-4 py-3 text-slate-950 font-bold">{p.supplier_name}</td>
+                        <td className="px-4 py-3 text-slate-950 font-black">₹{p.grand_total}</td>
+                        <td className="px-4 py-3 text-emerald-800 font-black">₹{effectivePaid}</td>
+                        <td className="px-4 py-3 text-[#804652] font-black">₹{effectiveBalance}</td>
                         <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
                           {p.payment_method === 'SPLIT' ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -594,31 +694,24 @@ export function PurchasesPage() {
                             p.payment_method || '—'
                           )}
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-2.5 text-center">
                           <Badge tone={isPaid ? 'green' : isPartial ? 'amber' : 'red'}>
                             {isPaid ? 'PAID' : isPartial ? 'PARTIALLY PAID' : 'UNPAID'}
                           </Badge>
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="px-4 py-2.5 text-center">
                           <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
                         </td>
-                        <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{p.purchase_date}</td>
-                        <td className="px-6 py-3.5 text-right">
+                        <td className="px-4 py-2.5 text-slate-600 font-mono text-[11px] font-semibold">{p.purchase_date}</td>
+                        <td className="px-4 py-3 text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {/* 1. Collect Payment Icon Button */}
                             <button
                               type="button"
-                              disabled={!canCollect}
-                              onClick={() => openCollectPaymentModal(p)}
-                              title={
-                                isCancelled
-                                  ? 'Purchase is cancelled'
-                                  : balanceNum <= 0
-                                  ? 'Purchase is fully paid'
-                                  : 'Collect Payment'
-                              }
+                              onClick={() => handleCollectAction(p)}
+                              title="Collect Payment"
                               aria-label="Collect Payment"
-                              className="inline-flex items-center justify-center p-1.5 rounded-full border text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 focus:outline-none"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-emerald-700 bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                             >
                               <WalletIcon className="h-4 w-4" />
                             </button>
@@ -626,11 +719,10 @@ export function PurchasesPage() {
                             {/* 2. Edit Payment Icon Button */}
                             <button
                               type="button"
-                              disabled={isCancelled}
-                              onClick={() => openEditPaymentModal(p)}
-                              title={isCancelled ? 'Purchase is cancelled' : 'Edit Payment'}
+                              onClick={() => handleEditAction(p)}
+                              title="Edit Payment"
                               aria-label="Edit Payment"
-                              className="inline-flex items-center justify-center p-1.5 rounded-full border text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-[#804652] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-indigo-700 bg-indigo-50/80 border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
@@ -638,10 +730,10 @@ export function PurchasesPage() {
                             {/* 3. Payment History Icon Button */}
                             <button
                               type="button"
-                              onClick={() => openPaymentHistoryModal(p)}
+                              onClick={() => handleHistoryAction(p)}
                               title="Payment History & Receipts"
                               aria-label="Payment History"
-                              className="inline-flex items-center justify-center p-1.5 rounded-full border text-xs transition-colors text-slate-600 bg-white border-[#EEDDE0] hover:bg-[#FAF2F4] focus:outline-none"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-slate-700 bg-slate-50 border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500 cursor-pointer"
                             >
                               <ReceiptIcon className="h-4 w-4" />
                             </button>

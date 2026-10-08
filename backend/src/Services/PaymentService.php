@@ -18,6 +18,26 @@ final class PaymentService
     }
 
     /**
+     * Shared single source of truth for payment status derivation.
+     */
+    public static function derivePaymentStatus(string $paidAmount, string $grandTotal): string
+    {
+        $paid = bcadd($paidAmount, '0', 2);
+        $total = bcadd($grandTotal, '0', 2);
+
+        if (bccomp($total, '0', 2) === 0) {
+            return 'PAID';
+        }
+        if (bccomp($paid, '0', 2) <= 0) {
+            return 'UNPAID';
+        }
+        if (bccomp($paid, $total, 2) >= 0) {
+            return 'PAID';
+        }
+        return 'PARTIALLY_PAID';
+    }
+
+    /**
      * Collects a new payment against an active purchase.
      * Supports single or split payment lines.
      *
@@ -456,9 +476,7 @@ final class PaymentService
             $balanceAmount = '0.00';
         }
 
-        $paymentStatus = bccomp($paidAmount, '0', 2) <= 0
-            ? 'UNPAID'
-            : (bccomp($balanceAmount, '0', 2) <= 0 ? 'PAID' : 'PARTIALLY_PAID');
+        $paymentStatus = self::derivePaymentStatus($paidAmount, $grandTotal);
 
         // Determine combined payment method
         $methodStmt = $this->pdo->prepare(
@@ -882,6 +900,6 @@ final class PaymentService
         $returns->execute(['id' => $purchaseId]);
         $purchase['returns'] = $returns->fetchAll();
 
-        return $purchase;
+        return PurchaseService::decorateFlags($purchase);
     }
 }

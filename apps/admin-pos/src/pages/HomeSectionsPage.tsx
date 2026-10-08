@@ -126,7 +126,7 @@ export function HomeSectionsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#F2E5E7] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[10px] font-bold tracking-wider">
+            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Background Image</th>
@@ -137,16 +137,16 @@ export function HomeSectionsPage() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2E5E7]">
+            <tbody className="divide-y divide-[#F0E0E3]">
               {sections.map((s, i) => (
-                <tr key={s.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
+                <tr key={s.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 font-bold">
                       <button
                         type="button"
                         onClick={() => move(i, -1)}
                         disabled={i === 0}
-                        className="text-slate-400 hover:text-[#7B3F4A] disabled:opacity-20"
+                        className="text-slate-400 hover:text-[#804652] disabled:opacity-20 cursor-pointer"
                         title="Move Up"
                       >
                         ▲
@@ -155,7 +155,7 @@ export function HomeSectionsPage() {
                         type="button"
                         onClick={() => move(i, 1)}
                         disabled={i === sections.length - 1}
-                        className="text-slate-400 hover:text-[#7B3F4A] disabled:opacity-20"
+                        className="text-slate-400 hover:text-[#804652] disabled:opacity-20 cursor-pointer"
                         title="Move Down"
                       >
                         ▼
@@ -164,14 +164,14 @@ export function HomeSectionsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-10 w-16 overflow-hidden rounded-xl border border-[#EEDDE0] bg-[#FAF2F4] flex items-center justify-center">
+                      <div className="h-10 w-16 overflow-hidden rounded-lg border border-[#F2E5E7] bg-[#FAF2F4] flex items-center justify-center">
                         {s.image_path ? (
                           <img src={imageUrl(s.image_path)} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-[9px] text-slate-400 font-bold">No Image</span>
+                          <span className="text-[9px] font-bold text-[#804652]">No Image</span>
                         )}
                       </div>
-                      <label className="cursor-pointer text-[11px] font-bold text-[#7B3F4A] hover:text-[#5C2B34]">
+                      <label className="cursor-pointer text-[11px] font-bold text-[#804652] hover:text-[#4A1821]">
                         {uploadingImage ? 'Uploading…' : 'Upload'}
                         <input
                           type="file"
@@ -182,45 +182,47 @@ export function HomeSectionsPage() {
                       </label>
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-medium">
+                  <td className="px-4 py-3 font-semibold">
                     <Badge tone={UNWIRED.includes(s.type) ? 'amber' : 'slate'}>{s.type.replace('_', ' ')}</Badge>
                   </td>
-                  <td className="px-4 py-3 font-semibold text-slate-900">{s.title ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-600 font-bold">{s.item_limit}</td>
+                  <td className="px-4 py-3 font-bold text-slate-950">{s.title ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-900 font-bold">{s.item_limit}</td>
                   <td className="px-4 py-3">
                     <Badge tone={s.is_active ? 'green' : 'slate'}>{s.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-right flex items-center justify-end gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(s)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
-                      title="Edit Section"
-                    >
-                      <PencilIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleActive(s)}
-                      className={`p-1.5 rounded-lg transition-colors ${s.is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[#FAF2F4]'}`}
-                      title={s.is_active ? 'Deactivate' : 'Activate'}
-                    >
-                      <PowerIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(s.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                      title="Delete Section"
-                    >
-                      <TrashIcon />
-                    </button>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(s)}
+                        className="p-1.5 rounded-lg text-slate-600 hover:bg-[#FAF2F4] hover:text-[#804652] transition-colors cursor-pointer"
+                        title="Edit Section"
+                      >
+                        <PencilIcon />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleActive(s)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${s.is_active ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[#FAF2F4]'}`}
+                        title={s.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        <PowerIcon />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove(s.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
+                        title="Delete Section"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
               {sections.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center font-semibold text-slate-500">
                     No home sections created yet.
                   </td>
                 </tr>

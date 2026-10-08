@@ -205,10 +205,15 @@ final class PurchaseService
         $taxTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['tax_amount'], 2), '0.00');
         $grandTotal = bcadd($subtotal, $taxTotal, 2);
 
-        $cleanPaid = bccomp($amountPaid, '0', 2) > 0 ? (bccomp($amountPaid, $grandTotal, 2) >= 0 ? $grandTotal : $amountPaid) : '0.00';
-        $paymentStatus = bccomp($cleanPaid, $grandTotal, 2) >= 0 && bccomp($grandTotal, '0', 2) > 0
-            ? 'PAID'
-            : (bccomp($cleanPaid, '0', 2) > 0 ? 'PARTIALLY_PAID' : 'UNPAID');
+        if (bccomp($amountPaid, '0', 2) < 0) {
+            throw new RuntimeException('Payment amount cannot be negative');
+        }
+        if (bccomp($amountPaid, $grandTotal, 2) > 0) {
+            throw new RuntimeException('Payment exceeds balance');
+        }
+
+        $cleanPaid = bcadd($amountPaid, '0', 2);
+        $paymentStatus = PaymentService::derivePaymentStatus($cleanPaid, $grandTotal);
         $balanceAmount = bcsub($grandTotal, $cleanPaid, 2);
 
         // Validate and parse payment lines if paid amount > 0
@@ -418,6 +423,15 @@ final class PurchaseService
             throw new RuntimeException('Purchase is already cancelled');
         }
 
+        // Block cancellation if purchase has active payments or paid_amount > 0 (Decision S16 Option 2)
+        $activePaymentStmt = $this->pdo->prepare("SELECT COUNT(*) FROM purchase_payments WHERE purchase_id = :id AND status = 'ACTIVE' AND total_amount > 0");
+        $activePaymentStmt->execute(['id' => $purchaseId]);
+        $hasActivePayments = (int) $activePaymentStmt->fetchColumn() > 0;
+
+        if ($hasActivePayments || bccomp((string) ($purchase['paid_amount'] ?? '0.00'), '0', 2) > 0) {
+            throw new RuntimeException('Reverse the payments first, then cancel this purchase.');
+        }
+
         $this->pdo->beginTransaction();
 
         try {
@@ -447,32 +461,17 @@ final class PurchaseService
                  WHERE id = :id"
             )->execute(['by' => $cancelledByUserId, 'reason' => $reason, 'id' => $purchaseId]);
 
-            // Mark any active payments as REVERSED
-            $this->pdo->prepare(
-                "UPDATE purchase_payments SET
-                    status = 'REVERSED',
-                    reversed_by = :by,
-                    reversed_at = NOW(),
-                    reverse_reason = :reason
-                 WHERE purchase_id = :id AND status = 'ACTIVE'"
-            )->execute([
-                'by' => $cancelledByUserId,
-                'reason' => 'Purchase cancelled: ' . $reason,
-                'id' => $purchaseId,
-            ]);
-
             // Insert cancellation reversal row in supplier_ledger (Task C3)
             $this->pdo->prepare(
                 "INSERT INTO supplier_ledger (
                     supplier_id, transaction_type, reference_type, reference_id, amount, paid_amount_delta, notes, created_by
                 ) VALUES (
-                    :supplier_id, 'PURCHASE_CANCEL', 'PURCHASE', :reference_id, :amount, :paid_delta, :notes, :created_by
+                    :supplier_id, 'PURCHASE_CANCEL', 'PURCHASE', :reference_id, :amount, '0.00', :notes, :created_by
                 )"
             )->execute([
                 'supplier_id' => $purchase['supplier_id'],
                 'reference_id' => $purchaseId,
                 'amount' => '-' . $purchase['grand_total'],
-                'paid_delta' => '-' . $purchase['paid_amount'],
                 'notes' => "Purchase {$purchase['purchase_no']} cancelled: {$reason}",
                 'created_by' => $cancelledByUserId,
             ]);
@@ -640,7 +639,8 @@ final class PurchaseService
         );
         $stmt->execute($params);
 
-        return $stmt->fetchAll();
+        $purchases = $stmt->fetchAll();
+        return array_map([self::class, 'decorateFlags'], $purchases);
     }
 
     /** @return array<string, mixed>|null */
@@ -663,6 +663,55 @@ final class PurchaseService
         $returns = $this->pdo->prepare('SELECT * FROM purchase_returns WHERE purchase_id = :id ORDER BY created_at DESC');
         $returns->execute(['id' => $purchaseId]);
         $purchase['returns'] = $returns->fetchAll();
+
+        return self::decorateFlags($purchase);
+    }
+
+    /**
+     * Computes read-only backend-driven payment action permission flags.
+     *
+     * @param array<string, mixed> $purchase
+     * @return array<string, mixed>
+     */
+    public static function decorateFlags(array $purchase): array
+    {
+        $isDeleted = !empty($purchase['deleted_at']);
+        $isCancelled = ($purchase['status'] ?? '') === 'CANCELLED';
+        $balance = (string) ($purchase['balance_amount'] ?? '0.00');
+        $hasBalance = bccomp($balance, '0', 2) > 0;
+        $paid = (string) ($purchase['paid_amount'] ?? $purchase['amount_paid'] ?? '0.00');
+        $hasPaid = bccomp($paid, '0', 2) > 0;
+
+        if ($isDeleted) {
+            $purchase['can_collect_payment'] = false;
+            $purchase['can_edit_payment'] = false;
+            $purchase['can_cancel'] = false;
+            $purchase['disabled_reason'] = 'Purchase is deleted';
+            $purchase['cancel_disabled_reason'] = 'Purchase is deleted';
+        } elseif ($isCancelled) {
+            $purchase['can_collect_payment'] = false;
+            $purchase['can_edit_payment'] = false;
+            $purchase['can_cancel'] = false;
+            $purchase['disabled_reason'] = 'Purchase is cancelled';
+            $purchase['cancel_disabled_reason'] = 'Purchase is already cancelled';
+        } else {
+            $purchase['can_edit_payment'] = true;
+            if ($hasBalance) {
+                $purchase['can_collect_payment'] = true;
+                $purchase['disabled_reason'] = null;
+            } else {
+                $purchase['can_collect_payment'] = false;
+                $purchase['disabled_reason'] = 'Already fully paid';
+            }
+
+            if ($hasPaid) {
+                $purchase['can_cancel'] = false;
+                $purchase['cancel_disabled_reason'] = 'Reverse the payments first, then cancel this purchase.';
+            } else {
+                $purchase['can_cancel'] = true;
+                $purchase['cancel_disabled_reason'] = null;
+            }
+        }
 
         return $purchase;
     }
