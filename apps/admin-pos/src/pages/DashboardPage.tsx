@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Card, Spinner } from '../components/ui'
 import { api } from '../lib/api'
-
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
-function imageUrl(path: string | null) {
-  return path ? `${API_ORIGIN}/${path}` : null
-}
+import { LayoutGridIcon, ListIcon } from '../components/Icons'
 
 interface DashboardSummary {
   sales: { total_sales: string; today_sales: string; this_month_sales: string }
@@ -19,7 +15,6 @@ interface PopularProduct {
   name: string
   units_sold: string
   revenue: string
-  primary_image?: string | null
 }
 
 interface SaleItem {
@@ -42,6 +37,14 @@ export function DashboardPage() {
   const [popularItems, setPopularItems] = useState<PopularProduct[]>([])
   const [latestSales, setLatestSales] = useState<SaleItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    return (localStorage.getItem('dashboard_popular_view') as 'grid' | 'list') || 'grid'
+  })
+
+  const toggleViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode)
+    localStorage.setItem('dashboard_popular_view', mode)
+  }
 
   useEffect(() => {
     Promise.all([
@@ -61,7 +64,6 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Dashboard Title Header (Matching Reference Image 2) */}
       <div>
         <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1 font-sans">Store performance at a glance</p>
@@ -73,155 +75,168 @@ export function DashboardPage() {
         <p className="text-sm text-slate-500">Could not load dashboard data from backend server.</p>
       ) : (
         <>
-          {/* Pastel Capsule KPI Metrics Track (Matching Reference Image 2) */}
           <div className="relative overflow-x-auto py-2">
             <div className="flex items-center gap-3 min-w-[980px] px-1">
-              {/* 1. Today's Sales */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-indigo-300 via-purple-300 to-indigo-400 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-indigo-50/90 via-purple-50/60 to-indigo-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Today's Sales</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
-                </div>
+              <div className="relative flex-1 rounded-md border border-indigo-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Today's Sales</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
               </div>
 
-              {/* 2. This Month */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-400 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-blue-50/90 via-cyan-50/60 to-blue-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">This Month</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
-                </div>
+              <div className="relative flex-1 rounded-md border border-blue-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">This Month</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
               </div>
 
-              {/* 3. Total Sales */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-amber-300 via-yellow-300 to-orange-300 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-50/90 via-yellow-50/60 to-amber-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Total Sales</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
-                </div>
+              <div className="relative flex-1 rounded-md border border-amber-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Sales</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
               </div>
 
-              {/* 4. Total Orders */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-pink-300 via-rose-300 to-purple-300 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-pink-50/90 via-purple-50/60 to-pink-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Total Orders</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.orders.total_orders}</div>
-                  <span className="text-[10px] font-medium text-slate-500 block leading-none">{summary.orders.pending_orders} pending</span>
-                </div>
+              <div className="relative flex-1 rounded-md border border-pink-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Orders</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.orders.total_orders}</div>
+                <span className="text-[10px] font-medium text-slate-500 block leading-none">{summary.orders.pending_orders} pending</span>
               </div>
 
-              {/* 5. Total Customers */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-teal-300 via-emerald-300 to-cyan-300 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-teal-50/90 via-emerald-50/60 to-teal-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Total Customers</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.customers.total_customers}</div>
-                  <span className="text-[10px] font-medium text-slate-500 block leading-none">+{summary.customers.new_customers_today} today</span>
-                </div>
+              <div className="relative flex-1 rounded-md border border-teal-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Customers</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.customers.total_customers}</div>
+                <span className="text-[10px] font-medium text-slate-500 block leading-none">+{summary.customers.new_customers_today} today</span>
               </div>
 
-              {/* 6. Total Products */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-emerald-300 via-green-300 to-teal-300 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-50/90 via-green-50/60 to-emerald-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Total Products</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.total_products}</div>
-                </div>
+              <div className="relative flex-1 rounded-md border border-emerald-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Products</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.total_products}</div>
               </div>
 
-              {/* 7. Low Stock */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-orange-300 via-amber-300 to-yellow-300 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-orange-50/90 via-amber-50/60 to-orange-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Low Stock</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.low_stock_products}</div>
-                </div>
+              <div className="relative flex-1 rounded-md border border-orange-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Low Stock</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.low_stock_products}</div>
               </div>
 
-              {/* 8. Out of Stock */}
-              <div className="group relative flex-1 p-[1.5px] rounded-full bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 shadow-xs hover:shadow-md hover:scale-105 transition-all duration-300">
-                <div className="h-full w-full rounded-full bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 px-4 py-2.5 text-center">
-                  <span className="text-[11px] font-semibold text-slate-800 tracking-tight">Out of Stock</span>
-                  <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.out_of_stock_products}</div>
-                </div>
+              <div className="relative flex-1 rounded-md border border-indigo-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Out of Stock</span>
+                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.out_of_stock_products}</div>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-            {/* Left Column: Popular Items Grid (Matching Reference Image 2) */}
+            {/* Left Column: Popular Items */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-2xl font-semibold text-slate-900">Popular Items</h2>
+
+                {/* View Mode Toggle Icons */}
+                <div className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
+                  <button
+                    onClick={() => toggleViewMode('grid')}
+                    className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                      viewMode === 'grid'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                    title="Grid View"
+                  >
+                    <LayoutGridIcon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Grid</span>
+                  </button>
+                  <button
+                    onClick={() => toggleViewMode('list')}
+                    className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                      viewMode === 'list'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                    title="List View"
+                  >
+                    <ListIcon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">List</span>
+                  </button>
+                </div>
               </div>
 
               {popularItems.length === 0 ? (
                 <Card className="p-8 text-center text-sm text-slate-500">
                   No popular items recorded yet.
                 </Card>
-              ) : (
+              ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {popularItems.map((item, idx) => {
-                    const badgeText = idx === 0 ? 'BESTSELLER' : idx === 1 ? 'TRENDING' : 'LOW STOCK'
+                    const badgeText = idx === 0 ? 'BESTSELLER' : idx === 1 ? 'TRENDING' : 'POPULAR'
                     const badgeClass =
                       idx === 0
-                        ? 'bg-[#f3e6d2] text-amber-950 border border-amber-200/80'
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
                         : idx === 1
-                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-200/80'
-                        : 'bg-amber-100 text-amber-900 border border-amber-200/80'
+                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                        : 'bg-slate-100 text-slate-700 border border-slate-300'
 
                     return (
                       <div
                         key={item.id}
-                        className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-slate-900 shadow-md border border-slate-800/80 transition-all hover:-translate-y-1 hover:shadow-xl h-56"
+                        className="group relative flex flex-col justify-between rounded-xl bg-white p-5 shadow-xs border border-slate-200 transition-all hover:-translate-y-1 hover:shadow-md"
                       >
-                        {/* Full Image Container */}
-                        <div className="absolute inset-0 bg-slate-950 flex items-center justify-center overflow-hidden">
-                          {imageUrl(item.primary_image || null) ? (
-                            <img
-                              src={imageUrl(item.primary_image || null)!}
-                              alt={item.name}
-                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-500">
-                              <span className="text-xs font-semibold">No Image</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Top Badge */}
-                        <div className="relative z-10 p-3 flex justify-end">
-                          <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide shadow-xs ${badgeClass}`}>
+                        <div className="flex items-start justify-between">
+                          <span className="text-xs font-bold text-slate-400">#{idx + 1}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${badgeClass}`}>
                             {badgeText}
                           </span>
                         </div>
 
-                        {/* Bottom Gradient Overlay & Product Summary */}
-                        <div className="relative z-10 p-4 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10">
-                          <h3 className="text-base font-bold text-white truncate font-sans tracking-tight">{item.name}</h3>
-                          <div className="mt-0.5 text-xs text-slate-300 font-medium">
-                            {item.units_sold} {Number(item.units_sold) === 1 ? 'unit' : 'units'} • {formatCurrency(item.revenue)}
-                          </div>
+                        <div className="mt-3 my-2">
+                          <h3 className="text-base font-bold text-slate-900 font-sans tracking-tight line-clamp-2">{item.name}</h3>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
+                          <span>{item.units_sold} sold</span>
+                          <span className="font-bold text-slate-900">{formatCurrency(item.revenue)}</span>
                         </div>
                       </div>
                     )
                   })}
                 </div>
+              ) : (
+                /* List View - Text Only Table */
+                <Card className="overflow-hidden p-0 border border-slate-200 shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                      <thead className="bg-slate-50 font-semibold text-slate-700">
+                        <tr>
+                          <th className="px-4 py-3 text-center">Rank</th>
+                          <th className="px-4 py-3">Item Name</th>
+                          <th className="px-4 py-3 text-right">Qty Sold</th>
+                          <th className="px-4 py-3 text-right">Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {popularItems.map((item, idx) => (
+                          <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 text-center font-bold text-slate-400">#{idx + 1}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-900">{item.name}</td>
+                            <td className="px-4 py-3 text-right font-medium text-slate-700">{item.units_sold}</td>
+                            <td className="px-4 py-3 text-right font-bold text-slate-900">{formatCurrency(item.revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
               )}
             </div>
 
-            {/* Right Column: Authentic Paper Receipt Timeline (Matching Reference Image 2) */}
+            {/* Right Column: Receipt Timeline */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-serif text-2xl font-semibold text-slate-900">Receipt Timeline</h2>
                 <span className="text-xs text-slate-500 font-sans">Recent transactions</span>
               </div>
 
-              {/* Serrated Edge Authentic Receipt Slip */}
               <div className="receipt-paper mx-auto w-full rounded-sm p-6 text-slate-800 font-sans shadow-xl my-3">
                 <div className="space-y-4 text-xs">
                   {latestSales.slice(0, 5).map((sale, idx) => {
                     const dotColor = idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-indigo-500' : 'bg-purple-500'
                     return (
                       <div key={sale.id} className="relative pl-5 border-l-2 border-slate-200/80 space-y-0.5">
-                        {/* Status Dot */}
                         <span className={`absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ${dotColor} ring-2 ring-[#f4efe6]`} />
 
                         <div className="flex items-center justify-between font-medium">
@@ -249,7 +264,6 @@ export function DashboardPage() {
                   )}
                 </div>
 
-                {/* Receipt Footer Total */}
                 <div className="mt-5 pt-3 border-t border-dashed border-slate-300/80">
                   <div className="flex items-center justify-between font-bold text-slate-900 text-sm">
                     <span>Total:</span>
@@ -267,3 +281,4 @@ export function DashboardPage() {
     </div>
   )
 }
+

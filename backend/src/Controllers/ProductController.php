@@ -106,11 +106,12 @@ final class ProductController
         PermissionMiddleware::require($claims, 'catalog.manage');
 
         $stmt = $this->pdo->query(
-            "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name,
+            "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name, u.name AS unit_name,
                     v.mrp, v.retail_price, v.wholesale_price, v.customer_price,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
+             LEFT JOIN units u ON u.id = p.unit_id
              WHERE v.deleted_at IS NULL AND p.deleted_at IS NULL
              ORDER BY p.name, v.sku"
         );

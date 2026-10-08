@@ -51,16 +51,42 @@ body {
   background-image: radial-gradient(circle at 8px 14px, transparent 8px, #f4efe6 9px);
 }
 
-/* Invoice print view (InvoiceDetailPage): hide the on-screen toolbar and
-   the app sidebar/layout chrome, print just the receipt itself. */
 @media print {
+  @page {
+    margin: 5mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .no-print,
   aside,
-  nav {
+  nav,
+  header,
+  footer {
     display: none !important;
   }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
   .print-area {
     box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
     width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    page-break-after: avoid;
+    page-break-inside: avoid;
   }
 }

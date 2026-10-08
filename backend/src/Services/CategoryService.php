@@ -27,10 +27,17 @@ final class CategoryService
         return $this->pdo->query(
             "SELECT c.*,
                 (SELECT COUNT(*) FROM category_subcategory cs WHERE cs.category_id = c.id) AS subcategory_count,
-                (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count
+                (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count,
+                COALESCE((
+                    SELECT SUM(ii.quantity) 
+                    FROM invoice_items ii 
+                    JOIN product_variants pv ON pv.id = ii.variant_id 
+                    JOIN product_categories pc ON pc.product_id = pv.product_id 
+                    WHERE pc.category_id = c.id
+                ), 0) AS total_units_sold
              FROM categories c
              WHERE c.deleted_at IS NULL
-             ORDER BY c.sort_order, c.name"
+             ORDER BY total_units_sold DESC, c.sort_order, c.name"
         )->fetchAll();
     }
 

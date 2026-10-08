@@ -142,6 +142,9 @@ $productExport = new ProductExportController($pdo);
 $router->get('/api/products/export/stock-report', fn () => $productExport->exportStockReport());
 $router->get('/api/products/export', fn () => $productExport->export());
 
+$router->get('/api/products/price-settings', fn () => $products->getPriceSettings());
+$router->put('/api/products/price-settings', fn () => $products->updatePriceSettings());
+
 $router->get('/api/products/{id}', fn ($id) => $products->show($id));
 $router->put('/api/products/{id}', fn ($id) => $products->update($id));
 $router->delete('/api/products/{id}', fn ($id) => $products->destroy($id));
@@ -176,6 +179,7 @@ $router->delete('/api/variants/{id}/images/{imageId}', fn ($id, $imageId) => $va
 
 // Inventory (docs/DOCUMENTATION.md section 11)
 $inventory = new InventoryController($pdo);
+$batchController = new \App\Controllers\BatchController($pdo);
 $router->get('/api/inventory', fn () => $inventory->index());
 $router->get('/api/pos/products', fn () => $inventory->posIndex());
 $router->get('/api/inventory/low-stock', fn () => $inventory->lowStock());
@@ -183,6 +187,10 @@ $router->get('/api/inventory/adjustments', fn () => $inventory->indexAdjustments
 $router->post('/api/inventory/adjustments', fn () => $inventory->storeAdjustment());
 $router->post('/api/inventory/opening-stock', fn () => $inventory->saveOpeningStock());
 $router->put('/api/inventory/{variantId}/threshold', fn ($variantId) => $inventory->setLowStockThreshold($variantId));
+$router->get('/api/inventory/batches', fn () => $batchController->getBatches());
+$router->get('/api/inventory/batches/expiry', fn () => $batchController->getExpiryReport());
+$router->get('/api/inventory/consumption-rule', fn () => $batchController->getConsumptionRule());
+$router->put('/api/inventory/consumption-rule', fn () => $batchController->updateConsumptionRule());
 $router->get('/api/inventory/{variantId}', fn ($variantId) => $inventory->show($variantId));
 
 // Coupons (ECOMMERCE_POS_ADMIN_SPEC.md sections 14-17)
@@ -211,9 +219,6 @@ $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPa
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 
-$router->get('/api/products/price-settings', fn () => $products->getPriceSettings());
-$router->put('/api/products/price-settings', fn () => $products->updatePriceSettings());
-
 // Invoices (docs/DOCUMENTATION.md section 16) — POS billing + e-commerce
 // invoices (the latter auto-created by OrderService::confirmPayment)
 $invoices = new InvoiceController($pdo);
@@ -229,6 +234,13 @@ $holdBills = new HoldBillController($pdo);
 $router->get('/api/hold-bills', fn () => $holdBills->index());
 $router->post('/api/hold-bills', fn () => $holdBills->store());
 $router->delete('/api/hold-bills/{id}', fn ($id) => $holdBills->destroy($id));
+
+// Collections & Credit Management
+$collections = new \App\Controllers\CollectionController($pdo);
+$router->get('/api/collections/pending', fn () => $collections->getPendingCredits());
+$router->get('/api/collections/receipts', fn () => $collections->getPastReceipts());
+$router->get('/api/collections/customer-unpaid/{customerId}', fn ($customerId) => $collections->getCustomerUnpaidInvoices($customerId));
+$router->post('/api/collections/pay', fn () => $collections->processPayment());
 
 // Suppliers & purchases / GRN (docs/DOCUMENTATION.md section 11)
 $purchases = new PurchaseController($pdo);

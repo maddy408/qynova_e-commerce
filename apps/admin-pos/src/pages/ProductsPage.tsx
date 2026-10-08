@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
-import { Spinner } from '../components/ui'
+import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
+
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
+function imageUrl(path: string | null) {
+  return path ? `${API_ORIGIN}/${path}` : null
+}
 
 export function ProductsPage() {
   const navigate = useNavigate()
   const [products, setProducts] = useState<ProductListItem[] | null>(null)
-
-  // Search & Filters
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
-  const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'>('ALL')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
 
   function load() {
-    api.get('/products', { params: { limit: 200 } }).then((res) => setProducts(res.data.items))
+    api.get('/products', { params: { limit: 100 } }).then((res) => setProducts(res.data.items))
   }
 
   useEffect(load, [])
@@ -31,255 +32,237 @@ export function ProductsPage() {
     }
   }
 
-  // Filtered products
-  const filteredProducts = (products ?? []).filter((p) => {
-    const matchesSearch =
-      !searchQuery.trim() ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.product_code && p.product_code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (p.brand_name && p.brand_name.toLowerCase().includes(searchQuery.toLowerCase()))
-
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      (statusFilter === 'ACTIVE' && p.is_active) ||
-      (statusFilter === 'INACTIVE' && !p.is_active)
-
-    const matchesStock =
-      stockFilter === 'ALL' ||
-      (stockFilter === 'OUT_OF_STOCK' && p.out_of_stock_variant_count > 0) ||
-      (stockFilter === 'LOW_STOCK' && p.low_stock_variant_count > 0) ||
-      (stockFilter === 'IN_STOCK' && Number(p.total_stock) > 0)
-
-    return matchesSearch && matchesStatus && matchesStock
-  })
-
   return (
-    <div className="space-y-6 pb-12">
-      {/* ================= ALL PRODUCTS TABLE CARD ================= */}
+    <div className="space-y-6">
+      <PageHeader
+        title="Products Catalog"
+        description="Manage products, variants, SKUs, pricing, and batch stock."
+        actions={
+          <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="flex items-center rounded-md border border-slate-300 bg-slate-100 p-0.5 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1 rounded-sm transition-all ${
+                  viewMode === 'grid' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Grid View
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1 rounded-sm transition-all ${
+                  viewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Table View
+              </button>
+            </div>
+
+            <Link to="/products/new">
+              <Button>+ New Product</Button>
+            </Link>
+          </div>
+        }
+      />
+
       {products === null ? (
-        <div className="p-12 text-center">
-          <Spinner />
+        <Spinner />
+      ) : products.length === 0 ? (
+        <Card>
+          <EmptyState title="No products yet" description="Create your first product to get started." />
+        </Card>
+      ) : viewMode === 'grid' ? (
+        /* Compact Product Grid List View */
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {products.map((p) => {
+            const img = imageUrl(p.primary_image)
+            const priceStr =
+              p.min_price === null
+                ? '—'
+                : p.min_price === p.max_price
+                ? `₹${p.min_price}`
+                : `₹${p.min_price} – ₹${p.max_price}`
+
+            return (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/products/${p.id}`)}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-md border border-slate-200 bg-white p-3 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer"
+              >
+                <div>
+                  {/* Thumbnail Image */}
+                  <div className="relative h-32 w-full overflow-hidden rounded-sm bg-slate-100 flex items-center justify-center">
+                    {img ? (
+                      <img
+                        src={img}
+                        alt={p.name}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <span className="text-[10px] font-medium">No Image</span>
+                      </div>
+                    )}
+                    <span className="absolute top-1.5 right-1.5">
+                      <Badge tone={p.is_active ? 'green' : 'slate'}>{p.is_active ? 'Active' : 'Off'}</Badge>
+                    </span>
+                  </div>
+
+                  {/* Content */}
+                  <div className="mt-2.5 space-y-1">
+                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight group-hover:text-indigo-600">
+                      {p.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 truncate">{p.brand_name ?? 'No Brand'}</p>
+
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-xs font-extrabold text-indigo-700">{priceStr}</span>
+                      <span className="text-[10px] text-slate-500 font-medium">{p.variant_count} var</span>
+                    </div>
+
+                    <div className="text-[10px] text-slate-500 flex items-center justify-between pt-0.5 border-t border-slate-100">
+                      <span>Stock: <strong className="text-slate-900">{Number(p.total_stock)}</strong></span>
+                      {p.out_of_stock_variant_count > 0 ? (
+                        <span className="text-red-600 font-bold">Out</span>
+                      ) : p.low_stock_variant_count > 0 ? (
+                        <span className="text-amber-600 font-bold">Low</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Actions */}
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/products/${p.id}`)
+                    }}
+                    className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                  >
+                    View Details →
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/products/${p.id}`)
+                      }}
+                      className="p-1 rounded text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"
+                      title="Edit"
+                    >
+                      <PencilIcon />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(p, e)}
+                      className="p-1 rounded text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      title="Delete"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       ) : (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
-          {/* Card Header with Filters, Search and New Product Button */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
-            <div>
-              <h3 className="text-xl font-serif font-bold text-slate-900">All Products</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Showing {filteredProducts.length} of {products.length} products
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Stock Filter Dropdown */}
-              <select
-                value={stockFilter}
-                onChange={(e: any) => setStockFilter(e.target.value)}
-                className="rounded-full border border-[#E5D5D8] bg-[#FAF2F4] px-3.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all shadow-2xs cursor-pointer"
-              >
-                <option value="ALL">All Stock Status</option>
-                <option value="IN_STOCK">In Stock</option>
-                <option value="LOW_STOCK">Low Stock</option>
-                <option value="OUT_OF_STOCK">Out of Stock</option>
-              </select>
-
-              {/* Status Filter Pills */}
-              <div className="inline-flex items-center gap-1 bg-[#FAF2F4] p-1 rounded-full border border-[#EEDDE0] text-xs shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('ALL')}
-                  className={`px-3 py-1 rounded-full font-medium transition-all ${
-                    statusFilter === 'ALL'
-                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
+        /* Table View */
+        <Card>
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
+              <tr>
+                <th className="px-4 py-2.5 font-semibold">Product</th>
+                <th className="px-4 py-2.5 font-semibold">Brand</th>
+                <th className="px-4 py-2.5 font-semibold">Price Range</th>
+                <th className="px-4 py-2.5 font-semibold">Variants</th>
+                <th className="px-4 py-2.5 font-semibold">Stock</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
+                <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {products.map((p) => (
+                <tr
+                  key={p.id}
+                  onClick={() => navigate(`/products/${p.id}`)}
+                  className="cursor-pointer hover:bg-slate-50/50 transition-colors"
                 >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('ACTIVE')}
-                  className={`px-3 py-1 rounded-full font-medium transition-all ${
-                    statusFilter === 'ACTIVE'
-                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Active
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('INACTIVE')}
-                  className={`px-3 py-1 rounded-full font-medium transition-all ${
-                    statusFilter === 'INACTIVE'
-                      ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Inactive
-                </button>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative">
-                <svg
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products, SKU, code…"
-                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-48 sm:w-56"
-                />
-              </div>
-
-              {/* + New Product Button */}
-              <Link
-                to="/products/new"
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
-              >
-                + New Product
-              </Link>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
-                <tr>
-                  <th className="px-6 py-4">Product</th>
-                  <th className="px-6 py-4">Brand</th>
-                  <th className="px-6 py-4">Price Range</th>
-                  <th className="px-6 py-4 text-center">Variants</th>
-                  <th className="px-6 py-4 text-center">Stock</th>
-                  <th className="px-6 py-4 text-center">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
-                {filteredProducts.map((p) => (
-                  <tr
-                    key={p.id}
-                    onClick={() => navigate(`/products/${p.id}`)}
-                    className="cursor-pointer hover:bg-[#FAF5F6] transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-bold text-slate-900 text-sm hover:text-[#4A1821] transition-colors">
-                          {p.name}
-                        </p>
-                        {p.product_code && (
-                          <p className="text-xs text-slate-600 font-mono font-medium mt-0.5">{p.product_code}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {p.brand_name ? (
-                        <span className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-3 py-0.5 rounded-full text-xs font-bold inline-block shadow-2xs">
-                          {p.brand_name}
-                        </span>
+                  <td className="px-4 py-2.5 flex items-center gap-3">
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded bg-slate-100 border border-slate-200 flex items-center justify-center">
+                      {imageUrl(p.primary_image) ? (
+                        <img src={imageUrl(p.primary_image)!} alt={p.name} className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-slate-500 font-bold">—</span>
+                        <span className="text-[9px] text-slate-400">No img</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-slate-900 font-extrabold text-sm">
-                      {p.min_price === null
-                        ? '—'
-                        : p.min_price === p.max_price
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{p.name}</p>
+                      {p.product_code && <p className="text-[11px] text-slate-500 font-mono">{p.product_code}</p>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-600 font-medium">{p.brand_name ?? '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-700 font-medium">
+                    {p.min_price === null
+                      ? '—'
+                      : p.min_price === p.max_price
                         ? `₹${p.min_price}`
                         : `₹${p.min_price} – ₹${p.max_price}`}
-                    </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-900 text-sm">
-                      {p.variant_count}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <p className="font-bold text-slate-900 text-sm">{Number(p.total_stock)}</p>
-                      {(p.low_stock_variant_count > 0 || p.out_of_stock_variant_count > 0) && (
-                        <p className="text-xs text-slate-600 mt-0.5">
-                          {p.out_of_stock_variant_count > 0 && (
-                            <span className="text-rose-700 font-bold">{p.out_of_stock_variant_count} out</span>
-                          )}
-                          {p.out_of_stock_variant_count > 0 && p.low_stock_variant_count > 0 && ' · '}
-                          {p.low_stock_variant_count > 0 && (
-                            <span className="text-amber-700 font-bold">{p.low_stock_variant_count} low</span>
-                          )}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {p.is_active ? (
-                        <span className="bg-[#E3F8E9] text-[#0E7A36] border border-[#B7EDC4] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-[#0E7A36]"></span>
-                          ACTIVE
-                        </span>
-                      ) : (
-                        <span className="bg-[#FDE8EC] text-[#B91C1C] border border-[#F9B6C2] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-[#B91C1C]"></span>
-                          INACTIVE
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="inline-flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/products/${p.id}`)
-                          }}
-                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
-                          title="View Details"
-                        >
-                          <EyeIcon className="h-4 w-4 stroke-[2]" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigate(`/products/${p.id}`)
-                          }}
-                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
-                          title="Edit Product"
-                        >
-                          <PencilIcon className="h-4 w-4 stroke-[2]" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDelete(p, e)}
-                          className="p-2 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-800 transition-colors"
-                          title="Soft Delete"
-                        >
-                          <TrashIcon className="h-4 w-4 stroke-[2]" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredProducts.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                      No products found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-600 font-semibold">{p.variant_count}</td>
+                  <td className="px-4 py-2.5">
+                    <p className="font-semibold text-slate-900">{Number(p.total_stock)}</p>
+                    {(p.low_stock_variant_count > 0 || p.out_of_stock_variant_count > 0) && (
+                      <p className="text-[11px] text-slate-500">
+                        {p.out_of_stock_variant_count > 0 && <span className="text-red-600">{p.out_of_stock_variant_count} out</span>}
+                        {p.out_of_stock_variant_count > 0 && p.low_stock_variant_count > 0 && ' · '}
+                        {p.low_stock_variant_count > 0 && <span className="text-amber-600">{p.low_stock_variant_count} low</span>}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone={p.is_active ? 'green' : 'slate'}>{p.is_active ? 'Active' : 'Inactive'}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-right flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/products/${p.id}`)
+                      }}
+                      className="p-1 rounded text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                      title="View Details"
+                    >
+                      <EyeIcon />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/products/${p.id}`)
+                      }}
+                      className="p-1 rounded text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                      title="Edit Product"
+                    >
+                      <PencilIcon />
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(p, e)}
+                      className="p-1 rounded text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      title="Soft Delete Product"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   )

@@ -27,7 +27,10 @@ final class InvoiceController
     public function index(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'orders.manage');
+        $permissions = (array) ($claims['permissions'] ?? []);
+        if (($claims['type'] ?? null) !== 'staff' || (!in_array('orders.manage', $permissions, true) && !in_array('pos.sell', $permissions, true))) {
+            Response::error('Forbidden', 403);
+        }
 
         Response::json(['invoices' => $this->invoices->list($_GET)]);
     }
@@ -35,7 +38,10 @@ final class InvoiceController
     public function show(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'orders.manage');
+        $permissions = (array) ($claims['permissions'] ?? []);
+        if (($claims['type'] ?? null) !== 'staff' || (!in_array('orders.manage', $permissions, true) && !in_array('pos.sell', $permissions, true))) {
+            Response::error('Forbidden', 403);
+        }
 
         $invoice = $this->invoices->find((int) $id);
 
@@ -62,6 +68,7 @@ final class InvoiceController
                 paymentMethod: (string) ($body['payment_method'] ?? 'CASH'),
                 amountPaid: (string) ($body['amount_paid'] ?? '0'),
                 couponCode: $body['coupon_code'] ?? null,
+                priceType: isset($body['price_type']) ? (string) $body['price_type'] : null,
             );
             Response::json(['invoice' => $this->invoices->find($id)], 201);
         } catch (RuntimeException $e) {

@@ -126,6 +126,7 @@ export function BannersPage() {
           subcategories={subcategories}
           brands={brands}
           coupons={coupons}
+          products={products}
           onClose={() => setShowCreate(false)}
           onSaved={() => {
             setShowCreate(false)
@@ -164,6 +165,7 @@ function TargetFields({
   subcategories,
   brands,
   coupons,
+  products,
 }: {
   targetType: BannerTargetType
   setTargetType: (v: BannerTargetType) => void
@@ -175,10 +177,18 @@ function TargetFields({
   subcategories: Subcategory[]
   brands: Brand[]
   coupons: Coupon[]
+  products: ProductListItem[]
 }) {
   return (
     <div className="grid grid-cols-2 gap-4">
-      <Select label="Links to" value={targetType} onChange={(e) => setTargetType(e.target.value as BannerTargetType)}>
+      <Select
+        label="Links to"
+        value={targetType}
+        onChange={(e) => {
+          setTargetType(e.target.value as BannerTargetType)
+          setTargetId('')
+        }}
+      >
         {TARGET_TYPES.map((t) => (
           <option key={t} value={t}>
             {t.replace('_', ' ')}
@@ -186,9 +196,19 @@ function TargetFields({
         ))}
       </Select>
 
+      {targetType === 'PRODUCT' && (
+        <Select label="Product" required value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+          <option value="">Select Product…</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} {p.product_code ? `(${p.product_code})` : ''}
+            </option>
+          ))}
+        </Select>
+      )}
       {targetType === 'CATEGORY' && (
         <Select label="Category" required value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-          <option value="">Select…</option>
+          <option value="">Select Category…</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -198,7 +218,7 @@ function TargetFields({
       )}
       {targetType === 'SUBCATEGORY' && (
         <Select label="Subcategory" required value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-          <option value="">Select…</option>
+          <option value="">Select Subcategory…</option>
           {subcategories.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -208,7 +228,7 @@ function TargetFields({
       )}
       {targetType === 'BRAND' && (
         <Select label="Brand" required value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-          <option value="">Select…</option>
+          <option value="">Select Brand…</option>
           {brands.map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
@@ -218,7 +238,7 @@ function TargetFields({
       )}
       {targetType === 'COUPON' && (
         <Select label="Coupon" required value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-          <option value="">Select…</option>
+          <option value="">Select Coupon…</option>
           {coupons.map((c) => (
             <option key={c.id} value={c.id}>
               {c.code}
@@ -245,6 +265,7 @@ function BannerFormModal({
   subcategories,
   brands,
   coupons,
+  products,
   onClose,
   onSaved,
 }: {
@@ -253,6 +274,7 @@ function BannerFormModal({
   subcategories: Subcategory[]
   brands: Brand[]
   coupons: Coupon[]
+  products: ProductListItem[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -381,6 +403,7 @@ function BannerFormModal({
           subcategories={subcategories}
           brands={brands}
           coupons={coupons}
+          products={products}
         />
 
         <div className="grid grid-cols-3 gap-4">
@@ -591,6 +614,7 @@ function BannerManageModal({
             subcategories={subcategories}
             brands={brands}
             coupons={coupons}
+            products={products}
           />
           <TextField label="Sort Order" type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
           <div className="flex justify-end">

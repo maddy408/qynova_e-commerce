@@ -98,6 +98,7 @@ final class InvoiceService
         string $paymentMethod,
         string $amountPaid,
         ?string $couponCode = null,
+        ?string $priceType = null
     ): int {
         if ($items === []) {
             throw new RuntimeException('At least one item is required');
@@ -110,7 +111,8 @@ final class InvoiceService
             $customerType = (string) ($stmt->fetchColumn() ?: 'RETAIL');
         }
 
-        $lines = $this->priceLines($items, $customerType);
+        $effectivePriceType = $priceType ?: $customerType;
+        $lines = $this->priceLines($items, $effectivePriceType);
 
         foreach ($lines as $line) {
             if (bccomp((string) $line['quantity'], $line['available'], 3) > 0) {
@@ -150,14 +152,14 @@ final class InvoiceService
 
         try {
             $invoiceId = $this->insertWithRetry(function (string $invoiceNo) use (
-                $customerId, $cashierUserId, $subtotal, $couponDiscount, $taxTotal, $grandTotal, $amountPaid, $paymentMethod, $paymentStatus
+                $customerId, $cashierUserId, $effectivePriceType, $subtotal, $couponDiscount, $taxTotal, $grandTotal, $amountPaid, $paymentMethod, $paymentStatus
             ) {
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO invoices (
-                        invoice_no, channel, customer_id, cashier_user_id, subtotal, discount_total,
+                        invoice_no, channel, customer_id, cashier_user_id, customer_type, subtotal, discount_total,
                         tax_total, shipping_total, grand_total, payment_method, amount_paid, payment_status, status
                     ) VALUES (
-                        :invoice_no, 'POS', :customer_id, :cashier_user_id, :subtotal, :discount_total,
+                        :invoice_no, 'POS', :customer_id, :cashier_user_id, :customer_type, :subtotal, :discount_total,
                         :tax_total, 0, :grand_total, :payment_method, :amount_paid, :payment_status, 'ACTIVE'
                     )"
                 );
@@ -165,6 +167,7 @@ final class InvoiceService
                     'invoice_no' => $invoiceNo,
                     'customer_id' => $customerId,
                     'cashier_user_id' => $cashierUserId,
+                    'customer_type' => in_array(strtoupper($effectivePriceType), ['NORMAL', 'RETAIL', 'WHOLESALE'], true) ? strtoupper($effectivePriceType) : 'NORMAL',
                     'subtotal' => $subtotal,
                     'discount_total' => $couponDiscount,
                     'tax_total' => $taxTotal,
@@ -208,19 +211,33 @@ final class InvoiceService
                     'line_total' => bcsub(bcadd($line['line_subtotal'], $line['tax_amount'], 2), $allocated, 2),
                 ]);
 
-                $this->inventory->apply(
-                    variantId: $line['variant_id'],
-                    productId: $line['product_id'],
-                    movementType: 'SALE',
-                    onHandDelta: '-' . $line['quantity'],
-                    reservedDelta: '0',
-                    referenceType: 'INVOICE',
-                    referenceId: $invoiceId,
-                    referenceItemId: null,
-                    channel: 'POS',
-                    userId: $cashierUserId,
-                    idempotencyKey: "invoice-sale-{$invoiceId}-{$line['variant_id']}",
-                );
+                if (!empty($line['variant_id']) && (int) $line['variant_id'] > 0) {
+                    $this->inventory->apply(
+                        variantId: $line['variant_id'],
+                        productId: $line['product_id'],
+                        movementType: 'SALE',
+                        onHandDelta: '-' . $line['quantity'],
+                        reservedDelta: '0',
+                        referenceType: 'INVOICE',
+                        referenceId: $invoiceId,
+                        referenceItemId: null,
+                        channel: 'POS',
+                        userId: $cashierUserId,
+                        idempotencyKey: "invoice-sale-{$invoiceId}-{$line['variant_id']}",
+                    );
+
+                    try {
+                        (new BatchService($this->pdo))->consumeStock(
+                            variantId: $line['variant_id'],
+                            qtyToConsume: (float) $line['quantity'],
+                            referenceType: 'INVOICE',
+                            referenceId: $invoiceId,
+                            remarks: "POS Invoice #{$invoiceId}"
+                        );
+                    } catch (\Throwable $ex) {
+                        error_log("Batch consumption warning: " . $ex->getMessage());
+                    }
+                }
             }
 
             if ($couponId !== null && $customerId !== null) {
@@ -355,6 +372,21 @@ final class InvoiceService
             $params['status'] = $filters['status'];
         }
 
+        if (!empty($filters['customer_type'])) {
+            $where[] = 'i.customer_type = :customer_type';
+            $params['customer_type'] = strtoupper($filters['customer_type']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $where[] = 'DATE(i.created_at) >= :date_from';
+            $params['date_from'] = $filters['date_from'];
+        }
+
+        if (!empty($filters['date_to'])) {
+            $where[] = 'DATE(i.created_at) <= :date_to';
+            $params['date_to'] = $filters['date_to'];
+        }
+
         $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
 
         $stmt = $this->pdo->prepare(
@@ -386,7 +418,16 @@ final class InvoiceService
             return null;
         }
 
-        $items = $this->pdo->prepare('SELECT * FROM invoice_items WHERE invoice_id = :id');
+        $items = $this->pdo->prepare(
+            'SELECT ii.*, h.code AS hsn_code, u.name AS unit_name, g.gst_percent, g.tax_mode
+             FROM invoice_items ii
+             LEFT JOIN products p ON p.id = ii.product_id
+             LEFT JOIN hsn_codes h ON h.id = p.hsn_code_id
+             LEFT JOIN units u ON u.id = p.unit_id
+             LEFT JOIN product_variants v ON v.id = ii.variant_id
+             LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
+             WHERE ii.invoice_id = :id'
+        );
         $items->execute(['id' => $invoiceId]);
         $invoice['items'] = $items->fetchAll();
 
@@ -447,7 +488,7 @@ final class InvoiceService
     }
 
     /**
-     * @param list<array{variant_id: int, quantity: int}> $items
+     * @param list<array{variant_id: int, quantity: int, unit_price?: float|string}> $items
      * @return list<array<string, mixed>>
      */
     private function priceLines(array $items, string $customerType): array
@@ -455,8 +496,30 @@ final class InvoiceService
         $lines = [];
 
         foreach ($items as $item) {
+            if ((int) ($item['variant_id'] ?? 0) <= 0 || !empty($item['is_quick_sale'])) {
+                $quantity = (int) ($item['quantity'] ?? 1);
+                $unitPrice = (string) (float) ($item['unit_price'] ?? 0);
+                $lineSubtotal = bcmul($unitPrice, (string) $quantity, 2);
+                $lines[] = [
+                    'variant_id' => null,
+                    'product_id' => null,
+                    'brand_id' => null,
+                    'category_ids' => [],
+                    'product_name' => (string) ($item['product_name'] ?? 'Quick Sale Item'),
+                    'variant_label' => 'Quick Sale',
+                    'sku' => 'QUICK-SALE',
+                    'quantity' => $quantity,
+                    'mrp' => $unitPrice,
+                    'unit_price' => $unitPrice,
+                    'line_subtotal' => $lineSubtotal,
+                    'tax_amount' => '0.00',
+                    'available' => '999999',
+                ];
+                continue;
+            }
+
             $stmt = $this->pdo->prepare(
-                'SELECT v.id AS variant_id, v.product_id, v.sku, v.mrp, v.retail_price, v.wholesale_price,
+                'SELECT v.id AS variant_id, v.product_id, v.sku, v.mrp, v.retail_price, v.wholesale_price, v.customer_price,
                         g.gst_percent, g.tax_mode, p.name AS product_name, p.brand_id, i.available
                  FROM product_variants v
                  JOIN products p ON p.id = v.product_id
@@ -472,7 +535,12 @@ final class InvoiceService
             }
 
             $quantity = (int) $item['quantity'];
-            $unitPrice = PricingService::resolveUnitPrice($variant, $customerType);
+
+            if (isset($item['unit_price']) && is_numeric($item['unit_price']) && (float) $item['unit_price'] > 0) {
+                $unitPrice = (string) (float) $item['unit_price'];
+            } else {
+                $unitPrice = PricingService::resolveUnitPrice($variant, $customerType);
+            }
             $lineSubtotal = bcmul($unitPrice, (string) $quantity, 2);
 
             $gstPercent = (string) ($variant['gst_percent'] ?? '0');

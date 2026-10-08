@@ -20,11 +20,26 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
   useEffect(() => setTab(defaultTab), [defaultTab])
 
   // Company Details state
-  const [companyName, setCompanyName] = useState('Unified POS Store Ltd')
-  const [companyAddress, setCompanyAddress] = useState('123 Retail Hub Street, Commercial Zone, City')
-  const [companyGstin, setCompanyGstin] = useState('27AAAAA0000A1Z5')
-  const [companyPhone, setCompanyPhone] = useState('+91 9876543210')
-  const [companyEmail, setCompanyEmail] = useState('contact@unifiedpos.store')
+  const [companyName, setCompanyName] = useState(() => {
+    const s = localStorage.getItem('company_settings')
+    return s ? JSON.parse(s).name || 'Unified POS Store Ltd' : 'Unified POS Store Ltd'
+  })
+  const [companyAddress, setCompanyAddress] = useState(() => {
+    const s = localStorage.getItem('company_settings')
+    return s ? JSON.parse(s).address || '123 Retail Hub Street, Commercial Zone, City' : '123 Retail Hub Street, Commercial Zone, City'
+  })
+  const [companyGstin, setCompanyGstin] = useState(() => {
+    const s = localStorage.getItem('company_settings')
+    return s ? JSON.parse(s).gstin || '27AAAAA0000A1Z5' : '27AAAAA0000A1Z5'
+  })
+  const [companyPhone, setCompanyPhone] = useState(() => {
+    const s = localStorage.getItem('company_settings')
+    return s ? JSON.parse(s).phone || '+91 9876543210' : '+91 9876543210'
+  })
+  const [companyEmail, setCompanyEmail] = useState(() => {
+    const s = localStorage.getItem('company_settings')
+    return s ? JSON.parse(s).email || 'contact@unifiedpos.store' : 'contact@unifiedpos.store'
+  })
 
   // Invoice Prefix state
   const [invoicePrefix, setInvoicePrefix] = useState('INV')
@@ -41,8 +56,9 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
   const [scannerMode, setScannerMode] = useState('HID / Wireless TCP')
   const [scannerBeep, setScannerBeep] = useState(true)
 
-  // Price Settings state
+  // Price Settings & Batch Rule state
   const [priceVariants, setPriceVariants] = useState<PriceVariant[]>([])
+  const [consumptionRule, setConsumptionRule] = useState<'FIFO' | 'FEFO'>('FIFO')
   const [loadingPrices, setLoadingPrices] = useState(false)
   const [savingPrices, setSavingPrices] = useState(false)
   const [priceSearch, setPriceSearch] = useState('')
@@ -60,8 +76,14 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
     setLoadingPrices(true)
     setPriceError('')
     try {
-      const res = await api.get('/products/price-settings')
+      const [res, ruleRes] = await Promise.all([
+        api.get('/products/price-settings'),
+        api.get('/inventory/consumption-rule').catch(() => ({ data: { rule: 'FIFO' } })),
+      ])
       setPriceVariants(res.data.variants || [])
+      if (ruleRes.data && ruleRes.data.rule) {
+        setConsumptionRule(ruleRes.data.rule as 'FIFO' | 'FEFO')
+      }
     } catch (err) {
       setPriceError(apiErrorMessage(err))
     } finally {
@@ -85,8 +107,11 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         wholesale_price: v.wholesale_price,
         customer_price: v.customer_price,
       }))
-      await api.put('/products/price-settings', { items })
-      setSavedMsg('All Wholesale, Retail & Customer-Wise prices saved successfully!')
+      await Promise.all([
+        api.put('/products/price-settings', { items }),
+        api.put('/inventory/consumption-rule', { rule: consumptionRule }),
+      ])
+      setSavedMsg('Wholesale, Retail, Customer-Wise prices & Batch Consumption Rule saved successfully!')
       setTimeout(() => setSavedMsg(''), 4000)
     } catch (err) {
       setPriceError(apiErrorMessage(err))
@@ -99,6 +124,18 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
     if (tab === 'prices') {
       handleSavePrices()
       return
+    }
+    if (tab === 'company') {
+      localStorage.setItem(
+        'company_settings',
+        JSON.stringify({
+          name: companyName,
+          address: companyAddress,
+          gstin: companyGstin,
+          phone: companyPhone,
+          email: companyEmail,
+        })
+      )
     }
     setSavedMsg('Settings saved successfully!')
     setTimeout(() => setSavedMsg(''), 3000)
@@ -167,6 +204,42 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
       <Card className="p-6 space-y-4">
         {tab === 'prices' && (
           <div className="space-y-4 text-xs">
+            {/* Batch Consumption Strategy Card */}
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 space-y-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">Batch Stock Consumption Strategy (FIFO vs FEFO)</h4>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Select how POS sales &amp; orders consume stock batches. FIFO (First-In, First-Out) consumes oldest batch; FEFO (First-Expired, First-Out) consumes nearest expiry.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-md border border-indigo-200 shadow-2xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-800">
+                    <input
+                      type="radio"
+                      name="consumption_rule"
+                      value="FIFO"
+                      checked={consumptionRule === 'FIFO'}
+                      onChange={() => setConsumptionRule('FIFO')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    FIFO (First-In First-Out)
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-800">
+                    <input
+                      type="radio"
+                      name="consumption_rule"
+                      value="FEFO"
+                      checked={consumptionRule === 'FEFO'}
+                      onChange={() => setConsumptionRule('FEFO')}
+                      className="text-indigo-600 focus:ring-indigo-500"
+                    />
+                    FEFO (First-Expired First-Out)
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Item Pricing Matrix</h3>

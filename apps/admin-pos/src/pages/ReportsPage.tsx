@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, Card, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api } from '../lib/api'
+import { DownloadIcon, PrinterIcon, FilterIcon } from '../components/Icons'
 
 function money(value: string | number) {
-  return `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+  return `₹${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 interface SalesChartPoint {
@@ -33,24 +34,24 @@ interface RecentActivity {
   recent_orders: { id: number; order_no: string; customer_name: string; status: string; grand_total: string; created_at: string }[]
 }
 
-interface ReferralReport {
-  totals: { total_referrals: number; successful_referrals: number; pending_referrals: number }
-  referral_discount_given: string | number
-  top_referrers: { id: number; name: string; referral_count: number }[]
-}
-
-interface RefundSummary {
-  total_refunds: number
-  total_refund_amount: string
-  pending_refund_amount: string
-  pending_count: number
-  completed_refund_amount: string
-  completed_count: number
-  failed_count: number
+interface BatchReportItem {
+  id: number
+  variant_id: number
+  batch_no: string
+  sku: string
+  product_name: string
+  cost_price: string
+  selling_price: string
+  mrp: string
+  quantity: string
+  available_quantity: string
+  manufacturing_date: string | null
+  expiry_date: string | null
+  status: string
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return <h2 className="mb-3 text-sm font-semibold text-slate-900">{children}</h2>
+  return <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-slate-900">{children}</h2>
 }
 
 export function ReportsPage() {
@@ -58,26 +59,62 @@ export function ReportsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [channelFilter, setChannelFilter] = useState<'ALL' | 'POS' | 'ECOMMERCE'>('ALL')
-  const [customerTypeFilter, setCustomerTypeFilter] = useState<'ALL' | 'RETAIL' | 'WHOLESALE'>('ALL')
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<'ALL' | 'NORMAL' | 'RETAIL' | 'WHOLESALE'>('ALL')
+  const [preset, setPreset] = useState<'today' | 'yesterday' | '7days' | 'month' | 'custom'>('custom')
 
   const [chart, setChart] = useState<SalesChartPoint[] | null>(null)
   const [products, setProducts] = useState<ProductAnalytics | null>(null)
   const [customers, setCustomers] = useState<CustomerAnalytics | null>(null)
   const [activity, setActivity] = useState<RecentActivity | null>(null)
-  const [referrals, setReferrals] = useState<ReferralReport | null>(null)
-  const [refunds, setRefunds] = useState<RefundSummary | null>(null)
+  const [batches, setBatches] = useState<BatchReportItem[]>([])
+  const [expiringBatches, setExpiringBatches] = useState<BatchReportItem[]>([])
 
   useEffect(() => {
     api.get('/dashboard/sales-chart', { params: { period } }).then((res) => setChart(res.data.chart))
   }, [period])
 
   useEffect(() => {
-    api.get('/dashboard/product-analytics').then((res) => setProducts(res.data))
-    api.get('/dashboard/customer-analytics').then((res) => setCustomers(res.data))
-    api.get('/dashboard/recent-activity').then((res) => setActivity(res.data))
-    api.get('/reports/referrals').then((res) => setReferrals(res.data))
-    api.get('/reports/refunds').then((res) => setRefunds(res.data.summary))
+    Promise.all([
+      api.get('/dashboard/product-analytics'),
+      api.get('/dashboard/customer-analytics'),
+      api.get('/dashboard/recent-activity'),
+      api.get('/inventory/batches'),
+      api.get('/inventory/batches/expiry'),
+    ]).then(([prodRes, custRes, actRes, batchRes, expRes]) => {
+      setProducts(prodRes.data)
+      setCustomers(custRes.data)
+      setActivity(actRes.data)
+      setBatches(batchRes.data.batches || [])
+      setExpiringBatches(expRes.data.expiring_batches || [])
+    })
   }, [])
+
+  function applyPreset(type: 'today' | 'yesterday' | '7days' | 'month') {
+    setPreset(type)
+    const today = new Date()
+    const formatDate = (d: Date) => d.toISOString().slice(0, 10)
+
+    if (type === 'today') {
+      const d = formatDate(today)
+      setStartDate(d)
+      setEndDate(d)
+    } else if (type === 'yesterday') {
+      const y = new Date(today)
+      y.setDate(y.getDate() - 1)
+      const d = formatDate(y)
+      setStartDate(d)
+      setEndDate(d)
+    } else if (type === '7days') {
+      const d7 = new Date(today)
+      d7.setDate(d7.getDate() - 7)
+      setStartDate(formatDate(d7))
+      setEndDate(formatDate(today))
+    } else if (type === 'month') {
+      const m1 = new Date(today.getFullYear(), today.getMonth(), 1)
+      setStartDate(formatDate(m1))
+      setEndDate(formatDate(today))
+    }
+  }
 
   function handleExportExcel() {
     const params = new URLSearchParams()
@@ -95,7 +132,7 @@ export function ReportsPage() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `sales-report-${new Date().toISOString().slice(0, 10)}.xlsx`
+        a.download = `sales-report-${new Date().toISOString().slice(0, 10)}.csv`
         document.body.appendChild(a)
         a.click()
         a.remove()
@@ -109,108 +146,215 @@ export function ReportsPage() {
 
   const maxSales = chart && chart.length > 0 ? Math.max(...chart.map((c) => Number(c.sales_amount))) : 0
 
+  const totalSalesSum = chart ? chart.reduce((acc, c) => acc + Number(c.sales_amount), 0) : 0
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       <PageHeader
         title="Reports & Analytics"
-        description="Comprehensive store analytics with Excel export, PDF export, and multi-filter options."
+        description="Comprehensive store reports with preset date ranges, customer type filtering, and batch expiry tracking."
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={handleExportExcel}>
-              Export Excel (.xlsx)
+            <Button variant="secondary" size="sm" onClick={handleExportExcel} className="flex items-center space-x-1.5">
+              <DownloadIcon className="h-4 w-4" />
+              <span>Export CSV</span>
             </Button>
-            <Button onClick={handleExportPdf}>
-              Export PDF / Print
+            <Button size="sm" onClick={handleExportPdf} className="flex items-center space-x-1.5 bg-slate-900">
+              <PrinterIcon className="h-4 w-4" />
+              <span>Print PDF</span>
             </Button>
           </div>
         }
       />
 
-      {/* Filter Options Bar */}
-      <Card className="p-4 bg-slate-50/70 border-slate-200">
-        <div className="flex flex-wrap items-end gap-4 text-xs">
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Start Date</label>
-            <TextField
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-40 bg-white"
-            />
+      {/* Clean KPI Cards Summary Row */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <Card className="p-4 border-indigo-200 bg-white shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Sales</span>
+            <span className="text-indigo-600 font-bold">₹</span>
           </div>
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">End Date</label>
-            <TextField
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-40 bg-white"
-            />
+          <div className="mt-2 text-2xl font-black text-slate-900">{money(totalSalesSum)}</div>
+          <span className="text-[10px] text-slate-400 font-medium">Aggregated sales total</span>
+        </Card>
+
+        <Card className="p-4 border-emerald-200 bg-white shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Est. Gross Profit</span>
+            <span className="text-emerald-600 font-bold">📈</span>
           </div>
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Channel / Type</label>
-            <Select
-              value={channelFilter}
-              onChange={(e: any) => setChannelFilter(e.target.value)}
-              className="w-40 bg-white"
-            >
-              <option value="ALL">All Channels</option>
-              <option value="POS">POS Billing</option>
-              <option value="ECOMMERCE">E-Commerce</option>
-            </Select>
+          <div className="mt-2 text-2xl font-black text-emerald-700">
+            {products ? money(products.gross_profit_estimate.estimated_gross_profit) : '₹0.00'}
           </div>
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Customer Type</label>
-            <Select
-              value={customerTypeFilter}
-              onChange={(e: any) => setCustomerTypeFilter(e.target.value)}
-              className="w-40 bg-white"
-            >
-              <option value="ALL">All Customers</option>
-              <option value="RETAIL">Retail Customers</option>
-              <option value="WHOLESALE">Wholesale Buyers</option>
-            </Select>
+          <span className="text-[10px] text-slate-400 font-medium">Margin estimate</span>
+        </Card>
+
+        <Card className="p-4 border-amber-200 bg-white shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Batches</span>
+            <span className="text-amber-600 font-bold">📦</span>
           </div>
-          <div className="flex items-center gap-2 pb-0.5">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setStartDate('')
-                setEndDate('')
-                setChannelFilter('ALL')
-                setCustomerTypeFilter('ALL')
-              }}
-            >
-              Reset Filters
-            </Button>
+          <div className="mt-2 text-2xl font-black text-slate-900">{batches.length}</div>
+          <span className="text-[10px] text-slate-400 font-medium">{expiringBatches.length} expiring soon</span>
+        </Card>
+
+        <Card className="p-4 border-purple-200 bg-white shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Customers</span>
+            <span className="text-purple-600 font-bold">👥</span>
+          </div>
+          <div className="mt-2 text-2xl font-black text-slate-900">
+            {customers ? customers.one_time_customers + customers.returning_customers : 0}
+          </div>
+          <span className="text-[10px] text-slate-400 font-medium">{customers?.returning_customers || 0} returning</span>
+        </Card>
+      </div>
+
+      {/* Filter Options Bar with Presets */}
+      <Card className="p-4 bg-slate-50 border-slate-200 shadow-2xs">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-xs font-bold text-slate-700">
+              <FilterIcon className="h-4 w-4 text-indigo-600" />
+              <span>Report Presets &amp; Filters</span>
+            </div>
+
+            {/* Date Range Presets */}
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => applyPreset('today')}
+                className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${
+                  preset === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('yesterday')}
+                className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${
+                  preset === 'yesterday' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('7days')}
+                className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${
+                  preset === '7days' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Last 7 Days
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('month')}
+                className={`px-2.5 py-1 text-xs font-bold rounded transition-colors ${
+                  preset === 'month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                This Month
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-4 text-xs pt-2 border-t border-slate-200">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Start Date</label>
+              <TextField
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value)
+                  setPreset('custom')
+                }}
+                className="w-40 bg-white text-xs"
+              />
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">End Date</label>
+              <TextField
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value)
+                  setPreset('custom')
+                }}
+                className="w-40 bg-white text-xs"
+              />
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Sales Channel</label>
+              <Select
+                value={channelFilter}
+                onChange={(e: any) => setChannelFilter(e.target.value)}
+                className="w-40 bg-white text-xs"
+              >
+                <option value="ALL">All Channels</option>
+                <option value="POS">POS Billing</option>
+                <option value="ECOMMERCE">E-Commerce</option>
+              </Select>
+            </div>
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Customer Type Filter</label>
+              <Select
+                value={customerTypeFilter}
+                onChange={(e: any) => setCustomerTypeFilter(e.target.value)}
+                className="w-40 bg-white text-xs font-bold"
+              >
+                <option value="ALL">All Customer Types</option>
+                <option value="NORMAL">Normal Customers</option>
+                <option value="RETAIL">Retail Customers</option>
+                <option value="WHOLESALE">Wholesale Buyers</option>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 pb-0.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                  setChannelFilter('ALL')
+                  setCustomerTypeFilter('ALL')
+                  setPreset('custom')
+                }}
+              >
+                Reset Filters
+              </Button>
+            </div>
           </div>
         </div>
       </Card>
 
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <SectionTitle>Sales Trend</SectionTitle>
-          <Select value={period} onChange={(e) => setPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')} className="w-36">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
+          <SectionTitle>Sales Trend Chart</SectionTitle>
+          <Select value={period} onChange={(e) => setPeriod(e.target.value as 'daily' | 'weekly' | 'monthly')} className="w-36 text-xs bg-white">
+            <option value="daily">Daily View</option>
+            <option value="weekly">Weekly View</option>
+            <option value="monthly">Monthly View</option>
           </Select>
         </div>
-        <Card className="p-5">
+        <Card className="p-5 shadow-2xs">
           {chart === null ? (
             <Spinner />
           ) : chart.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">No sales in this period yet.</p>
+            <p className="py-8 text-center text-xs text-slate-500">No sales recorded for selected period.</p>
           ) : (
-            <div className="flex h-40 items-end gap-2">
+            <div className="flex h-44 items-end gap-2 pt-6">
               {chart.map((point) => (
-                <div key={point.period} className="flex flex-1 flex-col items-center gap-1" title={`${point.period}: ${money(point.sales_amount)} (${point.order_count} orders)`}>
+                <div key={point.period} className="flex flex-1 flex-col items-center gap-1 group relative" title={`${point.period}: ${money(point.sales_amount)} (${point.order_count} orders)`}>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-10">
+                    {money(point.sales_amount)}
+                  </div>
                   <div
-                    className="w-full rounded-t bg-indigo-500"
-                    style={{ height: maxSales > 0 ? `${Math.max(4, (Number(point.sales_amount) / maxSales) * 120)}px` : '4px' }}
+                    className="w-full rounded-t bg-gradient-to-t from-indigo-600 to-indigo-400 group-hover:from-indigo-700 group-hover:to-indigo-500 transition-colors"
+                    style={{ height: maxSales > 0 ? `${Math.max(6, (Number(point.sales_amount) / maxSales) * 130)}px` : '6px' }}
                   />
-                  <span className="truncate text-[10px] text-slate-400">{point.period}</span>
+                  <span className="truncate text-[10px] font-medium text-slate-400">{point.period}</span>
                 </div>
               ))}
             </div>
@@ -221,240 +365,197 @@ export function ReportsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <SectionTitle>Top Selling Products</SectionTitle>
-          <Card>
+          <Card className="shadow-2xs overflow-hidden">
             {products === null ? (
               <Spinner />
             ) : (
-              <table className="w-full text-left text-sm">
-                <tbody className="divide-y divide-slate-100">
-                  {products.top_selling_products.map((p) => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-2 text-slate-900">{p.name}</td>
-                      <td className="px-4 py-2 text-right text-slate-500">{p.units_sold} units</td>
-                      <td className="px-4 py-2 text-right font-medium text-slate-700">{money(p.revenue)}</td>
-                    </tr>
-                  ))}
-                  {products.top_selling_products.length === 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 font-bold text-slate-600 uppercase border-b border-slate-200 sticky top-0">
                     <tr>
-                      <td className="px-4 py-6 text-center text-sm text-slate-500">No sales yet.</td>
+                      <th className="px-4 py-2.5">Product Name</th>
+                      <th className="px-4 py-2.5 text-right">Units Sold</th>
+                      <th className="px-4 py-2.5 text-right">Total Revenue</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {products.top_selling_products.map((p) => (
+                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-2.5 font-bold text-slate-900">{p.name}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-600 font-medium">{p.units_sold}</td>
+                        <td className="px-4 py-2.5 text-right font-extrabold text-slate-900">{money(p.revenue)}</td>
+                      </tr>
+                    ))}
+                    {products.top_selling_products.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-6 text-center text-xs text-slate-400">No product sales recorded.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </Card>
         </div>
 
         <div>
           <SectionTitle>Top Selling Categories</SectionTitle>
-          <Card>
+          <Card className="shadow-2xs overflow-hidden">
             {products === null ? (
               <Spinner />
             ) : (
-              <table className="w-full text-left text-sm">
-                <tbody className="divide-y divide-slate-100">
-                  {products.top_selling_categories.map((c) => (
-                    <tr key={c.id}>
-                      <td className="px-4 py-2 text-slate-900">{c.name}</td>
-                      <td className="px-4 py-2 text-right text-slate-500">{c.units_sold} units</td>
-                      <td className="px-4 py-2 text-right font-medium text-slate-700">{money(c.revenue)}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 font-bold text-slate-600 uppercase border-b border-slate-200 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2.5">Category Name</th>
+                      <th className="px-4 py-2.5 text-right">Units Sold</th>
+                      <th className="px-4 py-2.5 text-right">Total Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {products.top_selling_categories.map((c) => (
+                      <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-2.5 font-bold text-slate-900">{c.name}</td>
+                        <td className="px-4 py-2.5 text-right text-slate-600 font-medium">{c.units_sold}</td>
+                        <td className="px-4 py-2.5 text-right font-extrabold text-slate-900">{money(c.revenue)}</td>
+                      </tr>
+                    ))}
+                    {products.top_selling_categories.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-6 text-center text-xs text-slate-400">No category sales recorded.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* Batch & Expiry Report Section */}
+      <div>
+        <SectionTitle>Inventory Batches &amp; Expiry Report</SectionTitle>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Active Inventory Batches */}
+          <Card className="p-4 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">Active Batches</h3>
+              <span className="text-[11px] font-bold text-indigo-600">{batches.length} Batches</span>
+            </div>
+            <div className="overflow-x-auto max-h-72 border border-slate-200 rounded-lg">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-bold sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2">Item / SKU</th>
+                    <th className="px-3 py-2">Batch No</th>
+                    <th className="px-3 py-2 text-right">Available</th>
+                    <th className="px-3 py-2 text-right">Price</th>
+                    <th className="px-3 py-2">Expiry</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {batches.map((b) => (
+                    <tr key={b.id} className="hover:bg-slate-50">
+                      <td className="px-3 py-2">
+                        <p className="font-bold text-slate-900 truncate max-w-[140px]">{b.product_name}</p>
+                        <p className="text-[10px] font-mono text-slate-400">{b.sku}</p>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-slate-700 font-bold">{b.batch_no}</td>
+                      <td className="px-3 py-2 text-right font-black text-slate-900">{Number(b.available_quantity)}</td>
+                      <td className="px-3 py-2 text-right font-bold text-emerald-700">₹{Number(b.selling_price).toFixed(2)}</td>
+                      <td className="px-3 py-2 text-slate-600 font-medium">{b.expiry_date ? b.expiry_date : '—'}</td>
                     </tr>
                   ))}
-                  {products.top_selling_categories.length === 0 && (
+                  {batches.length === 0 && (
                     <tr>
-                      <td className="px-4 py-6 text-center text-sm text-slate-500">No sales yet.</td>
+                      <td colSpan={5} className="py-6 text-center text-xs text-slate-400">No active batches recorded.</td>
                     </tr>
                   )}
                 </tbody>
               </table>
-            )}
-          </Card>
-        </div>
-      </div>
-
-      {products && (
-        <div>
-          <SectionTitle>Estimated Gross Profit</SectionTitle>
-          <Card className="p-5">
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p className="text-slate-500">Revenue (ex. tax)</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">{money(products.gross_profit_estimate.revenue_ex_tax)}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Estimated COGS</p>
-                <p className="mt-1 text-lg font-semibold text-slate-900">{money(products.gross_profit_estimate.estimated_cogs)}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Estimated Gross Profit</p>
-                <p className="mt-1 text-lg font-semibold text-emerald-600">{money(products.gross_profit_estimate.estimated_gross_profit)}</p>
-              </div>
             </div>
-            <p className="mt-3 text-xs text-slate-400">{products.gross_profit_estimate.note}</p>
           </Card>
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div>
-          <SectionTitle>Customers Analytics</SectionTitle>
-          <Card className="p-5">
-            {customers === null ? (
-              <Spinner />
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <p className="text-slate-500">One-time</p>
-                    <p className="text-lg font-semibold text-slate-900">{customers.one_time_customers}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Returning</p>
-                    <p className="text-lg font-semibold text-slate-900">{customers.returning_customers}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Via Referral</p>
-                    <p className="text-lg font-semibold text-slate-900">{customers.referral_customer_count}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-slate-500">Top Customers</p>
-                  <ul className="divide-y divide-slate-100">
-                    {customers.top_customers.map((c) => (
-                      <li key={c.id} className="flex items-center justify-between py-1.5 text-sm">
-                        <span className="text-slate-700">{c.name}</span>
-                        <span className="font-medium text-slate-900">{money(c.total_spent)}</span>
-                      </li>
-                    ))}
-                    {customers.top_customers.length === 0 && <li className="py-3 text-center text-sm text-slate-500">No customers with invoices yet.</li>}
-                  </ul>
-                </div>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div>
-          <SectionTitle>Referrals Report</SectionTitle>
-          <Card className="p-5">
-            {referrals === null ? (
-              <Spinner />
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <p className="text-slate-500">Total</p>
-                    <p className="text-lg font-semibold text-slate-900">{referrals.totals.total_referrals}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Successful</p>
-                    <p className="text-lg font-semibold text-emerald-600">{referrals.totals.successful_referrals}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Pending</p>
-                    <p className="text-lg font-semibold text-amber-600">{referrals.totals.pending_referrals}</p>
-                  </div>
-                </div>
-                <p className="text-sm text-slate-600">
-                  Discount given via referrals: <span className="font-medium text-slate-900">{money(referrals.referral_discount_given)}</span>
-                </p>
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-slate-500">Top Referrers</p>
-                  <ul className="divide-y divide-slate-100">
-                    {referrals.top_referrers.map((r) => (
-                      <li key={r.id} className="flex items-center justify-between py-1.5 text-sm">
-                        <span className="text-slate-700">{r.name}</span>
-                        <span className="font-medium text-slate-900">{r.referral_count}</span>
-                      </li>
-                    ))}
-                    {referrals.top_referrers.length === 0 && <li className="py-3 text-center text-sm text-slate-500">No referrals yet.</li>}
-                  </ul>
-                </div>
-              </div>
-            )}
+          {/* Near Expiry / Expired Batches */}
+          <Card className="p-4 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-red-950">Expiry Alerts (&lt; 30 Days)</h3>
+              <span className="text-[11px] font-bold text-red-600">{expiringBatches.length} Expiring / Expired</span>
+            </div>
+            <div className="overflow-x-auto max-h-72 border border-red-200 bg-red-50/20 rounded-lg">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-red-100/70 text-red-900 uppercase font-bold sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2">Item / SKU</th>
+                    <th className="px-3 py-2">Batch No</th>
+                    <th className="px-3 py-2 text-right">Qty Left</th>
+                    <th className="px-3 py-2">Expiry Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-red-100 bg-white">
+                  {expiringBatches.map((b) => (
+                    <tr key={b.id} className="hover:bg-red-50">
+                      <td className="px-3 py-2">
+                        <p className="font-bold text-red-950 truncate max-w-[140px]">{b.product_name}</p>
+                        <p className="text-[10px] font-mono text-red-700">{b.sku}</p>
+                      </td>
+                      <td className="px-3 py-2 font-mono text-red-900 font-bold">{b.batch_no}</td>
+                      <td className="px-3 py-2 text-right font-black text-red-950">{Number(b.available_quantity)}</td>
+                      <td className="px-3 py-2 text-red-800 font-bold">{b.expiry_date}</td>
+                    </tr>
+                  ))}
+                  {expiringBatches.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-6 text-center text-xs text-emerald-700 font-bold">✓ No batches near expiry within 30 days.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </div>
       </div>
 
       <div>
-        <SectionTitle>Refunds Summary</SectionTitle>
-        <Card className="p-5">
-          {refunds === null ? (
-            <Spinner />
-          ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div>
-                <p className="text-slate-500">Total Refunded</p>
-                <p className="text-lg font-semibold text-slate-900">{money(refunds.total_refund_amount)}</p>
-                <p className="text-xs text-slate-400">{refunds.total_refunds} total</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Pending</p>
-                <p className="text-lg font-semibold text-amber-600">{money(refunds.pending_refund_amount)}</p>
-                <p className="text-xs text-slate-400">{refunds.pending_count} refund(s)</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Completed</p>
-                <p className="text-lg font-semibold text-emerald-600">{money(refunds.completed_refund_amount)}</p>
-                <p className="text-xs text-slate-400">{refunds.completed_count} refund(s)</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Failed</p>
-                <p className="text-lg font-semibold text-red-600">{refunds.failed_count}</p>
-              </div>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      <div>
-        <SectionTitle>Recent Activity</SectionTitle>
+        <SectionTitle>Recent Transactions &amp; Orders Activity</SectionTitle>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <p className="border-b border-slate-100 px-4 py-2 text-xs font-medium uppercase text-slate-500">POS / E-commerce Sales</p>
+          <Card className="shadow-2xs">
+            <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase text-slate-700">Recent POS &amp; E-commerce Sales</p>
             <ul className="divide-y divide-slate-100">
               {activity?.recent_sales.map((s) => (
-                <li key={s.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                <li key={s.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
                   <div>
-                    <p className="text-slate-900">{s.invoice_no}</p>
-                    <p className="text-xs text-slate-400">{s.channel}</p>
+                    <p className="font-bold text-slate-900">{s.invoice_no}</p>
+                    <p className="text-[10px] text-slate-400">{s.channel}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-slate-900">{money(s.grand_total)}</p>
+                    <p className="font-extrabold text-slate-900">{money(s.grand_total)}</p>
                     <Badge tone={s.payment_status === 'PAID' ? 'green' : 'amber'}>{s.payment_status}</Badge>
                   </div>
                 </li>
               ))}
-              {activity && activity.recent_sales.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-500">No sales yet.</li>}
-              {!activity && (
-                <li className="px-4 py-6">
-                  <Spinner />
-                </li>
-              )}
+              {activity && activity.recent_sales.length === 0 && <li className="px-4 py-6 text-center text-xs text-slate-400">No recent sales.</li>}
             </ul>
           </Card>
 
-          <Card>
-            <p className="border-b border-slate-100 px-4 py-2 text-xs font-medium uppercase text-slate-500">Orders</p>
+          <Card className="shadow-2xs">
+            <p className="border-b border-slate-100 px-4 py-2.5 text-xs font-bold uppercase text-slate-700">Recent Store Orders</p>
             <ul className="divide-y divide-slate-100">
               {activity?.recent_orders.map((o) => (
-                <li key={o.id} className="flex items-center justify-between px-4 py-2 text-sm">
+                <li key={o.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
                   <div>
-                    <p className="text-slate-900">{o.order_no}</p>
-                    <p className="text-xs text-slate-400">{o.customer_name}</p>
+                    <p className="font-bold text-slate-900">{o.order_no}</p>
+                    <p className="text-[10px] text-slate-400">{o.customer_name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-slate-900">{money(o.grand_total)}</p>
+                    <p className="font-extrabold text-slate-900">{money(o.grand_total)}</p>
                     <Badge>{o.status}</Badge>
                   </div>
                 </li>
               ))}
-              {activity && activity.recent_orders.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-500">No orders yet.</li>}
-              {!activity && (
-                <li className="px-4 py-6">
-                  <Spinner />
-                </li>
-              )}
+              {activity && activity.recent_orders.length === 0 && <li className="px-4 py-6 text-center text-xs text-slate-400">No recent orders.</li>}
             </ul>
           </Card>
         </div>
@@ -462,3 +563,4 @@ export function ReportsPage() {
     </div>
   )
 }
+

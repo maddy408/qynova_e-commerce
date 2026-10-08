@@ -74,13 +74,13 @@ final class VariantService
         try {
             $stmt = $this->pdo->prepare(
                 'INSERT INTO product_variants (
-                    product_id, sku, barcode, mrp, retail_price, wholesale_price, purchase_price,
-                    min_selling_price, weight_grams, hsn_code_id, gst_rate_id, variant_description,
-                    is_default, status
+                    product_id, sku, barcode, mrp, retail_price, wholesale_price, customer_price, purchase_price,
+                    min_selling_price, discount_percent, discount_amount, manufacturing_date, expiry_date,
+                    weight_grams, hsn_code_id, gst_rate_id, variant_description, is_default, status
                 ) VALUES (
-                    :product_id, :sku, :barcode, :mrp, :retail_price, :wholesale_price, :purchase_price,
-                    :min_selling_price, :weight_grams, :hsn_code_id, :gst_rate_id, :variant_description,
-                    :is_default, :status
+                    :product_id, :sku, :barcode, :mrp, :retail_price, :wholesale_price, :customer_price, :purchase_price,
+                    :min_selling_price, :discount_percent, :discount_amount, :manufacturing_date, :expiry_date,
+                    :weight_grams, :hsn_code_id, :gst_rate_id, :variant_description, :is_default, :status
                 )'
             );
             $stmt->execute([
@@ -90,8 +90,13 @@ final class VariantService
                 'mrp' => $data['mrp'] ?? 0,
                 'retail_price' => $data['retail_price'] ?? 0,
                 'wholesale_price' => $data['wholesale_price'] ?? null,
+                'customer_price' => $data['customer_price'] ?? null,
                 'purchase_price' => $data['purchase_price'] ?? null,
                 'min_selling_price' => $data['min_selling_price'] ?? null,
+                'discount_percent' => $data['discount_percent'] ?? 0,
+                'discount_amount' => $data['discount_amount'] ?? 0,
+                'manufacturing_date' => $data['manufacturing_date'] ?? null,
+                'expiry_date' => $data['expiry_date'] ?? null,
                 'weight_grams' => $data['weight_grams'] ?? null,
                 'hsn_code_id' => $data['hsn_code_id'] ?? null,
                 'gst_rate_id' => $data['gst_rate_id'] ?? null,
@@ -108,9 +113,23 @@ final class VariantService
                 )->execute(['variant_id' => $variantId, 'value_id' => $valueId]);
             }
 
+            $openingStock = (float) ($data['opening_stock'] ?? 0);
             $this->pdo->prepare(
-                'INSERT INTO inventory (variant_id, product_id, on_hand, reserved) VALUES (:variant_id, :product_id, 0, 0)'
-            )->execute(['variant_id' => $variantId, 'product_id' => $productId]);
+                'INSERT INTO inventory (variant_id, product_id, on_hand, reserved) VALUES (:variant_id, :product_id, :on_hand, 0)'
+            )->execute(['variant_id' => $variantId, 'product_id' => $productId, 'on_hand' => $openingStock]);
+
+            if ($openingStock > 0) {
+                (new BatchService($this->pdo))->createOpeningBatch(
+                    variantId: $variantId,
+                    qty: $openingStock,
+                    cost: (float) ($data['purchase_price'] ?? 0),
+                    selling: (float) ($data['retail_price'] ?? 0),
+                    mrp: (float) ($data['mrp'] ?? 0),
+                    mfgDate: $data['manufacturing_date'] ?? null,
+                    expDate: $data['expiry_date'] ?? null,
+                    batchNo: $data['batch_no'] ?? null
+                );
+            }
 
             $this->pdo->commit();
 
@@ -125,9 +144,9 @@ final class VariantService
     public function updateVariant(int $variantId, array $data): void
     {
         $fields = [
-            'barcode', 'mrp', 'retail_price', 'wholesale_price', 'purchase_price',
-            'min_selling_price', 'weight_grams', 'hsn_code_id', 'gst_rate_id',
-            'variant_description', 'is_default', 'status',
+            'barcode', 'mrp', 'retail_price', 'wholesale_price', 'customer_price', 'purchase_price',
+            'min_selling_price', 'discount_percent', 'discount_amount', 'manufacturing_date', 'expiry_date',
+            'weight_grams', 'hsn_code_id', 'gst_rate_id', 'variant_description', 'is_default', 'status',
         ];
 
         $sets = [];

@@ -370,31 +370,69 @@ final class InventoryService
     public function saveOpeningStock(array $items, int $userId): void
     {
         $adjustmentItems = [];
+        $batchService = new BatchService($this->pdo);
+
         foreach ($items as $item) {
-            if (!is_array($item) || !isset($item['variant_id']) || !isset($item['opening_stock'])) {
+            if (!is_array($item) || !isset($item['variant_id'])) {
                 continue;
             }
 
             $variantId = (int) $item['variant_id'];
-            $newQty = (string) $item['opening_stock'];
 
-            if ($variantId <= 0 || !is_numeric($newQty) || bccomp($newQty, '0', 3) < 0) {
-                continue;
-            }
+            if (isset($item['batches']) && is_array($item['batches']) && count($item['batches']) > 0) {
+                $totalBatchQty = 0.0;
+                foreach ($item['batches'] as $b) {
+                    $bNo = trim((string) ($b['batch_no'] ?? ''));
+                    $qty = (float) ($b['qty'] ?? 0);
+                    $mrp = (float) ($b['mrp'] ?? 0);
+                    $selling = (float) ($b['selling_price'] ?? 0);
+                    $mfg = !empty($b['mfg_date']) ? (string) $b['mfg_date'] : null;
+                    $exp = !empty($b['exp_date']) ? (string) $b['exp_date'] : null;
 
-            $stock = $this->getStock($variantId);
-            $currentQty = $stock !== null ? (string) ($stock['on_hand'] ?? '0') : '0';
+                    if ($qty > 0 && $bNo !== '') {
+                        $batchService->createOpeningBatch(
+                            variantId: $variantId,
+                            qty: $qty,
+                            cost: 0.0,
+                            selling: $selling,
+                            mrp: $mrp,
+                            mfgDate: $mfg,
+                            expDate: $exp,
+                            batchNo: $bNo
+                        );
+                        $totalBatchQty += $qty;
+                    }
+                }
 
-            if (bccomp($currentQty, $newQty, 3) !== 0) {
+                $stock = $this->getStock($variantId);
+                $currentQty = $stock !== null ? (string) ($stock['on_hand'] ?? '0') : '0';
+                $newTotalQty = (string) ((float)$currentQty + $totalBatchQty);
+
                 $adjustmentItems[] = [
                     'variant_id' => $variantId,
-                    'counted_qty' => $newQty,
+                    'counted_qty' => $newTotalQty,
                 ];
+            } elseif (isset($item['opening_stock'])) {
+                $newQty = (string) $item['opening_stock'];
+
+                if ($variantId <= 0 || !is_numeric($newQty) || bccomp($newQty, '0', 3) < 0) {
+                    continue;
+                }
+
+                $stock = $this->getStock($variantId);
+                $currentQty = $stock !== null ? (string) ($stock['on_hand'] ?? '0') : '0';
+
+                if (bccomp($currentQty, $newQty, 3) !== 0) {
+                    $adjustmentItems[] = [
+                        'variant_id' => $variantId,
+                        'counted_qty' => $newQty,
+                    ];
+                }
             }
         }
 
         if ($adjustmentItems !== []) {
-            $this->createAdjustment($adjustmentItems, 'Opening Stock Update', $userId);
+            $this->createAdjustment($adjustmentItems, 'Opening Stock Update with Batches', $userId);
         }
     }
 }

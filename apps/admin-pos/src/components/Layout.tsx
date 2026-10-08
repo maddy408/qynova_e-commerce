@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { BellIcon, LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
+import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
 interface SubItem {
   to: string
@@ -38,12 +38,13 @@ const SECTIONS: SectionConfig[] = [
     id: 'catalog',
     label: 'Catalog',
     to: '/categories',
-    matchPrefixes: ['/categories', '/subcategories', '/brands', '/products', '/units', '/tax'],
+    matchPrefixes: ['/categories', '/subcategories', '/brands', '/products', '/price-adjustment', '/units', '/tax'],
     items: [
       { to: '/categories', label: 'Category', permission: 'catalog.manage' },
       { to: '/subcategories', label: 'Subcategory', permission: 'catalog.manage' },
       { to: '/brands', label: 'Brands & Mapping', permission: 'catalog.manage' },
       { to: '/products', label: 'Products', permission: 'catalog.manage' },
+      { to: '/price-adjustment', label: 'Price Adjustment', permission: 'catalog.manage' },
       { to: '/tax', label: 'Tax', permission: 'catalog.manage' },
       { to: '/units', label: 'Unit', permission: 'catalog.manage' },
     ],
@@ -52,10 +53,11 @@ const SECTIONS: SectionConfig[] = [
     id: 'sales-orders',
     label: 'Sales & Orders',
     to: '/orders',
-    matchPrefixes: ['/orders', '/invoices', '/customers', '/deliveries', '/returns', '/finance', '/reports'],
+    matchPrefixes: ['/orders', '/invoices', '/collections', '/customers', '/deliveries', '/returns', '/finance', '/reports'],
     items: [
       { to: '/orders', label: 'Orders', permission: 'orders.manage' },
       { to: '/invoices', label: 'Invoices', permission: 'orders.manage' },
+      { to: '/collections', label: 'Collections (Credit)' },
       { to: '/customers', label: 'Customers' },
       { to: '/deliveries', label: 'Delivery', permission: 'delivery.manage' },
       { to: '/returns', label: 'Returns', permission: 'orders.manage' },
@@ -149,9 +151,9 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-[#faf8fc] flex flex-col font-sans text-slate-900 antialiased">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-2xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Top Navbar Header */}
+      <header className="no-print sticky top-0 z-40 bg-white border-b border-slate-100 shadow-2xs">
+        <div className="w-full max-w-full px-4 sm:px-6">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
@@ -175,13 +177,13 @@ export function Layout() {
                     <Link
                       key={sec.id}
                       to={sec.to}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full transition-all border ${
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
                         isActive
-                          ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                          : 'bg-amber-100/70 text-amber-950 border-amber-200/80 hover:bg-amber-200/80 shadow-2xs'
+                          ? 'bg-[#7E1235] text-white shadow-xs'
+                          : 'bg-[#7E1235]/10 text-[#7E1235] hover:bg-[#7E1235]/20 shadow-2xs'
                       }`}
                     >
-                      <ZapIcon className="h-3.5 w-3.5 text-amber-600 fill-amber-500" />
+                      <ZapIcon className="h-3.5 w-3.5 text-white fill-white" />
                       {sec.label}
                     </Link>
                   )
@@ -193,8 +195,8 @@ export function Layout() {
                     to={sec.to}
                     className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
                       isActive
-                        ? 'bg-[#e7e2f5] text-indigo-950 shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                        ? 'bg-[#7E1235] text-white shadow-2xs'
+                        : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
                     {sec.label}
@@ -206,7 +208,7 @@ export function Layout() {
             {/* User Profile & Logout (Right Side) */}
             <div className="hidden sm:flex items-center gap-3 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100 border border-purple-200/70 text-xs font-extrabold text-purple-900 shadow-2xs">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7E1235] text-xs font-extrabold text-white shadow-2xs">
                   {user?.name?.charAt(0).toUpperCase() || 'A'}
                 </div>
                 <div className="text-left leading-tight">
@@ -216,13 +218,6 @@ export function Layout() {
                   </span>
                 </div>
               </div>
-
-              <button
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 transition-colors"
-                title="Notifications"
-              >
-                <BellIcon className="h-4 w-4 text-slate-600" />
-              </button>
 
               <button
                 onClick={logout}
@@ -246,7 +241,7 @@ export function Layout() {
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu (No Left Sidebar) */}
+        {/* Mobile Dropdown Menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2 shadow-lg">
             {visibleSections.map((sec) => {
@@ -257,7 +252,7 @@ export function Layout() {
                     to={sec.to}
                     onClick={() => setMobileOpen(false)}
                     className={`block px-3 py-2 text-xs font-bold rounded-lg ${
-                      isActive ? 'bg-indigo-600 text-white' : 'text-slate-800 bg-slate-100'
+                      isActive ? 'bg-[#7E1235] text-white' : 'text-slate-800 bg-slate-100'
                     }`}
                   >
                     {sec.label}
@@ -271,7 +266,7 @@ export function Layout() {
                           onClick={() => setMobileOpen(false)}
                           className={({ isActive: subActive }) =>
                             `block px-2.5 py-1 text-[11px] font-medium rounded ${
-                              subActive ? 'text-indigo-700 bg-indigo-50 font-bold' : 'text-slate-600 hover:bg-slate-50'
+                              subActive ? 'text-[#7E1235] bg-red-50 font-bold' : 'text-slate-600 hover:bg-slate-50'
                             }`
                           }
                         >
@@ -298,16 +293,16 @@ export function Layout() {
 
       {/* Section Sub-Header & Horizontal Tab Navigation */}
       {activeSection && activeSection.items.length > 0 && (
-        <div className="bg-white border-b border-slate-200/80 shadow-2xs">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3.5">
+        <div className="no-print bg-white border-b border-slate-200/80 shadow-2xs">
+          <div className="w-full max-w-full px-4 sm:px-6 py-3.5">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               {/* Breadcrumb & Section Name */}
               <div>
                 {breadcrumb && (
-                  <nav className="flex items-center gap-1.5 text-[10px] font-bold text-[#804652]/80 uppercase tracking-[0.2em] mb-0.5">
+                  <nav className="flex items-center gap-1.5 text-[10px] font-bold text-[#7E1235]/80 uppercase tracking-[0.2em] mb-0.5">
                     <span>{breadcrumb.sectionLabel}</span>
                     <span>&gt;</span>
-                    <span className="text-[#804652]">{breadcrumb.itemLabel}</span>
+                    <span className="text-[#7E1235]">{breadcrumb.itemLabel}</span>
                   </nav>
                 )}
                 <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-slate-900">
@@ -326,7 +321,7 @@ export function Layout() {
                       to={sub.to}
                       className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
                         isSubActive
-                          ? 'bg-[#7B3F4A] text-white shadow-xs'
+                          ? 'bg-[#7E1235] text-white shadow-xs'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                       }`}
                     >
@@ -341,7 +336,7 @@ export function Layout() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 w-full max-w-full px-4 sm:px-6 py-4">
         <Outlet />
       </main>
     </div>

@@ -31,6 +31,8 @@ import { SubcategoriesPage } from './pages/SubcategoriesPage'
 import { SuppliersPage } from './pages/SuppliersPage'
 import { TaxPage } from './pages/TaxPage'
 import { UnitsPage } from './pages/UnitsPage'
+import { PriceAdjustmentPage } from './pages/PriceAdjustmentPage'
+import { CreditManagementPage } from './pages/CreditManagementPage'
 import { SettingsSetupPage } from './pages/SettingsSetupPage'
 import { UsersPage } from './pages/UsersPage'
 
@@ -67,6 +69,7 @@ function App() {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/new" element={<ProductCreatePage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/price-adjustment" element={<PriceAdjustmentPage />} />
         <Route path="/units" element={<UnitsPage />} />
 
         {/* Sales & Reports Section */}
@@ -76,6 +79,8 @@ function App() {
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+        <Route path="/collections" element={<CreditManagementPage />} />
+        <Route path="/credit-management" element={<CreditManagementPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/deliveries" element={<DeliveriesPage />} />
         <Route path="/deliveries/:id" element={<DeliveryDetailPage />} />
