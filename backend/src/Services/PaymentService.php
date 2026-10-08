@@ -483,7 +483,7 @@ final class PaymentService
             "SELECT DISTINCT ppl.payment_method
              FROM purchase_payment_lines ppl
              JOIN purchase_payments pp ON pp.id = ppl.payment_id
-             WHERE pp.purchase_id = :id AND pp.status = 'ACTIVE'"
+             WHERE pp.purchase_id = :id AND pp.status = 'ACTIVE' AND ppl.amount > 0"
         );
         $methodStmt->execute(['id' => $purchaseId]);
         $methods = $methodStmt->fetchAll(PDO::FETCH_COLUMN);
@@ -540,7 +540,7 @@ final class PaymentService
 
             if ($status === 'UNPAID') {
                 $newPaid = '0.00';
-                $newMethod = ($rawMethod !== null && $rawMethod !== '' && $rawMethod !== 'SPLIT') ? $rawMethod : null;
+                $newMethod = null;
                 $parsedLines = [];
             } elseif ($status === 'PARTIALLY_PAID') {
                 if ($rawPaid === null || !is_numeric($rawPaid)) {
@@ -634,7 +634,9 @@ final class PaymentService
                 }
             }
 
-            // Update purchases table
+            $totals = $this->calculatePurchasePaymentTotals($purchaseId, $grandTotal);
+
+            // Update purchases table with authoritative derived totals and payment method
             $this->pdo->prepare(
                 'UPDATE purchases SET
                     payment_method = :method,
@@ -646,11 +648,11 @@ final class PaymentService
                     updated_at = NOW()
                  WHERE id = :id'
             )->execute([
-                'method' => $newMethod,
-                'status' => $status,
-                'paid_amount' => $newPaid,
-                'amount_paid' => $newPaid,
-                'balance' => $newBalance,
+                'method' => $totals['payment_method'],
+                'status' => $totals['payment_status'],
+                'paid_amount' => $totals['paid_amount'],
+                'amount_paid' => $totals['paid_amount'],
+                'balance' => $totals['balance_amount'],
                 'updated_by' => $userId,
                 'id' => $purchaseId,
             ]);

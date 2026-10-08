@@ -47,9 +47,9 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
   const [orderPrefix, setOrderPrefix] = useState('ORD')
 
   // Printer state
-  const [printerPaperSize, setPrinterPaperSize] = useState('80mm')
-  const [printerConnection, setPrinterConnection] = useState('USB / Local Spooler')
-  const [autoPrintPosSales, setAutoPrintPosSales] = useState(true)
+  const [printerPaperSize, setPrinterPaperSize] = useState(() => localStorage.getItem('printer_paper_size') || '80mm')
+  const [printerConnection, setPrinterConnection] = useState(() => localStorage.getItem('printer_connection') || 'USB / Local Spooler')
+  const [autoPrintPosSales, setAutoPrintPosSales] = useState(() => localStorage.getItem('auto_print_pos_sales') !== 'false')
 
   // Scanner state
   const [scannerIp, setScannerIp] = useState('192.168.1.120')
@@ -136,6 +136,11 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
           email: companyEmail,
         })
       )
+    }
+    if (tab === 'printer') {
+      localStorage.setItem('printer_paper_size', printerPaperSize)
+      localStorage.setItem('printer_connection', printerConnection)
+      localStorage.setItem('auto_print_pos_sales', String(autoPrintPosSales))
     }
     setSavedMsg('Settings saved successfully!')
     setTimeout(() => setSavedMsg(''), 3000)

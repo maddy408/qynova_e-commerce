@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { PencilIcon, WalletIcon, ReceiptIcon } from '../components/Icons'
+import { PencilIcon, WalletIcon, ReceiptIcon, PrinterIcon } from '../components/Icons'
 import {
   SplitPaymentFields,
   INITIAL_SPLIT_PAYMENT_VALUES,
   extractSplitPaymentPayload,
   type SplitPaymentValues,
 } from '../components/SplitPaymentFields'
+import {
+  PurchasePrintModal,
+  type PurchasePrintData,
+  type SinglePaymentPrintData,
+  type PurchaseListPrintData,
+} from '../components/PurchasePrintModal'
 import { Alert, Badge, Button, Modal, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 
@@ -154,6 +160,14 @@ export function PurchasesPage() {
   const [historyError, setHistoryError] = useState<string>('')
   const [historySuccess, setHistorySuccess] = useState<string>('')
 
+  // Print Modal State
+  const [printData, setPrintData] = useState<PurchasePrintData | null>(null)
+  const [singlePaymentPrintData, setSinglePaymentPrintData] = useState<SinglePaymentPrintData | null>(null)
+  const [listPrintData, setListPrintData] = useState<PurchaseListPrintData | null>(null)
+  const [loadingPrintId, setLoadingPrintId] = useState<number | null>(null)
+  const [loadingPaymentPrintId, setLoadingPaymentPrintId] = useState<number | null>(null)
+  const [loadingListPrint, setLoadingListPrint] = useState<boolean>(false)
+
   // Action Click Handlers with Toast Feedback for Invalid Actions
   function handleCollectAction(p: Purchase) {
     const isCancelled = p.status === 'CANCELLED'
@@ -179,6 +193,60 @@ export function PurchasesPage() {
 
   function handleHistoryAction(p: Purchase) {
     openPaymentHistoryModal(p)
+  }
+
+  async function handlePrintAction(p: Purchase) {
+    setLoadingPrintId(p.id)
+    try {
+      const res = await api.get(`/purchases/${p.id}/print-data`)
+      if (res.data && res.data.print_data) {
+        setPrintData(res.data.print_data)
+        setSinglePaymentPrintData(null)
+        setListPrintData(null)
+      } else {
+        showToast('Could not load print details for this purchase', 'error')
+      }
+    } catch (err: any) {
+      showToast(apiErrorMessage(err) || 'Failed to load purchase print data', 'error')
+    } finally {
+      setLoadingPrintId(null)
+    }
+  }
+
+  async function handlePrintPaymentAction(purchaseId: number, paymentId: number) {
+    setLoadingPaymentPrintId(paymentId)
+    try {
+      const res = await api.get(`/purchases/${purchaseId}/payments/${paymentId}/print-data`)
+      if (res.data && res.data.payment_print_data) {
+        setSinglePaymentPrintData(res.data.payment_print_data)
+        setPrintData(null)
+        setListPrintData(null)
+      } else {
+        showToast('Could not load payment receipt print details', 'error')
+      }
+    } catch (err: any) {
+      showToast(apiErrorMessage(err) || 'Failed to load receipt print data', 'error')
+    } finally {
+      setLoadingPaymentPrintId(null)
+    }
+  }
+
+  async function handlePrintListAction() {
+    setLoadingListPrint(true)
+    try {
+      const res = await api.get('/purchases/print-list')
+      if (res.data && res.data.list_print_data) {
+        setListPrintData(res.data.list_print_data)
+        setPrintData(null)
+        setSinglePaymentPrintData(null)
+      } else {
+        showToast('Could not load purchases list print report', 'error')
+      }
+    } catch (err: any) {
+      showToast(apiErrorMessage(err) || 'Failed to load purchases list print data', 'error')
+    } finally {
+      setLoadingListPrint(false)
+    }
   }
 
   // New Purchase Creation State
@@ -574,7 +642,7 @@ export function PurchasesPage() {
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className={`space-y-6 pb-12 ${printData || singlePaymentPrintData ? 'no-print print:hidden' : ''}`}>
       {/* Toast Notifications */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-top-3 duration-200">
@@ -622,17 +690,28 @@ export function PurchasesPage() {
                 Supplier → Stock Purchase → Increase inventory with cost &amp; MRP tracking
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(true)
-                setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
-                fetchVariants()
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 shrink-0"
-            >
-              + New Purchase
-            </button>
+            <div className="no-print flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handlePrintListAction}
+                disabled={loadingListPrint}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-white text-[#7B3F4A] hover:bg-[#FAF2F4] text-xs font-bold transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+                title="Print Full Purchases List Report"
+              >
+                {loadingListPrint ? 'Loading List…' : '🖨️ Print List'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(true)
+                  setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
+                  fetchVariants()
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 shrink-0 cursor-pointer"
+              >
+                + New Purchase
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -648,7 +727,7 @@ export function PurchasesPage() {
                   <th className="px-4 py-3 text-center">Payment Status</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 text-right no-print">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0E0E3]">
@@ -703,7 +782,7 @@ export function PurchasesPage() {
                           <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
                         </td>
                         <td className="px-4 py-2.5 text-slate-600 font-mono text-[11px] font-semibold">{p.purchase_date}</td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right no-print">
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {/* 1. Collect Payment Icon Button */}
                             <button
@@ -737,6 +816,18 @@ export function PurchasesPage() {
                             >
                               <ReceiptIcon className="h-4 w-4" />
                             </button>
+
+                            {/* 4. Print Purchase Action Button */}
+                            <button
+                              type="button"
+                              onClick={() => handlePrintAction(p)}
+                              title="Print Purchase"
+                              aria-label="Print Purchase"
+                              disabled={loadingPrintId === p.id}
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[#7B3F4A] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/30 cursor-pointer disabled:opacity-50"
+                            >
+                              <PrinterIcon className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -756,7 +847,7 @@ export function PurchasesPage() {
             const endIndex = Math.min(startIndex + pageSize, totalPurchases)
 
             return (
-              <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs text-slate-600">
+              <div className="no-print flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs text-slate-600">
                 <div>
                   Showing <span className="font-semibold text-slate-900">{totalPurchases > 0 ? startIndex + 1 : 0}</span> to{' '}
                   <span className="font-semibold text-slate-900">{endIndex}</span> of{' '}
@@ -998,6 +1089,17 @@ export function PurchasesPage() {
                         <div className="flex items-center gap-2">
                           <Badge tone={isActive ? 'green' : 'red'}>{pay.status}</Badge>
                           <span className="font-extrabold text-sm text-slate-900">₹{pay.total_amount}</span>
+                          <button
+                            type="button"
+                            onClick={() => historyPurchase && handlePrintPaymentAction(historyPurchase.id, pay.id)}
+                            title="Print Payment Receipt"
+                            aria-label="Print Payment Receipt"
+                            disabled={loadingPaymentPrintId === pay.id}
+                            className="ml-1 inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-[#7B3F4A] transition-colors shadow-2xs text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                          >
+                            <PrinterIcon className="h-3.5 w-3.5" />
+                            <span>Print</span>
+                          </button>
                         </div>
                       </div>
 
@@ -1324,6 +1426,21 @@ export function PurchasesPage() {
           </form>
         </Modal>
       )}
+
+      {/* ================= PURCHASE / RECEIPT / LIST PRINT MODAL ================= */}
+      {(printData || singlePaymentPrintData || listPrintData) && (
+        <PurchasePrintModal
+          data={printData}
+          paymentData={singlePaymentPrintData}
+          listData={listPrintData}
+          onClose={() => {
+            setPrintData(null)
+            setSinglePaymentPrintData(null)
+            setListPrintData(null)
+          }}
+        />
+      )}
     </div>
   )
 }
+

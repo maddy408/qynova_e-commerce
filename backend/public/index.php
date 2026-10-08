@@ -283,12 +283,15 @@ $router->put('/api/suppliers/{id}', fn ($id) => $purchases->updateSupplier($id))
 $router->delete('/api/suppliers/{id}', fn ($id) => $purchases->destroySupplier($id));
 $router->get('/api/suppliers/{id}/outstanding', fn ($id) => $purchases->supplierOutstanding($id));
 $router->get('/api/purchases', fn () => $purchases->index());
+$router->get('/api/purchases/print-list', fn () => $purchases->listPrintData());
 $router->get('/api/purchases/{id}', fn ($id) => $purchases->show($id));
+$router->get('/api/purchases/{id}/print-data', fn ($id) => $purchases->printData($id));
 $router->post('/api/purchases', fn () => $purchases->store());
 $router->post('/api/purchases/{id}/cancel', fn ($id) => $purchases->cancel($id));
 $router->post('/api/purchases/{id}/returns', fn ($id) => $purchases->storeReturn($id));
 $router->patch('/api/purchases/{id}/payment', fn ($id) => $purchases->updatePayment($id));
 $router->get('/api/purchases/{id}/payments', fn ($id) => $purchases->listPayments($id));
+$router->get('/api/purchases/{purchaseId}/payments/{paymentId}/print-data', fn ($purchaseId, $paymentId) => $purchases->paymentPrintData($purchaseId, $paymentId));
 $router->post('/api/purchases/{id}/payments', fn ($id) => $purchases->collectPayment($id));
 $router->post('/api/purchases/{purchaseId}/payments/{paymentId}/reverse', fn ($purchaseId, $paymentId) => $purchases->reversePayment($purchaseId, $paymentId));
 
