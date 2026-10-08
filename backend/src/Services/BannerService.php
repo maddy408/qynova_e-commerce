@@ -29,7 +29,7 @@ final class BannerService
     }
 
     /** @return list<array<string, mixed>> */
-    public function list(?string $position = null): array
+    public function list(?string $position = null, ?bool $isActive = null, bool $currentOnly = false): array
     {
         $where = [];
         $params = [];
@@ -37,6 +37,16 @@ final class BannerService
         if ($position !== null) {
             $where[] = 'position = :position';
             $params['position'] = $position;
+        }
+
+        if ($isActive !== null) {
+            $where[] = 'is_active = :is_active';
+            $params['is_active'] = (int) $isActive;
+        }
+
+        if ($currentOnly) {
+            $where[] = '(starts_at IS NULL OR starts_at <= NOW())';
+            $where[] = '(ends_at IS NULL OR ends_at >= NOW())';
         }
 
         $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
@@ -47,6 +57,7 @@ final class BannerService
 
         foreach ($banners as &$banner) {
             $banner['items'] = $this->itemsFor((int) $banner['id']);
+            $banner['target_link'] = $this->buildTargetLink($banner);
         }
         unset($banner);
 
@@ -65,8 +76,26 @@ final class BannerService
         }
 
         $banner['items'] = $this->itemsFor($id);
+        $banner['target_link'] = $this->buildTargetLink($banner);
 
         return $banner;
+    }
+
+    /** @param array<string, mixed> $banner */
+    public function buildTargetLink(array $banner): string
+    {
+        $targetType = $banner['target_type'] ?? 'NONE';
+        $targetId = $banner['target_id'] ?? null;
+        $targetUrl = $banner['target_url'] ?? null;
+
+        return match ($targetType) {
+            'PRODUCT' => $targetId ? "/product/{$targetId}" : '/products',
+            'CATEGORY' => $targetId ? "/products?category_id={$targetId}" : '/products',
+            'SUBCATEGORY' => $targetId ? "/products?subcategory_id={$targetId}" : '/products',
+            'BRAND' => $targetId ? "/products?brand_id={$targetId}" : '/products',
+            'EXTERNAL_URL' => $targetUrl ?: '/products',
+            default => '/products',
+        };
     }
 
     /** @param array<string, mixed> $data */
@@ -90,11 +119,18 @@ final class BannerService
         }
 
         $this->pdo->prepare(
-            'INSERT INTO banners (title, position, target_type, target_id, target_url, starts_at, ends_at, sort_order, is_active)
-             VALUES (:title, :position, :target_type, :target_id, :target_url, :starts_at, :ends_at, :sort_order, :is_active)'
+            'INSERT INTO banners (title, subtitle, description, position, color_theme, discount_text, cta_text, image_desktop_path, image_mobile_path, target_type, target_id, target_url, starts_at, ends_at, sort_order, is_active)
+             VALUES (:title, :subtitle, :description, :position, :color_theme, :discount_text, :cta_text, :image_desktop_path, :image_mobile_path, :target_type, :target_id, :target_url, :starts_at, :ends_at, :sort_order, :is_active)'
         )->execute([
             'title' => $title,
+            'subtitle' => $data['subtitle'] ?? null,
+            'description' => $data['description'] ?? null,
             'position' => $position,
+            'color_theme' => $data['color_theme'] ?? 'purple',
+            'discount_text' => $data['discount_text'] ?? null,
+            'cta_text' => $data['cta_text'] ?? null,
+            'image_desktop_path' => $data['image_desktop_path'] ?? null,
+            'image_mobile_path' => $data['image_mobile_path'] ?? null,
             'target_type' => $targetType,
             'target_id' => $targetId,
             'target_url' => $targetType === 'EXTERNAL_URL' ? ($data['target_url'] ?? null) : null,
@@ -114,7 +150,7 @@ final class BannerService
             throw new RuntimeException('Banner not found');
         }
 
-        $fields = ['title', 'position', 'starts_at', 'ends_at', 'sort_order', 'is_active'];
+        $fields = ['title', 'subtitle', 'description', 'position', 'color_theme', 'discount_text', 'cta_text', 'image_desktop_path', 'image_mobile_path', 'starts_at', 'ends_at', 'sort_order', 'is_active'];
         $sets = [];
         $params = ['id' => $id];
 

@@ -17,7 +17,12 @@ final class Request
 
     public static function bearerToken(): ?string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+
+        if ($header === '' && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+        }
 
         return preg_match('/^Bearer\s+(.+)$/i', $header, $matches) === 1 ? $matches[1] : null;
     }

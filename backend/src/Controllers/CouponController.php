@@ -62,12 +62,39 @@ final class CouponController
         Response::json(['updated' => true]);
     }
 
-    /** "For You" — coupons visible to the logged-in customer (section 15). */
+    /** "For You" — coupons visible to customers (both logged-in and guest). */
     public function availableForCustomer(): void
     {
-        $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::requireCustomer($claims);
+        $customerId = null;
+        $token = Request::bearerToken();
+        if ($token !== null) {
+            try {
+                $claims = \App\Helpers\JwtHelper::verify($token);
+                if (($claims['type'] ?? '') === 'customer') {
+                    $customerId = (int) $claims['sub'];
+                }
+            } catch (\Throwable) {
+                // Ignore invalid token for guest viewing
+            }
+        }
 
-        Response::json(['coupons' => (new CouponService($this->pdo))->availableForCustomer((int) $claims['sub'])]);
+        $whereCustomer = $customerId !== null
+            ? "NOT EXISTS (SELECT 1 FROM coupon_customers cc WHERE cc.coupon_id = c.id) OR EXISTS (SELECT 1 FROM coupon_customers cc WHERE cc.coupon_id = c.id AND cc.customer_id = :customer_id)"
+            : "NOT EXISTS (SELECT 1 FROM coupon_customers cc WHERE cc.coupon_id = c.id)";
+
+        $stmt = $this->pdo->prepare(
+            "SELECT c.id, c.code, c.name, c.description, c.discount_type, c.discount_value, c.min_order_amount, c.max_discount_amount
+             FROM coupons c
+             WHERE c.status = 'ACTIVE'
+               AND (c.start_at IS NULL OR c.start_at <= NOW())
+               AND (c.end_at IS NULL OR c.end_at >= NOW())
+               AND ({$whereCustomer})
+             ORDER BY c.discount_value DESC
+             LIMIT 6"
+        );
+        $params = $customerId !== null ? ['customer_id' => $customerId] : [];
+        $stmt->execute($params);
+
+        Response::json(['coupons' => $stmt->fetchAll()]);
     }
 }
