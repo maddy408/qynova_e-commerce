@@ -17,7 +17,7 @@ use RuntimeException;
 final class OtpService
 {
     private const OTP_LENGTH = 6;
-    private const EXPIRY_SECONDS = 300;
+    private const EXPIRY_SECONDS = 600;
     private const RESEND_COOLDOWN_SECONDS = 60;
     private const MAX_ATTEMPTS = 5;
 
@@ -32,15 +32,20 @@ final class OtpService
 
         $otp = (string) random_int(0, 10 ** self::OTP_LENGTH - 1);
         $otp = str_pad($otp, self::OTP_LENGTH, '0', STR_PAD_LEFT);
-        $hash = password_hash($otp, PASSWORD_BCRYPT);
 
+        // Invalidate previously pending OTPs for this phone and purpose
+        $this->pdo->prepare(
+            "UPDATE otp_verifications SET status = 'EXPIRED' WHERE phone = :phone AND purpose = :purpose AND status = 'PENDING'"
+        )->execute(['phone' => $phone, 'purpose' => $purpose]);
+
+        // Store the actual 6-digit OTP value directly, NOT a bcrypt hash
         $stmt = $this->pdo->prepare(
             'INSERT INTO otp_verifications (phone, otp_hash, purpose, expires_at, ip_address)
-             VALUES (:phone, :hash, :purpose, DATE_ADD(NOW(), INTERVAL :ttl SECOND), :ip)'
+             VALUES (:phone, :otp, :purpose, DATE_ADD(NOW(), INTERVAL :ttl SECOND), :ip)'
         );
         $stmt->execute([
             'phone' => $phone,
-            'hash' => $hash,
+            'otp' => $otp,
             'purpose' => $purpose,
             'ttl' => self::EXPIRY_SECONDS,
             'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
@@ -93,7 +98,12 @@ final class OtpService
             throw new RuntimeException('Maximum verification attempts exceeded, please request a new OTP');
         }
 
-        if (!password_verify($otp, (string) $row['otp_hash'])) {
+        $storedOtp = (string) $row['otp_hash'];
+        // Compare entered OTP directly with stored OTP (exact match, supports existing bcrypt fallback)
+        $isMatch = hash_equals($storedOtp, (string) $otp)
+            || (str_starts_with($storedOtp, '$2y$') && password_verify($otp, $storedOtp));
+
+        if (!$isMatch) {
             $this->pdo->prepare('UPDATE otp_verifications SET attempt_count = attempt_count + 1 WHERE id = :id')
                 ->execute(['id' => $row['id']]);
             throw new RuntimeException('Invalid OTP');

@@ -10,6 +10,7 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\GoogleAuthService;
 use App\Services\OtpService;
 use App\Services\ReferralService;
 use PDO;
@@ -71,8 +72,23 @@ final class CustomerAuthController
         $confirmPassword = (string) ($body['confirm_password'] ?? '');
         $referralCode = $body['referral_code'] ?? null;
 
+        $rawEmail = isset($body['email']) ? trim((string) $body['email']) : '';
+        $email = $rawEmail !== '' ? strtolower($rawEmail) : null;
+
         if ($name === '' || $phone === null) {
             Response::error('name and a valid phone are required', 422);
+        }
+
+        if ($email !== null) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                Response::error('Enter a valid email address', 422);
+            }
+
+            $emailExists = $this->pdo->prepare('SELECT 1 FROM customers WHERE email = :email AND deleted_at IS NULL');
+            $emailExists->execute(['email' => $email]);
+            if ($emailExists->fetchColumn() !== false) {
+                Response::error('An account with this email address already exists', 409);
+            }
         }
 
         if (strlen($password) < 6) {
@@ -100,11 +116,12 @@ final class CustomerAuthController
 
         try {
             $this->pdo->prepare(
-                'INSERT INTO customers (name, phone, phone_verified_at, password_hash, status)
-                 VALUES (:name, :phone, NOW(), :password_hash, "ACTIVE")'
+                'INSERT INTO customers (name, phone, email, phone_verified_at, password_hash, status)
+                 VALUES (:name, :phone, :email, NOW(), :password_hash, "ACTIVE")'
             )->execute([
                 'name' => $name,
                 'phone' => $phone,
+                'email' => $email,
                 'password_hash' => password_hash($password, PASSWORD_BCRYPT),
             ]);
 
@@ -112,7 +129,7 @@ final class CustomerAuthController
 
             $referralService = new ReferralService($this->pdo);
             $referralService->generateCodeForCustomer($customerId, $name);
-            $referralService->applyReferralAtSignup($customerId, $referralCode !== null ? (string) $referralCode : null);
+            $referralResult = $referralService->applyReferralAtSignup($customerId, $referralCode !== null ? (string) $referralCode : null);
 
             $this->pdo->commit();
         } catch (\Throwable $e) {
@@ -122,7 +139,9 @@ final class CustomerAuthController
 
         Response::json([
             'token' => $this->issueToken($customerId, $name, $phone),
-            'customer' => ['id' => $customerId, 'name' => $name, 'phone' => $phone],
+            'customer' => ['id' => $customerId, 'name' => $name, 'phone' => $phone, 'email' => $email],
+            'referral_applied' => $referralResult !== null && !empty($referralResult['success']),
+            'referral' => $referralResult,
         ], 201);
     }
 
@@ -137,7 +156,7 @@ final class CustomerAuthController
         }
 
         $stmt = $this->pdo->prepare(
-            "SELECT id, name, password_hash FROM customers WHERE phone = :phone AND status = 'ACTIVE' AND deleted_at IS NULL"
+            "SELECT id, name, phone, email, profile_photo_path, customer_type, password_hash FROM customers WHERE phone = :phone AND status = 'ACTIVE' AND deleted_at IS NULL"
         );
         $stmt->execute(['phone' => $phone]);
         $customer = $stmt->fetch();
@@ -148,7 +167,14 @@ final class CustomerAuthController
 
         Response::json([
             'token' => $this->issueToken((int) $customer['id'], $customer['name'], $phone),
-            'customer' => ['id' => (int) $customer['id'], 'name' => $customer['name'], 'phone' => $phone],
+            'customer' => [
+                'id' => (int) $customer['id'],
+                'name' => $customer['name'],
+                'phone' => $phone,
+                'email' => $customer['email'],
+                'profile_photo_path' => $customer['profile_photo_path'],
+                'customer_type' => $customer['customer_type'] ?? 'RETAIL',
+            ],
         ]);
     }
 
@@ -169,7 +195,7 @@ final class CustomerAuthController
         }
 
         $stmt = $this->pdo->prepare(
-            "SELECT id, name FROM customers WHERE phone = :phone AND status = 'ACTIVE' AND deleted_at IS NULL"
+            "SELECT id, name, phone, email, profile_photo_path, customer_type FROM customers WHERE phone = :phone AND status = 'ACTIVE' AND deleted_at IS NULL"
         );
         $stmt->execute(['phone' => $phone]);
         $customer = $stmt->fetch();
@@ -180,8 +206,181 @@ final class CustomerAuthController
 
         Response::json([
             'token' => $this->issueToken((int) $customer['id'], $customer['name'], $phone),
-            'customer' => ['id' => (int) $customer['id'], 'name' => $customer['name'], 'phone' => $phone],
+            'customer' => [
+                'id' => (int) $customer['id'],
+                'name' => $customer['name'],
+                'phone' => $phone,
+                'email' => $customer['email'],
+                'profile_photo_path' => $customer['profile_photo_path'],
+                'customer_type' => $customer['customer_type'] ?? 'RETAIL',
+            ],
         ]);
+    }
+
+    public function loginWithGoogle(): void
+    {
+        $body = Request::json();
+        $credential = (string) ($body['credential'] ?? $body['id_token'] ?? '');
+
+        if (trim($credential) === '') {
+            Response::error('Google credential token is required', 422);
+        }
+
+        try {
+            $googleAuth = new GoogleAuthService();
+            $googleUser = $googleAuth->verifyIdToken($credential);
+        } catch (\RuntimeException $e) {
+            Response::error($e->getMessage(), 401);
+        }
+
+        $googleId = trim((string) ($googleUser['google_id'] ?? ''));
+        $email = strtolower(trim((string) ($googleUser['email'] ?? '')));
+        $name = trim((string) ($googleUser['name'] ?? ''));
+        $picture = !empty($googleUser['picture']) ? (string) $googleUser['picture'] : null;
+
+        if ($googleId === '' || $email === '') {
+            Response::error('Invalid Google user data: missing ID or email', 422);
+        }
+
+        // STEP 1: Search customer by verified Google sub in google_id
+        $stmt = $this->pdo->prepare('SELECT * FROM customers WHERE google_id = :google_id AND google_id IS NOT NULL AND google_id != ""');
+        $stmt->execute(['google_id' => $googleId]);
+        $customerByGoogle = $stmt->fetch();
+
+        if ($customerByGoogle !== false) {
+            // Check inactive or deleted
+            if ($customerByGoogle['status'] !== 'ACTIVE' || $customerByGoogle['deleted_at'] !== null) {
+                Response::error('This account has been deactivated or deleted. Please contact support.', 403);
+            }
+
+            // RULE 8: If google_id belongs to another customer but the Google email is different, reject!
+            if (!empty($customerByGoogle['email']) && strtolower(trim($customerByGoogle['email'])) !== $email) {
+                Response::error('This Google account is linked to an account with a different email address', 403);
+            }
+
+            // If existing customer had no email stored, update with verified Google email
+            if (empty($customerByGoogle['email'])) {
+                $this->pdo->prepare('UPDATE customers SET email = :email WHERE id = :id')
+                    ->execute(['email' => $email, 'id' => $customerByGoogle['id']]);
+                $customerByGoogle['email'] = $email;
+            }
+
+            // Refresh/update profile photo if Google provides one
+            if ($picture !== null && $picture !== '') {
+                $this->pdo->prepare(
+                    'UPDATE customers SET profile_photo_path = :picture, updated_at = NOW() WHERE id = :id'
+                )->execute([
+                    'picture' => $picture,
+                    'id' => $customerByGoogle['id'],
+                ]);
+                $customerByGoogle['profile_photo_path'] = $picture;
+            }
+
+            Response::json([
+                'token' => $this->issueToken((int) $customerByGoogle['id'], $customerByGoogle['name'], (string) ($customerByGoogle['phone'] ?? '')),
+                'customer' => [
+                    'id' => (int) $customerByGoogle['id'],
+                    'name' => $customerByGoogle['name'],
+                    'phone' => $customerByGoogle['phone'],
+                    'email' => $customerByGoogle['email'],
+                    'profile_photo_path' => $customerByGoogle['profile_photo_path'],
+                    'customer_type' => $customerByGoogle['customer_type'] ?? 'RETAIL',
+                ],
+                'is_new_customer' => false,
+                'linked_existing' => false,
+            ]);
+            return;
+        }
+
+        // STEP 2: Search customer by verified Google email in customers.email
+        $stmt = $this->pdo->prepare('SELECT * FROM customers WHERE email = :email AND email IS NOT NULL AND email != ""');
+        $stmt->execute(['email' => $email]);
+        $customerByEmail = $stmt->fetch();
+
+        if ($customerByEmail !== false) {
+            // Check inactive or deleted
+            if ($customerByEmail['status'] !== 'ACTIVE' || $customerByEmail['deleted_at'] !== null) {
+                Response::error('This account has been deactivated or deleted. Please contact support.', 403);
+            }
+
+            // If existing account already has a different google_id, reject mismatch!
+            if (!empty($customerByEmail['google_id']) && $customerByEmail['google_id'] !== $googleId) {
+                Response::error('This email account is already linked to a different Google account', 403);
+            }
+
+            // Link verified Google ID to that existing customer & update profile photo
+            $this->pdo->prepare(
+                'UPDATE customers 
+                 SET google_id = :google_id, 
+                     profile_photo_path = COALESCE(:picture, profile_photo_path),
+                     updated_at = NOW() 
+                 WHERE id = :id'
+            )->execute([
+                'google_id' => $googleId,
+                'picture' => $picture,
+                'id' => $customerByEmail['id'],
+            ]);
+
+            $customerByEmail['google_id'] = $googleId;
+            if ($picture !== null && $picture !== '') {
+                $customerByEmail['profile_photo_path'] = $picture;
+            }
+
+            Response::json([
+                'token' => $this->issueToken((int) $customerByEmail['id'], $customerByEmail['name'], (string) ($customerByEmail['phone'] ?? '')),
+                'customer' => [
+                    'id' => (int) $customerByEmail['id'],
+                    'name' => $customerByEmail['name'],
+                    'phone' => $customerByEmail['phone'],
+                    'email' => $customerByEmail['email'],
+                    'profile_photo_path' => $customerByEmail['profile_photo_path'],
+                    'customer_type' => $customerByEmail['customer_type'] ?? 'RETAIL',
+                ],
+                'is_new_customer' => false,
+                'linked_existing' => true,
+            ]);
+            return;
+        }
+
+        // CASE 3: Completely new Google customer
+        $this->pdo->beginTransaction();
+
+        try {
+            $this->pdo->prepare(
+                'INSERT INTO customers (name, email, google_id, profile_photo_path, customer_type, profile_completed, status)
+                 VALUES (:name, :email, :google_id, :picture, "RETAIL", 0, "ACTIVE")'
+            )->execute([
+                'name' => $name,
+                'email' => $email,
+                'google_id' => $googleId,
+                'picture' => $picture,
+            ]);
+
+            $newCustomerId = (int) $this->pdo->lastInsertId();
+
+            // Automatically generate unique referral code for the new customer
+            $referralService = new ReferralService($this->pdo);
+            $referralService->generateCodeForCustomer($newCustomerId, $name);
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+
+        Response::json([
+            'token' => $this->issueToken($newCustomerId, $name, ''),
+            'customer' => [
+                'id' => $newCustomerId,
+                'name' => $name,
+                'phone' => null,
+                'email' => $email,
+                'profile_photo_path' => $picture,
+                'customer_type' => 'RETAIL',
+            ],
+            'is_new_customer' => true,
+            'linked_existing' => false,
+        ], 201);
     }
 
     public function me(): void
@@ -192,7 +391,7 @@ final class CustomerAuthController
         $customerId = (int) $claims['sub'];
 
         $stmt = $this->pdo->prepare(
-            'SELECT id, name, phone, email, customer_type, profile_completed, created_at
+            'SELECT id, name, phone, email, profile_photo_path, customer_type, profile_completed, created_at
              FROM customers WHERE id = :id'
         );
         $stmt->execute(['id' => $customerId]);
@@ -205,6 +404,57 @@ final class CustomerAuthController
         $referral = (new ReferralService($this->pdo))->getCustomerReferralSummary($customerId);
 
         Response::json(['customer' => $customer, 'referral' => $referral]);
+    }
+
+    public function applyReferral(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+
+        $body = Request::json();
+        $referralCode = trim((string) ($body['referral_code'] ?? ''));
+
+        if ($referralCode === '') {
+            Response::error('Referral code is required', 422);
+        }
+
+        try {
+            $referralService = new ReferralService($this->pdo);
+            $result = $referralService->applyReferral($customerId, $referralCode);
+            Response::json($result);
+        } catch (\RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function validateReferral(): void
+    {
+        $body = Request::json();
+        $referralCode = trim((string) ($body['referral_code'] ?? ''));
+
+        if ($referralCode === '') {
+            Response::error('Referral code is required', 422);
+        }
+
+        $customerId = null;
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        if ($authHeader !== '') {
+            try {
+                $claims = JwtAuthMiddleware::authenticate();
+                $customerId = (int) ($claims['sub'] ?? 0) ?: null;
+            } catch (\Throwable) {
+                // Ignore if unauthenticated
+            }
+        }
+
+        try {
+            $referralService = new ReferralService($this->pdo);
+            $result = $referralService->validateReferralCode($referralCode, $customerId);
+            Response::json($result);
+        } catch (\RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
     }
 
     /** Staff-facing customer search for POS billing's customer picker. */
@@ -233,6 +483,164 @@ final class CustomerAuthController
         $stmt->execute($params);
 
         Response::json(['customers' => $stmt->fetchAll()]);
+    }
+
+    /** GET /api/customer/addresses - Customer's saved addresses */
+    public function getAddresses(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM customer_addresses WHERE customer_id = :id ORDER BY is_default DESC, id DESC"
+        );
+        $stmt->execute(['id' => $customerId]);
+        Response::json(['addresses' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+    }
+
+    /** POST /api/customer/addresses - Add customer address */
+    public function storeAddress(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+        $body = Request::json();
+
+        $name = trim((string) ($body['name'] ?? $claims['name'] ?? ''));
+        $phone = trim((string) ($body['phone'] ?? $claims['phone'] ?? ''));
+        $line1 = trim((string) ($body['line1'] ?? $body['address_line1'] ?? ''));
+        $line2 = trim((string) ($body['line2'] ?? $body['address_line2'] ?? ''));
+        $city = trim((string) ($body['city_district'] ?? $body['city'] ?? ''));
+        $state = trim((string) ($body['state'] ?? ''));
+        $pincode = trim((string) ($body['pincode'] ?? ''));
+        $landmark = trim((string) ($body['landmark'] ?? ''));
+        $addressType = trim((string) ($body['address_type'] ?? 'HOME'));
+        $isDefault = !empty($body['is_default']) ? 1 : 0;
+
+        if ($name === '' || $phone === '' || $line1 === '' || $city === '' || $pincode === '') {
+            Response::error('Name, phone, address line, city, and pincode are required', 422);
+            return;
+        }
+
+        if ($isDefault === 1) {
+            $this->pdo->prepare("UPDATE customer_addresses SET is_default = 0 WHERE customer_id = :cid")
+                ->execute(['cid' => $customerId]);
+        }
+
+        $stmt = $this->pdo->prepare(
+            "INSERT INTO customer_addresses (customer_id, name, phone, line1, line2, city_district, state, pincode, landmark, address_type, is_default)
+             VALUES (:cid, :name, :phone, :line1, :line2, :city, :state, :pincode, :landmark, :type, :def)"
+        );
+        $stmt->execute([
+            'cid' => $customerId,
+            'name' => $name,
+            'phone' => $phone,
+            'line1' => $line1,
+            'line2' => $line2,
+            'city' => $city,
+            'state' => $state,
+            'pincode' => $pincode,
+            'landmark' => $landmark,
+            'type' => $addressType,
+            'def' => $isDefault,
+        ]);
+
+        $newId = (int) $this->pdo->lastInsertId();
+        Response::json(['id' => $newId, 'message' => 'Address saved successfully'], 201);
+    }
+
+    /** PUT /api/customer/addresses/{id} - Update customer address */
+    public function updateAddress(string $addressId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+        $body = Request::json();
+
+        $stmt = $this->pdo->prepare("SELECT id FROM customer_addresses WHERE id = :id AND customer_id = :cid");
+        $stmt->execute(['id' => (int) $addressId, 'cid' => $customerId]);
+        if (!$stmt->fetch()) {
+            Response::error('Address not found', 404);
+            return;
+        }
+
+        $name = trim((string) ($body['name'] ?? ''));
+        $phone = trim((string) ($body['phone'] ?? ''));
+        $line1 = trim((string) ($body['line1'] ?? $body['address_line1'] ?? ''));
+        $line2 = trim((string) ($body['line2'] ?? $body['address_line2'] ?? ''));
+        $city = trim((string) ($body['city_district'] ?? $body['city'] ?? ''));
+        $state = trim((string) ($body['state'] ?? ''));
+        $pincode = trim((string) ($body['pincode'] ?? ''));
+        $landmark = trim((string) ($body['landmark'] ?? ''));
+        $addressType = trim((string) ($body['address_type'] ?? 'HOME'));
+        $isDefault = !empty($body['is_default']) ? 1 : 0;
+
+        if ($isDefault === 1) {
+            $this->pdo->prepare("UPDATE customer_addresses SET is_default = 0 WHERE customer_id = :cid")
+                ->execute(['cid' => $customerId]);
+        }
+
+        $updateStmt = $this->pdo->prepare(
+            "UPDATE customer_addresses
+             SET name = :name, phone = :phone, line1 = :line1, line2 = :line2,
+                 city_district = :city, state = :state, pincode = :pincode,
+                 landmark = :landmark, address_type = :type, is_default = :def
+             WHERE id = :id AND customer_id = :cid"
+        );
+        $updateStmt->execute([
+            'name' => $name,
+            'phone' => $phone,
+            'line1' => $line1,
+            'line2' => $line2,
+            'city' => $city,
+            'state' => $state,
+            'pincode' => $pincode,
+            'landmark' => $landmark,
+            'type' => $addressType,
+            'def' => $isDefault,
+            'id' => (int) $addressId,
+            'cid' => $customerId,
+        ]);
+
+        Response::json(['message' => 'Address updated successfully']);
+    }
+
+    /** DELETE /api/customer/addresses/{id} - Delete customer address */
+    public function deleteAddress(string $addressId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+
+        $stmt = $this->pdo->prepare("DELETE FROM customer_addresses WHERE id = :id AND customer_id = :cid");
+        $stmt->execute(['id' => (int) $addressId, 'cid' => $customerId]);
+
+        Response::json(['message' => 'Address deleted successfully']);
+    }
+
+    /** PUT /api/customers/me - Update customer profile */
+    public function updateProfile(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+        $body = Request::json();
+
+        $name = trim((string) ($body['name'] ?? ''));
+        $email = trim((string) ($body['email'] ?? ''));
+
+        if ($name === '') {
+            Response::error('Name is required', 422);
+            return;
+        }
+
+        $stmt = $this->pdo->prepare("UPDATE customers SET name = :name, email = :email WHERE id = :id");
+        $stmt->execute(['name' => $name, 'email' => $email ?: null, 'id' => $customerId]);
+
+        $fetchStmt = $this->pdo->prepare("SELECT id, name, phone, email, customer_type, profile_photo_path FROM customers WHERE id = :id");
+        $fetchStmt->execute(['id' => $customerId]);
+        Response::json(['customer' => $fetchStmt->fetch(PDO::FETCH_ASSOC)]);
     }
 
     private function issueToken(int $customerId, string $name, string $phone): string
