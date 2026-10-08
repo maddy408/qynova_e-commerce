@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { PencilIcon, TrashIcon } from '../components/Icons'
 import { Alert, Modal, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Unit } from '../lib/types'
@@ -150,21 +151,25 @@ export function UnitsPage() {
                         {u.short_code}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-3 font-bold">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(u)}
-                        className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(u.id, u.name)}
-                        className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
-                      >
-                        Delete
-                      </button>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(u)}
+                          className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                          title="Edit Unit"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(u.id, u.name)}
+                          className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                          title="Delete Unit"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Modal, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { GstRate, HsnCode } from '../lib/types'
@@ -230,30 +231,37 @@ export function TaxPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right space-x-3 font-bold">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenGstEdit(r)}
-                        className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleGstStatus(r)}
-                        className={`text-xs font-bold hover:underline ${
-                          r.status === 'ACTIVE' ? 'text-amber-700 hover:text-amber-900' : 'text-emerald-700 hover:text-emerald-900'
-                        }`}
-                      >
-                        {r.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteGstRate(r.id, r.name)}
-                        className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
-                      >
-                        Delete
-                      </button>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenGstEdit(r)}
+                          className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                          title="Edit GST Rate"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleGstStatus(r)}
+                          className={`p-1.5 rounded-lg transition-colors border border-transparent ${
+                            r.status === 'ACTIVE'
+                              ? 'text-slate-600 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200'
+                              : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'
+                          }`}
+                          title={r.status === 'ACTIVE' ? 'Deactivate Tax Rate' : 'Activate Tax Rate'}
+                        >
+                          <PowerIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGstRate(r.id, r.name)}
+                          className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                          title="Delete GST Rate"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -300,21 +308,25 @@ export function TaxPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-800 font-medium">{h.description || '—'}</td>
-                    <td className="px-6 py-4 text-right space-x-3 font-bold">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenHsnEdit(h)}
-                        className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeHsnCode(h.id)}
-                        className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
-                      >
-                        Delete
-                      </button>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenHsnEdit(h)}
+                          className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                          title="Edit HSN Code"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeHsnCode(h.id)}
+                          className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                          title="Delete HSN Code"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
