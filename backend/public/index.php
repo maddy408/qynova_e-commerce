@@ -69,6 +69,7 @@ $router->post('/api/customer/addresses', fn () => $customerAuth->storeAddress())
 $router->put('/api/customer/addresses/{id}', fn ($id) => $customerAuth->updateAddress($id));
 $router->delete('/api/customer/addresses/{id}', fn ($id) => $customerAuth->deleteAddress($id));
 $router->get('/api/customers', fn () => $customerAuth->indexForStaff());
+$router->post('/api/customers', fn () => $customerAuth->createForStaff());
 $router->put('/api/customers/{id}', fn ($id) => $customerAuth->updateForStaff($id));
 $router->post('/api/customers/referral/apply', fn () => $customerAuth->applyReferral());
 $router->post('/api/referrals/validate', fn () => $customerAuth->validateReferral());
