@@ -2,8 +2,12 @@ import axios from 'axios'
 
 const TOKEN_KEY = 'admin_pos_token'
 
+const defaultBaseUrl = typeof window !== 'undefined'
+  ? `http://${window.location.hostname}:8080/api`
+  : 'http://localhost:8080/api'
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL || defaultBaseUrl,
 })
 
 export function getToken(): string | null {
