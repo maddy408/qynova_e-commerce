@@ -218,8 +218,8 @@ final class ReturnsController
             );
             $stmt->execute([
                 'return_no' => $returnNo,
-                'purchase_id' => $purchaseId ?: 0,
-                'supplier_id' => $supplierId ?: 0,
+                'purchase_id' => $purchaseId,
+                'supplier_id' => $supplierId,
                 'grand_total' => $totalAmount,
                 'reason' => $reason,
                 'created_by' => $claims['sub'],
