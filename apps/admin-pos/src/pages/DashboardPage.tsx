@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Spinner } from '../components/ui'
+import { Card, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import { LayoutGridIcon, ListIcon } from '../components/Icons'
 
@@ -61,13 +61,9 @@ export function DashboardPage() {
   }, [])
 
   const totalReceiptsSum = latestSales.reduce((acc, curr) => acc + Number(curr.grand_total || 0), 0)
-
   return (
     <div className="space-y-8 pb-10">
-<<<<<<< HEAD
-=======
       {/* Dashboard Title Header */}
->>>>>>> 075ae4a (feat(ui): align dashboard, navbar, marketing and settings screens with luxury wine and rose-cream theme)
       <div>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-1 font-sans">Store performance at a glance</p>
@@ -79,50 +75,6 @@ export function DashboardPage() {
         <p className="text-sm text-slate-500">Could not load dashboard data from backend server.</p>
       ) : (
         <>
-<<<<<<< HEAD
-          <div className="relative overflow-x-auto py-2">
-            <div className="flex items-center gap-3 min-w-[980px] px-1">
-              <div className="relative flex-1 rounded-md border border-indigo-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Today's Sales</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-blue-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">This Month</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-amber-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Sales</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.total_sales)}</div>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-pink-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Orders</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.orders.total_orders}</div>
-                <span className="text-[10px] font-medium text-slate-500 block leading-none">{summary.orders.pending_orders} pending</span>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-teal-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Customers</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.customers.total_customers}</div>
-                <span className="text-[10px] font-medium text-slate-500 block leading-none">+{summary.customers.new_customers_today} today</span>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-emerald-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Total Products</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.total_products}</div>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-orange-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Low Stock</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.low_stock_products}</div>
-              </div>
-
-              <div className="relative flex-1 rounded-md border border-indigo-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
-                <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Out of Stock</span>
-                <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.out_of_stock_products}</div>
-=======
           {/* Capsule KPI Metrics Track (Rose & Cream Luxury Theme - Identical Uniform Dimensions) */}
           <div className="relative overflow-x-auto py-2 scrollbar-none">
             <div className="flex items-center gap-3 min-w-[1040px] px-1">
@@ -165,7 +117,7 @@ export function DashboardPage() {
               <div className="group relative flex-1 min-w-[125px] h-[84px] rounded-full bg-white border border-[#EEDDE0] hover:border-[#7B3F4A] px-3 py-2 flex flex-col justify-center items-center text-center shadow-2xs hover:shadow-md hover:scale-[1.02] transition-all duration-300">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#804652] whitespace-nowrap block leading-tight">Total Products</span>
                 <div className="text-lg font-serif font-black text-slate-900 leading-tight my-0.5 tracking-tight">{summary.products.total_products}</div>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">In Catalog</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none">Active</span>
               </div>
 
               {/* 7. Low Stock */}
@@ -180,7 +132,6 @@ export function DashboardPage() {
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#804652] whitespace-nowrap block leading-tight">Out of Stock</span>
                 <div className="text-lg font-serif font-black text-slate-900 leading-tight my-0.5 tracking-tight">{summary.products.out_of_stock_products}</div>
                 <span className="text-[9px] font-bold text-rose-700 uppercase tracking-wider leading-none">Zero Units</span>
->>>>>>> 075ae4a (feat(ui): align dashboard, navbar, marketing and settings screens with luxury wine and rose-cream theme)
               </div>
             </div>
           </div>
@@ -238,36 +189,22 @@ export function DashboardPage() {
                     return (
                       <div
                         key={item.id}
-                        className="group relative flex flex-col justify-between overflow-hidden rounded-3xl bg-slate-900 shadow-md border border-[#F2E5E7] transition-all hover:-translate-y-1 hover:shadow-xl h-56"
+                        className="group relative flex flex-col justify-between rounded-2xl bg-white p-5 shadow-2xs border border-[#F2E5E7] hover:border-[#7B3F4A] transition-all hover:-translate-y-1 hover:shadow-md"
                       >
-                        {/* Full Image Container */}
-                        <div className="absolute inset-0 bg-slate-950 flex items-center justify-center overflow-hidden">
-                          {imageUrl(item.primary_image || null) ? (
-                            <img
-                              src={imageUrl(item.primary_image || null)!}
-                              alt={item.name}
-                              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-500">
-                              <span className="text-xs font-semibold">No Image</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Top Badge */}
-                        <div className="relative z-10 p-3.5 flex justify-end">
-                          <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-xs ${badgeClass}`}>
+                        <div className="flex items-start justify-between">
+                          <span className="text-xs font-bold text-[#804652]">#{idx + 1}</span>
+                          <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${badgeClass}`}>
                             {badgeText}
                           </span>
                         </div>
 
-                        {/* Bottom Gradient Overlay & Product Summary */}
-                        <div className="relative z-10 p-4 bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-10">
-                          <h3 className="text-base font-bold text-white truncate font-sans tracking-tight">{item.name}</h3>
-                          <div className="mt-0.5 text-xs text-rose-200/90 font-medium">
-                            {item.units_sold} {Number(item.units_sold) === 1 ? 'unit' : 'units'} • {formatCurrency(item.revenue)}
-                          </div>
+                        <div className="mt-3 my-2">
+                          <h3 className="text-base font-bold text-slate-900 font-serif tracking-tight line-clamp-2">{item.name}</h3>
+                        </div>
+
+                        <div className="pt-3 border-t border-[#F2E5E7] flex items-center justify-between text-xs font-medium">
+                          <span className="text-slate-600">{item.units_sold} {Number(item.units_sold) === 1 ? 'unit' : 'units'} sold</span>
+                          <span className="font-bold text-[#7B3F4A]">{formatCurrency(item.revenue)}</span>
                         </div>
                       </div>
                     )

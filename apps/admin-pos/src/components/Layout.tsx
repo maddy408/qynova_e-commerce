@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
+import { BellIcon, LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
 interface SubItem {
   to: string
@@ -150,17 +150,10 @@ export function Layout() {
   const breadcrumb = getBreadcrumb(location.pathname, activeSection)
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen bg-[#faf8fc] flex flex-col font-sans text-slate-900 antialiased">
-      {/* Top Navbar Header */}
-      <header className="no-print sticky top-0 z-40 bg-white border-b border-slate-100 shadow-2xs">
-        <div className="w-full max-w-full px-4 sm:px-6">
-=======
     <div className="min-h-screen bg-[#FAF8F9] flex flex-col font-sans text-slate-900 antialiased">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#F2E5E7] shadow-2xs">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
->>>>>>> 075ae4a (feat(ui): align dashboard, navbar, marketing and settings screens with luxury wine and rose-cream theme)
+      {/* Top Navbar Header */}
+      <header className="no-print sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#F2E5E7] shadow-2xs">
+        <div className="w-full max-w-full px-4 sm:px-6">
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
