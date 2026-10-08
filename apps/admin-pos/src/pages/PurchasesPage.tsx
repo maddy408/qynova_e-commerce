@@ -6,7 +6,7 @@ import {
   extractSplitPaymentPayload,
   type SplitPaymentValues,
 } from '../components/SplitPaymentFields'
-import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
+import { Alert, Badge, Button, Card, Modal, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 
 interface Supplier {
@@ -283,7 +283,7 @@ export function PurchasesPage() {
     const allocatedNum = Number(payload.paidAmount) || 0
     if (Math.abs(allocatedNum - collectAmountNum) > 0.009) {
       setCollectError(
-        `Total allocated (₹${allocatedNum.toFixed(2)}) must exactly equal Amount to Collect (₹${collectAmountNum.toFixed(2)})`
+        `Total allocated (â‚¹${allocatedNum.toFixed(2)}) must exactly equal Amount to Collect (â‚¹${collectAmountNum.toFixed(2)})`
       )
       return
     }
@@ -503,22 +503,21 @@ export function PurchasesPage() {
   }
 
   return (
-    <div>
-      <PageHeader
-        title="Purchases"
-        description="Supplier -> Stock Purchase -> Increase inventory transaction with cost & MRP management."
-        actions={
-          <Button
-            onClick={() => {
-              setShowForm(true)
-              setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
-              fetchVariants()
-            }}
-          >
-            + New Purchase
-          </Button>
-        }
-      />
+    <div className="space-y-4">
+      {/* ── Amber Action Bar ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 px-4 py-3">
+        <p className="text-[11px] font-medium text-amber-700/80">Supplier → Stock Purchase → Increase inventory with cost &amp; MRP tracking</p>
+        <Button
+          onClick={() => {
+            setShowForm(true)
+            setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
+            fetchVariants()
+          }}
+          className="!bg-amber-800 hover:!bg-amber-900 !text-white shrink-0"
+        >
+          + New Purchase
+        </Button>
+      </div>
 
       {purchases === null ? (
         <Spinner />
@@ -526,18 +525,18 @@ export function PurchasesPage() {
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
+              <thead className="border-b-2 border-amber-200 bg-amber-50/80 text-[10px] uppercase tracking-wider text-amber-800">
                 <tr>
-                  <th className="px-4 py-2.5 font-semibold">Purchase No</th>
-                  <th className="px-4 py-2.5 font-semibold">Supplier</th>
-                  <th className="px-4 py-2.5 font-semibold">Grand Total</th>
-                  <th className="px-4 py-2.5 font-semibold">Paid Amount</th>
-                  <th className="px-4 py-2.5 font-semibold">Balance</th>
-                  <th className="px-4 py-2.5 font-semibold">Payment Method</th>
-                  <th className="px-4 py-2.5 font-semibold">Payment Status</th>
-                  <th className="px-4 py-2.5 font-semibold">Status</th>
-                  <th className="px-4 py-2.5 font-semibold">Date</th>
-                  <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
+                  <th className="px-4 py-3 font-bold">Purchase No</th>
+                  <th className="px-4 py-3 font-bold">Supplier</th>
+                  <th className="px-4 py-3 font-bold">Grand Total</th>
+                  <th className="px-4 py-3 font-bold">Paid Amount</th>
+                  <th className="px-4 py-3 font-bold">Balance</th>
+                  <th className="px-4 py-3 font-bold">Payment Method</th>
+                  <th className="px-4 py-3 font-bold">Payment Status</th>
+                  <th className="px-4 py-3 font-bold">Status</th>
+                  <th className="px-4 py-3 font-bold">Date</th>
+                  <th className="px-4 py-3 font-bold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -571,19 +570,19 @@ export function PurchasesPage() {
                     const canCollect = !isCancelled && balanceNum > 0
 
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-2.5 font-mono font-semibold text-slate-900">{p.purchase_no}</td>
-                        <td className="px-4 py-2.5 text-slate-700 font-medium">{p.supplier_name}</td>
-                        <td className="px-4 py-2.5 text-slate-900 font-bold">₹{p.grand_total}</td>
-                        <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{effectivePaid}</td>
-                        <td className="px-4 py-2.5 text-amber-700 font-bold">₹{effectiveBalance}</td>
+                      <tr key={p.id} className="hover:bg-amber-50/50 transition-colors">
+                        <td className="px-4 py-2.5 font-mono font-semibold text-stone-900">{p.purchase_no}</td>
+                        <td className="px-4 py-2.5 text-stone-700 font-medium">{p.supplier_name}</td>
+                        <td className="px-4 py-2.5 text-stone-900 font-bold">â‚¹{p.grand_total}</td>
+                        <td className="px-4 py-2.5 text-emerald-700 font-bold">â‚¹{effectivePaid}</td>
+                        <td className="px-4 py-2.5 text-amber-700 font-bold">â‚¹{effectiveBalance}</td>
                         <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
                           {p.payment_method === 'SPLIT' ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              ⚡ Split
+                              âš¡ Split
                             </span>
                           ) : (
-                            p.payment_method || '—'
+                            p.payment_method || 'â€”'
                           )}
                         </td>
                         <td className="px-4 py-2.5">
@@ -656,7 +655,7 @@ export function PurchasesPage() {
             const endIndex = Math.min(startIndex + pageSize, totalPurchases)
 
             return (
-              <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 bg-slate-50/60 text-xs text-slate-600">
+              <div className="flex items-center justify-between border-t border-amber-200 px-4 py-3 bg-amber-50/40 text-xs text-slate-600">
                 <div>
                   Showing <span className="font-semibold text-slate-900">{totalPurchases > 0 ? startIndex + 1 : 0}</span> to{' '}
                   <span className="font-semibold text-slate-900">{endIndex}</span> of{' '}
@@ -692,9 +691,10 @@ export function PurchasesPage() {
       )}
 
       {/* ================= COLLECT PAYMENT MODAL ================= */}
+
       {collectPurchase && (
         <Modal
-          title={`Collect Payment — ${collectPurchase.purchase_no}`}
+          title={`Collect Payment â€” ${collectPurchase.purchase_no}`}
           onClose={() => {
             if (!collectSubmitting) setCollectPurchase(null)
           }}
@@ -713,17 +713,17 @@ export function PurchasesPage() {
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center">
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Total Purchase</p>
-                  <p className="text-sm font-bold text-slate-900">₹{Number(collectPurchase.grand_total).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-slate-900">â‚¹{Number(collectPurchase.grand_total).toFixed(2)}</p>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                   <p className="text-[10px] uppercase font-semibold text-emerald-600">Already Paid</p>
                   <p className="text-sm font-bold text-emerald-700">
-                    ₹{Number(collectPurchase.paid_amount ?? collectPurchase.amount_paid ?? 0).toFixed(2)}
+                    â‚¹{Number(collectPurchase.paid_amount ?? collectPurchase.amount_paid ?? 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-amber-200 bg-amber-50/40 shadow-2xs">
                   <p className="text-[10px] uppercase font-semibold text-amber-700">Outstanding Balance</p>
-                  <p className="text-sm font-extrabold text-amber-800">₹{collectBalanceNum.toFixed(2)}</p>
+                  <p className="text-sm font-extrabold text-amber-800">â‚¹{collectBalanceNum.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -731,7 +731,7 @@ export function PurchasesPage() {
             {/* Amount to Collect & Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <TextField
-                label="Amount to Collect (₹)"
+                label="Amount to Collect (â‚¹)"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -742,7 +742,7 @@ export function PurchasesPage() {
                   setCollectAmount(e.target.value)
                   setCollectError('')
                 }}
-                placeholder={`Max ₹${collectBalanceNum.toFixed(2)}`}
+                placeholder={`Max â‚¹${collectBalanceNum.toFixed(2)}`}
               />
               <TextField
                 label="Payment Date"
@@ -785,7 +785,7 @@ export function PurchasesPage() {
                   collectAmountNum > collectBalanceNum + 0.001
                 }
               >
-                {collectSubmitting ? 'Recording Payment…' : `Collect ₹${collectAmountNum.toFixed(2)}`}
+                {collectSubmitting ? 'Recording Paymentâ€¦' : `Collect â‚¹${collectAmountNum.toFixed(2)}`}
               </Button>
             </div>
           </form>
@@ -795,7 +795,7 @@ export function PurchasesPage() {
       {/* ================= PAYMENT EDIT MODAL ================= */}
       {editPurchase && (
         <Modal
-          title={`Edit Payment Details — ${editPurchase.purchase_no}`}
+          title={`Edit Payment Details â€” ${editPurchase.purchase_no}`}
           onClose={() => {
             if (!editSubmitting) setEditPurchase(null)
           }}
@@ -814,7 +814,7 @@ export function PurchasesPage() {
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 text-center">
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Grand Total</p>
-                  <p className="text-sm font-bold text-slate-900">₹{Number(editPurchase.grand_total).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-slate-900">â‚¹{Number(editPurchase.grand_total).toFixed(2)}</p>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Current Status</p>
@@ -840,7 +840,7 @@ export function PurchasesPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={editSubmitting}>
-                {editSubmitting ? 'Saving Changes…' : 'Save Payment Changes'}
+                {editSubmitting ? 'Saving Changesâ€¦' : 'Save Payment Changes'}
               </Button>
             </div>
           </form>
@@ -850,7 +850,7 @@ export function PurchasesPage() {
       {/* ================= PAYMENT HISTORY DRAWER / MODAL ================= */}
       {historyPurchase && (
         <Modal
-          title={`Payment History & Receipts — ${historyPurchase.purchase_no}`}
+          title={`Payment History & Receipts â€” ${historyPurchase.purchase_no}`}
           onClose={() => setHistoryPurchase(null)}
           width="lg"
         >
@@ -865,9 +865,9 @@ export function PurchasesPage() {
                 <strong className="text-slate-900">{historyPurchase.supplier_name}</strong>
               </div>
               <div className="flex items-center gap-4">
-                <span>Grand Total: <strong className="text-slate-900">₹{historyPurchase.grand_total}</strong></span>
-                <span>Paid: <strong className="text-emerald-700">₹{historyPurchase.paid_amount ?? historyPurchase.amount_paid}</strong></span>
-                <span>Balance: <strong className="text-amber-700">₹{historyPurchase.balance_amount}</strong></span>
+                <span>Grand Total: <strong className="text-slate-900">â‚¹{historyPurchase.grand_total}</strong></span>
+                <span>Paid: <strong className="text-emerald-700">â‚¹{historyPurchase.paid_amount ?? historyPurchase.amount_paid}</strong></span>
+                <span>Balance: <strong className="text-amber-700">â‚¹{historyPurchase.balance_amount}</strong></span>
               </div>
             </div>
 
@@ -893,12 +893,12 @@ export function PurchasesPage() {
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-slate-900">{pay.receipt_no}</span>
-                          <span className="text-slate-400">•</span>
+                          <span className="text-slate-400">â€¢</span>
                           <span className="text-slate-600 font-mono text-[11px]">{pay.payment_date}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge tone={isActive ? 'green' : 'red'}>{pay.status}</Badge>
-                          <span className="font-extrabold text-sm text-slate-900">₹{pay.total_amount}</span>
+                          <span className="font-extrabold text-sm text-slate-900">â‚¹{pay.total_amount}</span>
                         </div>
                       </div>
 
@@ -910,7 +910,7 @@ export function PurchasesPage() {
                             <div key={lIdx} className="bg-slate-50 p-2 rounded-lg border border-slate-200/80 flex items-center justify-between">
                               <span className="font-medium text-slate-800">{l.payment_method}</span>
                               <div className="text-right">
-                                <span className="font-bold text-slate-900">₹{l.amount}</span>
+                                <span className="font-bold text-slate-900">â‚¹{l.amount}</span>
                                 {l.reference_no && (
                                   <p className="text-[10px] text-slate-500 font-mono">Ref: {l.reference_no}</p>
                                 )}
@@ -949,7 +949,7 @@ export function PurchasesPage() {
                               }}
                               className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline inline-flex items-center gap-1"
                             >
-                              ↩ Reverse Payment
+                              â†© Reverse Payment
                             </button>
                           ) : (
                             <div className="w-full p-2.5 rounded-lg border border-red-200 bg-red-50/60 space-y-2">
@@ -959,7 +959,7 @@ export function PurchasesPage() {
                                 required
                                 value={reverseReason}
                                 onChange={(e) => setReverseReason(e.target.value)}
-                                placeholder="State reason for payment reversal…"
+                                placeholder="State reason for payment reversalâ€¦"
                               />
                               <div className="flex justify-end gap-2">
                                 <Button
@@ -976,7 +976,7 @@ export function PurchasesPage() {
                                   onClick={() => handleReversePaymentSubmit(pay.id)}
                                   className="bg-red-600 hover:bg-red-700 text-white"
                                 >
-                                  {reverseSubmitting ? 'Reversing…' : 'Confirm Reversal'}
+                                  {reverseSubmitting ? 'Reversingâ€¦' : 'Confirm Reversal'}
                                 </Button>
                               </div>
                             </div>
@@ -1005,7 +1005,7 @@ export function PurchasesPage() {
             {error && <Alert>{error}</Alert>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Select label="Supplier" required value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
-                <option value="">Select Supplier…</option>
+                <option value="">Select Supplierâ€¦</option>
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -1022,8 +1022,9 @@ export function PurchasesPage() {
               onChange={setNewPurchaseSplit}
               disabled={items.length === 0}
             />
+
             <div className="relative">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-stone-700 mb-1">
                 Search Items / Variants (Type item name, SKU or press Down Arrow to browse)
               </label>
               <input
@@ -1042,8 +1043,8 @@ export function PurchasesPage() {
                   fetchVariants(val)
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Type item name, SKU or barcode… (Press ↑ ↓ to navigate, Enter to select)"
-                className="w-full rounded-lg border border-indigo-300 px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs"
+                placeholder="Type item name, SKU or barcodeâ€¦ (Press â†‘ â†“ to navigate, Enter to select)"
+                className="w-full rounded-lg border border-amber-400 px-3 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-600 shadow-xs"
               />
 
               {dropdownOpen && (
@@ -1057,18 +1058,18 @@ export function PurchasesPage() {
                         onClick={() => selectVariant(v)}
                         onMouseEnter={() => setHighlightedIndex(index)}
                         className={`flex cursor-pointer items-center justify-between px-3 py-2 text-xs transition-colors ${
-                          index === highlightedIndex ? 'bg-indigo-600 text-white font-medium' : 'hover:bg-slate-100 text-slate-800'
+                          index === highlightedIndex ? 'bg-amber-800 text-white font-medium' : 'hover:bg-amber-50 text-stone-800'
                         }`}
                       >
                         <div>
                           <p className="font-semibold">{v.product_name}</p>
-                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-indigo-100' : 'text-slate-500'}`}>
+                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-amber-100' : 'text-stone-500'}`}>
                             SKU: <span className="font-mono">{v.sku}</span> | Stock: {v.on_hand ?? 0}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">Unit Cost: ₹{v.purchase_price || '0'}</p>
-                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-indigo-100' : 'text-slate-500'}`}>MRP: ₹{v.mrp}</p>
+                          <p className="font-bold">Unit Cost: â‚¹{v.purchase_price || '0'}</p>
+                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-amber-100' : 'text-stone-500'}`}>MRP: â‚¹{v.mrp}</p>
                         </div>
                       </div>
                     ))
@@ -1078,28 +1079,28 @@ export function PurchasesPage() {
             </div>
 
             {items.length > 0 && (
-              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Purchase Item List ({items.length})</h3>
+              <div className="rounded-xl border border-amber-200 bg-white p-3 space-y-2">
+                <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">Purchase Item List ({items.length})</h3>
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50">
+                  <thead className="border-b border-amber-200 uppercase text-amber-800 bg-amber-50">
                     <tr>
                       <th className="px-3 py-2 font-semibold">Product Item</th>
                       <th className="px-3 py-2 font-semibold">Qty</th>
-                      <th className="px-3 py-2 font-semibold">Purchase Price (₹)</th>
-                      <th className="px-3 py-2 font-semibold">MRP (₹)</th>
-                      <th className="px-3 py-2 font-semibold">Discount (₹)</th>
+                      <th className="px-3 py-2 font-semibold">Purchase Price (â‚¹)</th>
+                      <th className="px-3 py-2 font-semibold">MRP (â‚¹)</th>
+                      <th className="px-3 py-2 font-semibold">Discount (â‚¹)</th>
                       <th className="px-3 py-2 font-semibold">Subtotal</th>
                       <th className="px-3 py-2 font-semibold text-right"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-amber-100">
                     {items.map((item) => {
                       const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)
                       return (
                         <tr key={item.variant_id}>
                           <td className="px-3 py-2">
-                            <p className="font-semibold text-slate-900">{item.product_name}</p>
-                            <p className="text-[10px] text-slate-500 font-mono">SKU: {item.sku}</p>
+                            <p className="font-semibold text-stone-900">{item.product_name}</p>
+                            <p className="text-[10px] text-stone-500 font-mono">SKU: {item.sku}</p>
                           </td>
                           <td className="px-3 py-2">
                             <input
@@ -1107,7 +1108,7 @@ export function PurchasesPage() {
                               min="1"
                               value={item.quantity}
                               onChange={(e) => updateItem(item.variant_id, 'quantity', e.target.value)}
-                              className="w-16 rounded border border-slate-300 px-2 py-1 text-xs font-bold text-slate-900 focus:ring-1 focus:ring-indigo-500"
+                              className="w-16 rounded border border-stone-300 px-2 py-1 text-xs font-bold text-stone-900 focus:ring-1 focus:ring-amber-600"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -1116,7 +1117,7 @@ export function PurchasesPage() {
                               step="0.01"
                               value={item.unit_cost}
                               onChange={(e) => updateItem(item.variant_id, 'unit_cost', e.target.value)}
-                              className="w-24 rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-indigo-500"
+                              className="w-24 rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-900 focus:ring-1 focus:ring-amber-600"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -1125,7 +1126,7 @@ export function PurchasesPage() {
                               step="0.01"
                               value={item.mrp}
                               onChange={(e) => updateItem(item.variant_id, 'mrp', e.target.value)}
-                              className="w-24 rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-indigo-500"
+                              className="w-24 rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-900 focus:ring-1 focus:ring-amber-600"
                             />
                           </td>
                           <td className="px-3 py-2">
@@ -1135,17 +1136,17 @@ export function PurchasesPage() {
                               step="0.01"
                               value={item.discount_amount}
                               onChange={(e) => updateItem(item.variant_id, 'discount_amount', e.target.value)}
-                              className="w-20 rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-indigo-500"
+                              className="w-20 rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-900 focus:ring-1 focus:ring-amber-600"
                             />
                           </td>
-                          <td className="px-3 py-2 font-bold text-slate-900">₹{sub.toFixed(2)}</td>
+                          <td className="px-3 py-2 font-bold text-stone-900">â‚¹{sub.toFixed(2)}</td>
                           <td className="px-3 py-2 text-right">
                             <button
                               type="button"
                               onClick={() => removeItem(item.variant_id)}
                               className="text-xs font-bold text-red-600 hover:text-red-800"
                             >
-                              ✕
+                              âœ•
                             </button>
                           </td>
                         </tr>
@@ -1154,10 +1155,10 @@ export function PurchasesPage() {
                   </tbody>
                 </table>
 
-                <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                <div className="flex justify-between items-center pt-2 border-t border-amber-200">
                   <div className="text-xs">
-                    <span className="text-slate-500 font-medium">Grand Total: </span>
-                    <span className="text-sm font-extrabold text-slate-900">₹{grandTotal.toFixed(2)}</span>
+                    <span className="text-stone-500 font-medium">Grand Total: </span>
+                    <span className="text-sm font-extrabold text-stone-900">â‚¹{grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1167,8 +1168,8 @@ export function PurchasesPage() {
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? 'Creating…' : 'Submit Stock Purchase'}
+              <Button type="submit" disabled={submitting} className="!bg-amber-800 hover:!bg-amber-900 !text-white">
+                {submitting ? 'Creatingâ€¦' : 'Submit Stock Purchase'}
               </Button>
             </div>
           </form>

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { EyeIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
-import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
+import { Alert, Badge, Button, Card, Modal, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Supplier } from '../lib/types'
 
@@ -125,35 +125,36 @@ export function SuppliersPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return (
-    <div>
-      <PageHeader
-        title="Suppliers"
-        description="Vendors you purchase stock from — referenced by purchases and GRNs."
-        actions={<Button onClick={openCreateModal}>+ New Supplier</Button>}
-      />
-
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <TextField
-          placeholder="Search name, phone or GSTIN…"
-          value={search}
-          onChange={(e) => {
-            setPage(1)
-            setSearch(e.target.value)
-          }}
-          className="w-64"
-        />
-        <Select
-          value={status}
-          onChange={(e) => {
-            setPage(1)
-            setStatus(e.target.value)
-          }}
-          className="w-36"
-        >
-          <option value="">All Statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-        </Select>
+    <div className="space-y-4">
+      {/* ── Amber Action Bar ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 px-4 py-3">
+        <p className="text-[11px] font-medium text-amber-700/80">Vendors you purchase stock from — referenced by purchases and GRNs.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <TextField
+            placeholder="Search name, phone or GSTIN…"
+            value={search}
+            onChange={(e) => {
+              setPage(1)
+              setSearch(e.target.value)
+            }}
+            className="w-56"
+          />
+          <Select
+            value={status}
+            onChange={(e) => {
+              setPage(1)
+              setStatus(e.target.value)
+            }}
+            className="w-36"
+          >
+            <option value="">All Statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </Select>
+          <Button onClick={openCreateModal} className="!bg-amber-800 hover:!bg-amber-900 !text-white shrink-0">
+            + New Supplier
+          </Button>
+        </div>
       </div>
 
       {suppliers === null ? (
@@ -161,23 +162,23 @@ export function SuppliersPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+            <thead className="border-b-2 border-amber-200 text-[10px] uppercase tracking-wider text-amber-800 bg-amber-50/80">
               <tr>
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="px-5 py-3 font-medium">Contact</th>
-                <th className="px-5 py-3 font-medium">Phone</th>
-                <th className="px-5 py-3 font-medium">GSTIN</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium text-right">Actions</th>
+                <th className="px-5 py-3 font-bold">Name</th>
+                <th className="px-5 py-3 font-bold">Contact</th>
+                <th className="px-5 py-3 font-bold">Phone</th>
+                <th className="px-5 py-3 font-bold">GSTIN</th>
+                <th className="px-5 py-3 font-bold">Status</th>
+                <th className="px-5 py-3 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-amber-100">
               {suppliers.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/70">
-                  <td className="px-5 py-3 font-medium text-slate-900">{s.name}</td>
-                  <td className="px-5 py-3 text-slate-600">{s.contact_person ?? '—'}</td>
-                  <td className="px-5 py-3 text-slate-600">{s.phone ?? '—'}</td>
-                  <td className="px-5 py-3 text-slate-600">{s.gstin ?? '—'}</td>
+                <tr key={s.id} className="hover:bg-amber-50/60 transition-colors">
+                  <td className="px-5 py-3 font-medium text-stone-900">{s.name}</td>
+                  <td className="px-5 py-3 text-stone-600">{s.contact_person ?? '—'}</td>
+                  <td className="px-5 py-3 text-stone-600">{s.phone ?? '—'}</td>
+                  <td className="px-5 py-3 text-stone-600">{s.gstin ?? '—'}</td>
                   <td className="px-5 py-3">
                     <Badge tone={s.status === 'ACTIVE' ? 'green' : 'slate'}>{s.status}</Badge>
                   </td>
@@ -185,7 +186,7 @@ export function SuppliersPage() {
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => setViewingSupplier(s)}
-                        className="rounded p-1.5 text-slate-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
+                        className="rounded p-1.5 text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-700"
                         title="View Details"
                       >
                         <EyeIcon className="h-4 w-4" />
@@ -213,12 +214,14 @@ export function SuppliersPage() {
                       </button>
                     </div>
                   </td>
+
                 </tr>
               ))}
               {suppliers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-stone-500">
                     No suppliers found.
+
                   </td>
                 </tr>
               )}
@@ -226,16 +229,16 @@ export function SuppliersPage() {
           </table>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
+            <div className="flex items-center justify-between border-t border-amber-100 px-5 py-3 text-xs text-stone-600 bg-amber-50/40">
               <span>
-                Page {page} of {totalPages} • {total} supplier(s)
+                Page <span className="font-bold text-stone-900">{page}</span> of <span className="font-bold text-stone-900">{totalPages}</span> &bull; {total} supplier(s)
               </span>
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                  Previous
+                  ← Previous
                 </Button>
                 <Button size="sm" variant="secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                  Next
+                  Next →
                 </Button>
               </div>
             </div>
@@ -260,8 +263,9 @@ export function SuppliersPage() {
               <Button type="button" variant="secondary" onClick={closeModals}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting} className="!bg-amber-800 hover:!bg-amber-900 !text-white">
                 {submitting ? 'Saving…' : editingSupplier ? 'Save Changes' : 'Create Supplier'}
+
               </Button>
             </div>
           </form>

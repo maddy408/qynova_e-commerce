@@ -87,6 +87,7 @@ function App() {
         {/* Inventory Section */}
         <Route path="/inventory" element={<Navigate to="/stock-adjustments" replace />} />
         <Route path="/stock-adjustments" element={<StockAdjustmentsPage />} />
+        <Route path="/recent-adjustment-logs" element={<StockAdjustmentsPage defaultTab="LOGS" />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/purchases" element={<PurchasesPage />} />
 
