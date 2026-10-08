@@ -157,7 +157,7 @@ export function Layout() {
           <div className="flex h-16 items-center justify-between gap-4">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 text-white font-black text-base shadow-sm group-hover:scale-105 transition-transform">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#7B3F4A] to-[#5C2B34] text-white font-serif font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
                 UP
               </div>
               <div className="flex flex-col">

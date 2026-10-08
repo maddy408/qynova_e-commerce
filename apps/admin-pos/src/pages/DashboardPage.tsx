@@ -77,12 +77,12 @@ export function DashboardPage() {
         <>
           <div className="relative overflow-x-auto py-2">
             <div className="flex items-center gap-3 min-w-[980px] px-1">
-              <div className="relative flex-1 rounded-md border border-indigo-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+              <div className="relative flex-1 rounded-md border border-[#EEDDE0] bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
                 <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Today's Sales</span>
                 <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.today_sales)}</div>
               </div>
 
-              <div className="relative flex-1 rounded-md border border-blue-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+              <div className="relative flex-1 rounded-md border border-[#EEDDE0] bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
                 <span className="text-[11px] font-semibold text-slate-700 tracking-tight">This Month</span>
                 <div className="text-base font-extrabold text-slate-950 mt-0.5">{formatCurrency(summary.sales.this_month_sales)}</div>
               </div>
@@ -114,7 +114,7 @@ export function DashboardPage() {
                 <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.low_stock_products}</div>
               </div>
 
-              <div className="relative flex-1 rounded-md border border-indigo-200 bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+              <div className="relative flex-1 rounded-md border border-[#EEDDE0] bg-white px-4 py-3 text-center shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
                 <span className="text-[11px] font-semibold text-slate-700 tracking-tight">Out of Stock</span>
                 <div className="text-base font-extrabold text-slate-950 mt-0.5">{summary.products.out_of_stock_products}</div>
               </div>
@@ -168,7 +168,7 @@ export function DashboardPage() {
                       idx === 0
                         ? 'bg-amber-100 text-amber-900 border border-amber-300'
                         : idx === 1
-                        ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
+                        ? 'bg-[#FAF2F4] text-[#7B3F4A] border border-[#EEDDE0]'
                         : 'bg-slate-100 text-slate-700 border border-slate-300'
 
                     return (
@@ -234,7 +234,7 @@ export function DashboardPage() {
               <div className="receipt-paper mx-auto w-full rounded-sm p-6 text-slate-800 font-sans shadow-xl my-3">
                 <div className="space-y-4 text-xs">
                   {latestSales.slice(0, 5).map((sale, idx) => {
-                    const dotColor = idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-indigo-500' : 'bg-purple-500'
+                    const dotColor = idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-[#7B3F4A]' : 'bg-[#914D5A]'
                     return (
                       <div key={sale.id} className="relative pl-5 border-l-2 border-slate-200/80 space-y-0.5">
                         <span className={`absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full ${dotColor} ring-2 ring-[#f4efe6]`} />

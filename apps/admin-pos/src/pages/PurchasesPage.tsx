@@ -585,7 +585,7 @@ export function PurchasesPage() {
                 : toast.type === 'success'
                 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950'
                 : toast.type === 'info'
-                ? 'bg-blue-50/95 border-blue-200 text-blue-950'
+                ? 'bg-[#FAF2F4]/95 border-[#EEDDE0] text-[#7B3F4A]'
                 : 'bg-amber-50/95 border-amber-200 text-amber-950'
             }`}
           >
@@ -722,7 +722,7 @@ export function PurchasesPage() {
                               onClick={() => handleEditAction(p)}
                               title="Edit Payment"
                               aria-label="Edit Payment"
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-indigo-700 bg-indigo-50/80 border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[#7B3F4A] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/30 cursor-pointer"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
