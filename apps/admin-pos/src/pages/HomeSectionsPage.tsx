@@ -1,11 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { HomeSection, HomeSectionType } from '../lib/types'
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
-function imageUrl(path: string) {
+function imageUrl(path: string | null) {
+  if (!path) return ''
   return `${API_ORIGIN}/${path}`
 }
 
@@ -24,6 +25,12 @@ export function HomeSectionsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
 
+  // Image Upload States inside Modal
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageRemoved, setImageRemoved] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   function load() {
     api.get('/home-sections').then((res) => setSections(res.data.sections))
   }
@@ -34,6 +41,9 @@ export function HomeSectionsPage() {
     setType('FEATURED')
     setTitle('')
     setItemLimit('10')
+    setImageFile(null)
+    setImagePreview(null)
+    setImageRemoved(false)
     setError('')
     setShowForm(true)
   }
@@ -43,7 +53,19 @@ export function HomeSectionsPage() {
     setType(s.type)
     setTitle(s.title ?? '')
     setItemLimit(String(s.item_limit))
+    setImageFile(null)
+    setImagePreview(null)
+    setImageRemoved(false)
     setError('')
+  }
+
+  function pickImage(file?: File) {
+    if (!file) return
+    setImageFile(file)
+    setImageRemoved(false)
+    const reader = new FileReader()
+    reader.onload = (e) => setImagePreview(e.target?.result as string)
+    reader.readAsDataURL(file)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -51,16 +73,32 @@ export function HomeSectionsPage() {
     setError('')
     setSubmitting(true)
     try {
+      let sectionId: number
       if (editingSection) {
         await api.put(`/home-sections/${editingSection.id}`, { type, title: title || null, item_limit: Number(itemLimit) || 10 })
+        sectionId = editingSection.id
         setEditingSection(null)
       } else {
-        await api.post('/home-sections', { type, title: title || null, item_limit: Number(itemLimit) || 10 })
+        const res = await api.post('/home-sections', { type, title: title || null, item_limit: Number(itemLimit) || 10 })
+        sectionId = res.data.id
         setShowForm(false)
       }
+
+      // If user selected an image inside the creation/edit modal
+      if (imageFile && sectionId) {
+        const formData = new FormData()
+        formData.append('file', imageFile)
+        await api.post(`/home-sections/${sectionId}/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
+
       setType('FEATURED')
       setTitle('')
       setItemLimit('10')
+      setImageFile(null)
+      setImagePreview(null)
+      setImageRemoved(false)
       load()
     } catch (err) {
       setError(apiErrorMessage(err, editingSection ? 'Could not update section' : 'Could not create section'))
@@ -81,7 +119,7 @@ export function HomeSectionsPage() {
       })
       load()
       if (editingSection && editingSection.id === sectionId) {
-        setEditingSection((prev) => prev ? { ...prev, image_path: URL.createObjectURL(file) } : null)
+        setEditingSection((prev) => (prev ? { ...prev, image_path: URL.createObjectURL(file) } : null))
       }
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not upload image'))
@@ -233,9 +271,16 @@ export function HomeSectionsPage() {
       )}
 
       {(showForm || editingSection) && (
-        <Modal title={editingSection ? `Edit Section: ${editingSection.title || editingSection.type}` : 'New Home Section'} onClose={() => { setShowForm(false); setEditingSection(null); }}>
-          <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+        <Modal
+          title={editingSection ? `Edit Section: ${editingSection.title || editingSection.type}` : 'New Home Section'}
+          onClose={() => {
+            setShowForm(false)
+            setEditingSection(null)
+          }}
+        >
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             {error && <Alert>{error}</Alert>}
+
             <Select label="Type" value={type} onChange={(e) => setType(e.target.value as HomeSectionType)}>
               {TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -244,11 +289,78 @@ export function HomeSectionsPage() {
                 </option>
               ))}
             </Select>
+
             <TextField label="Section Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Featured Picks" />
+
             <TextField label="Item Display Limit" type="number" value={itemLimit} onChange={(e) => setItemLimit(e.target.value)} />
-            
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => { setShowForm(false); setEditingSection(null); }}>
+
+            {/* Background Image Uploader Card */}
+            <div className="rounded-2xl border-2 border-dashed border-[#EEDDE0] bg-[#FAF5F6]/70 p-4 transition-colors">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#804652] mb-2.5">
+                Background Overlay Image
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 border-[#EEDDE0] bg-white shadow-2xs flex items-center justify-center">
+                  {imagePreview || (editingSection && !imageRemoved && editingSection.image_path) ? (
+                    <img
+                      src={imagePreview ?? imageUrl(editingSection!.image_path)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-bold text-[#804652]/60">No Image</span>
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#7B3F4A] text-white text-xs font-semibold hover:bg-[#68333D] transition-all shadow-2xs active:scale-98 cursor-pointer"
+                    >
+                      📷 {imagePreview || (editingSection && !imageRemoved && editingSection.image_path) ? 'Change Image' : 'Upload Image'}
+                    </button>
+
+                    {(imagePreview || (editingSection && !imageRemoved && editingSection.image_path)) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImagePreview(null)
+                          setImageRemoved(true)
+                          if (fileInputRef.current) fileInputRef.current.value = ''
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        × Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    JPG, PNG, WEBP supported • Optional background image
+                  </p>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => pickImage(e.target.files?.[0])}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#F2E5E7]">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowForm(false)
+                  setEditingSection(null)
+                }}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>

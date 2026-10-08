@@ -41,64 +41,193 @@ final class ReferralService
         throw new RuntimeException('Could not generate a unique referral code, please retry');
     }
 
-    /**
-     * Applies an (optional) referral code at signup. Does nothing when
-     * referrals are disabled, the code is missing/invalid, or it would be
-     * a self-referral. Never throws for an invalid code — signup must not
-     * fail because of a typo in an optional field.
-     */
-    public function applyReferralAtSignup(int $newCustomerId, ?string $referralCodeInput): void
+    public function validateReferralCode(string $code, ?int $currentCustomerId = null): array
     {
-        if ($referralCodeInput === null || trim($referralCodeInput) === '') {
-            return;
+        $code = trim($code);
+        if ($code === '') {
+            throw new RuntimeException('Referral code cannot be empty');
         }
 
         $settings = $this->getSettings();
-
         if (!$settings['is_enabled']) {
-            return;
+            throw new RuntimeException('Referral program is currently not active');
         }
 
         $stmt = $this->pdo->prepare(
-            'SELECT rc.id AS referral_code_id, rc.customer_id AS referrer_customer_id
-             FROM referral_codes rc WHERE rc.code = :code'
+            'SELECT rc.id AS referral_code_id, rc.customer_id AS referrer_customer_id, c.name AS referrer_name
+             FROM referral_codes rc
+             JOIN customers c ON c.id = rc.customer_id
+             WHERE rc.code = :code AND c.deleted_at IS NULL'
         );
-        $stmt->execute(['code' => trim($referralCodeInput)]);
-        $code = $stmt->fetch();
+        $stmt->execute(['code' => $code]);
+        $row = $stmt->fetch();
 
-        if ($code === false) {
-            return;
+        if ($row === false) {
+            throw new RuntimeException('Invalid referral code');
         }
 
-        $referrerCustomerId = (int) $code['referrer_customer_id'];
-
-        if ($referrerCustomerId === $newCustomerId) {
-            return;
+        // Enforce: ONE REFERRAL CODE CAN BE USED ONLY ONCE
+        $alreadyUsed = $this->pdo->prepare('SELECT 1 FROM referrals WHERE referral_code_id = :code_id');
+        $alreadyUsed->execute(['code_id' => $row['referral_code_id']]);
+        if ($alreadyUsed->fetchColumn() !== false) {
+            throw new RuntimeException('This referral code has already been used.');
         }
+
+        $referrerCustomerId = (int) $row['referrer_customer_id'];
+
+        if ($currentCustomerId !== null && $referrerCustomerId === $currentCustomerId) {
+            throw new RuntimeException('You cannot use your own referral code');
+        }
+
+        if ($currentCustomerId !== null) {
+            $alreadyReferred = $this->pdo->prepare('SELECT 1 FROM referrals WHERE referred_customer_id = :id');
+            $alreadyReferred->execute(['id' => $currentCustomerId]);
+            if ($alreadyReferred->fetchColumn() !== false) {
+                throw new RuntimeException('You have already applied a referral code');
+            }
+        }
+
+        return [
+            'valid' => true,
+            'code' => $code,
+            'referrer_name' => $row['referrer_name'],
+            'referrer_discount_percent' => (float) $settings['referrer_discount_percent'],
+            'referred_discount_percent' => (float) $settings['referred_discount_percent'],
+        ];
+    }
+
+    /**
+     * Applies a referral code to a customer account with strict transactional integrity.
+     * Validates settings, single-use, self-referral, duplicate referrals, and creates reward records.
+     *
+     * @return array<string, mixed>
+     */
+    public function applyReferral(int $customerId, string $referralCodeInput): array
+    {
+        $code = trim($referralCodeInput);
+        if ($code === '') {
+            throw new RuntimeException('Referral code cannot be empty');
+        }
+
+        // 1. Check referral settings from MySQL
+        $settings = $this->getSettings();
+        if (!$settings['is_enabled']) {
+            throw new RuntimeException('Referral program is currently not active');
+        }
+
+        // 2. Validate referral code & find Referrer (Customer A) from MySQL
+        $stmt = $this->pdo->prepare(
+            'SELECT rc.id AS referral_code_id, rc.customer_id AS referrer_customer_id, c.name AS referrer_name
+             FROM referral_codes rc
+             JOIN customers c ON c.id = rc.customer_id
+             WHERE rc.code = :code AND c.deleted_at IS NULL'
+        );
+        $stmt->execute(['code' => $code]);
+        $referrer = $stmt->fetch();
+
+        if ($referrer === false) {
+            throw new RuntimeException('Invalid referral code');
+        }
+
+        // 3. Enforce: ONE REFERRAL CODE CAN BE USED ONLY ONCE
+        $alreadyUsed = $this->pdo->prepare('SELECT 1 FROM referrals WHERE referral_code_id = :code_id');
+        $alreadyUsed->execute(['code_id' => $referrer['referral_code_id']]);
+        if ($alreadyUsed->fetchColumn() !== false) {
+            throw new RuntimeException('This referral code has already been used.');
+        }
+
+        $referrerCustomerId = (int) $referrer['referrer_customer_id'];
+
+        // 4. Find Customer B (Referred customer) from MySQL
+        $custStmt = $this->pdo->prepare('SELECT id, name FROM customers WHERE id = :id AND deleted_at IS NULL');
+        $custStmt->execute(['id' => $customerId]);
+        $customerB = $custStmt->fetch();
+        if ($customerB === false) {
+            throw new RuntimeException('Customer account not found');
+        }
+
+        // 5. Verify A and B are different customers
+        if ($referrerCustomerId === $customerId) {
+            throw new RuntimeException('You cannot use your own referral code');
+        }
+
+        // 6. Verify B has not already used a referral
+        $checkStmt = $this->pdo->prepare('SELECT 1 FROM referrals WHERE referred_customer_id = :id');
+        $checkStmt->execute(['id' => $customerId]);
+        if ($checkStmt->fetchColumn() !== false) {
+            throw new RuntimeException('You have already applied a referral code');
+        }
+
+        // 6. Read percentages from referral_settings (Single source of truth)
+        $referrerPercent = (float) $settings['referrer_discount_percent'];
+        $referredPercent = (float) $settings['referred_discount_percent'];
 
         $expiresAt = $settings['referral_validity_days'] !== null
             ? date('Y-m-d H:i:s', strtotime('+' . (int) $settings['referral_validity_days'] . ' days'))
             : null;
 
-        // No transaction here — the caller (e.g. CustomerAuthController::signup)
-        // already runs this inside its own transaction; PDO does not support
-        // nested transactions.
         $initialStatus = $settings['reward_trigger'] === 'SIGNUP' ? 'ELIGIBLE' : 'PENDING';
 
-        $this->pdo->prepare(
-            'INSERT INTO referrals (referrer_customer_id, referred_customer_id, referral_code_id, status)
-             VALUES (:referrer, :referred, :code_id, :status)'
-        )->execute([
-            'referrer' => $referrerCustomerId,
-            'referred' => $newCustomerId,
-            'code_id' => $code['referral_code_id'],
-            'status' => $initialStatus,
-        ]);
+        $inTransaction = $this->pdo->inTransaction();
+        if (!$inTransaction) {
+            $this->pdo->beginTransaction();
+        }
 
-        $referralId = (int) $this->pdo->lastInsertId();
+        try {
+            // 7. Insert referral record into MySQL
+            $this->pdo->prepare(
+                'INSERT INTO referrals (referrer_customer_id, referred_customer_id, referral_code_id, status)
+                 VALUES (:referrer, :referred, :code_id, :status)'
+            )->execute([
+                'referrer' => $referrerCustomerId,
+                'referred' => $customerId,
+                'code_id' => $referrer['referral_code_id'],
+                'status' => $initialStatus,
+            ]);
 
-        $this->createReward($referralId, $referrerCustomerId, 'REFERRER', (float) $settings['referrer_discount_percent'], $settings, $expiresAt);
-        $this->createReward($referralId, $newCustomerId, 'REFERRED', (float) $settings['referred_discount_percent'], $settings, $expiresAt);
+            $referralId = (int) $this->pdo->lastInsertId();
+
+            // 8. Create reward for Customer A (Referrer)
+            $this->createReward($referralId, $referrerCustomerId, 'REFERRER', $referrerPercent, $settings, $expiresAt);
+
+            // 9. Create reward for Customer B (Referred)
+            $this->createReward($referralId, $customerId, 'REFERRED', $referredPercent, $settings, $expiresAt);
+
+            if (!$inTransaction) {
+                $this->pdo->commit();
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Referral applied successfully!',
+                'referrer_name' => $referrer['referrer_name'],
+                'referrer_discount_percent' => $referrerPercent,
+                'referred_discount_percent' => $referredPercent,
+                'referral_id' => $referralId,
+            ];
+        } catch (\Throwable $e) {
+            if (!$inTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Applies an (optional) referral code at signup.
+     */
+    public function applyReferralAtSignup(int $newCustomerId, ?string $referralCodeInput): ?array
+    {
+        if ($referralCodeInput === null || trim($referralCodeInput) === '') {
+            return null;
+        }
+
+        try {
+            return $this->applyReferral($newCustomerId, $referralCodeInput);
+        } catch (\Throwable) {
+            // Optional signup field does not break user creation
+            return null;
+        }
     }
 
     /** @return array<string, mixed> */

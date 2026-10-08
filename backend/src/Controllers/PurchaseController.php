@@ -297,4 +297,43 @@ final class PurchaseController
         $outstanding = $this->purchases->getSupplierOutstanding((int) $supplierId);
         Response::json($outstanding);
     }
+
+    public function printData(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'purchases.manage');
+
+        $data = $this->purchases->getPurchasePrintData((int) $id, (int) $claims['sub']);
+
+        if ($data === null) {
+            Response::error('Purchase not found', 404);
+        }
+
+        Response::json(['print_data' => $data]);
+    }
+
+    public function paymentPrintData(string $purchaseId, string $paymentId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'purchases.manage');
+
+        $data = $this->purchases->getPaymentPrintData((int) $purchaseId, (int) $paymentId, (int) $claims['sub']);
+
+        if ($data === null) {
+            Response::error('Payment receipt not found for this purchase', 404);
+        }
+
+        Response::json(['payment_print_data' => $data]);
+    }
+
+    public function listPrintData(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'purchases.manage');
+
+        $data = $this->purchases->getPurchaseListPrintData($_GET, (int) $claims['sub']);
+
+        Response::json(['list_print_data' => $data]);
+    }
 }
+

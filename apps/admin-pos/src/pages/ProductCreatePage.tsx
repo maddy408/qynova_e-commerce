@@ -16,6 +16,7 @@ interface VariantRow {
   sku: string
   mrp: string
   sellingPrice: string
+  retailPrice: string
   wholesalePrice: string
   discountPercent: string
   discountAmount: string
@@ -50,12 +51,26 @@ function countWords(text: string): number {
   return plainText.split(/\s+/).filter(Boolean).length
 }
 
+function calcDiscount(mrpStr: string, sellingStr: string) {
+  const m = parseFloat(mrpStr)
+  const s = parseFloat(sellingStr)
+  if (!isNaN(m) && !isNaN(s) && m > 0 && s >= 0 && m >= s) {
+    const diff = m - s
+    const pct = ((m - s) / m) * 100
+    return {
+      amount: Number.isInteger(diff) ? diff.toString() : diff.toFixed(2).replace(/\.?0+$/, ''),
+      percent: Number.isInteger(pct) ? pct.toString() : pct.toFixed(2).replace(/\.?0+$/, ''),
+    }
+  }
+  return { amount: '0', percent: '0' }
+}
+
 export function ProductCreatePage() {
   const navigate = useNavigate()
 
   // Master Data
   const [categories, setCategories] = useState<Category[]>([])
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([])
+  const [allSubcategories, setAllSubcategories] = useState<Subcategory[]>([])
   const [brands, setBrands] = useState<Brand[]>([])
   const [units, setUnits] = useState<Unit[]>([])
   const [gstRates, setGstRates] = useState<GstRate[]>([])
@@ -69,7 +84,7 @@ export function ProductCreatePage() {
   const [description, setDescription] = useState('')
   const [bulletPoints, setBulletPoints] = useState<string[]>([''])
 
-  // 2. Classification & Organization
+  // 2. Classification & Organization (Multiple Categories & Subcategories)
   const [brandId, setBrandId] = useState('')
   const [unitId, setUnitId] = useState('')
   const [categoryIds, setCategoryIds] = useState<number[]>([])
@@ -88,6 +103,7 @@ export function ProductCreatePage() {
   const [barcode, setBarcode] = useState('')
   const [mrp, setMrp] = useState('')
   const [sellingPrice, setSellingPrice] = useState('')
+  const [retailPrice, setRetailPrice] = useState('')
   const [wholesalePrice, setWholesalePrice] = useState('')
   const [costPrice, setCostPrice] = useState('')
   const [manufacturingDate, setManufacturingDate] = useState('')
@@ -140,28 +156,28 @@ export function ProductCreatePage() {
       api.get('/gst-rates'),
       api.get('/hsn-codes'),
       api.get('/variant-attributes'),
-    ]).then(([catRes, brandRes, unitRes, gstRes, hsnRes, attrRes]) => {
-      setCategories(catRes.data.categories)
-      setBrands(brandRes.data.brands)
-      setUnits(unitRes.data.units)
-      setGstRates(gstRes.data.gst_rates)
-      setHsnCodes(hsnRes.data.hsn_codes)
-      setVariantAttributes(attrRes.data.attributes)
+      api.get('/subcategories'),
+    ]).then(([catRes, brandRes, unitRes, gstRes, hsnRes, attrRes, subRes]) => {
+      setCategories(catRes.data.categories || [])
+      setBrands(brandRes.data.brands || [])
+      setUnits(unitRes.data.units || [])
+      setGstRates(gstRes.data.gst_rates || [])
+      setHsnCodes(hsnRes.data.hsn_codes || [])
+      setVariantAttributes(attrRes.data.attributes || [])
+      setAllSubcategories(subRes.data.subcategories || [])
     })
   }, [])
 
-  useEffect(() => {
-    if (!categoryIds.length) {
-      setSubcategories([])
-      setSubcategoryIds([])
-      return
-    }
-    const catId = primaryCategoryId ?? categoryIds[0]
-    api.get(`/categories/${catId}/subcategories`).then((res) => {
-      setSubcategories(res.data.subcategories)
-      setSubcategoryIds((prev) => prev.filter((id) => res.data.subcategories.some((s: Subcategory) => s.id === id)))
+  // Dynamic available subcategories based on selected categories
+  const availableSubcategories = useMemo(() => {
+    if (categoryIds.length === 0) return allSubcategories
+    return allSubcategories.filter((sub) => {
+      if (sub.category_ids && sub.category_ids.length > 0) {
+        return sub.category_ids.some((cid) => categoryIds.includes(cid))
+      }
+      return true
     })
-  }, [categoryIds, primaryCategoryId])
+  }, [allSubcategories, categoryIds])
 
   const slug = useMemo(() => slugify(name), [name])
 
@@ -178,6 +194,49 @@ export function ProductCreatePage() {
     else if (command === 'h1') setDescription((prev) => prev + '\n<h1>Heading 1</h1>\n')
     else if (command === 'h2') setDescription((prev) => prev + '\n<h2>Heading 2</h2>\n')
     else if (command === 'clear') setDescription((prev) => prev.replace(/<[^>]*>/g, ''))
+  }
+
+  // Selling Price handlers with Auto-Calculated Discount Amount & Percentage (MRP vs Selling Price)
+  function handleMrpChange(val: string) {
+    setMrp(val)
+    if (val && sellingPrice) {
+      const { amount, percent } = calcDiscount(val, sellingPrice)
+      setDiscountAmount(amount)
+      setDiscountPercent(percent)
+    }
+  }
+
+  function handleSellingPriceChange(val: string) {
+    setSellingPrice(val)
+    if (mrp && val) {
+      const { amount, percent } = calcDiscount(mrp, val)
+      setDiscountAmount(amount)
+      setDiscountPercent(percent)
+    }
+  }
+
+  function handleDiscountAmountChange(val: string) {
+    setDiscountAmount(val)
+    const m = parseFloat(mrp)
+    const amt = parseFloat(val)
+    if (!isNaN(m) && m > 0 && !isNaN(amt) && amt >= 0 && amt <= m) {
+      const newSelling = (m - amt).toFixed(2).replace(/\.?0+$/, '')
+      const pct = ((amt / m) * 100).toFixed(2).replace(/\.?0+$/, '')
+      setSellingPrice(newSelling)
+      setDiscountPercent(pct)
+    }
+  }
+
+  function handleDiscountPercentChange(val: string) {
+    setDiscountPercent(val)
+    const m = parseFloat(mrp)
+    const pct = parseFloat(val)
+    if (!isNaN(m) && m > 0 && !isNaN(pct) && pct >= 0 && pct <= 100) {
+      const amt = (m * (pct / 100)).toFixed(2).replace(/\.?0+$/, '')
+      const newSelling = (m - parseFloat(amt)).toFixed(2).replace(/\.?0+$/, '')
+      setDiscountAmount(amt)
+      setSellingPrice(newSelling)
+    }
   }
 
   function handleAddStagedImages(files: FileList | null) {
@@ -274,16 +333,21 @@ export function ProductCreatePage() {
         if (existing) return existing
 
         const labels = valueIds.map((id) => valueLookup.get(id)?.value ?? '?')
+        const baseMrp = mrp || ''
+        const baseSelling = sellingPrice || ''
+        const { amount, percent } = calcDiscount(baseMrp, baseSelling)
+
         return {
           key,
           valueIds,
           title: labels.join(' / '),
           sku: `${baseSku}-${valueIds.map((id) => skuAbbr(valueLookup.get(id)?.value ?? '')).join('-')}`,
-          mrp: mrp || '',
-          sellingPrice: sellingPrice || '',
+          mrp: baseMrp,
+          sellingPrice: baseSelling,
+          retailPrice: retailPrice || '',
           wholesalePrice: wholesalePrice || '',
-          discountPercent: discountPercent || '',
-          discountAmount: discountAmount || '',
+          discountPercent: percent || discountPercent || '0',
+          discountAmount: amount || discountAmount || '0',
           manufacturingDate: manufacturingDate || '',
           expiryDate: expiryDate || '',
           batchNo: `BATCH-${valueIds.map((id) => skuAbbr(valueLookup.get(id)?.value ?? '')).join('')}`,
@@ -293,10 +357,47 @@ export function ProductCreatePage() {
         }
       })
     })
-  }, [selectedValueIds, variantAttributes, productType, mrp, sellingPrice, wholesalePrice, discountPercent, discountAmount, manufacturingDate, expiryDate, sku, name])
+  }, [selectedValueIds, variantAttributes, productType, mrp, sellingPrice, retailPrice, wholesalePrice, discountPercent, discountAmount, manufacturingDate, expiryDate, sku, name])
 
   function updateVariantRow(key: string, patch: Partial<VariantRow>) {
-    setVariantRows((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)))
+    setVariantRows((prev) =>
+      prev.map((row) => {
+        if (row.key !== key) return row
+        const updated = { ...row, ...patch }
+        // Auto calculate discount for variant row when MRP or Selling price changes
+        if (patch.mrp !== undefined || patch.sellingPrice !== undefined) {
+          const { amount, percent } = calcDiscount(updated.mrp, updated.sellingPrice)
+          updated.discountAmount = amount
+          updated.discountPercent = percent
+        }
+        return updated
+      })
+    )
+  }
+
+  function handleAddVariantImage(rowKey: string, files: FileList | null) {
+    if (!files || files.length === 0) return
+    const newImgs: StagedImage[] = Array.from(files).map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
+    setVariantRows((prev) =>
+      prev.map((row) => (row.key === rowKey ? { ...row, images: [...row.images, ...newImgs] } : row))
+    )
+  }
+
+  function handleRemoveVariantImage(rowKey: string, imgIdx: number) {
+    setVariantRows((prev) =>
+      prev.map((row) => {
+        if (row.key !== rowKey) return row
+        const targetImg = row.images[imgIdx]
+        if (targetImg) URL.revokeObjectURL(targetImg.previewUrl)
+        return {
+          ...row,
+          images: row.images.filter((_, idx) => idx !== imgIdx),
+        }
+      })
+    )
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -337,7 +438,7 @@ export function ProductCreatePage() {
         brand_id: brandId || null,
         unit_id: unitId || null,
         category_ids: categoryIds,
-        primary_category_id: primaryCategoryId,
+        primary_category_id: primaryCategoryId || categoryIds[0] || null,
         subcategory_ids: subcategoryIds,
         weight_grams: weightGrams || null,
         length_cm: lengthCm || null,
@@ -358,12 +459,13 @@ export function ProductCreatePage() {
       const productId = res.data.id
 
       if (productType === 'SIMPLE') {
-        setSubmitStep('Creating variant…')
+        setSubmitStep('Creating product pricing…')
         const variantRes = await api.post(`/products/${productId}/variants`, {
           sku,
           barcode: barcode || null,
           mrp: mrp || 0,
-          retail_price: sellingPrice || 0,
+          retail_price: sellingPrice || 0, // Mapped to primary POS sale selling price
+          customer_price: retailPrice || null, // Mapped to Retail price
           wholesale_price: wholesalePrice || null,
           purchase_price: costPrice || null,
           manufacturing_date: manufacturingDate || null,
@@ -392,6 +494,7 @@ export function ProductCreatePage() {
             sku: row.sku,
             mrp: row.mrp || mrp || 0,
             retail_price: row.sellingPrice || sellingPrice || 0,
+            customer_price: row.retailPrice || retailPrice || null,
             wholesale_price: row.wholesalePrice || wholesalePrice || null,
             manufacturing_date: row.manufacturingDate || manufacturingDate || null,
             expiry_date: row.expiryDate || expiryDate || null,
@@ -412,11 +515,24 @@ export function ProductCreatePage() {
               items: [{ variant_id: variantId, counted_qty: row.openingStock }],
             })
           }
+
+          // Upload Variant-Specific Images
+          if (row.images && row.images.length > 0) {
+            setSubmitStep(`Uploading images for variant "${row.title}"…`)
+            for (let i = 0; i < row.images.length; i++) {
+              const formData = new FormData()
+              formData.append('file', row.images[i].file)
+              formData.append('is_primary', i === 0 ? '1' : '0')
+              await api.post(`/variants/${variantId}/images`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+              })
+            }
+          }
         }
       }
 
       if (stagedImages.length > 0) {
-        setSubmitStep('Uploading product images…')
+        setSubmitStep('Uploading main product images…')
         for (let i = 0; i < stagedImages.length; i++) {
           const formData = new FormData()
           formData.append('file', stagedImages[i].file)
@@ -442,16 +558,9 @@ export function ProductCreatePage() {
     }
   }
 
-  const computedDiscountPercent = useMemo(() => {
-    const m = Number(mrp)
-    const s = Number(sellingPrice)
-    if (m > 0 && s > 0 && m > s) return Math.round(((m - s) / m) * 100)
-    return 0
-  }, [mrp, sellingPrice])
-
   return (
     <div className="w-full space-y-6 pb-24">
-      {/* Sticky Top Action Bar (Shopify Header Style) */}
+      {/* Sticky Top Action Bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-3.5 backdrop-blur-md shadow-2xs w-full">
         <div className="flex items-center gap-3">
           <button
@@ -488,7 +597,7 @@ export function ProductCreatePage() {
         </div>
       )}
 
-      {/* 100% Full-Width Screen Layout (Shopify Premium UI) */}
+      {/* 100% Full-Width Screen Layout */}
       <form onSubmit={handleSubmit} className="w-full px-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left Column (2/3 Width) */}
         <div className="lg:col-span-2 space-y-6">
@@ -527,7 +636,7 @@ export function ProductCreatePage() {
             {/* Rich Text Description Editor */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">Description</label>
-              
+
               {/* Rich Text Toolbar */}
               <div className="rounded-t-lg border border-slate-300 border-b-0 bg-slate-50 px-3 py-1.5 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-700">
                 <select
@@ -700,7 +809,7 @@ export function ProductCreatePage() {
             )}
           </Card>
 
-          {/* Card 3: Pricing & Rates */}
+          {/* Card 3: Pricing & Tax */}
           <Card className="p-6 space-y-4 border-slate-200 shadow-2xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="text-sm font-bold text-slate-900">Pricing &amp; Tax</h2>
@@ -719,20 +828,60 @@ export function ProductCreatePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <TextField label="MRP (₹) *" required type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} placeholder="0.00" />
-              <TextField label="Retail Selling Price (₹) *" required type="number" step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} placeholder="0.00" />
+            {/* Price Row: MRP, Selling Price (default POS mapped), Retail Price, Wholesale Price, Cost Price */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+              <TextField
+                label="MRP (₹) *"
+                required
+                type="number"
+                step="0.01"
+                value={mrp}
+                onChange={(e) => handleMrpChange(e.target.value)}
+                placeholder="0.00"
+              />
+              <TextField
+                label="Selling Price (₹) *"
+                required
+                type="number"
+                step="0.01"
+                value={sellingPrice}
+                onChange={(e) => handleSellingPriceChange(e.target.value)}
+                placeholder="0.00"
+              />
+              <TextField
+                label="Retail Price (₹)"
+                type="number"
+                step="0.01"
+                value={retailPrice}
+                onChange={(e) => setRetailPrice(e.target.value)}
+                placeholder="0.00"
+              />
               <TextField label="Wholesale Price (₹)" type="number" step="0.01" value={wholesalePrice} onChange={(e) => setWholesalePrice(e.target.value)} placeholder="0.00" />
               <TextField label="Cost / Purchase Price (₹)" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0.00" />
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <TextField label="Discount (%)" type="number" step="0.1" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} placeholder="0" />
-              <TextField label="Discount Amount (₹)" type="number" step="0.01" value={discountAmount} onChange={(e) => setDiscountAmount(e.target.value)} placeholder="0.00" />
+              <TextField
+                label="Discount Amount (₹)"
+                type="number"
+                step="0.01"
+                value={discountAmount}
+                onChange={(e) => handleDiscountAmountChange(e.target.value)}
+                placeholder="0.00"
+              />
+              <TextField
+                label="Discount (%)"
+                type="number"
+                step="0.01"
+                value={discountPercent}
+                onChange={(e) => handleDiscountPercentChange(e.target.value)}
+                placeholder="0"
+              />
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Calculated Save</label>
-                <div className="flex h-9 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-800">
-                  {computedDiscountPercent}% OFF
+                <label className="block text-xs font-bold text-slate-700 mb-1">Calculated Savings</label>
+                <div className="flex h-9 items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-800">
+                  <span>Save ₹{discountAmount || '0'}</span>
+                  <span className="rounded bg-emerald-200/80 px-1.5 py-0.5 text-[11px]">{discountPercent || '0'}% OFF</span>
                 </div>
               </div>
               <div className="flex items-end pb-1">
@@ -834,12 +983,12 @@ export function ProductCreatePage() {
             </div>
           </Card>
 
-          {/* Card 6: Variants Option Matrix (Selective Dropdown Selector) */}
+          {/* Card 6: Variants Option Matrix */}
           <Card className="p-6 space-y-4 border-slate-200 shadow-2xs">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Variants Matrix</h2>
-                <p className="text-xs text-slate-500">Select variant attributes (Color, Size, Weight, Flavor, etc.) to configure options.</p>
+                <p className="text-xs text-slate-500">Configure options and add variant-specific images and pricing.</p>
               </div>
               <Select
                 value={productType}
@@ -947,9 +1096,12 @@ export function ProductCreatePage() {
                       <thead className="bg-slate-100 uppercase font-semibold text-slate-600 text-[11px]">
                         <tr>
                           <th className="px-3 py-2">Variant</th>
+                          <th className="px-3 py-2">Variant Image</th>
                           <th className="px-3 py-2">SKU</th>
-                          <th className="px-3 py-2">MRP</th>
-                          <th className="px-3 py-2">Selling</th>
+                          <th className="px-3 py-2">MRP (₹)</th>
+                          <th className="px-3 py-2">Selling (₹)</th>
+                          <th className="px-3 py-2">Retail (₹)</th>
+                          <th className="px-3 py-2">Discount</th>
                           <th className="px-3 py-2">Wholesale</th>
                           <th className="px-3 py-2">Mfg Date</th>
                           <th className="px-3 py-2">Exp Date</th>
@@ -957,67 +1109,129 @@ export function ProductCreatePage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200 bg-white">
-                        {variantRows.map((row) => (
-                          <tr key={row.key}>
-                            <td className="px-3 py-2 font-bold text-slate-900">{row.title}</td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="text"
-                                value={row.sku}
-                                onChange={(e) => updateVariantRow(row.key, { sku: e.target.value })}
-                                className="w-28 rounded border border-slate-300 p-1 text-xs font-mono"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="number"
-                                value={row.mrp}
-                                onChange={(e) => updateVariantRow(row.key, { mrp: e.target.value })}
-                                className="w-20 rounded border border-slate-300 p-1 text-xs"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="number"
-                                value={row.sellingPrice}
-                                onChange={(e) => updateVariantRow(row.key, { sellingPrice: e.target.value })}
-                                className="w-20 rounded border border-slate-300 p-1 text-xs"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="number"
-                                value={row.wholesalePrice}
-                                onChange={(e) => updateVariantRow(row.key, { wholesalePrice: e.target.value })}
-                                className="w-20 rounded border border-slate-300 p-1 text-xs"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="date"
-                                value={row.manufacturingDate}
-                                onChange={(e) => updateVariantRow(row.key, { manufacturingDate: e.target.value })}
-                                className="w-28 rounded border border-slate-300 p-1 text-xs"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="date"
-                                value={row.expiryDate}
-                                onChange={(e) => updateVariantRow(row.key, { expiryDate: e.target.value })}
-                                className="w-28 rounded border border-slate-300 p-1 text-xs"
-                              />
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="text"
-                                value={row.batchNo}
-                                onChange={(e) => updateVariantRow(row.key, { batchNo: e.target.value })}
-                                className="w-24 rounded border border-slate-300 p-1 text-xs"
-                              />
-                            </td>
-                          </tr>
-                        ))}
+                        {variantRows.map((row) => {
+                          const { amount, percent } = calcDiscount(row.mrp, row.sellingPrice)
+                          return (
+                            <tr key={row.key} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="px-3 py-2 font-bold text-slate-900 min-w-[100px]">
+                                {row.title}
+                              </td>
+
+                              {/* Variant Image Upload & Preview Cell */}
+                              <td className="px-3 py-2 min-w-[130px]">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {row.images.map((img, imgIdx) => (
+                                    <div key={imgIdx} className="relative group w-8 h-8 rounded border border-slate-200 overflow-hidden bg-white shadow-2xs">
+                                      <img src={img.previewUrl} alt="Variant" className="w-full h-full object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveVariantImage(row.key, imgIdx)}
+                                        className="absolute top-0 right-0 bg-red-600 text-white text-[9px] w-3.5 h-3.5 flex items-center justify-center rounded-bl opacity-0 group-hover:opacity-100 transition-opacity font-bold"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <label
+                                    className="cursor-pointer flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-[#7B3F4A] bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F3E5E8] transition-colors text-xs font-bold"
+                                    title="Add Image for this variant"
+                                  >
+                                    📷
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      multiple
+                                      className="hidden"
+                                      onChange={(e) => handleAddVariantImage(row.key, e.target.files)}
+                                    />
+                                  </label>
+                                </div>
+                              </td>
+
+                              <td className="px-3 py-2">
+                                <input
+                                  type="text"
+                                  value={row.sku}
+                                  onChange={(e) => updateVariantRow(row.key, { sku: e.target.value })}
+                                  className="w-28 rounded border border-slate-300 p-1 text-xs font-mono"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.mrp}
+                                  onChange={(e) => updateVariantRow(row.key, { mrp: e.target.value })}
+                                  className="w-20 rounded border border-slate-300 p-1 text-xs font-bold"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.sellingPrice}
+                                  onChange={(e) => updateVariantRow(row.key, { sellingPrice: e.target.value })}
+                                  className="w-20 rounded border border-slate-300 p-1 text-xs font-bold text-emerald-700"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.retailPrice}
+                                  onChange={(e) => updateVariantRow(row.key, { retailPrice: e.target.value })}
+                                  className="w-20 rounded border border-slate-300 p-1 text-xs font-bold text-slate-800"
+                                />
+                              </td>
+
+                              {/* Auto Calculated Discount Display */}
+                              <td className="px-3 py-2 min-w-[110px]">
+                                {Number(amount) > 0 ? (
+                                  <div className="flex flex-col text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
+                                    <span>Save ₹{amount}</span>
+                                    <span className="text-emerald-600 font-semibold">{percent}% OFF</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400">—</span>
+                                )}
+                              </td>
+
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.wholesalePrice}
+                                  onChange={(e) => updateVariantRow(row.key, { wholesalePrice: e.target.value })}
+                                  className="w-20 rounded border border-slate-300 p-1 text-xs"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="date"
+                                  value={row.manufacturingDate}
+                                  onChange={(e) => updateVariantRow(row.key, { manufacturingDate: e.target.value })}
+                                  className="w-28 rounded border border-slate-300 p-1 text-xs"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="date"
+                                  value={row.expiryDate}
+                                  onChange={(e) => updateVariantRow(row.key, { expiryDate: e.target.value })}
+                                  className="w-28 rounded border border-slate-300 p-1 text-xs"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="text"
+                                  value={row.batchNo}
+                                  onChange={(e) => updateVariantRow(row.key, { batchNo: e.target.value })}
+                                  className="w-24 rounded border border-slate-300 p-1 text-xs"
+                                />
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1095,45 +1309,112 @@ export function ProductCreatePage() {
             </div>
           </Card>
 
-          {/* Organization Card */}
+          {/* Organization Card (Multi-Category & Multi-Subcategory Selector) */}
           <Card className="p-6 space-y-4 border-slate-200 shadow-2xs">
             <h2 className="text-sm font-bold text-slate-900">Product organization</h2>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
-              <Select
-                value={categoryIds[0] || ''}
-                onChange={(e) => {
-                  const val = e.target.value ? Number(e.target.value) : null
-                  setCategoryIds(val ? [val] : [])
-                  setPrimaryCategoryId(val)
-                }}
-              >
-                <option value="">Choose a product category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
+            {/* Categories Multi-Select */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">Categories *</label>
+                <span className="text-[11px] font-semibold text-[#7B3F4A] bg-[#FAF2F4] px-2 py-0.5 rounded-full border border-[#EEDDE0]">
+                  {categoryIds.length} selected
+                </span>
+              </div>
+
+              <div className="max-h-52 overflow-y-auto space-y-1 rounded-xl border border-slate-200 p-2 bg-slate-50/50">
+                {categories.map((c) => {
+                  const isChecked = categoryIds.includes(c.id)
+                  const isPrimary = primaryCategoryId === c.id
+                  return (
+                    <div
+                      key={c.id}
+                      className={`flex items-center justify-between p-2 rounded-lg text-xs font-semibold transition-all ${
+                        isChecked ? 'bg-white border border-[#EEDDE0] shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <label className="flex items-center gap-2.5 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCategoryIds((prev) => [...prev, c.id])
+                              if (!primaryCategoryId) setPrimaryCategoryId(c.id)
+                            } else {
+                              setCategoryIds((prev) => prev.filter((id) => id !== c.id))
+                              if (primaryCategoryId === c.id) {
+                                const remaining = categoryIds.filter((id) => id !== c.id)
+                                setPrimaryCategoryId(remaining.length ? remaining[0] : null)
+                              }
+                            }
+                          }}
+                          className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] h-4 w-4"
+                        />
+                        <span className={isChecked ? 'font-bold text-[#7B3F4A]' : 'text-slate-700'}>{c.name}</span>
+                      </label>
+
+                      {isChecked && (
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryCategoryId(c.id)}
+                          title={isPrimary ? 'Primary category' : 'Set as primary category'}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                            isPrimary
+                              ? 'bg-[#7B3F4A] text-white'
+                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                          }`}
+                        >
+                          {isPrimary ? '★ Primary' : 'Make Primary'}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
-            {subcategories.length > 0 && (
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Subcategory</label>
-                <Select
-                  value={subcategoryIds[0] || ''}
-                  onChange={(e) => setSubcategoryIds(e.target.value ? [Number(e.target.value)] : [])}
-                >
-                  <option value="">— None —</option>
-                  {subcategories.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </Select>
+            {/* Subcategories Multi-Select */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">Subcategories</label>
+                <span className="text-[11px] font-semibold text-[#7B3F4A] bg-[#FAF2F4] px-2 py-0.5 rounded-full border border-[#EEDDE0]">
+                  {subcategoryIds.length} selected
+                </span>
               </div>
-            )}
+
+              {availableSubcategories.length === 0 ? (
+                <p className="text-[11px] text-slate-400 italic">No subcategories available for selected categories.</p>
+              ) : (
+                <div className="max-h-52 overflow-y-auto space-y-1 rounded-xl border border-slate-200 p-2 bg-slate-50/50">
+                  {availableSubcategories.map((s) => {
+                    const isChecked = subcategoryIds.includes(s.id)
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
+                          isChecked ? 'bg-white border border-[#EEDDE0] text-[#7B3F4A] font-bold shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSubcategoryIds((prev) => [...prev, s.id])
+                            } else {
+                              setSubcategoryIds((prev) => prev.filter((id) => id !== s.id))
+                            }
+                          }}
+                          className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] h-4 w-4"
+                        />
+                        <span>{s.name}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Vendor / Brand</label>
@@ -1163,7 +1444,7 @@ export function ProductCreatePage() {
           {/* Search Engine Listing Preview Card (SEO) */}
           <Card className="p-6 space-y-3 border-slate-200 shadow-2xs">
             <h2 className="text-sm font-bold text-slate-900">Search engine listing</h2>
-            
+
             {/* Live SERP Preview Box */}
             <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-1">
               <p className="text-xs font-bold text-[#7B3F4A] truncate">

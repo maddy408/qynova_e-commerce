@@ -49,7 +49,7 @@ final class PurchaseService
     }
 
     /** @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int} */
-    public function listSuppliers(?string $search, ?string $status, int $page, int $limit): array
+    public function listSuppliers(?string $search = null, ?string $status = null, int $page = 1, int $limit = 50): array
     {
         $page = max(1, $page);
         $limit = min(200, max(1, $limit));
@@ -268,7 +268,10 @@ final class PurchaseService
             } elseif (count($usedMethods) === 1) {
                 $paymentMethod = array_key_first($usedMethods);
             }
+        } elseif (bccomp($cleanPaid, '0', 2) === 0) {
+            $paymentMethod = null;
         }
+
 
         $this->pdo->beginTransaction();
 
@@ -615,7 +618,7 @@ final class PurchaseService
     }
 
     /** @param array<string, mixed> $filters */
-    public function list(array $filters): array
+    public function list(array $filters = []): array
     {
         $where = [];
         $params = [];
@@ -772,6 +775,378 @@ final class PurchaseService
     {
         return $this->paymentService->getSupplierOutstanding($supplierId);
     }
+
+    /**
+     * Returns server-computed ready-to-print payload for a purchase document.
+     * All amounts are formatted as 2-decimal strings from DB (no floats).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPurchasePrintData(int $purchaseId, int $userId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.*, s.name AS supplier_name, s.phone AS supplier_phone, s.email AS supplier_email,
+                    s.address AS supplier_address, s.gstin AS supplier_gstin,
+                    u.name AS created_by_name
+             FROM purchases p
+             JOIN suppliers s ON s.id = p.supplier_id
+             LEFT JOIN users u ON u.id = p.created_by
+             WHERE p.id = :id'
+        );
+        $stmt->execute(['id' => $purchaseId]);
+        $purchase = $stmt->fetch();
+
+        if ($purchase === false) {
+            return null;
+        }
+
+        // Printed by staff name
+        $userStmt = $this->pdo->prepare('SELECT name FROM users WHERE id = :id');
+        $userStmt->execute(['id' => $userId]);
+        $printedByName = (string) ($userStmt->fetchColumn() ?: 'Staff');
+
+        // Line items with product, variant, unit, HSN, and GST rates
+        $itemsStmt = $this->pdo->prepare(
+            'SELECT pi.*,
+                    COALESCE(pr.name, pi.sku_snapshot) AS product_name,
+                    pv.barcode,
+                    pv.variant_description,
+                    (
+                        SELECT GROUP_CONCAT(CONCAT(va.name, \': \', vav.value) SEPARATOR \', \')
+                        FROM product_variant_values pvv
+                        JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                        JOIN variant_attributes va ON va.id = vav.attribute_id
+                        WHERE pvv.variant_id = pi.variant_id
+                    ) AS variant_label,
+                    un.name AS unit_name,
+                    un.short_code AS unit_short_code,
+                    hc.code AS hsn_code,
+                    gr.gst_percent AS gst_percent
+             FROM purchase_items pi
+             LEFT JOIN products pr ON pr.id = pi.product_id
+             LEFT JOIN product_variants pv ON pv.id = pi.variant_id
+             LEFT JOIN units un ON un.id = pr.unit_id
+             LEFT JOIN hsn_codes hc ON hc.id = COALESCE(pv.hsn_code_id, pr.hsn_code_id)
+             LEFT JOIN gst_rates gr ON gr.id = COALESCE(pv.gst_rate_id, pr.gst_rate_id)
+             WHERE pi.purchase_id = :id
+             ORDER BY pi.id ASC'
+        );
+        $itemsStmt->execute(['id' => $purchaseId]);
+        $rawItems = $itemsStmt->fetchAll();
+
+        $items = [];
+        $serial = 1;
+        foreach ($rawItems as $item) {
+            $qty = (string) $item['quantity'];
+            $items[] = [
+                'serial' => $serial++,
+                'item_name' => (string) $item['product_name'],
+                'variant_label' => $item['variant_label'] !== null ? (string) $item['variant_label'] : null,
+                'barcode' => $item['barcode'] !== null ? (string) $item['barcode'] : null,
+                'sku' => (string) $item['sku_snapshot'],
+                'quantity' => number_format((float) $qty, 2, '.', ''),
+                'raw_quantity' => $qty,
+                'unit' => (string) ($item['unit_short_code'] ?? $item['unit_name'] ?? 'PCS'),
+                'unit_cost' => number_format((float) $item['unit_cost'], 2, '.', ''),
+                'mrp' => number_format((float) ($item['mrp'] ?? '0.00'), 2, '.', ''),
+                'discount_amount' => number_format((float) ($item['discount_amount'] ?? '0.00'), 2, '.', ''),
+                'tax_amount' => number_format((float) ($item['tax_amount'] ?? '0.00'), 2, '.', ''),
+                'gst_percent' => isset($item['gst_percent']) && $item['gst_percent'] !== null ? number_format((float) $item['gst_percent'], 2, '.', '') : '0.00',
+                'hsn_code' => $item['hsn_code'] !== null ? (string) $item['hsn_code'] : null,
+                'line_amount' => number_format((float) $item['line_total'], 2, '.', ''),
+            ];
+        }
+
+        // Payments breakdown
+        $allPayments = $this->paymentService->listPayments($purchaseId);
+        $activePayments = [];
+        $reversedPayments = [];
+
+        foreach ($allPayments as $pay) {
+            $lines = [];
+            foreach ((array) ($pay['lines'] ?? []) as $line) {
+                $lines[] = [
+                    'payment_method' => (string) $line['payment_method'],
+                    'amount' => number_format((float) $line['amount'], 2, '.', ''),
+                    'reference_no' => isset($line['reference_no']) && $line['reference_no'] !== null ? (string) $line['reference_no'] : null,
+                ];
+            }
+
+            $payPayload = [
+                'id' => (int) $pay['id'],
+                'receipt_no' => (string) $pay['receipt_no'],
+                'payment_date' => (string) $pay['payment_date'],
+                'total_amount' => number_format((float) $pay['total_amount'], 2, '.', ''),
+                'notes' => isset($pay['notes']) && $pay['notes'] !== null ? (string) $pay['notes'] : null,
+                'status' => (string) $pay['status'],
+                'lines' => $lines,
+            ];
+
+            if ($pay['status'] === 'ACTIVE') {
+                $activePayments[] = $payPayload;
+            } else {
+                $payPayload['reverse_reason'] = isset($pay['reverse_reason']) && $pay['reverse_reason'] !== null ? (string) $pay['reverse_reason'] : null;
+                $payPayload['reversed_at'] = isset($pay['reversed_at']) && $pay['reversed_at'] !== null ? (string) $pay['reversed_at'] : null;
+                $payPayload['reversed_by_name'] = isset($pay['reversed_by_name']) && $pay['reversed_by_name'] !== null ? (string) $pay['reversed_by_name'] : null;
+                $reversedPayments[] = $payPayload;
+            }
+        }
+
+        $paidAmount = (string) ($purchase['paid_amount'] ?? $purchase['amount_paid'] ?? '0.00');
+        $balanceAmount = (string) ($purchase['balance_amount'] ?? '0.00');
+        $grandTotal = (string) $purchase['grand_total'];
+        $subtotal = (string) $purchase['subtotal'];
+        $taxTotal = (string) $purchase['tax_total'];
+
+        $kolkataTime = new \DateTime('now', new \DateTimeZone('Asia/Kolkata'));
+
+        return [
+            'shop' => [
+                'name' => '',
+                'address' => '',
+                'phone' => '',
+                'email' => '',
+                'gstin' => '',
+            ],
+            'purchase' => [
+                'id' => (int) $purchase['id'],
+                'purchase_no' => (string) $purchase['purchase_no'],
+                'purchase_date' => (string) $purchase['purchase_date'],
+                'status' => (string) $purchase['status'],
+                'notes' => isset($purchase['notes']) && $purchase['notes'] !== null ? (string) $purchase['notes'] : null,
+                'created_by_name' => $purchase['created_by_name'] !== null ? (string) $purchase['created_by_name'] : 'Admin',
+                'created_at' => (string) $purchase['created_at'],
+                'supplier' => [
+                    'id' => (int) $purchase['supplier_id'],
+                    'name' => (string) $purchase['supplier_name'],
+                    'phone' => $purchase['supplier_phone'] !== null ? (string) $purchase['supplier_phone'] : null,
+                    'email' => $purchase['supplier_email'] !== null ? (string) $purchase['supplier_email'] : null,
+                    'address' => $purchase['supplier_address'] !== null ? (string) $purchase['supplier_address'] : null,
+                    'gstin' => $purchase['supplier_gstin'] !== null ? (string) $purchase['supplier_gstin'] : null,
+                ],
+            ],
+            'items' => $items,
+            'totals' => [
+                'subtotal' => number_format((float) $subtotal, 2, '.', ''),
+                'tax_total' => number_format((float) $taxTotal, 2, '.', ''),
+                'grand_total' => number_format((float) $grandTotal, 2, '.', ''),
+                'paid_amount' => number_format((float) $paidAmount, 2, '.', ''),
+                'balance_amount' => number_format((float) $balanceAmount, 2, '.', ''),
+            ],
+            'payment' => [
+                'payment_status' => (string) $purchase['payment_status'],
+                'payment_method' => $purchase['payment_method'] !== null ? (string) $purchase['payment_method'] : null,
+                'payments' => $activePayments,
+                'reversed_payments' => $reversedPayments,
+            ],
+            'printed_at' => $kolkataTime->format('Y-m-d H:i:s') . ' IST',
+            'printed_by' => $printedByName,
+        ];
+    }
+
+    /**
+     * Returns server-computed ready-to-print payload for a single payment receipt.
+     * All amounts are formatted as 2-decimal strings from DB.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPaymentPrintData(int $purchaseId, int $paymentId, int $userId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT pp.*, u.name AS created_by_name, ru.name AS reversed_by_name
+             FROM purchase_payments pp
+             LEFT JOIN users u ON u.id = pp.created_by
+             LEFT JOIN users ru ON ru.id = pp.reversed_by
+             WHERE pp.id = :payment_id AND pp.purchase_id = :purchase_id'
+        );
+        $stmt->execute(['payment_id' => $paymentId, 'purchase_id' => $purchaseId]);
+        $payment = $stmt->fetch();
+
+        if ($payment === false) {
+            return null;
+        }
+
+        $purchaseStmt = $this->pdo->prepare(
+            'SELECT p.id, p.purchase_no, p.purchase_date, p.status, p.grand_total, p.paid_amount, p.balance_amount,
+                    s.id AS supplier_id, s.name AS supplier_name, s.phone AS supplier_phone, s.email AS supplier_email,
+                    s.address AS supplier_address, s.gstin AS supplier_gstin
+             FROM purchases p
+             JOIN suppliers s ON s.id = p.supplier_id
+             WHERE p.id = :purchase_id'
+        );
+        $purchaseStmt->execute(['purchase_id' => $purchaseId]);
+        $purchase = $purchaseStmt->fetch();
+
+        if ($purchase === false) {
+            return null;
+        }
+
+        // Staff name who is printing
+        $userStmt = $this->pdo->prepare('SELECT name FROM users WHERE id = :id');
+        $userStmt->execute(['id' => $userId]);
+        $printedByName = (string) ($userStmt->fetchColumn() ?: 'Staff');
+
+        // Payment lines
+        $linesStmt = $this->pdo->prepare('SELECT * FROM purchase_payment_lines WHERE payment_id = :id ORDER BY id ASC');
+        $linesStmt->execute(['id' => $paymentId]);
+        $rawLines = $linesStmt->fetchAll();
+
+        $lines = [];
+        foreach ($rawLines as $line) {
+            $lines[] = [
+                'payment_method' => (string) $line['payment_method'],
+                'amount' => number_format((float) $line['amount'], 2, '.', ''),
+                'reference_no' => isset($line['reference_no']) && $line['reference_no'] !== null ? (string) $line['reference_no'] : null,
+            ];
+        }
+
+        $kolkataTime = new \DateTime('now', new \DateTimeZone('Asia/Kolkata'));
+
+        return [
+            'shop' => [
+                'name' => '',
+                'address' => '',
+                'phone' => '',
+                'email' => '',
+                'gstin' => '',
+            ],
+            'purchase' => [
+                'id' => (int) $purchase['id'],
+                'purchase_no' => (string) $purchase['purchase_no'],
+                'purchase_date' => (string) $purchase['purchase_date'],
+                'status' => (string) $purchase['status'],
+                'grand_total' => number_format((float) $purchase['grand_total'], 2, '.', ''),
+                'paid_amount' => number_format((float) $purchase['paid_amount'], 2, '.', ''),
+                'balance_amount' => number_format((float) $purchase['balance_amount'], 2, '.', ''),
+            ],
+            'supplier' => [
+                'id' => (int) $purchase['supplier_id'],
+                'name' => (string) $purchase['supplier_name'],
+                'phone' => $purchase['supplier_phone'] !== null ? (string) $purchase['supplier_phone'] : null,
+                'email' => $purchase['supplier_email'] !== null ? (string) $purchase['supplier_email'] : null,
+                'address' => $purchase['supplier_address'] !== null ? (string) $purchase['supplier_address'] : null,
+                'gstin' => $purchase['supplier_gstin'] !== null ? (string) $purchase['supplier_gstin'] : null,
+            ],
+            'payment' => [
+                'id' => (int) $payment['id'],
+                'receipt_no' => (string) $payment['receipt_no'],
+                'payment_date' => (string) $payment['payment_date'],
+                'total_amount' => number_format((float) $payment['total_amount'], 2, '.', ''),
+                'notes' => isset($payment['notes']) && $payment['notes'] !== null ? (string) $payment['notes'] : null,
+                'status' => (string) $payment['status'],
+                'reverse_reason' => isset($payment['reverse_reason']) && $payment['reverse_reason'] !== null ? (string) $payment['reverse_reason'] : null,
+                'reversed_at' => isset($payment['reversed_at']) && $payment['reversed_at'] !== null ? (string) $payment['reversed_at'] : null,
+                'reversed_by_name' => isset($payment['reversed_by_name']) && $payment['reversed_by_name'] !== null ? (string) $payment['reversed_by_name'] : null,
+                'created_by_name' => isset($payment['created_by_name']) && $payment['created_by_name'] !== null ? (string) $payment['created_by_name'] : null,
+                'created_at' => (string) $payment['created_at'],
+                'lines' => $lines,
+            ],
+            'printed_at' => $kolkataTime->format('Y-m-d H:i:s') . ' IST',
+            'printed_by' => $printedByName,
+        ];
+    }
+
+    /**
+     * Returns server-computed ready-to-print payload for the entire purchases list.
+     * All financial totals are calculated server-side strictly for ACTIVE purchases.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function getPurchaseListPrintData(array $filters, int $userId): array
+    {
+        $kolkataTime = new \DateTime('now', new \DateTimeZone('Asia/Kolkata'));
+
+        $userStmt = $this->pdo->prepare('SELECT name FROM users WHERE id = :id');
+        $userStmt->execute(['id' => $userId]);
+        $printedByName = (string) ($userStmt->fetchColumn() ?: 'Staff');
+
+        $where = [];
+        $params = [];
+
+        if (!empty($filters['supplier_id'])) {
+            $where[] = 'p.supplier_id = :supplier_id';
+            $params['supplier_id'] = (int) $filters['supplier_id'];
+        }
+
+        if (!empty($filters['status'])) {
+            $where[] = 'p.status = :status';
+            $params['status'] = $filters['status'];
+        }
+
+        $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
+
+        $stmt = $this->pdo->prepare(
+            "SELECT p.id, p.purchase_no, p.purchase_date, p.status, p.payment_status, p.payment_method,
+                    p.grand_total, p.paid_amount, p.amount_paid, p.balance_amount,
+                    s.name AS supplier_name
+             FROM purchases p
+             JOIN suppliers s ON s.id = p.supplier_id
+             WHERE {$whereSql}
+             ORDER BY p.purchase_date DESC, p.id DESC"
+        );
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        $activeGrandTotal = '0.00';
+        $activePaidAmount = '0.00';
+        $activeBalanceAmount = '0.00';
+        $activeCount = 0;
+        $cancelledCount = 0;
+
+        $items = [];
+        foreach ($rows as $r) {
+            $isActive = ($r['status'] ?? '') === 'ACTIVE';
+            $gt = (string) ($r['grand_total'] ?? '0.00');
+            $paid = (string) ($r['paid_amount'] ?? $r['amount_paid'] ?? '0.00');
+            $bal = (string) ($r['balance_amount'] ?? '0.00');
+
+            if ($isActive) {
+                $activeGrandTotal = bcadd($activeGrandTotal, $gt, 2);
+                $activePaidAmount = bcadd($activePaidAmount, $paid, 2);
+                $activeBalanceAmount = bcadd($activeBalanceAmount, $bal, 2);
+                $activeCount++;
+            } else {
+                $cancelledCount++;
+            }
+
+            $items[] = [
+                'id' => (int) $r['id'],
+                'purchase_no' => (string) $r['purchase_no'],
+                'supplier_name' => (string) $r['supplier_name'],
+                'purchase_date' => (string) $r['purchase_date'],
+                'grand_total' => number_format((float) $gt, 2, '.', ''),
+                'paid_amount' => number_format((float) $paid, 2, '.', ''),
+                'balance_amount' => number_format((float) $bal, 2, '.', ''),
+                'payment_method' => $r['payment_method'] !== null ? (string) $r['payment_method'] : null,
+                'payment_status' => (string) $r['payment_status'],
+                'status' => (string) $r['status'],
+            ];
+        }
+
+        return [
+            'shop' => [
+                'name' => '',
+                'address' => '',
+                'phone' => '',
+                'email' => '',
+                'gstin' => '',
+            ],
+            'printed_at' => $kolkataTime->format('Y-m-d H:i:s') . ' IST',
+            'printed_by' => $printedByName,
+            'purchases' => $items,
+            'totals' => [
+                'grand_total' => number_format((float) $activeGrandTotal, 2, '.', ''),
+                'paid_amount' => number_format((float) $activePaidAmount, 2, '.', ''),
+                'balance_amount' => number_format((float) $activeBalanceAmount, 2, '.', ''),
+                'active_count' => $activeCount,
+                'cancelled_count' => $cancelledCount,
+                'total_count' => count($items),
+            ],
+            'footnote' => 'Totals include ACTIVE purchases only. Cancelled purchases are displayed for audit history but excluded from financial sums.',
+        ];
+    }
+
 
     private function generatePurchaseNumber(): string
     {

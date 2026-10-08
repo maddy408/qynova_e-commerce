@@ -34,10 +34,12 @@ use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
 use App\Controllers\ReportExportController;
+use App\Controllers\SettingsController;
 use App\Controllers\SubcategoryController;
 use App\Controllers\UserController;
 use App\Controllers\VariantController;
 use App\Controllers\VariantImageController;
+use App\Controllers\WishlistController;
 use App\Helpers\Config;
 use App\Helpers\Response;
 use App\Helpers\Router;
@@ -59,9 +61,17 @@ $router->post('/api/customers/otp/verify', fn () => $customerAuth->verifyOtp());
 $router->post('/api/customers/signup', fn () => $customerAuth->signup());
 $router->post('/api/customers/login', fn () => $customerAuth->login());
 $router->post('/api/customers/otp/login', fn () => $customerAuth->loginWithOtp());
+$router->post('/api/customers/google-login', fn () => $customerAuth->loginWithGoogle());
 $router->get('/api/customers/me', fn () => $customerAuth->me());
+$router->put('/api/customers/me', fn () => $customerAuth->updateProfile());
+$router->get('/api/customer/addresses', fn () => $customerAuth->getAddresses());
+$router->post('/api/customer/addresses', fn () => $customerAuth->storeAddress());
+$router->put('/api/customer/addresses/{id}', fn ($id) => $customerAuth->updateAddress($id));
+$router->delete('/api/customer/addresses/{id}', fn ($id) => $customerAuth->deleteAddress($id));
 $router->get('/api/customers', fn () => $customerAuth->indexForStaff());
 $router->put('/api/customers/{id}', fn ($id) => $customerAuth->updateForStaff($id));
+$router->post('/api/customers/referral/apply', fn () => $customerAuth->applyReferral());
+$router->post('/api/referrals/validate', fn () => $customerAuth->validateReferral());
 
 // Staff auth (docs/DOCUMENTATION.md section 5)
 $auth = new AuthController($pdo);
@@ -204,12 +214,31 @@ $router->get('/api/coupons/{id}', fn ($id) => $coupons->show($id));
 $router->post('/api/coupons', fn () => $coupons->store());
 $router->put('/api/coupons/{id}', fn ($id) => $coupons->update($id));
 
-// Cart (docs/DOCUMENTATION.md section 13)
+// Wishlist (Database-driven customer & guest wishlist)
+$wishlist = new WishlistController($pdo);
+$router->get('/api/wishlist', fn () => $wishlist->index());
+$router->post('/api/wishlist', fn () => $wishlist->store());
+$router->delete('/api/wishlist/{productId}', fn ($productId) => $wishlist->destroy($productId));
+$router->post('/api/wishlist/merge', fn () => $wishlist->merge());
+
+// Cart (Database-driven customer & guest session cart)
 $cart = new CartController($pdo);
 $router->get('/api/cart', fn () => $cart->show());
 $router->post('/api/cart/items', fn () => $cart->store());
+$router->put('/api/cart/items/{id}', fn ($id) => $cart->update($id));
 $router->patch('/api/cart/items/{id}', fn ($id) => $cart->update($id));
 $router->delete('/api/cart/items/{id}', fn ($id) => $cart->destroy($id));
+$router->delete('/api/cart', fn () => $cart->clear());
+$router->post('/api/cart/merge', fn () => $cart->merge());
+
+// Store settings, delivery settings, pages & active offers
+$settings = new SettingsController($pdo);
+$router->get('/api/settings/store', fn () => $settings->getStoreSettings());
+$router->get('/api/settings/delivery', fn () => $settings->getDeliverySettings());
+$router->get('/api/pages', fn () => $settings->getPages());
+$router->get('/api/pages/{slug}', fn ($slug) => $settings->getPage($slug));
+$router->get('/api/offers', fn () => $settings->getOffers());
+$router->get('/api/offers/flash-deal', fn () => $settings->getFlashDeal());
 
 // Orders & checkout (docs section 13/20; ECOMMERCE_POS_ADMIN_SPEC.md 18-20, 36-38)
 $orders = new OrderController($pdo);
@@ -254,17 +283,21 @@ $router->put('/api/suppliers/{id}', fn ($id) => $purchases->updateSupplier($id))
 $router->delete('/api/suppliers/{id}', fn ($id) => $purchases->destroySupplier($id));
 $router->get('/api/suppliers/{id}/outstanding', fn ($id) => $purchases->supplierOutstanding($id));
 $router->get('/api/purchases', fn () => $purchases->index());
+$router->get('/api/purchases/print-list', fn () => $purchases->listPrintData());
 $router->get('/api/purchases/{id}', fn ($id) => $purchases->show($id));
+$router->get('/api/purchases/{id}/print-data', fn ($id) => $purchases->printData($id));
 $router->post('/api/purchases', fn () => $purchases->store());
 $router->post('/api/purchases/{id}/cancel', fn ($id) => $purchases->cancel($id));
 $router->post('/api/purchases/{id}/returns', fn ($id) => $purchases->storeReturn($id));
 $router->patch('/api/purchases/{id}/payment', fn ($id) => $purchases->updatePayment($id));
 $router->get('/api/purchases/{id}/payments', fn ($id) => $purchases->listPayments($id));
+$router->get('/api/purchases/{purchaseId}/payments/{paymentId}/print-data', fn ($purchaseId, $paymentId) => $purchases->paymentPrintData($purchaseId, $paymentId));
 $router->post('/api/purchases/{id}/payments', fn ($id) => $purchases->collectPayment($id));
 $router->post('/api/purchases/{purchaseId}/payments/{paymentId}/reverse', fn ($purchaseId, $paymentId) => $purchases->reversePayment($purchaseId, $paymentId));
 
 // Delivery (ECOMMERCE_POS_ADMIN_SPEC.md sections 21-22)
 $delivery = new DeliveryController($pdo);
+$router->get('/api/delivery/check-pincode', fn () => $delivery->checkPincode());
 $router->get('/api/deliveries', fn () => $delivery->index());
 $router->get('/api/deliveries/{id}', fn ($id) => $delivery->show($id));
 $router->get('/api/orders/{orderId}/delivery', fn ($orderId) => $delivery->showForOrder($orderId));

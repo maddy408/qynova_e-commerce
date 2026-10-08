@@ -25,7 +25,13 @@ final class BannerController
     /** Public — storefront home/category pages render banners by position. */
     public function index(): void
     {
-        Response::json(['banners' => $this->banners->list($_GET['position'] ?? null)]);
+        $position = $_GET['position'] ?? null;
+        $isActive = isset($_GET['is_active']) ? (bool) (int) $_GET['is_active'] : null;
+        $currentOnly = isset($_GET['current_only'])
+            ? (bool) (int) $_GET['current_only']
+            : ($isActive === true);
+
+        Response::json(['banners' => $this->banners->list($position, $isActive, $currentOnly)]);
     }
 
     /** Public, same reasoning as index(). */

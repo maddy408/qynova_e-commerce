@@ -36,6 +36,11 @@ final class ProductService
             $params['category_id'] = (int) $filters['category_id'];
         }
 
+        if (!empty($filters['category_slug'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND c.slug = :category_slug)';
+            $params['category_slug'] = (string) $filters['category_slug'];
+        }
+
         if (!empty($filters['subcategory_id'])) {
             $where[] = 'EXISTS (SELECT 1 FROM product_subcategories ps WHERE ps.product_id = p.id AND ps.subcategory_id = :subcategory_id)';
             $params['subcategory_id'] = (int) $filters['subcategory_id'];
@@ -52,9 +57,50 @@ final class ProductService
             $where[] = 'p.is_ecommerce_enabled = 1';
         }
 
+        if (($filters['is_featured'] ?? null) !== null) {
+            $where[] = 'p.is_featured = :is_featured';
+            $params['is_featured'] = (int) (bool) $filters['is_featured'];
+        }
+
+        if (($filters['is_trending'] ?? null) !== null) {
+            $where[] = 'p.is_trending = :is_trending';
+            $params['is_trending'] = (int) (bool) $filters['is_trending'];
+        }
+
+        if (($filters['is_deal'] ?? null) !== null) {
+            $where[] = '(p.is_deal = 1 OR p.show_discount = 1)';
+        }
+
+        if (!empty($filters['section'])) {
+            $section = strtolower(trim((string) $filters['section']));
+            if ($section === 'best_sellers' || $section === 'bestsellers') {
+                $where[] = '(p.is_best_seller_override = 1 OR p.is_featured = 1)';
+            } elseif ($section === 'new_arrivals' || $section === 'newarrivals') {
+                $where[] = '(p.is_new_arrival_override = 1 OR p.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY))';
+            } elseif ($section === 'featured') {
+                $where[] = 'p.is_featured = 1';
+            } elseif ($section === 'trending') {
+                $where[] = '(p.is_trending = 1 OR p.is_featured = 1)';
+            } elseif ($section === 'deals' || $section === 'flash_deals') {
+                $where[] = '(p.is_deal = 1 OR p.show_discount = 1)';
+            }
+        }
+
+        if (!empty($filters['min_price'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.retail_price >= :min_price)';
+            $params['min_price'] = (float) $filters['min_price'];
+        }
+
+        if (!empty($filters['max_price'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.retail_price <= :max_price)';
+            $params['max_price'] = (float) $filters['max_price'];
+        }
+
         if (!empty($filters['search'])) {
-            $where[] = 'MATCH(p.name, p.tags, p.short_description) AGAINST (:search IN NATURAL LANGUAGE MODE)';
-            $params['search'] = (string) $filters['search'];
+            $searchTerm = trim((string) $filters['search']);
+            $where[] = '(MATCH(p.name, p.tags, p.short_description) AGAINST (:search IN NATURAL LANGUAGE MODE) OR p.name LIKE :search_like OR p.product_code LIKE :search_like)';
+            $params['search'] = $searchTerm;
+            $params['search_like'] = '%' . $searchTerm . '%';
         }
 
         $whereSql = implode(' AND ', $where);
@@ -63,12 +109,34 @@ final class ProductService
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
+        $sort = strtolower(trim((string) ($filters['sort'] ?? '')));
+        $orderBy = 'p.created_at DESC';
+        if ($sort === 'price_asc' || $sort === 'price_low') {
+            $orderBy = '(SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) ASC';
+        } elseif ($sort === 'price_desc' || $sort === 'price_high') {
+            $orderBy = '(SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) DESC';
+        } elseif ($sort === 'name_asc') {
+            $orderBy = 'p.name ASC';
+        } elseif ($sort === 'name_desc') {
+            $orderBy = 'p.name DESC';
+        } elseif ($sort === 'best_sellers' || $sort === 'bestsellers') {
+            $orderBy = 'COALESCE(p.is_best_seller_override, 0) DESC, p.is_featured DESC, p.created_at DESC';
+        } elseif ($sort === 'popular') {
+            $orderBy = 'p.is_featured DESC, p.is_trending DESC, p.created_at DESC';
+        } elseif ($sort === 'newest') {
+            $orderBy = 'p.created_at DESC';
+        } elseif (!empty($filters['section']) && ($filters['section'] === 'best_sellers' || $filters['section'] === 'bestsellers')) {
+            $orderBy = 'COALESCE(p.is_best_seller_override, 0) DESC, p.is_featured DESC, p.created_at DESC';
+        }
+
         $stmt = $this->pdo->prepare(
             "SELECT p.id, p.name, p.slug, p.product_code, p.is_active, p.is_pos_enabled, p.is_ecommerce_enabled,
-                    p.is_featured, b.name AS brand_name,
+                    p.is_featured, p.is_trending, p.is_deal, p.show_discount, p.is_best_seller_override, p.is_new_arrival_override,
+                    p.short_description, p.created_at, b.name AS brand_name,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS min_price,
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS max_price,
+                    (SELECT mrp FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL ORDER BY is_default DESC, id ASC LIMIT 1) AS mrp,
                     (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS variant_count,
                     -- Section 18 of the merchant's variant-logic spec: the
                     -- product list needs variant-level stock rolled up,
@@ -87,7 +155,7 @@ final class ProductService
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id
              WHERE {$whereSql}
-             ORDER BY p.created_at DESC
+             ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
         );
 
@@ -98,7 +166,25 @@ final class ProductService
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->execute();
 
-        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
+        $items = $stmt->fetchAll();
+        $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+        $pagination = [
+            'page' => $page,
+            'limit' => $limit,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'hasNextPage' => $page < $totalPages,
+            'hasPreviousPage' => $page > 1,
+        ];
+
+        return [
+            'items' => $items,
+            'data' => $items,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+            'pagination' => $pagination,
+        ];
     }
 
     /** @return array<string, mixed>|null */

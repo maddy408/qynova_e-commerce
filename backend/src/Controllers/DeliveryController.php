@@ -124,4 +124,52 @@ final class DeliveryController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    /** Customer-facing pincode serviceability check. */
+    public function checkPincode(): void
+    {
+        $pincode = trim((string) ($_GET['pincode'] ?? ''));
+        $productId = isset($_GET['product_id']) ? (int) $_GET['product_id'] : null;
+
+        if (!preg_match('/^[1-9][0-9]{5}$/', $pincode)) {
+            Response::json([
+                'serviceable' => false,
+                'status' => 'INVALID',
+                'message' => 'Please enter a valid 6-digit Indian PIN code.',
+            ], 400);
+            return;
+        }
+
+        $codAvailable = true;
+        $shippingRequired = true;
+
+        if ($productId !== null && $productId > 0) {
+            $stmt = $this->pdo->prepare('SELECT cod_available, shipping_required FROM products WHERE id = :id AND deleted_at IS NULL');
+            $stmt->execute(['id' => $productId]);
+            $prod = $stmt->fetch();
+            if ($prod !== false) {
+                $codAvailable = (bool) $prod['cod_available'];
+                $shippingRequired = (bool) $prod['shipping_required'];
+            }
+        }
+
+        $firstDigit = (int) $pincode[0];
+        $days = match ($firstDigit) {
+            1, 2, 5, 6 => '1–2 business days (Express Courier)',
+            3, 4 => '2–3 business days (Standard Courier)',
+            default => '3–4 business days (National Network)',
+        };
+
+        Response::json([
+            'serviceable' => true,
+            'status' => 'AVAILABLE',
+            'pincode' => $pincode,
+            'estimated_delivery' => $days,
+            'cod_available' => $codAvailable,
+            'shipping_required' => $shippingRequired,
+            'delivery_charge' => 'Free on orders above ₹499 (Flat ₹49 below ₹499)',
+            'message' => "Delivery available to {$pincode}. Estimated delivery within {$days}.",
+        ]);
+    }
 }
+
