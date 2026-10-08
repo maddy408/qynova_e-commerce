@@ -52,7 +52,7 @@ export function SplitPaymentFields({
   error,
 }: SplitPaymentFieldsProps) {
   const safeTotal = Math.max(0, total || 0)
-  const isZeroTotal = safeTotal <= 0 || disabled
+  const isZeroTotal = disabled
 
   // Calculate split sums
   const cashNum = Number(values.cash) || 0

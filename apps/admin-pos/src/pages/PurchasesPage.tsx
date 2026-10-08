@@ -524,12 +524,21 @@ export function PurchasesPage() {
   )
 
   function updateItem(variantId: number, field: keyof LineItem, value: string) {
-    setItems((prev) =>
-      prev.map((item) => {
+    setItems((prev) => {
+      const nextItems = prev.map((item) => {
         if (item.variant_id !== variantId) return item
         return { ...item, [field]: value }
       })
-    )
+      const newTotal = nextItems.reduce(
+        (sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)),
+        0
+      )
+      setNewPurchaseSplit((splitPrev) => ({
+        ...splitPrev,
+        singleAmount: newTotal > 0 ? newTotal.toFixed(2) : '',
+      }))
+      return nextItems
+    })
   }
 
   function removeItem(variantId: number) {
@@ -598,21 +607,32 @@ export function PurchasesPage() {
   function selectVariant(v: VariantOption) {
     setItems((prev) => {
       const existing = prev.find((i) => i.variant_id === v.id)
+      let nextItems: LineItem[]
       if (existing) {
-        return prev.map((i) => (i.variant_id === v.id ? { ...i, quantity: String(Number(i.quantity) + 1) } : i))
+        nextItems = prev.map((i) => (i.variant_id === v.id ? { ...i, quantity: String(Number(i.quantity) + 1) } : i))
+      } else {
+        nextItems = [
+          ...prev,
+          {
+            variant_id: v.id,
+            product_name: v.product_name,
+            sku: v.sku,
+            quantity: '1',
+            unit_cost: v.purchase_price || '0',
+            mrp: v.mrp || '0',
+            discount_amount: '0',
+          },
+        ]
       }
-      return [
-        ...prev,
-        {
-          variant_id: v.id,
-          product_name: v.product_name,
-          sku: v.sku,
-          quantity: '1',
-          unit_cost: v.purchase_price || '0',
-          mrp: v.mrp || '0',
-          discount_amount: '0',
-        },
-      ]
+      const newTotal = nextItems.reduce(
+        (sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)),
+        0
+      )
+      setNewPurchaseSplit((splitPrev) => ({
+        ...splitPrev,
+        singleAmount: newTotal > 0 ? newTotal.toFixed(2) : '',
+      }))
+      return nextItems
     })
     setSearchQuery('')
     setDropdownOpen(false)
@@ -1244,7 +1264,7 @@ export function PurchasesPage() {
               total={grandTotal}
               values={newPurchaseSplit}
               onChange={setNewPurchaseSplit}
-              disabled={items.length === 0}
+              disabled={false}
             />
 
             <div className="relative">
@@ -1318,26 +1338,33 @@ export function PurchasesPage() {
               )}
             </div>
 
-            {items.length > 0 && (
-              <div className="rounded-2xl border border-[#F2E5E7] bg-white overflow-hidden shadow-2xs space-y-2">
-                <div className="px-4 py-2.5 bg-[#FAF2F4] border-b border-[#F2E5E7] flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-[#804652] uppercase tracking-wider">Purchase Item List ({items.length})</h4>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-[11px] font-black tracking-wider">
+            {/* Purchase Item List (Always Active & Displayed) */}
+            <div className="rounded-2xl border border-[#F2E5E7] bg-white overflow-hidden shadow-2xs space-y-2">
+              <div className="px-4 py-2.5 bg-[#FAF2F4] border-b border-[#F2E5E7] flex items-center justify-between">
+                <h4 className="text-xs font-bold text-[#804652] uppercase tracking-wider">Purchase Item List ({items.length})</h4>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-[11px] font-black tracking-wider">
+                    <tr>
+                      <th className="px-4 py-2.5">Product Item</th>
+                      <th className="px-3 py-2.5">Qty</th>
+                      <th className="px-3 py-2.5">Unit Cost (₹)</th>
+                      <th className="px-3 py-2.5">MRP (₹)</th>
+                      <th className="px-3 py-2.5">Discount (₹)</th>
+                      <th className="px-3 py-2.5">Subtotal</th>
+                      <th className="px-3 py-2.5 text-right"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F2E5E7]">
+                    {items.length === 0 ? (
                       <tr>
-                        <th className="px-4 py-2.5">Product Item</th>
-                        <th className="px-3 py-2.5">Qty</th>
-                        <th className="px-3 py-2.5">Unit Cost (₹)</th>
-                        <th className="px-3 py-2.5">MRP (₹)</th>
-                        <th className="px-3 py-2.5">Discount (₹)</th>
-                        <th className="px-3 py-2.5">Subtotal</th>
-                        <th className="px-3 py-2.5 text-right"></th>
+                        <td colSpan={7} className="px-4 py-6 text-center text-xs font-medium text-slate-500">
+                          🔍 Search above to select items to add to this stock purchase.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F2E5E7]">
-                      {items.map((item) => {
+                    ) : (
+                      items.map((item) => {
                         const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)
                         return (
                           <tr key={item.variant_id} className="hover:bg-[#FAF2F4]/50">
@@ -1395,17 +1422,17 @@ export function PurchasesPage() {
                             </td>
                           </tr>
                         )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex justify-between items-center px-4 py-3 bg-[#FAF2F4]/60 border-t border-[#F2E5E7]">
-                  <span className="text-slate-600 font-semibold text-xs">Grand Total</span>
-                  <span className="text-base font-extrabold text-[#804652]">₹{grandTotal.toFixed(2)}</span>
-                </div>
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
+
+              <div className="flex justify-between items-center px-4 py-3 bg-[#FAF2F4]/60 border-t border-[#F2E5E7]">
+                <span className="text-slate-600 font-semibold text-xs">Grand Total</span>
+                <span className="text-base font-extrabold text-[#804652]">₹{grandTotal.toFixed(2)}</span>
+              </div>
+            </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
               <button
