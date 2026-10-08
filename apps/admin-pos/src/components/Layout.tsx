@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { BellIcon, LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
+import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
 interface SubItem {
   to: string
@@ -150,24 +150,24 @@ export function Layout() {
   const breadcrumb = getBreadcrumb(location.pathname, activeSection)
 
   return (
-    <div className="min-h-screen bg-[#FAF6F7] flex flex-col font-sans text-slate-900 antialiased">
-      {/* Unique Floating Luxury Navbar */}
-      <header className="no-print sticky top-3 z-50 px-3 sm:px-6 lg:px-8 mb-1">
-        <div className="mx-auto max-w-7xl bg-white/95 backdrop-blur-xl border border-[#E8CCD1] shadow-md shadow-[#804652]/8 rounded-full px-3.5 sm:px-5 py-2">
-          <div className="flex items-center justify-between gap-3">
-            {/* Logo Capsule */}
-            <Link to="/" className="flex items-center gap-2.5 group shrink-0 pl-1">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#804652] via-[#6e3642] to-[#4A1821] text-white font-black text-sm shadow-sm group-hover:scale-105 transition-transform">
+    <div className="min-h-screen bg-[#faf8fc] flex flex-col font-sans text-slate-900 antialiased">
+      {/* Top Navbar Header */}
+      <header className="no-print sticky top-0 z-40 bg-white border-b border-slate-100 shadow-2xs">
+        <div className="w-full max-w-full px-4 sm:px-6">
+          <div className="flex h-16 items-center justify-between gap-4">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 text-white font-black text-base shadow-sm group-hover:scale-105 transition-transform">
                 UP
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-extrabold tracking-tight text-slate-950 leading-none">Unified POS</span>
-                <span className="text-[9px] font-black text-[#804652] uppercase tracking-widest mt-0.5">ADMIN PANEL</span>
+                <span className="text-sm font-bold tracking-tight text-slate-900">Unified POS</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none">ADMIN PANEL</span>
               </div>
             </Link>
 
-            {/* Floating Navigation Pill Dock (Center) */}
-            <nav className="hidden lg:flex items-center gap-1 bg-[#FAF2F4] p-1 rounded-full border border-[#EEDDE0] shadow-inner">
+            {/* Desktop Top Navbar Links */}
+            <nav className="hidden lg:flex items-center gap-1.5 xl:gap-2">
               {visibleSections.map((sec) => {
                 const isActive = isPathActive(location.pathname, sec)
                 const isPosSale = sec.id === 'pos-sale'
@@ -177,13 +177,13 @@ export function Layout() {
                     <Link
                       key={sec.id}
                       to={sec.to}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-black rounded-full transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
                         isActive
-                          ? 'bg-[#804652] text-white shadow-xs'
-                          : 'bg-[#F5E6E9] text-[#804652] hover:bg-[#EEDDE0] border border-[#E8CCD1]'
+                          ? 'bg-[#7E1235] text-white shadow-xs'
+                          : 'bg-[#7E1235]/10 text-[#7E1235] hover:bg-[#7E1235]/20 shadow-2xs'
                       }`}
                     >
-                      <ZapIcon className={`h-3.5 w-3.5 ${isActive ? 'text-white fill-white' : 'text-[#804652] fill-[#804652]'}`} />
+                      <ZapIcon className="h-3.5 w-3.5 text-white fill-white" />
                       {sec.label}
                     </Link>
                   )
@@ -193,10 +193,10 @@ export function Layout() {
                   <Link
                     key={sec.id}
                     to={sec.to}
-                    className={`px-3.5 py-1.5 text-xs rounded-full transition-all cursor-pointer ${
+                    className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all ${
                       isActive
-                        ? 'bg-[#804652] text-white shadow-xs font-black'
-                        : 'text-slate-800 hover:text-[#804652] hover:bg-white font-bold'
+                        ? 'bg-[#7E1235] text-white shadow-2xs'
+                        : 'text-slate-800 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
                     {sec.label}
@@ -205,34 +205,23 @@ export function Layout() {
               })}
             </nav>
 
-            {/* Right Action Island (User profile + notifications + logout) */}
-            <div className="hidden sm:flex items-center gap-2 shrink-0 pr-1">
-              {/* Notifications Pill */}
-              <button
-                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#E8CCD1] bg-[#FAF2F4] text-slate-800 hover:bg-[#F8EAED] hover:text-[#804652] transition-all cursor-pointer shadow-2xs"
-                title="Notifications"
-              >
-                <BellIcon className="h-4 w-4" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#804652] ring-2 ring-white"></span>
-              </button>
-
-              {/* User Profile Capsule */}
-              <div className="flex items-center gap-2 pl-1 pr-3.5 py-1 bg-[#FAF2F4] border border-[#E8CCD1] rounded-full shadow-2xs">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#804652] to-[#4A1821] text-[11px] font-black text-white shadow-xs">
+            {/* User Profile & Logout (Right Side) */}
+            <div className="hidden sm:flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7E1235] text-xs font-extrabold text-white shadow-2xs">
                   {user?.name?.charAt(0).toUpperCase() || 'A'}
                 </div>
                 <div className="text-left leading-tight">
-                  <p className="text-xs font-bold text-slate-950">{user?.name || 'Admin'}</p>
-                  <span className="text-[9px] font-black text-[#804652] uppercase tracking-wider block">
+                  <p className="text-xs font-bold text-slate-900">{user?.name || 'Admin'}</p>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                     {user?.role || 'ADMIN'}
                   </span>
                 </div>
               </div>
 
-              {/* Logout Circular Button */}
               <button
                 onClick={logout}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E8CCD1] bg-[#FAF2F4] text-slate-600 hover:text-rose-700 hover:border-rose-300 hover:bg-rose-50 transition-all shadow-2xs cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors shadow-2xs"
                 title="Log out of Admin Panel"
               >
                 <LogoutIcon className="h-4 w-4" />
@@ -243,7 +232,7 @@ export function Layout() {
             <div className="flex lg:hidden items-center gap-2">
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="p-2 rounded-full border border-[#E8CCD1] bg-[#FAF2F4] text-slate-800 hover:bg-[#F8EAED] cursor-pointer"
+                className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100"
                 aria-label="Toggle Navigation Menu"
               >
                 {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
@@ -254,7 +243,7 @@ export function Layout() {
 
         {/* Mobile Dropdown Menu */}
         {mobileOpen && (
-          <div className="lg:hidden mx-auto max-w-7xl mt-2 rounded-3xl border border-[#E8CCD1] bg-white p-4 space-y-2 shadow-xl">
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2 shadow-lg">
             {visibleSections.map((sec) => {
               const isActive = isPathActive(location.pathname, sec)
               return (
@@ -262,22 +251,22 @@ export function Layout() {
                   <Link
                     to={sec.to}
                     onClick={() => setMobileOpen(false)}
-                    className={`block px-4 py-2.5 text-xs font-bold rounded-xl ${
-                      isActive ? 'bg-[#804652] text-white font-black' : 'text-slate-800 bg-[#FAF2F4]'
+                    className={`block px-3 py-2 text-xs font-bold rounded-lg ${
+                      isActive ? 'bg-[#7E1235] text-white' : 'text-slate-800 bg-slate-100'
                     }`}
                   >
                     {sec.label}
                   </Link>
                   {sec.items.length > 0 && (
-                    <div className="pl-4 grid grid-cols-2 gap-1.5 py-1">
+                    <div className="pl-4 grid grid-cols-2 gap-1 py-1">
                       {sec.items.map((sub) => (
                         <NavLink
                           key={sub.to}
                           to={sub.to}
                           onClick={() => setMobileOpen(false)}
                           className={({ isActive: subActive }) =>
-                            `block px-3 py-1.5 text-[11px] font-bold rounded-lg ${
-                              subActive ? 'text-[#804652] bg-[#FAF2F4] font-black' : 'text-slate-700 hover:bg-[#FAF2F4]'
+                            `block px-2.5 py-1 text-[11px] font-medium rounded ${
+                              subActive ? 'text-[#7E1235] bg-red-50 font-bold' : 'text-slate-600 hover:bg-slate-50'
                             }`
                           }
                         >
@@ -289,12 +278,12 @@ export function Layout() {
                 </div>
               )
             })}
-            <div className="pt-3 border-t border-[#F0E0E3] flex items-center justify-between">
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-slate-950">{user?.name}</p>
-                <p className="text-[10px] font-bold text-[#804652] uppercase">{user?.role}</p>
+                <p className="text-xs font-bold text-slate-900">{user?.name}</p>
+                <p className="text-[10px] text-slate-500">{user?.role}</p>
               </div>
-              <button onClick={logout} className="text-xs font-bold text-rose-700 hover:underline cursor-pointer">
+              <button onClick={logout} className="text-xs font-semibold text-red-600 hover:underline">
                 Logout
               </button>
             </div>
@@ -302,27 +291,27 @@ export function Layout() {
         )}
       </header>
 
-      {/* Section Sub-Header & Floating Horizontal Tab Dock */}
+      {/* Section Sub-Header & Horizontal Tab Navigation */}
       {activeSection && activeSection.items.length > 0 && (
-        <div className="no-print px-3 sm:px-6 lg:px-8 mt-2 mb-2">
-          <div className="mx-auto max-w-7xl bg-white/90 backdrop-blur-md border border-[#F2E5E7] shadow-xs rounded-3xl px-5 py-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="no-print bg-white border-b border-slate-200/80 shadow-2xs">
+          <div className="w-full max-w-full px-4 sm:px-6 py-3.5">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               {/* Breadcrumb & Section Name */}
               <div>
                 {breadcrumb && (
-                  <nav className="flex items-center gap-1.5 text-[10px] font-black text-[#804652] uppercase tracking-[0.2em] mb-1">
+                  <nav className="flex items-center gap-1.5 text-[10px] font-bold text-[#7E1235]/80 uppercase tracking-[0.2em] mb-0.5">
                     <span>{breadcrumb.sectionLabel}</span>
                     <span>&gt;</span>
-                    <span className="text-slate-600 font-bold">{breadcrumb.itemLabel}</span>
+                    <span className="text-[#7E1235]">{breadcrumb.itemLabel}</span>
                   </nav>
                 )}
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-slate-900">
                   {activeSection.label}
                 </h1>
               </div>
 
-              {/* Floating Sub-Navigation Tab Dock */}
-              <div className="inline-flex items-center gap-1 bg-[#FAF2F4] p-1.5 rounded-full border border-[#E8CCD1] text-xs overflow-x-auto max-w-full scrollbar-none shadow-inner self-start sm:self-auto">
+              {/* Horizontal Sub-Navigation Tab Bar */}
+              <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm self-start sm:self-auto border bg-[#F9F3F4] border-[#EEDDE0]">
                 {activeSection.items.map((sub) => {
                   if (sub.permission && !hasPermission(sub.permission)) return null
                   const isSubActive = location.pathname.startsWith(sub.to)
@@ -330,10 +319,10 @@ export function Layout() {
                     <NavLink
                       key={sub.to}
                       to={sub.to}
-                      className={`px-4 py-1.5 text-xs rounded-full whitespace-nowrap transition-all cursor-pointer ${
+                      className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
                         isSubActive
-                          ? 'bg-[#804652] text-white shadow-xs font-black'
-                          : 'text-slate-800 hover:text-slate-950 hover:bg-white font-bold'
+                          ? 'bg-[#7E1235] text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                       }`}
                     >
                       {sub.label}
@@ -347,7 +336,7 @@ export function Layout() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 w-full max-w-full px-4 sm:px-6 py-4">
         <Outlet />
       </main>
     </div>

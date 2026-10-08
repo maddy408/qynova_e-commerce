@@ -64,10 +64,9 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Dashboard Title Header */}
       <div>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">Dashboard</h1>
-        <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">Store performance at a glance</p>
+        <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1 font-sans">Store performance at a glance</p>
       </div>
 
       {loading ? (
@@ -126,16 +125,16 @@ export function DashboardPage() {
             {/* Left Column: Popular Items */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-slate-950">Popular Items</h2>
+                <h2 className="font-serif text-2xl font-semibold text-slate-900">Popular Items</h2>
 
                 {/* View Mode Toggle Icons */}
-                <div className="flex items-center space-x-1 rounded-xl border border-[#E8CCD1] bg-[#FAF2F4] p-1">
+                <div className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
                   <button
                     onClick={() => toggleViewMode('grid')}
-                    className={`flex items-center space-x-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
+                    className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                       viewMode === 'grid'
-                        ? 'bg-[#804652] text-white shadow-xs'
-                        : 'text-slate-700 hover:text-slate-950'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
                     }`}
                     title="Grid View"
                   >
@@ -144,10 +143,10 @@ export function DashboardPage() {
                   </button>
                   <button
                     onClick={() => toggleViewMode('list')}
-                    className={`flex items-center space-x-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer ${
+                    className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
                       viewMode === 'list'
-                        ? 'bg-[#804652] text-white shadow-xs'
-                        : 'text-slate-700 hover:text-slate-950'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
                     }`}
                     title="List View"
                   >
@@ -158,7 +157,7 @@ export function DashboardPage() {
               </div>
 
               {popularItems.length === 0 ? (
-                <Card className="p-8 text-center text-sm font-semibold text-slate-500">
+                <Card className="p-8 text-center text-sm text-slate-500">
                   No popular items recorded yet.
                 </Card>
               ) : viewMode === 'grid' ? (
@@ -170,27 +169,27 @@ export function DashboardPage() {
                         ? 'bg-amber-100 text-amber-900 border border-amber-300'
                         : idx === 1
                         ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
-                        : 'bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0]'
+                        : 'bg-slate-100 text-slate-700 border border-slate-300'
 
                     return (
                       <div
                         key={item.id}
-                        className="group relative flex flex-col justify-between rounded-2xl bg-white p-5 shadow-xs border border-[#F2E5E7] transition-all hover:-translate-y-1 hover:shadow-md"
+                        className="group relative flex flex-col justify-between rounded-xl bg-white p-5 shadow-xs border border-slate-200 transition-all hover:-translate-y-1 hover:shadow-md"
                       >
                         <div className="flex items-start justify-between">
-                          <span className="text-xs font-black text-[#804652]">#{idx + 1}</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${badgeClass}`}>
+                          <span className="text-xs font-bold text-slate-400">#{idx + 1}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${badgeClass}`}>
                             {badgeText}
                           </span>
                         </div>
 
                         <div className="mt-3 my-2">
-                          <h3 className="text-base font-bold text-slate-950 font-sans tracking-tight line-clamp-2">{item.name}</h3>
+                          <h3 className="text-base font-bold text-slate-900 font-sans tracking-tight line-clamp-2">{item.name}</h3>
                         </div>
 
-                        <div className="pt-3 border-t border-[#F0E0E3] flex items-center justify-between text-xs text-slate-700 font-semibold">
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 font-medium">
                           <span>{item.units_sold} sold</span>
-                          <span className="font-black text-slate-950">{formatCurrency(item.revenue)}</span>
+                          <span className="font-bold text-slate-900">{formatCurrency(item.revenue)}</span>
                         </div>
                       </div>
                     )
@@ -228,8 +227,8 @@ export function DashboardPage() {
             {/* Right Column: Receipt Timeline */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-950">Receipt Timeline</h2>
-                <span className="text-xs text-slate-600 font-medium">Recent transactions</span>
+                <h2 className="font-serif text-2xl font-semibold text-slate-900">Receipt Timeline</h2>
+                <span className="text-xs text-slate-500 font-sans">Recent transactions</span>
               </div>
 
               <div className="receipt-paper mx-auto w-full rounded-sm p-6 text-slate-800 font-sans shadow-xl my-3">
@@ -270,7 +269,7 @@ export function DashboardPage() {
                     <span>Total:</span>
                     <span className="text-base">{formatCurrency(totalReceiptsSum)}</span>
                   </div>
-                  <div className="mt-3 text-center text-[11px] font-medium text-slate-500">
+                  <div className="mt-3 text-center text-[11px] font-serif italic text-slate-500">
                     Thank you for your purchase
                   </div>
                 </div>
