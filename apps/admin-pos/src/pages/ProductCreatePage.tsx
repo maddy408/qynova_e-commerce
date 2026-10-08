@@ -16,6 +16,7 @@ interface VariantRow {
   sku: string
   mrp: string
   sellingPrice: string
+  retailPrice: string
   wholesalePrice: string
   discountPercent: string
   discountAmount: string
@@ -102,6 +103,7 @@ export function ProductCreatePage() {
   const [barcode, setBarcode] = useState('')
   const [mrp, setMrp] = useState('')
   const [sellingPrice, setSellingPrice] = useState('')
+  const [retailPrice, setRetailPrice] = useState('')
   const [wholesalePrice, setWholesalePrice] = useState('')
   const [costPrice, setCostPrice] = useState('')
   const [manufacturingDate, setManufacturingDate] = useState('')
@@ -194,7 +196,7 @@ export function ProductCreatePage() {
     else if (command === 'clear') setDescription((prev) => prev.replace(/<[^>]*>/g, ''))
   }
 
-  // Simple Product Price handlers with Auto-Calculated Discount Amount & Percentage
+  // Selling Price handlers with Auto-Calculated Discount Amount & Percentage (MRP vs Selling Price)
   function handleMrpChange(val: string) {
     setMrp(val)
     if (val && sellingPrice) {
@@ -342,6 +344,7 @@ export function ProductCreatePage() {
           sku: `${baseSku}-${valueIds.map((id) => skuAbbr(valueLookup.get(id)?.value ?? '')).join('-')}`,
           mrp: baseMrp,
           sellingPrice: baseSelling,
+          retailPrice: retailPrice || '',
           wholesalePrice: wholesalePrice || '',
           discountPercent: percent || discountPercent || '0',
           discountAmount: amount || discountAmount || '0',
@@ -354,7 +357,7 @@ export function ProductCreatePage() {
         }
       })
     })
-  }, [selectedValueIds, variantAttributes, productType, mrp, sellingPrice, wholesalePrice, discountPercent, discountAmount, manufacturingDate, expiryDate, sku, name])
+  }, [selectedValueIds, variantAttributes, productType, mrp, sellingPrice, retailPrice, wholesalePrice, discountPercent, discountAmount, manufacturingDate, expiryDate, sku, name])
 
   function updateVariantRow(key: string, patch: Partial<VariantRow>) {
     setVariantRows((prev) =>
@@ -461,7 +464,8 @@ export function ProductCreatePage() {
           sku,
           barcode: barcode || null,
           mrp: mrp || 0,
-          retail_price: sellingPrice || 0,
+          retail_price: sellingPrice || 0, // Mapped to primary POS sale selling price
+          customer_price: retailPrice || null, // Mapped to Retail price
           wholesale_price: wholesalePrice || null,
           purchase_price: costPrice || null,
           manufacturing_date: manufacturingDate || null,
@@ -490,6 +494,7 @@ export function ProductCreatePage() {
             sku: row.sku,
             mrp: row.mrp || mrp || 0,
             retail_price: row.sellingPrice || sellingPrice || 0,
+            customer_price: row.retailPrice || retailPrice || null,
             wholesale_price: row.wholesalePrice || wholesalePrice || null,
             manufacturing_date: row.manufacturingDate || manufacturingDate || null,
             expiry_date: row.expiryDate || expiryDate || null,
@@ -804,7 +809,7 @@ export function ProductCreatePage() {
             )}
           </Card>
 
-          {/* Card 3: Pricing & Rates */}
+          {/* Card 3: Pricing & Tax */}
           <Card className="p-6 space-y-4 border-slate-200 shadow-2xs">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="text-sm font-bold text-slate-900">Pricing &amp; Tax</h2>
@@ -823,7 +828,8 @@ export function ProductCreatePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {/* Price Row: MRP, Selling Price (default POS mapped), Retail Price, Wholesale Price, Cost Price */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
               <TextField
                 label="MRP (₹) *"
                 required
@@ -834,12 +840,20 @@ export function ProductCreatePage() {
                 placeholder="0.00"
               />
               <TextField
-                label="Retail Selling Price (₹) *"
+                label="Selling Price (₹) *"
                 required
                 type="number"
                 step="0.01"
                 value={sellingPrice}
                 onChange={(e) => handleSellingPriceChange(e.target.value)}
+                placeholder="0.00"
+              />
+              <TextField
+                label="Retail Price (₹)"
+                type="number"
+                step="0.01"
+                value={retailPrice}
+                onChange={(e) => setRetailPrice(e.target.value)}
                 placeholder="0.00"
               />
               <TextField label="Wholesale Price (₹)" type="number" step="0.01" value={wholesalePrice} onChange={(e) => setWholesalePrice(e.target.value)} placeholder="0.00" />
@@ -969,7 +983,7 @@ export function ProductCreatePage() {
             </div>
           </Card>
 
-          {/* Card 6: Variants Option Matrix (With Variant-Specific Image Upload & Auto-Discounts) */}
+          {/* Card 6: Variants Option Matrix */}
           <Card className="p-6 space-y-4 border-slate-200 shadow-2xs">
             <div className="flex items-center justify-between">
               <div>
@@ -1075,7 +1089,7 @@ export function ProductCreatePage() {
                   )}
                 </div>
 
-                {/* Variant Matrix Table with Variant Images & Auto-Calculated Discounts */}
+                {/* Variant Matrix Table */}
                 {variantRows.length > 0 && (
                   <div className="overflow-x-auto pt-2 border-t border-slate-100">
                     <table className="w-full text-left text-xs border-collapse">
@@ -1086,6 +1100,7 @@ export function ProductCreatePage() {
                           <th className="px-3 py-2">SKU</th>
                           <th className="px-3 py-2">MRP (₹)</th>
                           <th className="px-3 py-2">Selling (₹)</th>
+                          <th className="px-3 py-2">Retail (₹)</th>
                           <th className="px-3 py-2">Discount</th>
                           <th className="px-3 py-2">Wholesale</th>
                           <th className="px-3 py-2">Mfg Date</th>
@@ -1157,6 +1172,15 @@ export function ProductCreatePage() {
                                   value={row.sellingPrice}
                                   onChange={(e) => updateVariantRow(row.key, { sellingPrice: e.target.value })}
                                   className="w-20 rounded border border-slate-300 p-1 text-xs font-bold text-emerald-700"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={row.retailPrice}
+                                  onChange={(e) => updateVariantRow(row.key, { retailPrice: e.target.value })}
+                                  className="w-20 rounded border border-slate-300 p-1 text-xs font-bold text-slate-800"
                                 />
                               </td>
 
