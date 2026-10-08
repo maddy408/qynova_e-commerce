@@ -49,7 +49,7 @@ final class PurchaseService
     }
 
     /** @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int} */
-    public function listSuppliers(?string $search, ?string $status, int $page, int $limit): array
+    public function listSuppliers(?string $search = null, ?string $status = null, int $page = 1, int $limit = 50): array
     {
         $page = max(1, $page);
         $limit = min(200, max(1, $limit));
@@ -615,7 +615,7 @@ final class PurchaseService
     }
 
     /** @param array<string, mixed> $filters */
-    public function list(array $filters): array
+    public function list(array $filters = []): array
     {
         $where = [];
         $params = [];
