@@ -105,13 +105,13 @@ final class ReturnsController
             $adjId = (int) $this->pdo->lastInsertId();
 
             $adjItemStmt = $this->pdo->prepare(
-                "INSERT INTO stock_adjustment_items (adjustment_id, variant_id, system_qty, counted_qty, difference_qty)
-                 VALUES (:adj_id, :variant_id, :sys_qty, :count_qty, :diff_qty)"
+                "INSERT INTO stock_adjustment_items (adjustment_id, variant_id, system_qty, counted_qty)
+                 VALUES (:adj_id, :variant_id, :sys_qty, :count_qty)"
             );
 
             foreach ($items as $item) {
                 $variantId = (int) ($item['variant_id'] ?? 0);
-                $qty = (int) ($item['qty'] ?? 0);
+                $qty = (float) ($item['qty'] ?? 0);
                 $unitPrice = (float) ($item['unit_price'] ?? 0);
                 if ($variantId <= 0 || $qty <= 0) continue;
 
@@ -125,21 +125,23 @@ final class ReturnsController
                 ]);
 
                 // Current stock on hand
-                $stockStmt = $this->pdo->prepare("SELECT on_hand FROM inventory_items WHERE variant_id = :id");
+                $stockStmt = $this->pdo->prepare("SELECT on_hand FROM inventory WHERE variant_id = :id");
                 $stockStmt->execute(['id' => $variantId]);
-                $currentOnHand = (int) ($stockStmt->fetchColumn() ?: 0);
+                $currentOnHand = (float) ($stockStmt->fetchColumn() ?: 0);
                 $newOnHand = $currentOnHand + $qty;
 
                 // Update inventory
-                $this->pdo->prepare("UPDATE inventory_items set on_hand = :on_hand WHERE variant_id = :id")
-                    ->execute(['on_hand' => $newOnHand, 'id' => $variantId]);
+                $this->pdo->prepare(
+                    "INSERT INTO inventory (variant_id, product_id, on_hand)
+                     SELECT :variant_id, product_id, :on_hand FROM product_variants WHERE id = :v_id2
+                     ON DUPLICATE KEY UPDATE on_hand = VALUES(on_hand)"
+                )->execute(['variant_id' => $variantId, 'on_hand' => $newOnHand, 'v_id2' => $variantId]);
 
                 $adjItemStmt->execute([
                     'adj_id' => $adjId,
                     'variant_id' => $variantId,
                     'sys_qty' => $currentOnHand,
                     'count_qty' => $newOnHand,
-                    'diff_qty' => $qty,
                 ]);
             }
 
@@ -239,13 +241,13 @@ final class ReturnsController
             $adjId = (int) $this->pdo->lastInsertId();
 
             $adjItemStmt = $this->pdo->prepare(
-                "INSERT INTO stock_adjustment_items (adjustment_id, variant_id, system_qty, counted_qty, difference_qty)
-                 VALUES (:adj_id, :variant_id, :sys_qty, :count_qty, :diff_qty)"
+                "INSERT INTO stock_adjustment_items (adjustment_id, variant_id, system_qty, counted_qty)
+                 VALUES (:adj_id, :variant_id, :sys_qty, :count_qty)"
             );
 
             foreach ($items as $item) {
                 $variantId = (int) ($item['variant_id'] ?? 0);
-                $qty = (int) ($item['qty'] ?? 0);
+                $qty = (float) ($item['qty'] ?? 0);
                 $unitPrice = (float) ($item['unit_price'] ?? 0);
                 if ($variantId <= 0 || $qty <= 0) continue;
 
@@ -259,21 +261,23 @@ final class ReturnsController
                 ]);
 
                 // Current stock on hand
-                $stockStmt = $this->pdo->prepare("SELECT on_hand FROM inventory_items WHERE variant_id = :id");
+                $stockStmt = $this->pdo->prepare("SELECT on_hand FROM inventory WHERE variant_id = :id");
                 $stockStmt->execute(['id' => $variantId]);
-                $currentOnHand = (int) ($stockStmt->fetchColumn() ?: 0);
+                $currentOnHand = (float) ($stockStmt->fetchColumn() ?: 0);
                 $newOnHand = max(0, $currentOnHand - $qty);
 
                 // Update inventory
-                $this->pdo->prepare("UPDATE inventory_items set on_hand = :on_hand WHERE variant_id = :id")
-                    ->execute(['on_hand' => $newOnHand, 'id' => $variantId]);
+                $this->pdo->prepare(
+                    "INSERT INTO inventory (variant_id, product_id, on_hand)
+                     SELECT :variant_id, product_id, :on_hand FROM product_variants WHERE id = :v_id2
+                     ON DUPLICATE KEY UPDATE on_hand = VALUES(on_hand)"
+                )->execute(['variant_id' => $variantId, 'on_hand' => $newOnHand, 'v_id2' => $variantId]);
 
                 $adjItemStmt->execute([
                     'adj_id' => $adjId,
                     'variant_id' => $variantId,
                     'sys_qty' => $currentOnHand,
                     'count_qty' => $newOnHand,
-                    'diff_qty' => -$qty,
                 ]);
             }
 
