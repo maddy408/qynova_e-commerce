@@ -159,7 +159,7 @@ final class ReturnsController
         PermissionMiddleware::require($claims, 'purchases.manage');
 
         $stmt = $this->pdo->query(
-            "SELECT pr.*, s.name as supplier_name, s.contact_person as supplier_contact, u.name as created_by_name
+            "SELECT pr.*, pr.purchase_return_no AS return_no, pr.grand_total AS total_amount, s.name AS supplier_name, s.contact_person AS supplier_contact, u.name AS created_by_name
              FROM purchase_returns pr
              LEFT JOIN suppliers s ON s.id = pr.supplier_id
              LEFT JOIN users u ON u.id = pr.created_by
@@ -213,16 +213,15 @@ final class ReturnsController
             }
 
             $stmt = $this->pdo->prepare(
-                "INSERT INTO purchase_returns (return_no, purchase_id, supplier_id, total_amount, refund_status, reason, notes, created_by)
-                 VALUES (:return_no, :purchase_id, :supplier_id, :total_amount, 'REFUNDED', :reason, :notes, :created_by)"
+                "INSERT INTO purchase_returns (purchase_return_no, purchase_id, supplier_id, grand_total, reason, created_by)
+                 VALUES (:return_no, :purchase_id, :supplier_id, :grand_total, :reason, :created_by)"
             );
             $stmt->execute([
                 'return_no' => $returnNo,
-                'purchase_id' => $purchaseId,
-                'supplier_id' => $supplierId,
-                'total_amount' => $totalAmount,
+                'purchase_id' => $purchaseId ?: 0,
+                'supplier_id' => $supplierId ?: 0,
+                'grand_total' => $totalAmount,
                 'reason' => $reason,
-                'notes' => $notes ?: null,
                 'created_by' => $claims['sub'],
             ]);
             $returnId = (int) $this->pdo->lastInsertId();
