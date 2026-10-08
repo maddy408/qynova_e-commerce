@@ -283,7 +283,7 @@ export function PurchasesPage() {
     const allocatedNum = Number(payload.paidAmount) || 0
     if (Math.abs(allocatedNum - collectAmountNum) > 0.009) {
       setCollectError(
-        `Total allocated (â‚¹${allocatedNum.toFixed(2)}) must exactly equal Amount to Collect (â‚¹${collectAmountNum.toFixed(2)})`
+        `Total allocated (₹${allocatedNum.toFixed(2)}) must exactly equal Amount to Collect (₹${collectAmountNum.toFixed(2)})`
       )
       return
     }
@@ -503,43 +503,52 @@ export function PurchasesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Amber Action Bar ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 px-4 py-3">
-        <p className="text-[11px] font-medium text-amber-700/80">Supplier → Stock Purchase → Increase inventory with cost &amp; MRP tracking</p>
-        <Button
-          onClick={() => {
-            setShowForm(true)
-            setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
-            fetchVariants()
-          }}
-          className="!bg-amber-800 hover:!bg-amber-900 !text-white shrink-0"
-        >
-          + New Purchase
-        </Button>
-      </div>
-
+    <div className="space-y-6 pb-12">
+      {/* ================= ALL PURCHASES TABLE ================= */}
       {purchases === null ? (
-        <Spinner />
+        <div className="p-12 text-center">
+          <Spinner />
+        </div>
       ) : (
-        <Card>
+        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+          {/* Card Header with New Purchase Button */}
+          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+            <div>
+              <h3 className="text-xl font-serif font-bold text-slate-900">All Purchases</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Supplier → Stock Purchase → Increase inventory with cost &amp; MRP tracking
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(true)
+                setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
+                fetchVariants()
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 shrink-0"
+            >
+              + New Purchase
+            </button>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-amber-200 bg-amber-50/80 text-[10px] uppercase tracking-wider text-amber-800">
+              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 font-bold">Purchase No</th>
-                  <th className="px-4 py-3 font-bold">Supplier</th>
-                  <th className="px-4 py-3 font-bold">Grand Total</th>
-                  <th className="px-4 py-3 font-bold">Paid Amount</th>
-                  <th className="px-4 py-3 font-bold">Balance</th>
-                  <th className="px-4 py-3 font-bold">Payment Method</th>
-                  <th className="px-4 py-3 font-bold">Payment Status</th>
-                  <th className="px-4 py-3 font-bold">Status</th>
-                  <th className="px-4 py-3 font-bold">Date</th>
-                  <th className="px-4 py-3 font-bold text-right">Actions</th>
+                  <th className="px-6 py-4">Purchase No</th>
+                  <th className="px-6 py-4">Supplier</th>
+                  <th className="px-6 py-4">Grand Total</th>
+                  <th className="px-6 py-4">Paid Amount</th>
+                  <th className="px-6 py-4">Balance</th>
+                  <th className="px-6 py-4">Payment Method</th>
+                  <th className="px-6 py-4 text-center">Payment Status</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[#F2E5E7]">
                 {(() => {
                   const totalPurchases = purchases.length
                   const totalPages = Math.max(1, Math.ceil(totalPurchases / pageSize))
@@ -551,7 +560,7 @@ export function PurchasesPage() {
                   if (paginatedPurchases.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={10} className="px-6 py-12 text-center text-sm text-slate-400">
                           No purchases recorded yet.
                         </td>
                       </tr>
@@ -570,19 +579,19 @@ export function PurchasesPage() {
                     const canCollect = !isCancelled && balanceNum > 0
 
                     return (
-                      <tr key={p.id} className="hover:bg-amber-50/50 transition-colors">
-                        <td className="px-4 py-2.5 font-mono font-semibold text-stone-900">{p.purchase_no}</td>
+                      <tr key={p.id} className="hover:bg-[#FAF2F4]/60 transition-colors group">
+                        <td className="px-6 py-3.5 font-mono font-semibold text-slate-900 text-xs">{p.purchase_no}</td>
                         <td className="px-4 py-2.5 text-stone-700 font-medium">{p.supplier_name}</td>
-                        <td className="px-4 py-2.5 text-stone-900 font-bold">â‚¹{p.grand_total}</td>
-                        <td className="px-4 py-2.5 text-emerald-700 font-bold">â‚¹{effectivePaid}</td>
-                        <td className="px-4 py-2.5 text-amber-700 font-bold">â‚¹{effectiveBalance}</td>
+                        <td className="px-4 py-2.5 text-stone-900 font-bold">₹{p.grand_total}</td>
+                        <td className="px-4 py-2.5 text-emerald-700 font-bold">₹{effectivePaid}</td>
+                        <td className="px-4 py-2.5 text-amber-700 font-bold">₹{effectiveBalance}</td>
                         <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
                           {p.payment_method === 'SPLIT' ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              âš¡ Split
+                              ⚡ Split
                             </span>
                           ) : (
-                            p.payment_method || 'â€”'
+                            p.payment_method || '—'
                           )}
                         </td>
                         <td className="px-4 py-2.5">
@@ -594,7 +603,7 @@ export function PurchasesPage() {
                           <Badge tone={p.status === 'ACTIVE' ? 'green' : 'red'}>{p.status}</Badge>
                         </td>
                         <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{p.purchase_date}</td>
-                        <td className="px-4 py-2.5 text-right">
+                        <td className="px-6 py-3.5 text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {/* 1. Collect Payment Icon Button */}
                             <button
@@ -609,7 +618,7 @@ export function PurchasesPage() {
                                   : 'Collect Payment'
                               }
                               aria-label="Collect Payment"
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              className="inline-flex items-center justify-center p-1.5 rounded-full border text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 focus:outline-none"
                             >
                               <WalletIcon className="h-4 w-4" />
                             </button>
@@ -621,7 +630,7 @@ export function PurchasesPage() {
                               onClick={() => openEditPaymentModal(p)}
                               title={isCancelled ? 'Purchase is cancelled' : 'Edit Payment'}
                               aria-label="Edit Payment"
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed text-indigo-700 bg-indigo-50/80 border-indigo-300 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              className="inline-flex items-center justify-center p-1.5 rounded-full border text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-[#804652] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
@@ -632,7 +641,7 @@ export function PurchasesPage() {
                               onClick={() => openPaymentHistoryModal(p)}
                               title="Payment History & Receipts"
                               aria-label="Payment History"
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-slate-700 bg-slate-50 border-slate-300 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                              className="inline-flex items-center justify-center p-1.5 rounded-full border text-xs transition-colors text-slate-600 bg-white border-[#EEDDE0] hover:bg-[#FAF2F4] focus:outline-none"
                             >
                               <ReceiptIcon className="h-4 w-4" />
                             </button>
@@ -655,46 +664,44 @@ export function PurchasesPage() {
             const endIndex = Math.min(startIndex + pageSize, totalPurchases)
 
             return (
-              <div className="flex items-center justify-between border-t border-amber-200 px-4 py-3 bg-amber-50/40 text-xs text-slate-600">
+              <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs text-slate-600">
                 <div>
                   Showing <span className="font-semibold text-slate-900">{totalPurchases > 0 ? startIndex + 1 : 0}</span> to{' '}
                   <span className="font-semibold text-slate-900">{endIndex}</span> of{' '}
                   <span className="font-semibold text-slate-900">{totalPurchases}</span> purchases
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
+                  <button
                     type="button"
-                    variant="secondary"
-                    size="sm"
                     disabled={safeCurrentPage <= 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors"
                   >
-                    Previous
-                  </Button>
+                    ← Previous
+                  </button>
                   <span className="px-2 font-medium text-slate-700">
                     Page {safeCurrentPage} of {totalPages}
                   </span>
-                  <Button
+                  <button
                     type="button"
-                    variant="secondary"
-                    size="sm"
                     disabled={safeCurrentPage >= totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors"
                   >
-                    Next
-                  </Button>
+                    Next →
+                  </button>
                 </div>
               </div>
             )
           })()}
-        </Card>
+        </div>
       )}
 
       {/* ================= COLLECT PAYMENT MODAL ================= */}
 
       {collectPurchase && (
         <Modal
-          title={`Collect Payment â€” ${collectPurchase.purchase_no}`}
+          title={`Collect Payment — ${collectPurchase.purchase_no}`}
           onClose={() => {
             if (!collectSubmitting) setCollectPurchase(null)
           }}
@@ -713,17 +720,17 @@ export function PurchasesPage() {
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center">
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Total Purchase</p>
-                  <p className="text-sm font-bold text-slate-900">â‚¹{Number(collectPurchase.grand_total).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-slate-900">₹{Number(collectPurchase.grand_total).toFixed(2)}</p>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-2xs">
                   <p className="text-[10px] uppercase font-semibold text-emerald-600">Already Paid</p>
                   <p className="text-sm font-bold text-emerald-700">
-                    â‚¹{Number(collectPurchase.paid_amount ?? collectPurchase.amount_paid ?? 0).toFixed(2)}
+                    ₹{Number(collectPurchase.paid_amount ?? collectPurchase.amount_paid ?? 0).toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-amber-200 bg-amber-50/40 shadow-2xs">
                   <p className="text-[10px] uppercase font-semibold text-amber-700">Outstanding Balance</p>
-                  <p className="text-sm font-extrabold text-amber-800">â‚¹{collectBalanceNum.toFixed(2)}</p>
+                  <p className="text-sm font-extrabold text-amber-800">₹{collectBalanceNum.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -731,7 +738,7 @@ export function PurchasesPage() {
             {/* Amount to Collect & Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <TextField
-                label="Amount to Collect (â‚¹)"
+                label="Amount to Collect (₹)"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -742,7 +749,7 @@ export function PurchasesPage() {
                   setCollectAmount(e.target.value)
                   setCollectError('')
                 }}
-                placeholder={`Max â‚¹${collectBalanceNum.toFixed(2)}`}
+                placeholder={`Max ₹${collectBalanceNum.toFixed(2)}`}
               />
               <TextField
                 label="Payment Date"
@@ -785,7 +792,7 @@ export function PurchasesPage() {
                   collectAmountNum > collectBalanceNum + 0.001
                 }
               >
-                {collectSubmitting ? 'Recording Paymentâ€¦' : `Collect â‚¹${collectAmountNum.toFixed(2)}`}
+                {collectSubmitting ? 'Recording Payment…' : `Collect ₹${collectAmountNum.toFixed(2)}`}
               </Button>
             </div>
           </form>
@@ -795,7 +802,7 @@ export function PurchasesPage() {
       {/* ================= PAYMENT EDIT MODAL ================= */}
       {editPurchase && (
         <Modal
-          title={`Edit Payment Details â€” ${editPurchase.purchase_no}`}
+          title={`Edit Payment Details — ${editPurchase.purchase_no}`}
           onClose={() => {
             if (!editSubmitting) setEditPurchase(null)
           }}
@@ -814,7 +821,7 @@ export function PurchasesPage() {
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 text-center">
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Grand Total</p>
-                  <p className="text-sm font-bold text-slate-900">â‚¹{Number(editPurchase.grand_total).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-slate-900">₹{Number(editPurchase.grand_total).toFixed(2)}</p>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Current Status</p>
@@ -840,7 +847,7 @@ export function PurchasesPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={editSubmitting}>
-                {editSubmitting ? 'Saving Changesâ€¦' : 'Save Payment Changes'}
+                {editSubmitting ? 'Saving Changes…' : 'Save Payment Changes'}
               </Button>
             </div>
           </form>
@@ -850,7 +857,7 @@ export function PurchasesPage() {
       {/* ================= PAYMENT HISTORY DRAWER / MODAL ================= */}
       {historyPurchase && (
         <Modal
-          title={`Payment History & Receipts â€” ${historyPurchase.purchase_no}`}
+          title={`Payment History & Receipts — ${historyPurchase.purchase_no}`}
           onClose={() => setHistoryPurchase(null)}
           width="lg"
         >
@@ -865,9 +872,9 @@ export function PurchasesPage() {
                 <strong className="text-slate-900">{historyPurchase.supplier_name}</strong>
               </div>
               <div className="flex items-center gap-4">
-                <span>Grand Total: <strong className="text-slate-900">â‚¹{historyPurchase.grand_total}</strong></span>
-                <span>Paid: <strong className="text-emerald-700">â‚¹{historyPurchase.paid_amount ?? historyPurchase.amount_paid}</strong></span>
-                <span>Balance: <strong className="text-amber-700">â‚¹{historyPurchase.balance_amount}</strong></span>
+                <span>Grand Total: <strong className="text-slate-900">₹{historyPurchase.grand_total}</strong></span>
+                <span>Paid: <strong className="text-emerald-700">₹{historyPurchase.paid_amount ?? historyPurchase.amount_paid}</strong></span>
+                <span>Balance: <strong className="text-amber-700">₹{historyPurchase.balance_amount}</strong></span>
               </div>
             </div>
 
@@ -893,12 +900,12 @@ export function PurchasesPage() {
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold text-slate-900">{pay.receipt_no}</span>
-                          <span className="text-slate-400">â€¢</span>
+                          <span className="text-slate-400">•</span>
                           <span className="text-slate-600 font-mono text-[11px]">{pay.payment_date}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge tone={isActive ? 'green' : 'red'}>{pay.status}</Badge>
-                          <span className="font-extrabold text-sm text-slate-900">â‚¹{pay.total_amount}</span>
+                          <span className="font-extrabold text-sm text-slate-900">₹{pay.total_amount}</span>
                         </div>
                       </div>
 
@@ -910,7 +917,7 @@ export function PurchasesPage() {
                             <div key={lIdx} className="bg-slate-50 p-2 rounded-lg border border-slate-200/80 flex items-center justify-between">
                               <span className="font-medium text-slate-800">{l.payment_method}</span>
                               <div className="text-right">
-                                <span className="font-bold text-slate-900">â‚¹{l.amount}</span>
+                                <span className="font-bold text-slate-900">₹{l.amount}</span>
                                 {l.reference_no && (
                                   <p className="text-[10px] text-slate-500 font-mono">Ref: {l.reference_no}</p>
                                 )}
@@ -949,7 +956,7 @@ export function PurchasesPage() {
                               }}
                               className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline inline-flex items-center gap-1"
                             >
-                              â†© Reverse Payment
+                              ↩ Reverse Payment
                             </button>
                           ) : (
                             <div className="w-full p-2.5 rounded-lg border border-red-200 bg-red-50/60 space-y-2">
@@ -959,7 +966,7 @@ export function PurchasesPage() {
                                 required
                                 value={reverseReason}
                                 onChange={(e) => setReverseReason(e.target.value)}
-                                placeholder="State reason for payment reversalâ€¦"
+                                placeholder="State reason for payment reversal…"
                               />
                               <div className="flex justify-end gap-2">
                                 <Button
@@ -976,7 +983,7 @@ export function PurchasesPage() {
                                   onClick={() => handleReversePaymentSubmit(pay.id)}
                                   className="bg-red-600 hover:bg-red-700 text-white"
                                 >
-                                  {reverseSubmitting ? 'Reversingâ€¦' : 'Confirm Reversal'}
+                                  {reverseSubmitting ? 'Reversing…' : 'Confirm Reversal'}
                                 </Button>
                               </div>
                             </div>
@@ -1002,17 +1009,40 @@ export function PurchasesPage() {
       {showForm && (
         <Modal title="New Stock Purchase" onClose={() => setShowForm(false)} width="lg">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <Alert>{error}</Alert>}
+            {error && <Alert tone="red">{error}</Alert>}
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Select label="Supplier" required value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
-                <option value="">Select Supplierâ€¦</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </Select>
-              <TextField label="Purchase Date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Supplier <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={supplierId}
+                  onChange={(e) => setSupplierId(e.target.value)}
+                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                >
+                  <option value="">Select Supplier…</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Purchase Date <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={purchaseDate}
+                  onChange={(e) => setPurchaseDate(e.target.value)}
+                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                />
+              </div>
             </div>
 
             {/* Reusable SplitPaymentFields for New Purchase */}
@@ -1024,31 +1054,47 @@ export function PurchasesPage() {
             />
 
             <div className="relative">
-              <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Search Items / Variants (Type item name, SKU or press Down Arrow to browse)
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Search Items / Variants <span className="text-slate-400 font-normal normal-case">(Type name, SKU or barcode)</span>
               </label>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onFocus={() => {
-                  setDropdownOpen(true)
-                  fetchVariants(searchQuery)
-                }}
-                onChange={(e) => {
-                  const val = e.target.value
-                  setSearchQuery(val)
-                  setDropdownOpen(true)
-                  setHighlightedIndex(0)
-                  fetchVariants(val)
-                }}
-                onKeyDown={handleKeyDown}
-                placeholder="Type item name, SKU or barcodeâ€¦ (Press â†‘ â†“ to navigate, Enter to select)"
-                className="w-full rounded-lg border border-amber-400 px-3 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-600 shadow-xs"
-              />
+              <div className="relative">
+                <svg
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                  />
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onFocus={() => {
+                    setDropdownOpen(true)
+                    fetchVariants(searchQuery)
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setSearchQuery(val)
+                    setDropdownOpen(true)
+                    setHighlightedIndex(0)
+                    fetchVariants(val)
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type item name, SKU or barcode… (Press ↑ ↓ to navigate, Enter to select)"
+                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                />
+              </div>
 
               {dropdownOpen && (
-                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-2xl border border-[#F2E5E7] bg-white shadow-xl">
                   {filteredVariants.length === 0 ? (
                     <div className="p-3 text-center text-xs text-slate-500">No items found matching search.</div>
                   ) : (
@@ -1057,19 +1103,19 @@ export function PurchasesPage() {
                         key={v.id}
                         onClick={() => selectVariant(v)}
                         onMouseEnter={() => setHighlightedIndex(index)}
-                        className={`flex cursor-pointer items-center justify-between px-3 py-2 text-xs transition-colors ${
-                          index === highlightedIndex ? 'bg-amber-800 text-white font-medium' : 'hover:bg-amber-50 text-stone-800'
+                        className={`flex cursor-pointer items-center justify-between px-3.5 py-2.5 text-xs transition-colors ${
+                          index === highlightedIndex ? 'bg-[#7B3F4A] text-white font-medium' : 'hover:bg-[#FAF2F4] text-slate-800'
                         }`}
                       >
                         <div>
                           <p className="font-semibold">{v.product_name}</p>
-                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-amber-100' : 'text-stone-500'}`}>
-                            SKU: <span className="font-mono">{v.sku}</span> | Stock: {v.on_hand ?? 0}
+                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-rose-100' : 'text-slate-500'}`}>
+                            SKU: <span className="font-mono font-bold">{v.sku}</span> | Stock: {v.on_hand ?? 0}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold">Unit Cost: â‚¹{v.purchase_price || '0'}</p>
-                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-amber-100' : 'text-stone-500'}`}>MRP: â‚¹{v.mrp}</p>
+                          <p className="font-bold">Unit Cost: ₹{v.purchase_price || '0'}</p>
+                          <p className={`text-[10px] ${index === highlightedIndex ? 'text-rose-100' : 'text-slate-500'}`}>MRP: ₹{v.mrp}</p>
                         </div>
                       </div>
                     ))
@@ -1079,98 +1125,109 @@ export function PurchasesPage() {
             </div>
 
             {items.length > 0 && (
-              <div className="rounded-xl border border-amber-200 bg-white p-3 space-y-2">
-                <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider">Purchase Item List ({items.length})</h3>
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-amber-200 uppercase text-amber-800 bg-amber-50">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">Product Item</th>
-                      <th className="px-3 py-2 font-semibold">Qty</th>
-                      <th className="px-3 py-2 font-semibold">Purchase Price (â‚¹)</th>
-                      <th className="px-3 py-2 font-semibold">MRP (â‚¹)</th>
-                      <th className="px-3 py-2 font-semibold">Discount (â‚¹)</th>
-                      <th className="px-3 py-2 font-semibold">Subtotal</th>
-                      <th className="px-3 py-2 font-semibold text-right"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-amber-100">
-                    {items.map((item) => {
-                      const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)
-                      return (
-                        <tr key={item.variant_id}>
-                          <td className="px-3 py-2">
-                            <p className="font-semibold text-stone-900">{item.product_name}</p>
-                            <p className="text-[10px] text-stone-500 font-mono">SKU: {item.sku}</p>
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateItem(item.variant_id, 'quantity', e.target.value)}
-                              className="w-16 rounded border border-stone-300 px-2 py-1 text-xs font-bold text-stone-900 focus:ring-1 focus:ring-amber-600"
-                            />
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.unit_cost}
-                              onChange={(e) => updateItem(item.variant_id, 'unit_cost', e.target.value)}
-                              className="w-24 rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-900 focus:ring-1 focus:ring-amber-600"
-                            />
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={item.mrp}
-                              onChange={(e) => updateItem(item.variant_id, 'mrp', e.target.value)}
-                              className="w-24 rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-900 focus:ring-1 focus:ring-amber-600"
-                            />
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.discount_amount}
-                              onChange={(e) => updateItem(item.variant_id, 'discount_amount', e.target.value)}
-                              className="w-20 rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-900 focus:ring-1 focus:ring-amber-600"
-                            />
-                          </td>
-                          <td className="px-3 py-2 font-bold text-stone-900">â‚¹{sub.toFixed(2)}</td>
-                          <td className="px-3 py-2 text-right">
-                            <button
-                              type="button"
-                              onClick={() => removeItem(item.variant_id)}
-                              className="text-xs font-bold text-red-600 hover:text-red-800"
-                            >
-                              âœ•
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="rounded-2xl border border-[#F2E5E7] bg-white overflow-hidden shadow-2xs space-y-2">
+                <div className="px-4 py-2.5 bg-[#FAF2F4] border-b border-[#F2E5E7] flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-[#804652] uppercase tracking-wider">Purchase Item List ({items.length})</h4>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-[11px] font-black tracking-wider">
+                      <tr>
+                        <th className="px-4 py-2.5">Product Item</th>
+                        <th className="px-3 py-2.5">Qty</th>
+                        <th className="px-3 py-2.5">Unit Cost (₹)</th>
+                        <th className="px-3 py-2.5">MRP (₹)</th>
+                        <th className="px-3 py-2.5">Discount (₹)</th>
+                        <th className="px-3 py-2.5">Subtotal</th>
+                        <th className="px-3 py-2.5 text-right"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F2E5E7]">
+                      {items.map((item) => {
+                        const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)
+                        return (
+                          <tr key={item.variant_id} className="hover:bg-[#FAF2F4]/50">
+                            <td className="px-4 py-2.5">
+                              <p className="font-bold text-slate-900">{item.product_name}</p>
+                              <p className="text-[10px] text-slate-500 font-mono">SKU: {item.sku}</p>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => updateItem(item.variant_id, 'quantity', e.target.value)}
+                                className="w-16 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                              />
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={item.unit_cost}
+                                onChange={(e) => updateItem(item.variant_id, 'unit_cost', e.target.value)}
+                                className="w-24 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                              />
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={item.mrp}
+                                onChange={(e) => updateItem(item.variant_id, 'mrp', e.target.value)}
+                                className="w-24 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                              />
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.discount_amount}
+                                onChange={(e) => updateItem(item.variant_id, 'discount_amount', e.target.value)}
+                                className="w-20 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                              />
+                            </td>
+                            <td className="px-3 py-2.5 font-bold text-slate-900">₹{sub.toFixed(2)}</td>
+                            <td className="px-3 py-2.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.variant_id)}
+                                className="p-1 rounded-full text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                title="Remove item"
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-                <div className="flex justify-between items-center pt-2 border-t border-amber-200">
-                  <div className="text-xs">
-                    <span className="text-stone-500 font-medium">Grand Total: </span>
-                    <span className="text-sm font-extrabold text-stone-900">â‚¹{grandTotal.toFixed(2)}</span>
-                  </div>
+                <div className="flex justify-between items-center px-4 py-3 bg-[#FAF2F4]/60 border-t border-[#F2E5E7]">
+                  <span className="text-slate-600 font-semibold text-xs">Grand Total</span>
+                  <span className="text-base font-extrabold text-[#804652]">₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="px-5 py-2 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition-colors"
+              >
                 Cancel
-              </Button>
-              <Button type="submit" disabled={submitting} className="!bg-amber-800 hover:!bg-amber-900 !text-white">
-                {submitting ? 'Creatingâ€¦' : 'Submit Stock Purchase'}
-              </Button>
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+              >
+                {submitting ? 'Creating…' : 'Submit Stock Purchase'}
+              </button>
             </div>
           </form>
         </Modal>

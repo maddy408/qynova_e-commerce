@@ -112,23 +112,23 @@ export function SplitPaymentFields({
   return (
     <div className="space-y-3">
       {/* Mode Switcher Header */}
-      <div className="flex items-center justify-between p-2 rounded-xl border border-slate-200 bg-slate-50/80">
+      <div className="flex items-center justify-between p-2.5 rounded-2xl border border-[#F2E5E7] bg-[#FAF2F4]/70">
         <div>
-          <p className="text-xs font-bold text-slate-800">Payment Breakdown</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#804652]">Payment Breakdown</p>
           <p className="text-[11px] text-slate-500">
             {values.mode === 'SINGLE' ? 'Single payment mode' : 'Multi-mode split payment allocation'}
           </p>
         </div>
 
-        <div className="flex gap-1 p-0.5 rounded-lg border border-slate-200 bg-white shadow-2xs">
+        <div className="flex gap-1 p-1 rounded-full border border-[#EEDDE0] bg-white shadow-2xs">
           <button
             type="button"
             disabled={isZeroTotal}
             onClick={() => handleModeToggle('SINGLE')}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+            className={`px-3.5 py-1 text-xs font-bold rounded-full transition-all ${
               values.mode === 'SINGLE'
-                ? 'bg-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
+                ? 'bg-gradient-to-r from-[#804652] to-[#6E3642] text-white shadow-2xs'
+                : 'text-slate-600 hover:text-[#804652] disabled:opacity-50'
             }`}
           >
             Single Mode
@@ -137,10 +137,10 @@ export function SplitPaymentFields({
             type="button"
             disabled={isZeroTotal}
             onClick={() => handleModeToggle('SPLIT')}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
+            className={`px-3.5 py-1 text-xs font-bold rounded-full transition-all ${
               values.mode === 'SPLIT'
-                ? 'bg-indigo-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900 disabled:opacity-50'
+                ? 'bg-gradient-to-r from-[#804652] to-[#6E3642] text-white shadow-2xs'
+                : 'text-slate-600 hover:text-[#804652] disabled:opacity-50'
             }`}
           >
             Split Payment
@@ -149,13 +149,13 @@ export function SplitPaymentFields({
       </div>
 
       {error && (
-        <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+        <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
           {error}
         </div>
       )}
 
       {isOverpaid && (
-        <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+        <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
           ⚠️ Total allocated (₹{effectiveAllocated.toFixed(2)}) exceeds the maximum amount (₹{safeTotal.toFixed(2)}) by ₹
           {(effectiveAllocated - safeTotal).toFixed(2)}. Please adjust the boxes.
         </div>
@@ -163,7 +163,7 @@ export function SplitPaymentFields({
 
       {/* SINGLE MODE */}
       {values.mode === 'SINGLE' && (
-        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
+        <div className="p-4 rounded-2xl border border-[#F2E5E7] bg-[#FAF5F6]/40 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
               label="Payment Method"
@@ -211,12 +211,12 @@ export function SplitPaymentFields({
 
       {/* SPLIT MODE */}
       {values.mode === 'SPLIT' && (
-        <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/20 space-y-3">
+        <div className="p-4 rounded-2xl border border-[#F2E5E7] bg-[#FAF5F6]/40 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Box 1: Cash */}
-            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div className="bg-white p-3 rounded-xl border border-[#EEDDE0] shadow-2xs space-y-1.5 flex flex-col justify-between">
               <div>
-                <label className="block text-xs font-bold text-slate-800">Cash (₹)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">Cash (₹)</label>
                 <p className="text-[10px] text-slate-500">Direct cash payment</p>
               </div>
               <input
@@ -228,14 +228,14 @@ export function SplitPaymentFields({
                 value={values.cash}
                 onChange={(e) => updateField('cash', e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:opacity-60"
+                className="w-full rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-2 focus:ring-[#7B3F4A]/10 disabled:bg-slate-100 disabled:opacity-60"
               />
             </div>
 
             {/* Box 2: UPI / Online */}
-            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div className="bg-white p-3 rounded-xl border border-[#EEDDE0] shadow-2xs space-y-1.5 flex flex-col justify-between">
               <div>
-                <label className="block text-xs font-bold text-slate-800">UPI / Online (₹)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">UPI / Online (₹)</label>
                 <p className="text-[10px] text-slate-500">GPay, PhonePe, QR</p>
               </div>
               <input
@@ -247,7 +247,7 @@ export function SplitPaymentFields({
                 value={values.upi}
                 onChange={(e) => updateField('upi', e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:opacity-60"
+                className="w-full rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-2 focus:ring-[#7B3F4A]/10 disabled:bg-slate-100 disabled:opacity-60"
               />
               {upiNum > 0 && (
                 <input
@@ -257,15 +257,15 @@ export function SplitPaymentFields({
                   value={values.upiRef}
                   onChange={(e) => updateField('upiRef', e.target.value)}
                   placeholder="UPI Ref / UTR *"
-                  className="w-full rounded-md border border-indigo-300 bg-indigo-50/40 px-2 py-1 text-[11px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-[#E5D5D8] bg-[#FAF2F4]/40 px-2 py-1 text-[11px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
                 />
               )}
             </div>
 
             {/* Box 3: Card */}
-            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div className="bg-white p-3 rounded-xl border border-[#EEDDE0] shadow-2xs space-y-1.5 flex flex-col justify-between">
               <div>
-                <label className="block text-xs font-bold text-slate-800">Card (₹)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">Card (₹)</label>
                 <p className="text-[10px] text-slate-500">Credit / Debit swipe</p>
               </div>
               <input
@@ -277,7 +277,7 @@ export function SplitPaymentFields({
                 value={values.card}
                 onChange={(e) => updateField('card', e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:opacity-60"
+                className="w-full rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-2 focus:ring-[#7B3F4A]/10 disabled:bg-slate-100 disabled:opacity-60"
               />
               {cardNum > 0 && (
                 <input
@@ -287,15 +287,15 @@ export function SplitPaymentFields({
                   value={values.cardRef}
                   onChange={(e) => updateField('cardRef', e.target.value)}
                   placeholder="Card Last 4 / Auth *"
-                  className="w-full rounded-md border border-indigo-300 bg-indigo-50/40 px-2 py-1 text-[11px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-[#E5D5D8] bg-[#FAF2F4]/40 px-2 py-1 text-[11px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
                 />
               )}
             </div>
 
             {/* Box 4: Bank Transfer */}
-            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs space-y-1.5 flex flex-col justify-between">
+            <div className="bg-white p-3 rounded-xl border border-[#EEDDE0] shadow-2xs space-y-1.5 flex flex-col justify-between">
               <div>
-                <label className="block text-xs font-bold text-slate-800">Bank Transfer (₹)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">Bank Transfer (₹)</label>
                 <p className="text-[10px] text-slate-500">NEFT / RTGS / IMPS</p>
               </div>
               <input
@@ -307,7 +307,7 @@ export function SplitPaymentFields({
                 value={values.bank}
                 onChange={(e) => updateField('bank', e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:opacity-60"
+                className="w-full rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-2 focus:ring-[#7B3F4A]/10 disabled:bg-slate-100 disabled:opacity-60"
               />
               {bankNum > 0 && (
                 <input
@@ -317,7 +317,7 @@ export function SplitPaymentFields({
                   value={values.bankRef}
                   onChange={(e) => updateField('bankRef', e.target.value)}
                   placeholder="Bank UTR / Ref No *"
-                  className="w-full rounded-md border border-indigo-300 bg-indigo-50/40 px-2 py-1 text-[11px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full rounded-md border border-[#E5D5D8] bg-[#FAF2F4]/40 px-2 py-1 text-[11px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
                 />
               )}
             </div>
@@ -326,7 +326,7 @@ export function SplitPaymentFields({
       )}
 
       {/* Financial Summary & Auto Badge Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#F2E5E7] bg-white p-3.5 text-xs shadow-2xs">
         <div className="flex items-center gap-4">
           <div>
             <span className="text-slate-500 font-medium">Total Paid: </span>

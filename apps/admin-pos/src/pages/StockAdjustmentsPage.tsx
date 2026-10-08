@@ -267,15 +267,15 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 pb-12">
       {/* ── Main Section Tab Navigation ── */}
-      <div className="inline-flex items-center gap-1 bg-white border border-amber-200 p-1 rounded-full shadow-sm">
+      <div className="inline-flex items-center gap-1 bg-white border border-[#F2E5E7] p-1 rounded-full shadow-sm">
         <button
           onClick={() => handleMainTabChange('OPENING_STOCK')}
           className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
             mainTab === 'OPENING_STOCK'
-              ? 'bg-amber-800 text-white shadow-sm'
-              : 'text-amber-900/70 hover:bg-amber-100/80 hover:text-amber-900'
+              ? 'bg-[#7B3F4A] text-white shadow-sm'
+              : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
           }`}
         >
           📦 Opening Stock
@@ -284,8 +284,8 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
           onClick={() => handleMainTabChange('ADJUSTMENTS')}
           className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
             mainTab === 'ADJUSTMENTS'
-              ? 'bg-amber-800 text-white shadow-sm'
-              : 'text-amber-900/70 hover:bg-amber-100/80 hover:text-amber-900'
+              ? 'bg-[#7B3F4A] text-white shadow-sm'
+              : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
           }`}
         >
           🔧 Adjustments &amp; History
@@ -294,65 +294,70 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
       {mainTab === 'OPENING_STOCK' && (
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 px-4 py-3">
+          <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h2 className="text-sm font-bold text-amber-900">Manual Opening Stock Entry</h2>
-              <p className="text-[11px] text-amber-700/70 mt-0.5">
+              <h3 className="text-xl font-serif font-bold text-slate-900">Manual Opening Stock Entry</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
                 Enter opening stock quantities and click Save. Unsaved edits auto-save when paginating.
               </p>
             </div>
             <div className="flex items-center gap-3">
               {autoSaveStatus && (
-                <span className="text-xs font-semibold text-amber-800 animate-pulse bg-amber-50 px-2.5 py-1 rounded-md border border-amber-300">
+                <span className="text-xs font-semibold text-[#804652] animate-pulse bg-[#FAF2F4] px-2.5 py-1 rounded-full border border-[#EEDDE0]">
                   {autoSaveStatus}
                 </span>
               )}
               {dirtyVariantIds.size > 0 && (
                 <Badge tone="amber">{dirtyVariantIds.size} Unsaved Edit(s)</Badge>
               )}
-              <TextField
-                placeholder="Search item or SKU…"
-                value={openingSearch}
-                onChange={(e) => {
-                  setOpeningSearch(e.target.value)
-                  setOpeningPage(1)
-                }}
-                className="w-56"
-              />
-              <Button onClick={handleManualSaveOpening} disabled={savingOpening} className="!bg-amber-800 hover:!bg-amber-900 !text-white">
+              <div className="relative">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                <input
+                  type="text"
+                  placeholder="Search item or SKU…"
+                  value={openingSearch}
+                  onChange={(e) => { setOpeningSearch(e.target.value); setOpeningPage(1) }}
+                  className="pl-9 pr-4 py-2 rounded-full border border-[#EEDDE0] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 w-52"
+                />
+              </div>
+              <button
+                onClick={handleManualSaveOpening}
+                disabled={savingOpening}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#7B3F4A] hover:bg-[#6a3340] text-white text-xs font-semibold transition-colors disabled:opacity-60"
+              >
                 {savingOpening ? 'Saving Stock…' : 'Save Opening Stock'}
-              </Button>
+              </button>
             </div>
           </div>
 
-          <Card>
+          <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm overflow-hidden">
             {openingLoading ? (
-              <Spinner />
+              <div className="p-12 text-center"><Spinner /></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b-2 border-amber-200 bg-amber-50/80 text-[10px] uppercase tracking-wider text-amber-800">
-                    <tr>
-                      <th className="px-4 py-3 font-bold">Product Title</th>
-                      <th className="px-4 py-3 font-bold">SKU / Barcode</th>
-                      <th className="px-4 py-3 font-bold">Current On-Hand</th>
-                      <th className="px-4 py-3 font-bold">Manual Opening Stock Input</th>
-                      <th className="px-4 py-3 font-bold text-right">Status</th>
+                  <thead>
+                    <tr className="border-b border-[#F2E5E7] bg-[#FAF2F4]">
+                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Product Title</th>
+                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">SKU / Barcode</th>
+                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Current On-Hand</th>
+                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Manual Opening Stock Input</th>
+                      <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-amber-100">
+                  <tbody className="divide-y divide-[#F2E5E7]">
                     {openingItems.map((item) => {
                       const isDirty = dirtyVariantIds.has(item.variant_id)
                       const currentVal = openingInputs[item.variant_id] ?? String(Number(item.on_hand) || 0)
 
                       return (
-                        <tr key={item.variant_id} className={`hover:bg-amber-50/60 transition-colors ${isDirty ? 'bg-amber-50/40' : ''}`}>
-                          <td className="px-4 py-2.5 font-semibold text-stone-900">{item.product_name}</td>
-                          <td className="px-4 py-2.5 font-mono text-stone-600">
+                        <tr key={item.variant_id} className={`hover:bg-[#FAF2F4]/60 transition-colors ${isDirty ? 'bg-[#FAF2F4]/40' : ''}`}>
+                          <td className="px-6 py-3 font-semibold text-slate-900">{item.product_name}</td>
+                          <td className="px-6 py-3 font-mono text-slate-600">
                             {item.sku} {item.barcode ? `(${item.barcode})` : ''}
                           </td>
-                          <td className="px-4 py-2.5 font-bold text-stone-700">{item.on_hand} units</td>
-                          <td className="px-4 py-2.5">
+                          <td className="px-6 py-3 font-bold text-slate-700">{item.on_hand} units</td>
+                          <td className="px-6 py-3">
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
@@ -360,13 +365,13 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 step="1"
                                 value={currentVal}
                                 onChange={(e) => handleOpeningInputChange(item.variant_id, e.target.value)}
-                                className={`w-32 rounded-lg border px-3 py-1 text-xs font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-600 ${
-                                  isDirty ? 'border-amber-600 bg-amber-50/60 ring-1 ring-amber-300' : 'border-stone-300 bg-white'
+                                className={`w-32 rounded-full border px-3 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 ${
+                                  isDirty ? 'border-[#804652] bg-[#FAF2F4] ring-1 ring-[#EEDDE0]' : 'border-[#EEDDE0] bg-white'
                                 }`}
                               />
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-right">
+                          <td className="px-6 py-3 text-right">
                             {isDirty ? (
                               <Badge tone="amber">Unsaved Edits</Badge>
                             ) : (
@@ -378,7 +383,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     })}
                     {openingItems.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-stone-500">
+                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                           No items match "{openingSearch}".
                         </td>
                       </tr>
@@ -389,19 +394,19 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             )}
 
             {/* Pagination with Background Auto-Save */}
-            <div className="flex items-center justify-between border-t border-amber-200 px-4 py-3 bg-amber-50/50 text-xs">
+            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs">
               <span className="text-stone-500">
                 Page <span className="font-bold text-stone-900">{openingPage}</span> of <span className="font-bold text-stone-900">{totalPages}</span> ({openingTotal} total items)
               </span>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
+                <button
+                  type="button"
                   disabled={openingPage <= 1}
                   onClick={() => handlePageChange(openingPage - 1)}
+                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs"
                 >
                   ← Previous
-                </Button>
+                </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pNum = i + 1
                   if (totalPages > 5 && openingPage > 3) {
@@ -412,39 +417,38 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <button
                       key={pNum}
                       onClick={() => handlePageChange(pNum)}
-                      className={`h-7 w-7 rounded-lg font-bold text-xs transition-colors ${
-                        pNum === openingPage ? 'bg-amber-800 text-white' : 'bg-white border border-stone-300 text-stone-700 hover:bg-amber-50'
+                      className={`h-7 w-7 rounded-full font-bold text-xs transition-colors ${
+                        pNum === openingPage ? 'bg-[#7B3F4A] text-white' : 'bg-white border border-[#EEDDE0] text-slate-700 hover:bg-[#FAF2F4]'
                       }`}
                     >
                       {pNum}
                     </button>
                   )
                 })}
-                <Button
-                  variant="secondary"
-                  size="sm"
+                <button
                   disabled={openingPage >= totalPages}
                   onClick={() => handlePageChange(openingPage + 1)}
+                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs"
                 >
                   Next →
-                </Button>
+                </button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
       {mainTab === 'ADJUSTMENTS' && (
         <div className="space-y-4">
           {/* Sub-view Switcher */}
-          <div className="inline-flex items-center gap-0.5 bg-white border border-amber-200 p-0.5 rounded-full shadow-sm">
+          <div className="inline-flex items-center gap-0.5 bg-white border border-[#F2E5E7] p-0.5 rounded-full shadow-sm">
             <button
               type="button"
               onClick={() => handleSubViewChange('ADJUSTMENTS')}
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
                 subView === 'ADJUSTMENTS'
-                  ? 'bg-amber-800 text-white shadow-sm'
-                  : 'text-amber-900/70 hover:bg-amber-100/80 hover:text-amber-900'
+                  ? 'bg-[#7B3F4A] text-white shadow-sm'
+                  : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
               }`}
             >
               Stock Adjustment &amp; History
@@ -454,8 +458,8 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               onClick={() => handleSubViewChange('LOGS')}
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
                 subView === 'LOGS'
-                  ? 'bg-amber-800 text-white shadow-sm'
-                  : 'text-amber-900/70 hover:bg-amber-100/80 hover:text-amber-900'
+                  ? 'bg-[#7B3F4A] text-white shadow-sm'
+                  : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
               }`}
             >
               Recent Adjustment Logs
@@ -464,10 +468,10 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
           {subView === 'ADJUSTMENTS' && (
             <div className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 px-4 py-3">
+              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-sm font-bold text-amber-900">Stock Adjustment &amp; Count</h2>
-                  <p className="text-[11px] text-amber-700/70 mt-0.5">
+                  <h3 className="text-xl font-serif font-bold text-slate-900">Stock Adjustment &amp; Count</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Adjust quantities with steppers or direct entry, then confirm to record an audit trail.
                   </p>
                 </div>
@@ -476,36 +480,40 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <Badge tone="amber">{changedItems.length} Changed Item(s)</Badge>
                   )}
                   {changedItems.length > 0 && (
-                    <Button variant="secondary" onClick={discardChanges}>
+                    <button type="button" onClick={discardChanges} className="px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-white text-xs font-medium text-slate-700 hover:bg-[#FAF2F4] transition-colors">
                       Discard
-                    </Button>
+                    </button>
                   )}
-                  <TextField
-                    placeholder="Search product or SKU…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-72 sm:w-80"
-                  />
+                  <div className="relative">
+                    <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                    <input
+                      type="text"
+                      placeholder="Search product or SKU…"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 pr-4 py-2 rounded-full border border-[#EEDDE0] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 w-72 sm:w-80"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <Card>
+              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm overflow-hidden">
                 {stock === null ? (
-                  <Spinner />
+                  <div className="p-12 text-center"><Spinner /></div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="border-b-2 border-amber-200 bg-amber-50/80 text-[10px] uppercase tracking-wider text-amber-800">
-                        <tr>
-                          <th className="px-4 py-3 font-bold">Product Title</th>
-                          <th className="px-4 py-3 font-bold">SKU / Barcode</th>
-                          <th className="px-4 py-3 font-bold">Current On-Hand</th>
-                          <th className="px-4 py-3 font-bold">Counted Qty</th>
-                          <th className="px-4 py-3 font-bold text-center">Difference</th>
-                          <th className="px-4 py-3 font-bold text-right">Status</th>
+                      <thead>
+                        <tr className="border-b border-[#F2E5E7] bg-[#FAF2F4]">
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Product Title</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">SKU / Barcode</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Current On-Hand</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Counted Qty</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-center">Difference</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-amber-100">
+                      <tbody className="divide-y divide-[#F2E5E7]">
                         {filteredStock.map((item) => {
                           const counted = counts[item.variant_id] ?? item.on_hand
                           const systemQty = Number(item.on_hand)
@@ -523,21 +531,21 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                           return (
                             <tr
                               key={item.variant_id}
-                              className={`hover:bg-amber-50/60 transition-colors ${
-                                isChanged ? 'bg-amber-50/40' : ''
+                              className={`hover:bg-[#FAF2F4]/60 transition-colors ${
+                                isChanged ? 'bg-[#FAF2F4]/40' : ''
                               }`}
                             >
-                              <td className="px-4 py-2.5 font-semibold text-stone-900">{item.product_name}</td>
-                              <td className="px-4 py-2.5 font-mono text-stone-600">
+                              <td className="px-6 py-3 font-semibold text-slate-900">{item.product_name}</td>
+                              <td className="px-6 py-3 font-mono text-slate-600">
                                 {item.sku} {item.barcode ? `(${item.barcode})` : ''}
                               </td>
-                              <td className="px-4 py-2.5 font-bold text-stone-700">{item.on_hand} units</td>
-                              <td className="px-4 py-2.5">
+                              <td className="px-6 py-3 font-bold text-slate-700">{item.on_hand} units</td>
+                              <td className="px-6 py-3">
                                 <div className="flex items-center gap-1.5">
                                   <button
                                     type="button"
                                     onClick={() => step(-1)}
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#EEDDE0] bg-[#FAF2F4] text-[#804652] hover:bg-[#F2E5E7] font-bold text-xs"
                                   >
                                     −
                                   </button>
@@ -547,22 +555,22 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                     step="1"
                                     value={counted}
                                     onChange={(e) => updateCount(item.variant_id, e.target.value)}
-                                    className={`w-20 rounded-lg border px-2 py-1 text-center text-xs font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-600 ${
+                                    className={`w-20 rounded-full border px-2 py-1 text-center text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 ${
                                       isChanged
-                                        ? 'border-amber-600 bg-amber-50/60 ring-1 ring-amber-300'
-                                        : 'border-stone-300 bg-white'
+                                        ? 'border-[#804652] bg-[#FAF2F4] ring-1 ring-[#EEDDE0]'
+                                        : 'border-[#EEDDE0] bg-white'
                                     }`}
                                   />
                                   <button
                                     type="button"
                                     onClick={() => step(1)}
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#EEDDE0] bg-[#FAF2F4] text-[#804652] hover:bg-[#F2E5E7] font-bold text-xs"
                                   >
                                     +
                                   </button>
                                 </div>
                               </td>
-                              <td className="px-4 py-2.5 text-center font-bold text-xs">
+                              <td className="px-6 py-3 text-center font-bold text-xs">
                                 {isChanged ? (
                                   <span className={diff > 0 ? 'text-emerald-600' : 'text-red-600'}>
                                     {diff > 0 ? `+${diff}` : diff}
@@ -585,7 +593,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                         })}
                         {filteredStock.length === 0 && (
                           <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-stone-500">
+                            <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                               No products match "{search}".
                             </td>
                           </tr>
@@ -594,18 +602,18 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     </table>
                   </div>
                 )}
-              </Card>
+              </div>
 
               {changedItems.length > 0 && (
-                <div className="sticky bottom-4 z-10 mt-4 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-lg">
-                  <p className="text-sm text-stone-700">
-                    <span className="font-medium text-amber-800">{changedItems.length}</span> item(s) changed
+                <div className="sticky bottom-4 z-10 mt-4 flex items-center justify-between rounded-3xl border border-[#F2E5E7] bg-white p-4 shadow-lg">
+                  <p className="text-sm text-slate-700">
+                    <span className="font-medium text-[#804652]">{changedItems.length}</span> item(s) changed
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="secondary" onClick={discardChanges}>
+                    <button type="button" onClick={discardChanges} className="px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-white text-xs font-medium text-slate-700 hover:bg-[#FAF2F4] transition-colors">
                       Discard
-                    </Button>
-                    <Button onClick={() => setShowReasonModal(true)} className="!bg-amber-800 hover:!bg-amber-900 !text-white">Stock Adjustment</Button>
+                    </button>
+                    <button type="button" onClick={() => setShowReasonModal(true)} className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#7B3F4A] hover:bg-[#6a3340] text-white text-xs font-semibold transition-colors">Stock Adjustment</button>
                   </div>
                 </div>
               )}
@@ -614,53 +622,57 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
           {subView === 'LOGS' && (
             <div className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-amber-50/60 border border-amber-200/60 px-4 py-3">
+              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-sm font-bold text-amber-900">Recent Adjustment Logs</h2>
-                  <p className="text-[11px] text-amber-700/70 mt-0.5">
+                  <h3 className="text-xl font-serif font-bold text-slate-900">Recent Adjustment Logs</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Audit trail of stock adjustments, counted quantities, and inventory variances.
                   </p>
                 </div>
-                <TextField
-                  placeholder="Search by adjustment #, reason, product…"
-                  value={logSearch}
-                  onChange={(e) => setLogSearch(e.target.value)}
-                  className="w-80 sm:w-96"
-                />
+                <div className="relative">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+                  <input
+                    type="text"
+                    placeholder="Search by adjustment #, reason, product…"
+                    value={logSearch}
+                    onChange={(e) => setLogSearch(e.target.value)}
+                    className="pl-9 pr-4 py-2 rounded-full border border-[#EEDDE0] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 w-80 sm:w-96"
+                  />
+                </div>
               </div>
 
-              <Card>
+              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm overflow-hidden">
                 {adjustments === null ? (
-                  <Spinner />
+                  <div className="p-12 text-center"><Spinner /></div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
-                      <thead className="border-b-2 border-amber-200 bg-amber-50/80 text-[10px] uppercase tracking-wider text-amber-800">
-                        <tr>
-                          <th className="px-4 py-3 font-bold">Adjustment #</th>
-                          <th className="px-4 py-3 font-bold">Date &amp; Time</th>
-                          <th className="px-4 py-3 font-bold">Reason</th>
-                          <th className="px-4 py-3 font-bold">Adjusted By</th>
-                          <th className="px-4 py-3 font-bold">Product</th>
-                          <th className="px-4 py-3 font-bold text-right">System Qty</th>
-                          <th className="px-4 py-3 font-bold text-right">Counted Qty</th>
-                          <th className="px-4 py-3 font-bold text-right">Difference</th>
+                      <thead>
+                        <tr className="border-b border-[#F2E5E7] bg-[#FAF2F4]">
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Adjustment #</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Date &amp; Time</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Reason</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Adjusted By</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Product</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">System Qty</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Counted Qty</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Difference</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-amber-100">
+                      <tbody className="divide-y divide-[#F2E5E7]">
                         {filteredAdjustments.map((adj) => {
                           if (!adj.items || adj.items.length === 0) {
                             return (
-                              <tr key={adj.id} className="hover:bg-amber-50/60 transition-colors">
-                                <td className="px-4 py-2.5 font-mono font-semibold text-stone-900">{adj.adjustment_no}</td>
-                                <td className="px-4 py-2.5 text-stone-500 whitespace-nowrap">{new Date(adj.created_at).toLocaleString()}</td>
-                                <td className="px-4 py-2.5 text-stone-700 font-medium">
-                                  <span className="inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800 font-medium">
+                              <tr key={adj.id} className="hover:bg-[#FAF2F4]/60 transition-colors">
+                                <td className="px-6 py-3 font-mono font-semibold text-slate-900">{adj.adjustment_no}</td>
+                                <td className="px-6 py-3 text-slate-500 whitespace-nowrap">{new Date(adj.created_at).toLocaleString()}</td>
+                                <td className="px-6 py-3 text-slate-700 font-medium">
+                                  <span className="inline-block rounded-full bg-[#FAF2F4] px-2 py-0.5 text-xs text-[#804652] font-medium border border-[#EEDDE0]">
                                     {adj.reason}
                                   </span>
                                 </td>
-                                <td className="px-4 py-2.5 text-stone-600 whitespace-nowrap">{adj.created_by_name}</td>
-                                <td colSpan={4} className="px-4 py-2.5 text-stone-400">No items recorded</td>
+                                <td className="px-6 py-3 text-slate-600 whitespace-nowrap">{adj.created_by_name}</td>
+                                <td colSpan={4} className="px-6 py-3 text-slate-400">No items recorded</td>
                               </tr>
                             )
                           }
@@ -668,44 +680,44 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                           return adj.items.map((item, itemIdx) => (
                             <tr
                               key={`${adj.id}-${item.variant_id}-${itemIdx}`}
-                              className={`hover:bg-amber-50/60 transition-colors ${itemIdx > 0 ? 'bg-amber-50/20' : ''}`}
+                              className={`hover:bg-[#FAF2F4]/60 transition-colors ${itemIdx > 0 ? 'bg-[#FAF2F4]/20' : ''}`}
                             >
                               {itemIdx === 0 && (
                                 <>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-4 py-2.5 font-mono font-semibold text-stone-900 align-top border-b border-amber-100"
+                                    className="px-6 py-3 font-mono font-semibold text-slate-900 align-top border-b border-[#F2E5E7]"
                                   >
                                     {adj.adjustment_no}
                                   </td>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-4 py-2.5 text-stone-500 align-top border-b border-amber-100 whitespace-nowrap"
+                                    className="px-6 py-3 text-slate-500 align-top border-b border-[#F2E5E7] whitespace-nowrap"
                                   >
                                     {new Date(adj.created_at).toLocaleString()}
                                   </td>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-4 py-2.5 text-stone-700 font-medium align-top border-b border-amber-100"
+                                    className="px-6 py-3 text-slate-700 font-medium align-top border-b border-[#F2E5E7]"
                                   >
-                                    <span className="inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800 font-medium">
+                                    <span className="inline-block rounded-full bg-[#FAF2F4] px-2 py-0.5 text-xs text-[#804652] font-medium border border-[#EEDDE0]">
                                       {adj.reason}
                                     </span>
                                   </td>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-4 py-2.5 text-stone-600 align-top border-b border-amber-100 whitespace-nowrap"
+                                    className="px-6 py-3 text-slate-600 align-top border-b border-[#F2E5E7] whitespace-nowrap"
                                   >
                                     {adj.created_by_name}
                                   </td>
                                 </>
                               )}
-                              <td className="px-4 py-2.5 text-stone-900 font-medium">
+                              <td className="px-6 py-3 text-slate-900 font-medium">
                                 <div>{item.product_name}</div>
-                                <div className="font-mono text-[11px] text-stone-400">{item.sku}</div>
+                                <div className="font-mono text-[11px] text-slate-400">{item.sku}</div>
                               </td>
-                              <td className="px-4 py-2.5 text-stone-600 text-right font-medium">{item.system_qty}</td>
-                              <td className="px-4 py-2.5 text-stone-900 text-right font-bold">{item.counted_qty}</td>
+                              <td className="px-6 py-3 text-slate-600 text-right font-medium">{item.system_qty}</td>
+                              <td className="px-6 py-3 text-slate-900 text-right font-bold">{item.counted_qty}</td>
                               <td className="px-4 py-2.5 text-right font-bold">
                                 <span
                                   className={
@@ -725,7 +737,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                         })}
                         {filteredAdjustments.length === 0 && (
                           <tr>
-                            <td colSpan={8} className="px-4 py-8 text-center text-stone-500">
+                            <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                               {logSearch ? `No adjustment logs match "${logSearch}".` : 'No stock adjustments yet.'}
                             </td>
                           </tr>
@@ -734,7 +746,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     </table>
                   </div>
                 )}
-              </Card>
+              </div>
             </div>
           )}
         </div>
@@ -746,9 +758,9 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             {error && <Alert>{error}</Alert>}
             <TextField label="Reason" required autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Monthly stock count" />
 
-            <div className="max-h-48 overflow-y-auto rounded-lg border border-amber-200">
+            <div className="max-h-48 overflow-y-auto rounded-2xl border border-[#F2E5E7]">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-amber-200 text-xs uppercase text-amber-800 bg-amber-50">
+                <thead className="border-b border-[#F2E5E7] text-xs uppercase text-[#804652] bg-[#FAF2F4]">
                   <tr>
                     <th className="px-3 py-2 font-medium">Product</th>
                     <th className="px-3 py-2 font-medium">System</th>
@@ -756,7 +768,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <th className="px-3 py-2 font-medium">Diff</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-amber-100">
+                <tbody className="divide-y divide-[#F2E5E7]">
                   {changedItems.map((item) => {
                     const diff = Number(counts[item.variant_id]) - Number(item.on_hand)
                     return (
@@ -779,9 +791,13 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               <Button type="button" variant="secondary" onClick={() => setShowReasonModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting} className="!bg-amber-800 hover:!bg-amber-900 !text-white">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#7B3F4A] hover:bg-[#6a3340] text-white text-xs font-semibold transition-colors disabled:opacity-60"
+              >
                 {submitting ? 'Saving…' : 'Confirm Adjustment'}
-              </Button>
+              </button>
             </div>
           </form>
         </Modal>

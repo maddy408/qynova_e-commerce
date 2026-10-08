@@ -298,7 +298,7 @@ export function Layout() {
 
       {/* Section Sub-Header & Horizontal Tab Navigation */}
       {activeSection && activeSection.items.length > 0 && (
-        <div className={activeSection.id === 'inventory' ? 'bg-amber-50 border-b border-amber-200 shadow-2xs' : 'bg-white border-b border-slate-200/80 shadow-2xs'}>
+        <div className="bg-white border-b border-slate-200/80 shadow-2xs">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3.5">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               {/* Breadcrumb & Section Name */}
@@ -307,38 +307,19 @@ export function Layout() {
                   <nav className="flex items-center gap-1.5 text-[10px] font-bold text-[#804652]/80 uppercase tracking-[0.2em] mb-0.5">
                     <span>{breadcrumb.sectionLabel}</span>
                     <span>&gt;</span>
-                    <span className={activeSection.id === 'inventory' ? 'text-amber-800 font-bold' : 'text-[#804652]'}>{breadcrumb.itemLabel}</span>
+                    <span className="text-[#804652]">{breadcrumb.itemLabel}</span>
                   </nav>
                 )}
-                <h1 className={`text-2xl sm:text-3xl font-serif font-bold tracking-tight ${activeSection.id === 'inventory' ? 'text-amber-900' : 'text-slate-900'}`}>
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-slate-900">
                   {activeSection.label}
                 </h1>
               </div>
 
               {/* Horizontal Sub-Navigation Tab Bar */}
-              <div className={`inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm self-start sm:self-auto border ${
-                activeSection.id === 'inventory'
-                  ? 'bg-white border-amber-200'
-                  : 'bg-[#F9F3F4] border-[#EEDDE0]'
-              }`}>
+              <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm self-start sm:self-auto border bg-[#F9F3F4] border-[#EEDDE0]">
                 {activeSection.items.map((sub) => {
                   if (sub.permission && !hasPermission(sub.permission)) return null
                   const isSubActive = location.pathname.startsWith(sub.to)
-                  if (activeSection.id === 'inventory') {
-                    return (
-                      <NavLink
-                        key={sub.to}
-                        to={sub.to}
-                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
-                          isSubActive
-                            ? 'bg-amber-800 text-white shadow-sm'
-                            : 'text-amber-800/80 hover:bg-amber-100 hover:text-amber-900'
-                        }`}
-                      >
-                        {sub.label}
-                      </NavLink>
-                    )
-                  }
                   return (
                     <NavLink
                       key={sub.to}
