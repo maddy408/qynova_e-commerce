@@ -24,9 +24,11 @@ body {
 
 /* Paper receipt serrated edge utility */
 .receipt-paper {
-  background-color: #f4efe6;
+  background-color: #FAF5F6;
   position: relative;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 30px -5px rgba(123, 63, 74, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  border-left: 1px solid #EEDDE0;
+  border-right: 1px solid #EEDDE0;
 }
 
 .receipt-paper::before,
@@ -43,12 +45,12 @@ body {
 
 .receipt-paper::before {
   top: -10px;
-  background-image: radial-gradient(circle at 8px -4px, transparent 8px, #f4efe6 9px);
+  background-image: radial-gradient(circle at 8px -4px, transparent 8px, #FAF5F6 9px);
 }
 
 .receipt-paper::after {
   bottom: -10px;
-  background-image: radial-gradient(circle at 8px 14px, transparent 8px, #f4efe6 9px);
+  background-image: radial-gradient(circle at 8px 14px, transparent 8px, #FAF5F6 9px);
 }
 
 @media print {

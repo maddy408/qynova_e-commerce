@@ -149,20 +149,20 @@ export function CouponsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-200 uppercase text-slate-500 bg-slate-50/70">
+            <thead className="border-b border-[#F2E5E7] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[10px] font-bold tracking-wider">
               <tr>
-                <th className="px-4 py-2.5 font-semibold">Code</th>
-                <th className="px-4 py-2.5 font-semibold">Name</th>
-                <th className="px-4 py-2.5 font-semibold">Discount</th>
-                <th className="px-4 py-2.5 font-semibold">Limits</th>
-                <th className="px-4 py-2.5 font-semibold">First Order</th>
-                <th className="px-4 py-2.5 font-semibold">Status</th>
-                <th className="px-4 py-2.5 font-semibold text-right">Action</th>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Discount</th>
+                <th className="px-4 py-3">Limits</th>
+                <th className="px-4 py-3">First Order</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F2E5E7]">
               {coupons.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={c.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
                   <td className="px-4 py-2.5 font-mono font-bold text-indigo-700 bg-indigo-50/50 rounded">{c.code}</td>
                   <td className="px-4 py-2.5 font-semibold text-slate-900">{c.name}</td>
                   <td className="px-4 py-2.5 text-slate-900 font-bold">

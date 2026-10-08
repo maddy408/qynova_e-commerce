@@ -52,24 +52,24 @@ export function PaymentMethodsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+            <thead className="border-b border-[#F2E5E7] text-[10px] font-bold uppercase tracking-wider text-[#804652] bg-[#FAF2F4]/80">
               <tr>
-                <th className="px-5 py-3 font-medium">Code</th>
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium"></th>
+                <th className="px-5 py-3">Code</th>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F2E5E7]">
               {methods.map((m) => (
-                <tr key={m.id}>
-                  <td className="px-5 py-3 font-mono text-xs text-slate-600">{m.code}</td>
-                  <td className="px-5 py-3 font-medium text-slate-900">{m.name}</td>
+                <tr key={m.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
+                  <td className="px-5 py-3 font-mono text-xs text-slate-600 font-bold">{m.code}</td>
+                  <td className="px-5 py-3 font-semibold text-slate-900">{m.name}</td>
                   <td className="px-5 py-3">
                     <Badge tone={m.is_active ? 'green' : 'slate'}>{m.is_active ? 'Active' : 'Inactive'}</Badge>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <button type="button" onClick={() => toggleActive(m)} className="text-xs text-slate-600 hover:underline">
+                    <button type="button" onClick={() => toggleActive(m)} className="text-xs font-bold text-[#7B3F4A] hover:underline">
                       {m.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                   </td>

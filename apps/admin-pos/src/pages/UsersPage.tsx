@@ -110,22 +110,22 @@ export function UsersPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+            <thead className="border-b border-[#F2E5E7] text-[10px] font-bold uppercase tracking-wider text-[#804652] bg-[#FAF2F4]/80">
               <tr>
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="px-5 py-3 font-medium">Email</th>
-                <th className="px-5 py-3 font-medium">Phone</th>
-                <th className="px-5 py-3 font-medium">Role</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium"></th>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Email</th>
+                <th className="px-5 py-3">Phone</th>
+                <th className="px-5 py-3">Role</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#F2E5E7]">
               {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="px-5 py-3 font-medium text-slate-900">{u.name}</td>
+                <tr key={u.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
+                  <td className="px-5 py-3 font-semibold text-slate-900">{u.name}</td>
                   <td className="px-5 py-3 text-slate-600">{u.email ?? '—'}</td>
-                  <td className="px-5 py-3 text-slate-600">{u.phone ?? '—'}</td>
+                  <td className="px-5 py-3 text-slate-600 font-mono text-xs">{u.phone ?? '—'}</td>
                   <td className="px-5 py-3">
                     <Badge tone={u.role_code === 'ADMIN' ? 'amber' : 'slate'}>{u.role_name}</Badge>
                   </td>
@@ -133,10 +133,10 @@ export function UsersPage() {
                     <Badge tone={u.status === 'ACTIVE' ? 'green' : 'slate'}>{u.status}</Badge>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <button type="button" onClick={() => openEdit(u)} className="mr-3 text-xs text-slate-600 hover:underline">
+                    <button type="button" onClick={() => openEdit(u)} className="mr-3 text-xs font-bold text-[#7B3F4A] hover:underline">
                       Edit
                     </button>
-                    <button type="button" onClick={() => toggleActive(u)} className="text-xs text-slate-600 hover:underline">
+                    <button type="button" onClick={() => toggleActive(u)} className="text-xs font-bold text-slate-600 hover:text-rose-700 hover:underline">
                       {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                     </button>
                   </td>

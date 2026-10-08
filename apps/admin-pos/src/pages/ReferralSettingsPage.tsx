@@ -69,7 +69,7 @@ export function ReferralSettingsPage() {
                 type="checkbox"
                 checked={settings.is_enabled}
                 onChange={(e) => set('is_enabled', e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                className="h-4 w-4 rounded border-[#EEDDE0] text-[#7B3F4A] focus:ring-[#7B3F4A]"
               />
               Enable referral system
             </label>
@@ -133,7 +133,7 @@ export function ReferralSettingsPage() {
                 type="checkbox"
                 checked={settings.first_order_only}
                 onChange={(e) => set('first_order_only', e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                className="h-4 w-4 rounded border-[#EEDDE0] text-[#7B3F4A] focus:ring-[#7B3F4A]"
               />
               First order only
             </label>
@@ -146,33 +146,33 @@ export function ReferralSettingsPage() {
         <div className="space-y-6">
           {report && (
             <Card className="space-y-3 p-5">
-              <h2 className="text-sm font-semibold text-slate-900">Referral Report</h2>
+              <h2 className="text-base font-serif font-bold text-slate-900">Referral Report</h2>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-slate-500">Total</p>
-                  <p className="text-lg font-semibold text-slate-900">{report.totals.total_referrals}</p>
+                <div className="p-3 rounded-2xl bg-[#FAF2F4] border border-[#EEDDE0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#804652]">Total</p>
+                  <p className="text-lg font-serif font-bold text-slate-900 mt-0.5">{report.totals.total_referrals}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500">Successful</p>
-                  <p className="text-lg font-semibold text-slate-900">{report.totals.successful_referrals}</p>
+                <div className="p-3 rounded-2xl bg-[#FAF2F4] border border-[#EEDDE0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#804652]">Successful</p>
+                  <p className="text-lg font-serif font-bold text-slate-900 mt-0.5">{report.totals.successful_referrals}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500">Pending</p>
-                  <p className="text-lg font-semibold text-slate-900">{report.totals.pending_referrals}</p>
+                <div className="p-3 rounded-2xl bg-[#FAF2F4] border border-[#EEDDE0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#804652]">Pending</p>
+                  <p className="text-lg font-serif font-bold text-slate-900 mt-0.5">{report.totals.pending_referrals}</p>
                 </div>
-                <div>
-                  <p className="text-slate-500">Discount Given</p>
-                  <p className="text-lg font-semibold text-slate-900">₹{report.referral_discount_given}</p>
+                <div className="p-3 rounded-2xl bg-[#FAF2F4] border border-[#EEDDE0]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#804652]">Discount Given</p>
+                  <p className="text-lg font-serif font-bold text-[#7B3F4A] mt-0.5">₹{report.referral_discount_given}</p>
                 </div>
               </div>
               {report.top_referrers.length > 0 && (
-                <div>
-                  <p className="mb-1 text-xs font-medium uppercase text-slate-500">Top Referrers</p>
+                <div className="pt-2">
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Top Referrers</p>
                   <ul className="space-y-1 text-sm">
                     {report.top_referrers.map((r) => (
-                      <li key={r.id} className="flex justify-between text-slate-600">
+                      <li key={r.id} className="flex justify-between text-slate-600 font-medium">
                         <span>{r.name}</span>
-                        <span>{r.referral_count}</span>
+                        <span className="font-bold text-slate-900">{r.referral_count}</span>
                       </li>
                     ))}
                   </ul>

@@ -87,24 +87,24 @@ export function BannersPage() {
                   <Badge>{b.target_type}</Badge>
                   {b.items.length > 0 && <Badge tone="amber">{b.items.length} item(s)</Badge>}
                 </div>
-                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-[#F2E5E7]">
                   <button
                     onClick={() => setEditing(b)}
-                    className="p-1.5 rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
                     title="Manage / Edit Banner"
                   >
                     <PencilIcon />
                   </button>
                   <button
                     onClick={() => toggleActive(b)}
-                    className={`p-1.5 rounded-lg transition-colors ${b.is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${b.is_active ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[#FAF2F4]'}`}
                     title={b.is_active ? 'Deactivate Banner' : 'Activate Banner'}
                   >
                     <PowerIcon />
                   </button>
                   <button
                     onClick={() => removeBanner(b.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                     title="Delete Banner"
                   >
                     <TrashIcon />
