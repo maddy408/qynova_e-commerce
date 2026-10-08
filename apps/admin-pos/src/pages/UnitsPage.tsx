@@ -156,7 +156,7 @@ export function UnitsPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(u)}
-                          className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-200"
+                          className="p-1.5 text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] rounded-lg transition-colors border border-transparent hover:border-[#EEDDE0]"
                           title="Edit Unit"
                         >
                           <PencilIcon className="h-4 w-4" />

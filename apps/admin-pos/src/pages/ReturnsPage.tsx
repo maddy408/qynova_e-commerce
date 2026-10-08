@@ -189,67 +189,67 @@ export function ReturnsPage() {
       {error && <Alert>{error}</Alert>}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 p-1 bg-[#FAF2F4] rounded-full border border-[#EEDDE0] w-fit">
+      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[#F9F3F4] border-[#EEDDE0]">
         <button
           onClick={() => setActiveTab('SALE')}
-          className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
-            activeTab === 'SALE' ? 'bg-[#804652] text-white shadow-xs' : 'text-slate-700 hover:text-slate-950 font-bold'
+          className={`px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
+            activeTab === 'SALE' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
           Sale Returns ({saleReturns.length})
         </button>
         <button
           onClick={() => setActiveTab('PURCHASE')}
-          className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
-            activeTab === 'PURCHASE' ? 'bg-[#804652] text-white shadow-xs' : 'text-slate-700 hover:text-slate-950 font-bold'
+          className={`px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
+            activeTab === 'PURCHASE' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
           Purchase Returns ({purchaseReturns.length})
         </button>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden border border-[#F2E5E7] shadow-2xs rounded-3xl">
         {loading ? (
-          <div className="p-8 text-center text-xs font-semibold text-slate-500">Loading return records…</div>
+          <div className="p-8 text-center text-sm text-slate-500">Loading return records…</div>
         ) : activeTab === 'SALE' ? (
           saleReturns.length === 0 ? (
-            <div className="p-12 text-center text-xs font-semibold text-slate-500">
+            <div className="p-12 text-center text-sm text-slate-500">
               No sale returns recorded yet. Click "+ New Sale Return" above to process one.
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#FAF2F4]/80 text-[10px] font-bold uppercase tracking-wider text-[#804652] border-b border-[#F2E5E7]">
                   <tr>
-                    <th className="px-6 py-4 font-black">Return No</th>
-                    <th className="px-6 py-4 font-black">Customer</th>
-                    <th className="px-6 py-4 font-black">Reason</th>
-                    <th className="px-6 py-4 font-black">Items Returned</th>
-                    <th className="px-6 py-4 font-black">Total Amount</th>
-                    <th className="px-6 py-4 font-black">Status</th>
-                    <th className="px-6 py-4 font-black">Date</th>
+                    <th className="px-4 py-3">Return No</th>
+                    <th className="px-4 py-3">Customer</th>
+                    <th className="px-4 py-3">Reason</th>
+                    <th className="px-4 py-3">Items Returned</th>
+                    <th className="px-4 py-3">Total Amount</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F0E0E3]">
+                <tbody className="divide-y divide-[#F2E5E7]">
                   {saleReturns.map((r) => (
-                    <tr key={r.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-[#804652]">{r.return_no}</td>
-                      <td className="px-6 py-4 font-bold text-slate-950">{r.customer_name || 'Walk-in Customer'}</td>
-                      <td className="px-6 py-4 font-medium text-slate-700 max-w-xs truncate">{r.reason}</td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-0.5 text-xs text-slate-800">
+                    <tr key={r.id} className="hover:bg-[#FAF2F4]/40 transition">
+                      <td className="px-4 py-3 font-mono font-bold text-[#7B3F4A]">{r.return_no}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">{r.customer_name || 'Walk-in Customer'}</td>
+                      <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.reason}</td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-0.5 text-xs text-slate-700">
                           {r.items?.map((item: any) => (
                             <div key={item.id}>
-                              <span className="font-bold">{item.qty}x</span> {item.product_name} ({item.sku})
+                              <span className="font-semibold">{item.qty}x</span> {item.product_name} ({item.sku})
                             </div>
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-extrabold text-emerald-800">₹{Number(r.total_amount).toFixed(2)}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 font-bold text-emerald-700">₹{Number(r.total_amount).toFixed(2)}</td>
+                      <td className="px-4 py-3">
                         <Badge tone="green">{r.refund_status}</Badge>
                       </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-600">{new Date(r.created_at).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -257,43 +257,43 @@ export function ReturnsPage() {
             </div>
           )
         ) : purchaseReturns.length === 0 ? (
-          <div className="p-12 text-center text-xs font-semibold text-slate-500">
+          <div className="p-12 text-center text-sm text-slate-500">
             No purchase returns recorded yet. Click "+ New Purchase Return" above to process one.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[#FAF2F4]/80 text-[10px] font-bold uppercase tracking-wider text-[#804652] border-b border-[#F2E5E7]">
                 <tr>
-                  <th className="px-6 py-4 font-black">Return No</th>
-                  <th className="px-6 py-4 font-black">Supplier</th>
-                  <th className="px-6 py-4 font-black">Reason</th>
-                  <th className="px-6 py-4 font-black">Items Returned</th>
-                  <th className="px-6 py-4 font-black">Total Amount</th>
-                  <th className="px-6 py-4 font-black">Status</th>
-                  <th className="px-6 py-4 font-black">Date</th>
+                  <th className="px-4 py-3">Return No</th>
+                  <th className="px-4 py-3">Supplier</th>
+                  <th className="px-4 py-3">Reason</th>
+                  <th className="px-4 py-3">Items Returned</th>
+                  <th className="px-4 py-3">Total Amount</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0E0E3]">
+              <tbody className="divide-y divide-[#F2E5E7]">
                 {purchaseReturns.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                    <td className="px-6 py-4 font-mono font-bold text-[#804652]">{r.return_no}</td>
-                    <td className="px-6 py-4 font-bold text-slate-950">{r.supplier_name || 'General Supplier'}</td>
-                    <td className="px-6 py-4 font-medium text-slate-700 max-w-xs truncate">{r.reason}</td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-0.5 text-xs text-slate-800">
+                  <tr key={r.id} className="hover:bg-[#FAF2F4]/40 transition">
+                    <td className="px-4 py-3 font-mono font-bold text-[#7B3F4A]">{r.return_no}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">{r.supplier_name || 'General Supplier'}</td>
+                    <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.reason}</td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-0.5 text-xs text-slate-700">
                         {r.items?.map((item: any) => (
                           <div key={item.id}>
-                            <span className="font-bold">{item.qty}x</span> {item.product_name} ({item.sku})
+                            <span className="font-semibold">{item.qty}x</span> {item.product_name} ({item.sku})
                           </div>
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-extrabold text-emerald-800">₹{Number(r.total_amount).toFixed(2)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 font-bold text-emerald-700">₹{Number(r.total_amount).toFixed(2)}</td>
+                    <td className="px-4 py-3">
                       <Badge tone="green">{r.refund_status}</Badge>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium text-slate-600">{new Date(r.created_at).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{new Date(r.created_at).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -346,8 +346,8 @@ export function ReturnsPage() {
             />
 
             {/* Item Selector Box */}
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
-              <span className="block text-xs font-bold uppercase tracking-wider text-indigo-900">
+            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-3">
+              <span className="block text-xs font-bold uppercase tracking-wider text-[#7B3F4A]">
                 Add Products to Return
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_90px_110px_80px] gap-2 items-end">
@@ -361,7 +361,7 @@ export function ReturnsPage() {
                       const found = allVariants.find((v) => v.id === vId)
                       if (found) setItemUnitPrice(String(found.retail_price))
                     }}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                    className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A] focus:outline-none"
                   >
                     <option value="">Choose item to return…</option>
                     {allVariants.map((v) => (
@@ -391,35 +391,34 @@ export function ReturnsPage() {
               </div>
             </div>
 
-            {/* Staged Items Table */}
             {stagedItems.length > 0 && (
               <div className="space-y-2">
                 <span className="text-xs font-bold text-slate-800">Return Items Summary ({stagedItems.length})</span>
-                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <div className="rounded-2xl border border-[#EEDDE0] overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase">
+                    <thead className="bg-[#FAF2F4]/80 border-b border-[#EEDDE0] text-[#804652] uppercase font-bold text-[10px] tracking-wider">
                       <tr>
-                        <th className="p-2">Variant</th>
-                        <th className="p-2">SKU</th>
-                        <th className="p-2">Qty</th>
-                        <th className="p-2">Unit Price</th>
-                        <th className="p-2">Subtotal</th>
-                        <th className="p-2 text-right"></th>
+                        <th className="p-2.5">Variant</th>
+                        <th className="p-2.5">SKU</th>
+                        <th className="p-2.5">Qty</th>
+                        <th className="p-2.5">Unit Price</th>
+                        <th className="p-2.5">Subtotal</th>
+                        <th className="p-2.5 text-right"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-[#EEDDE0]">
                       {stagedItems.map((item) => (
-                        <tr key={item.variant_id}>
-                          <td className="p-2 font-semibold text-slate-900">{item.variant_label}</td>
-                          <td className="p-2 text-slate-500 font-mono">{item.sku}</td>
-                          <td className="p-2 font-bold text-slate-800">{item.qty}</td>
-                          <td className="p-2">₹{item.unit_price.toFixed(2)}</td>
-                          <td className="p-2 font-bold text-indigo-700">₹{(item.qty * item.unit_price).toFixed(2)}</td>
-                          <td className="p-2 text-right">
+                        <tr key={item.variant_id} className="hover:bg-[#FAF2F4]/30">
+                          <td className="p-2.5 font-semibold text-slate-900">{item.variant_label}</td>
+                          <td className="p-2.5 text-slate-500 font-mono">{item.sku}</td>
+                          <td className="p-2.5 font-bold text-slate-800">{item.qty}</td>
+                          <td className="p-2.5">₹{item.unit_price.toFixed(2)}</td>
+                          <td className="p-2.5 font-bold text-[#7B3F4A]">₹{(item.qty * item.unit_price).toFixed(2)}</td>
+                          <td className="p-2.5 text-right">
                             <button
                               type="button"
                               onClick={() => handleRemoveItem(item.variant_id)}
-                              className="text-red-500 hover:text-red-700 font-bold"
+                              className="text-rose-500 hover:text-rose-700 font-bold"
                             >
                               ✕
                             </button>

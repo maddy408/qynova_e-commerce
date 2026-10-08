@@ -108,42 +108,42 @@ export function CustomersPage() {
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b border-[#EEDDE0] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[11px]">
                 <tr>
-                  <th className="px-6 py-4 font-black">Customer Name</th>
-                  <th className="px-6 py-4 font-black">Mobile Phone</th>
-                  <th className="px-6 py-4 font-black">Email</th>
-                  <th className="px-6 py-4 font-black">Price Type Mapping</th>
-                  <th className="px-6 py-4 font-black text-center">Orders</th>
-                  <th className="px-6 py-4 font-black text-right">Total Spent</th>
-                  <th className="px-6 py-4 font-black">Status</th>
-                  <th className="px-6 py-4 font-black text-right">Actions</th>
+                  <th className="px-4 py-3 font-semibold">Customer Name</th>
+                  <th className="px-4 py-3 font-semibold">Mobile Phone</th>
+                  <th className="px-4 py-3 font-semibold">Email</th>
+                  <th className="px-4 py-3 font-semibold">Price Type Mapping</th>
+                  <th className="px-4 py-3 font-semibold text-center">Orders</th>
+                  <th className="px-4 py-3 font-semibold text-right">Total Spent</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0E0E3]">
+              <tbody className="divide-y divide-slate-100">
                 {customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-950">{c.name}</td>
-                    <td className="px-6 py-4 font-mono font-semibold text-[#804652]">{c.phone}</td>
-                    <td className="px-6 py-4 font-medium text-slate-600">{c.email || '—'}</td>
-                    <td className="px-6 py-4">
+                  <tr key={c.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-slate-900">{c.name}</td>
+                    <td className="px-4 py-3 font-mono text-slate-700">{c.phone}</td>
+                    <td className="px-4 py-3 text-slate-500">{c.email || '—'}</td>
+                    <td className="px-4 py-3">
                       <button
                         onClick={() => toggleCustomerType(c)}
                         title="Click to switch price mapping"
-                        className="inline-flex items-center gap-1.5 focus:outline-none cursor-pointer"
+                        className="inline-flex items-center gap-1.5 focus:outline-none"
                       >
                         <Badge tone={c.customer_type === 'WHOLESALE' ? 'amber' : 'green'}>
                           {c.customer_type === 'WHOLESALE' ? 'WHOLESALE PRICE' : 'RETAIL PRICE'}
                         </Badge>
-                        <span className="text-[10px] text-slate-500 hover:text-[#804652] font-semibold">(Switch)</span>
+                        <span className="text-[10px] text-slate-400 hover:text-[#7B3F4A] font-medium">(Switch)</span>
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-center font-bold text-slate-900">{c.order_count}</td>
-                    <td className="px-6 py-4 text-right font-extrabold text-slate-950">{money(c.total_spent)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 text-center font-medium text-slate-700">{c.order_count}</td>
+                    <td className="px-4 py-3 text-right font-bold text-slate-900">{money(c.total_spent)}</td>
+                    <td className="px-4 py-3">
                       <Badge tone={c.status === 'ACTIVE' ? 'green' : 'slate'}>{c.status}</Badge>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <Button variant="secondary" size="sm" onClick={() => openEdit(c)}>
                         Edit Mapping
                       </Button>
@@ -152,7 +152,7 @@ export function CustomersPage() {
                 ))}
                 {customers.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                       No customer accounts found matching your search.
                     </td>
                   </tr>
@@ -170,7 +170,7 @@ export function CustomersPage() {
             <TextField label="Customer Name" required value={editName} onChange={(e) => setEditName(e.target.value)} />
             <TextField label="Email Address" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Optional" />
 
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-3 space-y-2">
+            <div className="rounded-xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-3 space-y-2">
               <label className="block font-bold text-slate-800">Price Type Mapping</label>
               <Select value={editType} onChange={(e: any) => setEditType(e.target.value)}>
                 <option value="RETAIL">RETAIL PRICE — Standard retail catalog pricing</option>

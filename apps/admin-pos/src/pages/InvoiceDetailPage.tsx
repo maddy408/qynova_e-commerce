@@ -154,7 +154,7 @@ export function InvoiceDetailPage() {
   if (invoice === null) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Spinner className="w-8 h-8 text-indigo-600" />
+        <Spinner className="w-8 h-8 text-[#7B3F4A]" />
       </div>
     )
   }
@@ -241,7 +241,7 @@ export function InvoiceDetailPage() {
             type="button"
             onClick={() => setFormat('a4')}
             className={`rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
-              format === 'a4' ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              format === 'a4' ? 'bg-[#7B3F4A] text-white shadow-2xs' : 'bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F2E5E7]'
             }`}
           >
             📄 A4 Tax Invoice
@@ -250,7 +250,7 @@ export function InvoiceDetailPage() {
             type="button"
             onClick={() => setFormat('thermal')}
             className={`rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
-              format === 'thermal' ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              format === 'thermal' ? 'bg-[#7B3F4A] text-white shadow-2xs' : 'bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F2E5E7]'
             }`}
           >
             🖨️ Thermal Receipt (80mm)
@@ -293,9 +293,9 @@ export function InvoiceDetailPage() {
                 <p className="text-[11px] font-semibold text-slate-800">GSTIN: {companyDetails.gstin}</p>
               </div>
               <div className="text-right">
-                <h2 className="text-lg font-black tracking-widest text-indigo-900 uppercase">TAX INVOICE</h2>
+                <h2 className="text-lg font-black tracking-widest text-[#7B3F4A] uppercase">TAX INVOICE</h2>
                 <p className="mt-1 text-xs font-bold text-slate-900">
-                  BILL NO: <span className="text-indigo-700">{invoice.invoice_no}</span>
+                  BILL NO: <span className="text-[#7B3F4A]">{invoice.invoice_no}</span>
                 </p>
                 <p className="text-xs text-slate-600">
                   DATE: {formatDate(invoice.created_at)}
@@ -437,7 +437,7 @@ export function InvoiceDetailPage() {
                   <span className="uppercase font-semibold">ROUND OFF</span>
                   <span className="font-mono">{roundOff}</span>
                 </div>
-                <div className="flex justify-between text-sm font-extrabold text-indigo-700 pt-1">
+                <div className="flex justify-between text-sm font-extrabold text-[#7B3F4A] pt-1">
                   <span>NET TOTAL</span>
                   <span className="text-base">{money(grandTotal)}</span>
                 </div>

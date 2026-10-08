@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
-import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
+import { api, apiErrorMessage } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
 
-const API_ORIGIN = getApiOrigin()
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 function imageUrl(path: string | null) {
   return path ? `${API_ORIGIN}/${path}` : null
 }
@@ -40,12 +40,12 @@ export function ProductsPage() {
         actions={
           <div className="flex items-center gap-3">
             {/* View Mode Toggle */}
-            <div className="flex items-center rounded-md border border-slate-300 bg-slate-100 p-0.5 text-xs font-semibold">
+            <div className="flex items-center rounded-full border border-[#EEDDE0] bg-[#FAF2F4] p-1 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-1 rounded-sm transition-all ${
-                  viewMode === 'grid' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`px-3 py-1 rounded-full transition-all ${
+                  viewMode === 'grid' ? 'bg-[#7B3F4A] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Grid View
@@ -53,8 +53,8 @@ export function ProductsPage() {
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
-                className={`px-3 py-1 rounded-sm transition-all ${
-                  viewMode === 'table' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`px-3 py-1 rounded-full transition-all ${
+                  viewMode === 'table' ? 'bg-[#7B3F4A] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Table View
@@ -90,11 +90,11 @@ export function ProductsPage() {
               <div
                 key={p.id}
                 onClick={() => navigate(`/products/${p.id}`)}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-md border border-slate-200 bg-white p-3 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer"
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#F2E5E7] bg-white p-3 shadow-2xs hover:shadow-md hover:border-[#7B3F4A] transition-all cursor-pointer"
               >
                 <div>
                   {/* Thumbnail Image */}
-                  <div className="relative h-32 w-full overflow-hidden rounded-sm bg-slate-100 flex items-center justify-center">
+                  <div className="relative h-32 w-full overflow-hidden rounded-xl bg-slate-100 flex items-center justify-center">
                     {img ? (
                       <img
                         src={img}
@@ -113,20 +113,20 @@ export function ProductsPage() {
 
                   {/* Content */}
                   <div className="mt-2.5 space-y-1">
-                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight group-hover:text-indigo-600">
+                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight group-hover:text-[#7B3F4A]">
                       {p.name}
                     </h3>
                     <p className="text-[11px] text-slate-500 truncate">{p.brand_name ?? 'No Brand'}</p>
 
                     <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-xs font-extrabold text-indigo-700">{priceStr}</span>
+                      <span className="text-xs font-extrabold text-[#7B3F4A]">{priceStr}</span>
                       <span className="text-[10px] text-slate-500 font-medium">{p.variant_count} var</span>
                     </div>
 
                     <div className="text-[10px] text-slate-500 flex items-center justify-between pt-0.5 border-t border-slate-100">
                       <span>Stock: <strong className="text-slate-900">{Number(p.total_stock)}</strong></span>
                       {p.out_of_stock_variant_count > 0 ? (
-                        <span className="text-red-600 font-bold">Out</span>
+                        <span className="text-rose-600 font-bold">Out</span>
                       ) : p.low_stock_variant_count > 0 ? (
                         <span className="text-amber-600 font-bold">Low</span>
                       ) : null}
@@ -142,7 +142,7 @@ export function ProductsPage() {
                       e.stopPropagation()
                       navigate(`/products/${p.id}`)
                     }}
-                    className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+                    className="text-[11px] font-semibold text-[#7B3F4A] hover:text-[#68343E]"
                   >
                     View Details →
                   </button>
@@ -153,7 +153,7 @@ export function ProductsPage() {
                         e.stopPropagation()
                         navigate(`/products/${p.id}`)
                       }}
-                      className="p-1 rounded text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"
+                      className="p-1 rounded-lg text-slate-400 hover:bg-[#FAF2F4] hover:text-[#7B3F4A]"
                       title="Edit"
                     >
                       <PencilIcon />
@@ -161,7 +161,7 @@ export function ProductsPage() {
                     <button
                       type="button"
                       onClick={(e) => handleDelete(p, e)}
-                      className="p-1 rounded text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      className="p-1 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                       title="Delete"
                     >
                       <TrashIcon />
@@ -174,9 +174,9 @@ export function ProductsPage() {
         </div>
       ) : (
         /* Table View */
-        <Card>
+        <Card className="border border-[#F2E5E7] shadow-2xs rounded-3xl overflow-hidden">
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b border-[#F2E5E7] uppercase font-bold text-[10px] tracking-wider text-[#804652] bg-[#FAF2F4]/80">
               <tr>
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Brand</th>
@@ -187,15 +187,15 @@ export function ProductsPage() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[#F2E5E7]">
               {products.map((p) => (
                 <tr
                   key={p.id}
                   onClick={() => navigate(`/products/${p.id}`)}
-                  className="cursor-pointer hover:bg-[#FAF2F4]/80 transition-colors"
+                  className="cursor-pointer hover:bg-[#FAF2F4]/40 transition-colors"
                 >
                   <td className="px-4 py-2.5 flex items-center gap-3">
-                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded bg-slate-100 border border-slate-200 flex items-center justify-center">
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-[#EEDDE0] flex items-center justify-center">
                       {imageUrl(p.primary_image) ? (
                         <img src={imageUrl(p.primary_image)!} alt={p.name} className="h-full w-full object-cover" />
                       ) : (
@@ -208,7 +208,7 @@ export function ProductsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-slate-600 font-medium">{p.brand_name ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-slate-700 font-medium">
+                  <td className="px-4 py-2.5 text-[#7B3F4A] font-bold">
                     {p.min_price === null
                       ? '—'
                       : p.min_price === p.max_price
@@ -220,9 +220,9 @@ export function ProductsPage() {
                     <p className="font-semibold text-slate-900">{Number(p.total_stock)}</p>
                     {(p.low_stock_variant_count > 0 || p.out_of_stock_variant_count > 0) && (
                       <p className="text-[11px] text-slate-500">
-                        {p.out_of_stock_variant_count > 0 && <span className="text-red-600">{p.out_of_stock_variant_count} out</span>}
+                        {p.out_of_stock_variant_count > 0 && <span className="text-rose-600 font-bold">{p.out_of_stock_variant_count} out</span>}
                         {p.out_of_stock_variant_count > 0 && p.low_stock_variant_count > 0 && ' · '}
-                        {p.low_stock_variant_count > 0 && <span className="text-amber-600">{p.low_stock_variant_count} low</span>}
+                        {p.low_stock_variant_count > 0 && <span className="text-amber-600 font-bold">{p.low_stock_variant_count} low</span>}
                       </p>
                     )}
                   </td>
@@ -235,7 +235,7 @@ export function ProductsPage() {
                         e.stopPropagation()
                         navigate(`/products/${p.id}`)
                       }}
-                      className="p-1 rounded text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-colors"
+                      className="p-1 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
                       title="View Details"
                     >
                       <EyeIcon />
@@ -245,14 +245,14 @@ export function ProductsPage() {
                         e.stopPropagation()
                         navigate(`/products/${p.id}`)
                       }}
-                      className="p-1 rounded text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                      className="p-1 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
                       title="Edit Product"
                     >
                       <PencilIcon />
                     </button>
                     <button
                       onClick={(e) => handleDelete(p, e)}
-                      className="p-1 rounded text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      className="p-1 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                       title="Soft Delete Product"
                     >
                       <TrashIcon />

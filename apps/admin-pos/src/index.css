@@ -3,6 +3,12 @@
 
 :root {
   color-scheme: light;
+  accent-color: #7B3F4A;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #7B3F4A !important;
 }
 
 html,

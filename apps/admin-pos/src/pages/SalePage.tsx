@@ -781,7 +781,7 @@ export function SalePage() {
                   type="button"
                   onClick={() => setActiveScanner(activeScanner === 'bluetooth' ? null : 'bluetooth')}
                   className={`p-1 rounded-md transition-all ${
-                    activeScanner === 'bluetooth' ? 'bg-blue-600 text-white shadow-xs animate-pulse' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    activeScanner === 'bluetooth' ? 'bg-[#7B3F4A] text-white shadow-xs animate-pulse' : 'bg-slate-100 text-slate-600 hover:bg-[#FAF2F4] hover:text-[#7B3F4A]'
                   }`}
                   title="Bluetooth HID Barcode Scanner"
                 >
@@ -795,9 +795,9 @@ export function SalePage() {
           {activeScanner && (
             <div className="flex items-center space-x-2 pt-1">
               <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                activeScanner === 'camera' ? 'bg-pink-100 text-pink-900 border border-pink-200' :
+                activeScanner === 'camera' ? 'bg-[#FAF2F4] text-[#7B3F4A] border border-[#EEDDE0]' :
                 activeScanner === 'wifi' ? 'bg-emerald-100 text-emerald-900 border border-emerald-200 animate-pulse' :
-                'bg-blue-100 text-blue-900 border border-blue-200 animate-pulse'
+                'bg-[#FAF2F4] text-[#7B3F4A] border border-[#EEDDE0] animate-pulse'
               }`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current mr-1" />
                 <span>
@@ -1121,7 +1121,7 @@ export function SalePage() {
             ) : (
               <div className="relative overflow-hidden rounded-xl bg-black">
                 <video ref={videoRef} className="h-64 w-full object-cover" />
-                <div className="absolute inset-0 border-2 border-dashed border-indigo-400/70 pointer-events-none rounded-xl flex items-center justify-center">
+                <div className="absolute inset-0 border-2 border-dashed border-[#7B3F4A]/70 pointer-events-none rounded-xl flex items-center justify-center">
                   <span className="text-white text-xs bg-black/60 px-3 py-1 rounded-full animate-pulse">Align Barcode within Frame</span>
                 </div>
               </div>
@@ -1191,10 +1191,10 @@ export function SalePage() {
             ) : (
               <div className="space-y-3">
                 {holdBills.map((hb) => (
-                  <div key={hb.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div key={hb.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-indigo-700">{hb.bill_no}</span>
+                        <span className="font-mono font-bold text-[#7B3F4A]">{hb.bill_no}</span>
                         <Badge tone="amber">{hb.price_type}</Badge>
                       </div>
                       <div className="text-xs font-semibold text-slate-800 mt-1">
@@ -1304,14 +1304,14 @@ export function SalePage() {
               />
             </div>
 
-            <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3 flex justify-between items-center">
+            <div className="rounded-2xl bg-[#FAF2F4]/70 border border-[#EEDDE0] p-3 flex justify-between items-center">
               <div>
-                <span className="text-[11px] font-bold text-indigo-950 uppercase tracking-wider block">Calculated Total Price</span>
-                <span className="text-xs text-indigo-700">
+                <span className="text-[11px] font-bold text-[#7B3F4A] uppercase tracking-wider block">Calculated Total Price</span>
+                <span className="text-xs text-[#804652]">
                   {quickQty || 0} qty × ₹{quickRate || 0} / unit
                 </span>
               </div>
-              <span className="text-xl font-black text-indigo-950">
+              <span className="text-xl font-serif font-black text-[#7B3F4A]">
                 ₹{((Number(quickQty) || 0) * (Number(quickRate) || 0)).toFixed(2)}
               </span>
             </div>

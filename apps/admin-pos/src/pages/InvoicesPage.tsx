@@ -107,47 +107,47 @@ export function InvoicesPage() {
       {invoices === null ? (
         <Spinner />
       ) : (
-        <Card>
-          <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+        <Card className="border border-[#F2E5E7] rounded-3xl overflow-hidden shadow-2xs">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-[#F2E5E7] text-[10px] font-bold uppercase tracking-wider text-[#804652] bg-[#FAF2F4]/80">
               <tr>
-                <th className="px-6 py-4">Invoice No</th>
-                <th className="px-6 py-4">Channel</th>
-                <th className="px-6 py-4">Customer</th>
-                <th className="px-6 py-4">Cashier</th>
-                <th className="px-6 py-4">Total</th>
-                <th className="px-6 py-4">Payment</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Date</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-5 py-3">Invoice No</th>
+                <th className="px-5 py-3">Channel</th>
+                <th className="px-5 py-3">Customer</th>
+                <th className="px-5 py-3">Cashier</th>
+                <th className="px-5 py-3">Total</th>
+                <th className="px-5 py-3">Payment</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[#F2E5E7]">
               {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                <tr key={inv.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
                   <td
                     onClick={() => navigate(`/invoices/${inv.id}`)}
-                    className="px-6 py-4 font-bold text-[#804652] cursor-pointer hover:underline"
+                    className="px-5 py-3 font-mono font-bold text-[#7B3F4A] cursor-pointer hover:underline"
                   >
                     {inv.invoice_no}
                   </td>
-                  <td className="px-6 py-4 font-semibold text-slate-800">{inv.channel}</td>
-                  <td className="px-6 py-4 font-semibold text-slate-800">{inv.customer_name ?? 'Walk-in'}</td>
-                  <td className="px-6 py-4 font-semibold text-slate-800">{inv.cashier_name ?? '—'}</td>
-                  <td className="px-6 py-4 font-extrabold text-slate-950">₹{inv.grand_total}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3 text-slate-600">{inv.channel}</td>
+                  <td className="px-5 py-3 text-slate-600 font-medium">{inv.customer_name ?? 'Walk-in'}</td>
+                  <td className="px-5 py-3 text-slate-600">{inv.cashier_name ?? '—'}</td>
+                  <td className="px-5 py-3 font-serif font-bold text-slate-900">₹{inv.grand_total}</td>
+                  <td className="px-5 py-3">
                     <Badge tone={PAYMENT_TONE[inv.payment_status]}>{inv.payment_status}</Badge>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-5 py-3">
                     <Badge tone={inv.status === 'ACTIVE' ? 'green' : 'red'}>{inv.status}</Badge>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 text-xs font-medium">{new Date(inv.created_at).toLocaleString()}</td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-5 py-3 text-slate-500 text-xs">{new Date(inv.created_at).toLocaleString()}</td>
+                  <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       {/* Print Button */}
                       <button
                         onClick={() => navigate(`/invoices/${inv.id}`)}
-                        className="p-1.5 text-slate-600 hover:text-[#804652] rounded-lg hover:bg-[#FAF2F4] transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-[#7B3F4A] rounded-lg hover:bg-[#FAF2F4] transition-colors"
                         title="Print Thermal / A4 Receipt"
                       >
                         <PrinterIcon className="w-4 h-4" />
@@ -156,7 +156,7 @@ export function InvoicesPage() {
                       {/* Edit Button */}
                       <button
                         onClick={() => openEdit(inv)}
-                        className="p-1.5 text-slate-600 hover:text-amber-700 rounded-lg hover:bg-amber-50 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-amber-600 rounded hover:bg-amber-50 transition-colors"
                         title="Edit Invoice Details"
                       >
                         <PencilIcon className="w-4 h-4" />
@@ -165,7 +165,7 @@ export function InvoicesPage() {
                       {/* Delete Button */}
                       <button
                         onClick={() => setDeletingInvoice(inv)}
-                        className="p-1.5 text-slate-600 hover:text-rose-700 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
                         title="Delete / Cancel Invoice"
                       >
                         <TrashIcon className="w-4 h-4" />
@@ -176,7 +176,7 @@ export function InvoicesPage() {
               ))}
               {invoices.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
+                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-500">
                     No invoices recorded yet.
                   </td>
                 </tr>

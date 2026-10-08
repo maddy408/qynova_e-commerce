@@ -185,12 +185,12 @@ export function CreditManagementPage() {
 
         {loading ? (
           <div className="flex justify-center py-10">
-            <Spinner className="w-6 h-6 text-indigo-600" />
+            <Spinner className="w-6 h-6 text-[#7B3F4A]" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50 border-b border-slate-200 uppercase font-semibold text-slate-500 tracking-wider text-[11px]">
+              <thead className="bg-[#FAF2F4]/80 border-b border-[#EEDDE0] uppercase font-semibold text-[#804652] tracking-wider text-[11px]">
                 <tr>
                   <th className="px-4 py-3">CUSTOMER</th>
                   <th className="px-4 py-3">PHONE</th>
@@ -244,12 +244,12 @@ export function CreditManagementPage() {
 
         {loading ? (
           <div className="flex justify-center py-10">
-            <Spinner className="w-6 h-6 text-indigo-600" />
+            <Spinner className="w-6 h-6 text-[#7B3F4A]" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50 border-b border-slate-200 uppercase font-semibold text-slate-500 tracking-wider text-[11px]">
+              <thead className="bg-[#FAF2F4]/80 border-b border-[#EEDDE0] uppercase font-semibold text-[#804652] tracking-wider text-[11px]">
                 <tr>
                   <th className="px-4 py-3">RECEIPT #</th>
                   <th className="px-4 py-3">CUSTOMER</th>
@@ -262,7 +262,7 @@ export function CreditManagementPage() {
               <tbody className="divide-y divide-slate-100 bg-white">
                 {receipts.map((rcpt) => (
                   <tr key={rcpt.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-indigo-700">{rcpt.receipt_no}</td>
+                    <td className="px-4 py-3 font-mono font-bold text-[#7B3F4A]">{rcpt.receipt_no}</td>
                     <td className="px-4 py-3 font-semibold text-slate-900">{rcpt.customer_name}</td>
                     <td className="px-4 py-3 text-right font-bold text-emerald-700">
                       Rs. {money(rcpt.amount)}

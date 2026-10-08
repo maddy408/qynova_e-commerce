@@ -599,7 +599,7 @@ export function ProductCreatePage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write detailed product description..."
                 className={`w-full rounded-b-lg border ${
-                  isWordLimitExceeded ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-indigo-500'
+                  isWordLimitExceeded ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]'
                 } bg-white p-3 text-xs focus:outline-none focus:ring-2`}
               />
 
@@ -623,7 +623,7 @@ export function ProductCreatePage() {
                 <button
                   type="button"
                   onClick={addBulletPoint}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+                  className="text-xs font-bold text-[#7B3F4A] hover:text-[#68343E]"
                 >
                   + Add Point
                 </button>
@@ -668,7 +668,7 @@ export function ProductCreatePage() {
                 <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-600 text-lg font-bold">
                   📷
                 </div>
-                <div className="text-xs font-bold text-indigo-600">Upload new <span className="text-slate-500 font-normal">or drag and drop</span></div>
+                <div className="text-xs font-bold text-[#7B3F4A]">Upload new <span className="text-slate-500 font-normal">or drag and drop</span></div>
                 <p className="text-[11px] text-slate-400">Accepts PNG, JPG, WEBP formats</p>
               </label>
             </div>
@@ -743,7 +743,7 @@ export function ProductCreatePage() {
                     onChange={(e) => setShowDiscount(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#7B3F4A]"></div>
                   <span className="ml-2 text-xs font-semibold text-slate-700">Show Badge</span>
                 </label>
               </div>
@@ -804,26 +804,26 @@ export function ProductCreatePage() {
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 pt-2 border-t border-slate-100">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={shippingRequired} onChange={(e) => setShippingRequired(e.target.checked)} className="rounded text-indigo-600" />
+                <input type="checkbox" checked={shippingRequired} onChange={(e) => setShippingRequired(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
                 Shipping Required
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={codAvailable} onChange={(e) => setCodAvailable(e.target.checked)} className="rounded text-indigo-600" />
+                <input type="checkbox" checked={codAvailable} onChange={(e) => setCodAvailable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
                 COD Available
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={replacementAvailable} onChange={(e) => setReplacementAvailable(e.target.checked)} className="rounded text-indigo-600" />
+                <input type="checkbox" checked={replacementAvailable} onChange={(e) => setReplacementAvailable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
                 Replacement Allowed
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={refundAvailable} onChange={(e) => setRefundAvailable(e.target.checked)} className="rounded text-indigo-600" />
+                <input type="checkbox" checked={refundAvailable} onChange={(e) => setRefundAvailable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
                 Refund Allowed
               </label>
             </div>
 
             <div className="flex items-center gap-4 pt-2 border-t border-slate-100">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={returnable} onChange={(e) => setReturnable(e.target.checked)} className="rounded text-indigo-600" />
+                <input type="checkbox" checked={returnable} onChange={(e) => setReturnable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
                 Returnable Item
               </label>
               {returnable && (
@@ -854,12 +854,12 @@ export function ProductCreatePage() {
             {productType === 'VARIABLE' && (
               <div className="space-y-4 pt-2 border-t border-slate-100">
                 {/* Attribute Selection Dropdown Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <label className="text-xs font-bold text-slate-800">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FAF2F4]/60 p-3 rounded-2xl border border-[#EEDDE0]">
+                  <label className="text-xs font-bold text-[#804652]">
                     + Add Variant Attribute Type:
                   </label>
                   <select
-                    className="w-full sm:w-72 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-indigo-700 shadow-2xs focus:border-indigo-500 focus:outline-none"
+                    className="w-full sm:w-72 rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs font-bold text-[#7B3F4A] shadow-2xs focus:border-[#7B3F4A] focus:outline-none"
                     value=""
                     onChange={(e) => {
                       if (e.target.value) {
@@ -886,15 +886,15 @@ export function ProductCreatePage() {
                     if (!attr) return null
 
                     return (
-                      <div key={attr.id} className="rounded-lg border border-indigo-200/80 p-4 bg-white shadow-2xs space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                          <span className="font-extrabold text-xs text-indigo-900 uppercase tracking-wider flex items-center gap-2">
+                      <div key={attr.id} className="rounded-2xl border border-[#EEDDE0] p-4 bg-[#FAF2F4]/30 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between border-b border-[#EEDDE0] pb-2">
+                          <span className="font-extrabold text-xs text-[#7B3F4A] uppercase tracking-wider flex items-center gap-2">
                             🏷️ {attr.name}
                           </span>
                           <button
                             type="button"
                             onClick={() => removeAttributeOption(attr.id)}
-                            className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-0.5 rounded transition-colors"
+                            className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-0.5 rounded-full transition-colors"
                           >
                             Remove Option ×
                           </button>
@@ -912,10 +912,10 @@ export function ProductCreatePage() {
                                     checked ? prev.filter((id) => id !== val.id) : [...prev, val.id]
                                   )
                                 }
-                                className={`rounded-md px-3 py-1.5 text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all border flex items-center gap-1.5 ${
                                   checked
-                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+                                    ? 'bg-[#7B3F4A] text-white border-[#7B3F4A] shadow-2xs'
+                                    : 'bg-white text-slate-700 border-[#EEDDE0] hover:bg-[#FAF2F4]'
                                 }`}
                               >
                                 {val.color_hex && (
@@ -1033,7 +1033,7 @@ export function ProductCreatePage() {
               <button
                 type="button"
                 onClick={addSpec}
-                className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+                className="text-xs font-bold text-[#7B3F4A] hover:text-[#68343E]"
               >
                 + Add Spec
               </button>
@@ -1088,7 +1088,7 @@ export function ProductCreatePage() {
                   type="checkbox"
                   checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="rounded text-indigo-600"
+                  className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]"
                 />
                 Featured Product on Home Page
               </label>
@@ -1165,8 +1165,8 @@ export function ProductCreatePage() {
             <h2 className="text-sm font-bold text-slate-900">Search engine listing</h2>
             
             {/* Live SERP Preview Box */}
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-1">
-              <p className="text-xs font-bold text-blue-700 truncate">
+            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-1">
+              <p className="text-xs font-bold text-[#7B3F4A] truncate">
                 {metaTitle || name || 'Product Title'}
               </p>
               <p className="text-[11px] text-emerald-700 font-mono truncate">

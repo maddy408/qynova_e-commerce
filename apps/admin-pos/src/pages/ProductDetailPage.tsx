@@ -193,8 +193,8 @@ function ProductImagesSection({
             void upload(e.dataTransfer.files);
           }}
           disabled={uploading}
-          className={`flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-xs font-medium text-slate-400 hover:border-indigo-400 hover:text-indigo-500 ${
-            dragOver ? 'border-indigo-400 bg-indigo-50 text-indigo-500' : 'border-slate-300'
+          className={`flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed text-xs font-medium text-slate-400 hover:border-[#7B3F4A] hover:text-[#7B3F4A] ${
+            dragOver ? 'border-[#7B3F4A] bg-[#FAF2F4] text-[#7B3F4A]' : 'border-[#EEDDE0]'
           }`}
         >
           {uploading ? '…' : <>+<br />Add</>}
@@ -517,7 +517,7 @@ function VariantsSection({
                 <button
                   type="button"
                   onClick={() => setAddingValueForAttr(isAddingValue ? null : attr.id)}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                  className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E] flex items-center gap-1"
                 >
                   {isAddingValue ? 'Cancel' : `+ Add Custom ${attr.name}`}
                 </button>
@@ -533,7 +533,7 @@ function VariantsSection({
                       toggleValue(valId)
                     }
                   }}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-[#7B3F4A] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20"
                 >
                   <option value="">Select a {attr.name} ({unselectedForAttr.length} available)…</option>
                   {unselectedForAttr.map((v) => (
@@ -546,21 +546,21 @@ function VariantsSection({
 
               {/* Inline Form to Add New Custom Value */}
               {isAddingValue && (
-                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-2.5">
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-2.5">
                   <input
                     type="text"
                     placeholder={`New ${attr.name} value (e.g. ${attr.name === 'Color' ? 'Lime Green' : attr.name === 'Weight' ? '500g' : 'Value'})`}
                     value={newValueInput}
                     onChange={(e) => setNewValueInput(e.target.value)}
-                    className="flex-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="flex-1 rounded-xl border border-[#EEDDE0] bg-white px-2.5 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#7B3F4A]"
                   />
                   {attr.name.toLowerCase() === 'color' && (
                     <input
                       type="color"
                       title="Pick Color Hex"
-                      value={newValueHexInput || '#3b82f6'}
+                      value={newValueHexInput || '#7B3F4A'}
                       onChange={(e) => setNewValueHexInput(e.target.value)}
-                      className="h-7 w-9 cursor-pointer rounded border border-slate-300 p-0.5"
+                      className="h-7 w-9 cursor-pointer rounded border border-[#EEDDE0] p-0.5"
                     />
                   )}
                   <Button
@@ -580,7 +580,7 @@ function VariantsSection({
                   {selectedForAttr.map((value) => (
                     <span
                       key={value.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/80 px-3 py-1 text-xs font-semibold text-indigo-900 shadow-2xs transition hover:bg-indigo-100"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#EEDDE0] bg-[#FAF2F4] px-3 py-1 text-xs font-semibold text-[#7B3F4A] shadow-2xs transition hover:bg-[#F2E5E7]"
                     >
                       {value.color_hex && (
                         <span
@@ -592,7 +592,7 @@ function VariantsSection({
                       <button
                         type="button"
                         onClick={() => toggleValue(value.id)}
-                        className="ml-1 text-indigo-400 hover:text-red-600 font-bold text-xs"
+                        className="ml-1 text-[#804652] hover:text-rose-600 font-bold text-xs"
                         title="Remove"
                       >
                         ✕
@@ -606,25 +606,25 @@ function VariantsSection({
         })}
 
         {newRows.length > 0 && (
-          <div className="space-y-3 border-t border-slate-200 pt-4">
+          <div className="space-y-3 border-t border-[#EEDDE0] pt-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#7B3F4A]">
                 Staged Variants ({newRows.length} combination{newRows.length === 1 ? '' : 's'})
               </h3>
               <span className="text-[11px] font-medium text-slate-500">Attach images and initial stock before creating</span>
             </div>
             {newRows.map((row, index) => (
-              <div key={row.key} className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 space-y-3">
+              <div key={row.key} className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-slate-900">
-                    Variant {index + 1}: <span className="text-indigo-700">{row.title}</span>
+                    Variant {index + 1}: <span className="text-[#7B3F4A]">{row.title}</span>
                   </p>
                 </div>
 
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                   <div>
                     <label className="mb-1 block text-[11px] font-semibold text-slate-600">Variant Image</label>
-                    <label className="group relative flex h-16 w-16 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-500 hover:bg-indigo-50/50 transition">
+                    <label className="group relative flex h-16 w-16 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-[#EEDDE0] bg-white hover:border-[#7B3F4A] hover:bg-[#FAF2F4] transition">
                       {row.image ? (
                         <>
                           <img src={row.image.previewUrl} alt="" className="h-full w-full object-cover" />
@@ -634,7 +634,7 @@ function VariantsSection({
                         </>
                       ) : (
                         <div className="text-center p-1">
-                          <span className="block text-indigo-600 text-xs font-bold">+ Image</span>
+                          <span className="block text-[#7B3F4A] text-xs font-bold">+ Image</span>
                         </div>
                       )}
                       <input
@@ -653,7 +653,7 @@ function VariantsSection({
                         value={row.sku}
                         onChange={(e) => updateRow(row.key, { sku: e.target.value })}
                         placeholder="SKU"
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
                       />
                     </div>
                     <div>
@@ -664,7 +664,7 @@ function VariantsSection({
                         type="number"
                         min="0"
                         placeholder="Qty e.g. 10"
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
                       />
                     </div>
                     <div>
@@ -675,7 +675,7 @@ function VariantsSection({
                         type="number"
                         min="0"
                         placeholder="Threshold e.g. 5"
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
                       />
                     </div>
                   </div>
@@ -770,11 +770,11 @@ function VariantsSection({
                     <td className="py-2 pr-3 text-right">
                       <div className="flex justify-end gap-2">
                         {editValues ? (
-                          <button onClick={() => saveEdit(v.id)} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                          <button onClick={() => saveEdit(v.id)} className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E]">
                             Save
                           </button>
                         ) : (
-                          <button onClick={() => startEdit(v)} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                          <button onClick={() => startEdit(v)} className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E]">
                             Edit
                           </button>
                         )}
@@ -877,7 +877,7 @@ function VariantImageModal({
           type="button"
           onClick={() => fileInput.current?.click()}
           disabled={uploading}
-          className="flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-xs font-medium text-slate-400 hover:border-indigo-400 hover:text-indigo-500"
+          className="flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-[#EEDDE0] text-xs font-medium text-slate-400 hover:border-[#7B3F4A] hover:text-[#7B3F4A]"
         >
           {uploading ? '…' : <>+<br />Add</>}
         </button>
@@ -944,13 +944,13 @@ function SpecificationsSection({
               value={row.name}
               onChange={(e) => update(i, 'name', e.target.value)}
               placeholder="Name (e.g. Material)"
-              className="w-1/2 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-1/2 rounded-xl border border-[#EEDDE0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
             />
             <input
               value={row.value}
               onChange={(e) => update(i, 'value', e.target.value)}
               placeholder="Value (e.g. Plastic)"
-              className="w-1/2 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-1/2 rounded-xl border border-[#EEDDE0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
             />
             <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
               ✕

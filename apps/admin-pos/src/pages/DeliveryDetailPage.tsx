@@ -133,7 +133,7 @@ export function DeliveryDetailPage() {
             <p className="text-slate-600">Courier: {delivery.courier ?? '—'}</p>
             <p className="text-slate-600">AWB: {delivery.awb ?? '—'}</p>
             {delivery.tracking_url && (
-              <a href={delivery.tracking_url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">
+              <a href={delivery.tracking_url} target="_blank" rel="noreferrer" className="text-[#7B3F4A] hover:underline font-semibold">
                 Tracking Link
               </a>
             )}

@@ -158,62 +158,42 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
       {savedMsg && <Alert tone="green">{savedMsg}</Alert>}
       {priceError && <Alert tone="red">{priceError}</Alert>}
 
-      <div className="flex border-b border-slate-200 text-xs font-semibold overflow-x-auto">
-        <button
-          onClick={() => setTab('company')}
-          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            tab === 'company' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Company Details
-        </button>
-        <button
-          onClick={() => setTab('prices')}
-          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            tab === 'prices' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Price Settings (Wholesale / Retail / Customer-Wise)
-        </button>
-        <button
-          onClick={() => setTab('prefix')}
-          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            tab === 'prefix' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Invoice Prefix
-        </button>
-        <button
-          onClick={() => setTab('printer')}
-          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            tab === 'printer' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Thermal Printer Setup
-        </button>
-        <button
-          onClick={() => setTab('scanner')}
-          className={`px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
-            tab === 'scanner' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          WiFi Scanner Setup
-        </button>
+      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[#F9F3F4] border-[#EEDDE0]">
+        {[
+          { id: 'company', label: 'Company Details' },
+          { id: 'prices', label: 'Price Settings (Wholesale / Retail / Customer-Wise)' },
+          { id: 'prefix', label: 'Invoice Prefix' },
+          { id: 'printer', label: 'Thermal Printer Setup' },
+          { id: 'scanner', label: 'WiFi Scanner Setup' },
+        ].map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
+              tab === t.id
+                ? 'bg-[#7B3F4A] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <Card className="p-6 space-y-4">
         {tab === 'prices' && (
           <div className="space-y-4 text-xs">
             {/* Batch Consumption Strategy Card */}
-            <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 space-y-2">
+            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-2">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">Batch Stock Consumption Strategy (FIFO vs FEFO)</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#7B3F4A]">Batch Stock Consumption Strategy (FIFO vs FEFO)</h4>
                   <p className="text-[11px] text-slate-600 mt-0.5">
                     Select how POS sales &amp; orders consume stock batches. FIFO (First-In, First-Out) consumes oldest batch; FEFO (First-Expired, First-Out) consumes nearest expiry.
                   </p>
                 </div>
-                <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-md border border-indigo-200 shadow-2xs">
+                <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-full border border-[#EEDDE0] shadow-2xs">
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-800">
                     <input
                       type="radio"
@@ -221,7 +201,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                       value="FIFO"
                       checked={consumptionRule === 'FIFO'}
                       onChange={() => setConsumptionRule('FIFO')}
-                      className="text-indigo-600 focus:ring-indigo-500"
+                      className="accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                     />
                     FIFO (First-In First-Out)
                   </label>
@@ -232,7 +212,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                       value="FEFO"
                       checked={consumptionRule === 'FEFO'}
                       onChange={() => setConsumptionRule('FEFO')}
-                      className="text-indigo-600 focus:ring-indigo-500"
+                      className="accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                     />
                     FEFO (First-Expired First-Out)
                   </label>
@@ -260,57 +240,57 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
 
             {loadingPrices ? (
               <div className="flex justify-center py-12">
-                <Spinner className="w-8 h-8 text-indigo-600" />
+                <Spinner className="w-8 h-8 text-[#7B3F4A]" />
               </div>
             ) : (
               <div className="overflow-x-auto border border-[#F2E5E7] rounded-2xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+                  <thead className="bg-[#FAF2F4]/80 border-b border-[#F2E5E7] uppercase font-bold text-[#804652] text-[10px] tracking-wider">
                     <tr>
-                      <th className="px-4 py-3">Item / SKU</th>
-                      <th className="px-4 py-3 text-right">MRP (₹)</th>
-                      <th className="px-4 py-3 text-center bg-[#F2E5E7]/60">Retail Rate (₹)</th>
-                      <th className="px-4 py-3 text-center bg-[#EEDDE0]/60">Wholesale Rate (₹)</th>
-                      <th className="px-4 py-3 text-center bg-[#FAF2F4]/60">Customer-Wise Rate (₹)</th>
+                      <th className="px-3 py-3">Item / SKU</th>
+                      <th className="px-3 py-3 text-right">MRP (₹)</th>
+                      <th className="px-3 py-3 text-center bg-[#FAF2F4]">Retail Rate (₹)</th>
+                      <th className="px-3 py-3 text-center bg-amber-50/50">Wholesale Rate (₹)</th>
+                      <th className="px-3 py-3 text-center bg-rose-50/40">Customer-Wise Rate (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0E0E3]">
+                  <tbody className="divide-y divide-[#F2E5E7]">
                     {filteredPriceVariants.map((v) => (
-                      <tr key={v.variant_id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                        <td className="px-4 py-2.5">
-                          <div className="font-bold text-slate-950 text-sm">{v.product_name}</div>
-                          <div className="text-[11px] font-mono text-slate-600 font-semibold">{v.sku}</div>
+                      <tr key={v.variant_id} className="hover:bg-slate-50/70">
+                        <td className="px-3 py-2">
+                          <div className="font-semibold text-slate-900">{v.product_name}</div>
+                          <div className="text-[11px] font-mono text-slate-400">{v.sku}</div>
                         </td>
-                        <td className="px-4 py-2.5 text-right font-bold text-slate-900">
+                        <td className="px-3 py-2 text-right font-medium text-slate-500">
                           ₹{Number(v.mrp || 0).toFixed(2)}
                         </td>
-                        <td className="px-4 py-2.5 bg-[#FAF2F4]/40">
+                        <td className="px-3 py-2 bg-[#FAF2F4]/40">
                           <input
                             type="number"
                             step="0.01"
                             value={v.retail_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'retail_price', e.target.value)}
-                            className="w-28 text-center font-bold text-slate-950 rounded-lg border border-[#E8CCD1] bg-white p-1.5 focus:ring-2 focus:ring-[#804652]"
+                            className="w-28 text-center font-semibold text-slate-900 rounded-lg border border-[#EEDDE0] p-1 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A] focus:outline-none"
                             placeholder="0.00"
                           />
                         </td>
-                        <td className="px-4 py-2.5 bg-[#F8EAED]/40">
+                        <td className="px-3 py-2 bg-amber-50/20">
                           <input
                             type="number"
                             step="0.01"
                             value={v.wholesale_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'wholesale_price', e.target.value)}
-                            className="w-28 text-center font-bold text-[#804652] rounded-lg border border-[#E8CCD1] bg-white p-1.5 focus:ring-2 focus:ring-[#804652]"
+                            className="w-28 text-center font-semibold text-amber-900 rounded border border-amber-300 p-1 focus:ring-2 focus:ring-amber-500"
                             placeholder="0.00"
                           />
                         </td>
-                        <td className="px-4 py-2.5 bg-[#FAF2F4]/40">
+                        <td className="px-3 py-2 bg-teal-50/20">
                           <input
                             type="number"
                             step="0.01"
                             value={v.customer_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'customer_price', e.target.value)}
-                            className="w-28 text-center font-bold text-emerald-950 rounded-lg border border-[#E8CCD1] bg-white p-1.5 focus:ring-2 focus:ring-emerald-700"
+                            className="w-28 text-center font-semibold text-teal-900 rounded border border-teal-300 p-1 focus:ring-2 focus:ring-teal-500"
                             placeholder="0.00"
                           />
                         </td>
@@ -318,7 +298,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                     ))}
                     {filteredPriceVariants.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center font-semibold text-slate-500">
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                           No items found matching search.
                         </td>
                       </tr>
@@ -345,7 +325,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 rows={3}
                 value={companyAddress}
                 onChange={(e) => setCompanyAddress(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-[#EEDDE0] p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A] focus:outline-none"
               />
             </div>
           </div>
@@ -359,11 +339,11 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
               <TextField label="E-Commerce Invoice Prefix" value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value)} placeholder="e.g. INV" />
               <TextField label="Order No. Prefix" value={orderPrefix} onChange={(e) => setOrderPrefix(e.target.value)} placeholder="e.g. ORD" />
             </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="font-semibold text-slate-800">Preview Generated Numbers:</p>
-              <p className="mt-1 font-mono text-indigo-700">{posInvoicePrefix}-20261007-0012</p>
-              <p className="font-mono text-indigo-700">{invoicePrefix}-20261007-0045</p>
-              <p className="font-mono text-indigo-700">{orderPrefix}-20261007-0099</p>
+            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/70 p-4">
+              <p className="font-bold text-[#804652] uppercase tracking-wider text-[11px]">Preview Generated Numbers:</p>
+              <p className="mt-1 font-mono text-[#7B3F4A] font-bold">{posInvoicePrefix}-20261007-0012</p>
+              <p className="font-mono text-[#7B3F4A] font-bold">{invoicePrefix}-20261007-0045</p>
+              <p className="font-mono text-[#7B3F4A] font-bold">{orderPrefix}-20261007-0099</p>
             </div>
           </div>
         )}
@@ -377,7 +357,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 <select
                   value={printerPaperSize}
                   onChange={(e) => setPrinterPaperSize(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-[#EEDDE0] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
                 >
                   <option value="80mm">80mm Standard Thermal Paper</option>
                   <option value="58mm">58mm Compact Mini Receipt</option>
@@ -388,7 +368,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 <select
                   value={printerConnection}
                   onChange={(e) => setPrinterConnection(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-[#EEDDE0] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
                 >
                   <option value="USB / Local Spooler">USB / Direct ESC/POS Spooler</option>
                   <option value="Network / Ethernet (LAN)">Network / Ethernet (LAN IP)</option>
@@ -401,7 +381,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 type="checkbox"
                 checked={autoPrintPosSales}
                 onChange={(e) => setAutoPrintPosSales(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                className="h-4 w-4 rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
               />
               Auto-print receipt immediately upon completing POS sale
             </label>
@@ -418,7 +398,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 <select
                   value={scannerMode}
                   onChange={(e) => setScannerMode(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs text-slate-900 focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-[#EEDDE0] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
                 >
                   <option value="HID / Wireless TCP">Wireless TCP / HID Keyboard Emulation</option>
                   <option value="SPP Serial">SPP Serial Port Mode</option>
@@ -431,7 +411,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 type="checkbox"
                 checked={scannerBeep}
                 onChange={(e) => setScannerBeep(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                className="h-4 w-4 rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
               />
               Enable audio notification tone on successful barcode scan
             </label>

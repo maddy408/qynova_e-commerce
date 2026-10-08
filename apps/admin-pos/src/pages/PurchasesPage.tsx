@@ -687,7 +687,7 @@ export function PurchasesPage() {
                         <td className="px-4 py-3 text-[#804652] font-black">₹{effectiveBalance}</td>
                         <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
                           {p.payment_method === 'SPLIT' ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FAF2F4] text-[#7B3F4A] border border-[#EEDDE0]">
                               ⚡ Split
                             </span>
                           ) : (
@@ -917,7 +917,7 @@ export function PurchasesPage() {
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Current Status</p>
-                  <p className="text-sm font-bold text-indigo-700">{editPurchase.payment_status}</p>
+                  <p className="text-sm font-bold text-[#7B3F4A]">{editPurchase.payment_status}</p>
                 </div>
               </div>
             </div>

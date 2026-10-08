@@ -149,38 +149,38 @@ export function CouponsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b border-[#F2E5E7] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[10px] font-bold tracking-wider">
               <tr>
-                <th className="px-6 py-4 font-black">Code</th>
-                <th className="px-6 py-4 font-black">Name</th>
-                <th className="px-6 py-4 font-black">Discount</th>
-                <th className="px-6 py-4 font-black">Limits</th>
-                <th className="px-6 py-4 font-black">First Order</th>
-                <th className="px-6 py-4 font-black">Status</th>
-                <th className="px-6 py-4 font-black text-right">Action</th>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Discount</th>
+                <th className="px-4 py-3">Limits</th>
+                <th className="px-4 py-3">First Order</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[#F2E5E7]">
               {coupons.map((c) => (
-                <tr key={c.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                  <td className="px-6 py-4 font-mono font-extrabold text-[#804652]">{c.code}</td>
-                  <td className="px-6 py-4 font-bold text-slate-950">{c.name}</td>
-                  <td className="px-6 py-4 text-emerald-800 font-extrabold">
+                <tr key={c.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
+                  <td className="px-4 py-2.5 font-mono font-bold text-[#7B3F4A] bg-[#FAF2F4] border border-[#EEDDE0] rounded">{c.code}</td>
+                  <td className="px-4 py-2.5 font-semibold text-slate-900">{c.name}</td>
+                  <td className="px-4 py-2.5 text-slate-900 font-bold">
                     {c.discount_type === 'PERCENTAGE' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
                   </td>
-                  <td className="px-6 py-4 text-slate-700 font-semibold">
+                  <td className="px-4 py-2.5 text-slate-600 font-medium">
                     {c.usage_limit ? `${c.usage_limit} total uses` : 'Unlimited'}
                   </td>
-                  <td className="px-6 py-4">
-                    {c.first_order_only ? <Badge tone="amber">1st Order Only</Badge> : <span className="text-slate-500 font-bold">—</span>}
+                  <td className="px-4 py-2.5">
+                    {c.first_order_only ? <Badge tone="amber">1st Order Only</Badge> : <span className="text-slate-400">—</span>}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2.5">
                     <Badge tone={c.status === 'ACTIVE' ? 'green' : 'slate'}>{c.status}</Badge>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-2.5 text-right">
                     <button
                       onClick={() => toggleStatus(c)}
-                      className="text-xs font-bold text-[#804652] hover:text-[#5a2c36] transition-colors cursor-pointer"
+                      className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E] transition-colors"
                     >
                       {c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                     </button>
@@ -189,7 +189,7 @@ export function CouponsPage() {
               ))}
               {coupons.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-xs font-semibold text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                     No coupons created yet.
                   </td>
                 </tr>
@@ -238,14 +238,14 @@ export function CouponsPage() {
                   <button
                     type="button"
                     onClick={() => setTargetType('ALL')}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'ALL' ? 'bg-[#7B3F4A] text-white' : 'bg-white text-slate-700 border border-[#EEDDE0]'}`}
                   >
                     All Customers
                   </button>
                   <button
                     type="button"
                     onClick={() => setTargetType('SPECIFIC')}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'SPECIFIC' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'SPECIFIC' ? 'bg-[#7B3F4A] text-white' : 'bg-white text-slate-700 border border-[#EEDDE0]'}`}
                   >
                     Specific Recent Customers ({selectedCustomerIds.length})
                   </button>
@@ -259,14 +259,14 @@ export function CouponsPage() {
                     placeholder="Search recent customers by name or phone..."
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 px-3 py-1 text-xs focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-md border border-slate-300 px-3 py-1 text-xs focus:ring-1 focus:ring-[#7B3F4A] focus:border-[#7B3F4A]"
                   />
                   <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto bg-white p-2 rounded-lg border border-slate-200">
                     {filteredCustomers.map((cust) => (
                       <label
                         key={cust.id}
                         className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${
-                          selectedCustomerIds.includes(cust.id) ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:bg-slate-50'
+                          selectedCustomerIds.includes(cust.id) ? 'border-[#7B3F4A] bg-[#FAF2F4]/80' : 'border-slate-200 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export function CouponsPage() {
                             type="checkbox"
                             checked={selectedCustomerIds.includes(cust.id)}
                             onChange={() => toggleCustomer(cust.id)}
-                            className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-3.5 w-3.5 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                           />
                           <div>
                             <p className="font-semibold text-slate-900">{cust.name}</p>
@@ -308,7 +308,7 @@ export function CouponsPage() {
                       type="checkbox"
                       checked={categoryIds.includes(c.id)}
                       onChange={() => toggleCategory(c.id)}
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-3.5 w-3.5 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                     />
                     {c.name}
                   </label>
@@ -325,7 +325,7 @@ export function CouponsPage() {
                       type="checkbox"
                       checked={brandIds.includes(b.id)}
                       onChange={() => toggleBrand(b.id)}
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-3.5 w-3.5 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                     />
                     {b.name}
                   </label>
@@ -342,7 +342,7 @@ export function CouponsPage() {
                   type="checkbox"
                   checked={firstOrderOnly}
                   onChange={(e) => setFirstOrderOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                 />
                 First Order Only
               </label>
@@ -351,7 +351,7 @@ export function CouponsPage() {
                   type="checkbox"
                   checked={canCombineWithReferral}
                   onChange={(e) => setCanCombineWithReferral(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
                 />
                 Combine with Referral Reward
               </label>

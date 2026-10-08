@@ -366,7 +366,7 @@ function BannerFormModal({
                   setDesktopPreview(URL.createObjectURL(f))
                 }
               }}
-              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#FAF2F4] file:text-[#7B3F4A] hover:file:bg-[#F2E5E7]"
             />
             {desktopPreview && (
               <img src={desktopPreview} alt="Desktop Preview" className="mt-2 h-16 w-full rounded border border-slate-300 object-cover" />
@@ -384,7 +384,7 @@ function BannerFormModal({
                   setMobilePreview(URL.createObjectURL(f))
                 }
               }}
-              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#FAF2F4] file:text-[#7B3F4A] hover:file:bg-[#F2E5E7]"
             />
             {mobilePreview && (
               <img src={mobilePreview} alt="Mobile Preview" className="mt-2 h-16 w-full rounded border border-slate-300 object-cover" />

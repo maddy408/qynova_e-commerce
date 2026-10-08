@@ -132,24 +132,24 @@ export function FinancePage() {
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-5 border-l-4 border-l-emerald-600 bg-white">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Total Income</p>
-          <p className="mt-1 text-2xl font-black text-emerald-800">₹{summary.total_income.toFixed(2)}</p>
-          <p className="mt-1 text-xs text-slate-600 font-medium">All recorded income transactions</p>
+        <Card className="p-5 border-l-4 border-l-emerald-500">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Income</p>
+          <p className="mt-1 text-2xl font-black text-emerald-600">₹{summary.total_income.toFixed(2)}</p>
+          <p className="mt-1 text-[11px] text-slate-400">All recorded income transactions</p>
         </Card>
 
-        <Card className="p-5 border-l-4 border-l-rose-600 bg-white">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Total Expenses</p>
-          <p className="mt-1 text-2xl font-black text-rose-800">₹{summary.total_expense.toFixed(2)}</p>
-          <p className="mt-1 text-xs text-slate-600 font-medium">All store operational expenses</p>
+        <Card className="p-5 border-l-4 border-l-red-500">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Expenses</p>
+          <p className="mt-1 text-2xl font-black text-red-600">₹{summary.total_expense.toFixed(2)}</p>
+          <p className="mt-1 text-[11px] text-slate-400">All store operational expenses</p>
         </Card>
 
-        <Card className={`p-5 border-l-4 ${summary.net_profit >= 0 ? 'border-l-[#804652]' : 'border-l-amber-600'} bg-white`}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600">Net Profit / Cash Flow</p>
-          <p className={`mt-1 text-2xl font-black ${summary.net_profit >= 0 ? 'text-[#804652]' : 'text-amber-800'}`}>
+        <Card className={`p-5 border-l-4 ${summary.net_profit >= 0 ? 'border-l-[#7B3F4A]' : 'border-l-amber-500'}`}>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Net Profit / Cash Flow</p>
+          <p className={`mt-1 text-2xl font-black ${summary.net_profit >= 0 ? 'text-[#7B3F4A]' : 'text-amber-600'}`}>
             ₹{summary.net_profit.toFixed(2)}
           </p>
-          <p className="mt-1 text-xs text-slate-600 font-medium">Income minus total expenses</p>
+          <p className="mt-1 text-[11px] text-slate-400">Income minus total expenses</p>
         </Card>
       </div>
 
@@ -157,11 +157,11 @@ export function FinancePage() {
       <Card className="p-4">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Filter By:</span>
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Filter By:</span>
             <select
               value={filterType}
               onChange={(e: any) => setFilterType(e.target.value)}
-              className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/40 px-3.5 py-1.5 text-xs font-semibold text-slate-950 focus:ring-2 focus:ring-[#804652]"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:ring-2 focus:ring-[#7B3F4A] focus:border-[#7B3F4A]"
             >
               <option value="">All Types (Income & Expenses)</option>
               <option value="INCOME">Income Only</option>
@@ -172,51 +172,51 @@ export function FinancePage() {
       </Card>
 
       {/* Table */}
-      <Card>
+      <Card className="overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-xs font-semibold text-slate-500">Loading financial records…</div>
+          <div className="p-8 text-center text-sm text-slate-500">Loading financial records…</div>
         ) : transactions.length === 0 ? (
-          <div className="p-12 text-center text-xs font-semibold text-slate-500">
+          <div className="p-12 text-center text-sm text-slate-500">
             No transactions found. Click "+ Add Expense" or "+ Add Income" above.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[#FAF2F4]/80 text-[11px] uppercase text-[#804652] border-b border-[#EEDDE0]">
                 <tr>
-                  <th className="px-6 py-4 font-black">Date</th>
-                  <th className="px-6 py-4 font-black">Transaction No</th>
-                  <th className="px-6 py-4 font-black">Type</th>
-                  <th className="px-6 py-4 font-black">Category</th>
-                  <th className="px-6 py-4 font-black">Amount</th>
-                  <th className="px-6 py-4 font-black">Payment Method</th>
-                  <th className="px-6 py-4 font-black">Ref No / Notes</th>
-                  <th className="px-6 py-4 font-black text-right">Actions</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-4 py-3 font-semibold">Transaction No</th>
+                  <th className="px-4 py-3 font-semibold">Type</th>
+                  <th className="px-4 py-3 font-semibold">Category</th>
+                  <th className="px-4 py-3 font-semibold">Amount</th>
+                  <th className="px-4 py-3 font-semibold">Payment Method</th>
+                  <th className="px-4 py-3 font-semibold">Ref No / Notes</th>
+                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0E0E3]">
+              <tbody className="divide-y divide-slate-100">
                 {transactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-950">{t.transaction_date}</td>
-                    <td className="px-6 py-4 font-mono text-xs font-bold text-[#804652]">{t.transaction_no}</td>
-                    <td className="px-6 py-4">
+                  <tr key={t.id} className="hover:bg-slate-50/80 transition">
+                    <td className="px-4 py-3 font-medium text-slate-900">{t.transaction_date}</td>
+                    <td className="px-4 py-3 font-mono text-xs font-bold text-slate-600">{t.transaction_no}</td>
+                    <td className="px-4 py-3">
                       <Badge tone={t.type === 'INCOME' ? 'green' : 'red'}>
                         {t.type === 'INCOME' ? '+ INCOME' : '- EXPENSE'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-950">{t.category}</td>
-                    <td className={`px-6 py-4 font-extrabold text-sm ${t.type === 'INCOME' ? 'text-emerald-800' : 'text-rose-800'}`}>
+                    <td className="px-4 py-3 font-semibold text-slate-800">{t.category}</td>
+                    <td className={`px-4 py-3 font-bold text-base ${t.type === 'INCOME' ? 'text-emerald-600' : 'text-red-600'}`}>
                       {t.type === 'INCOME' ? '+' : '-'}₹{Number(t.amount).toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-700 font-bold">{t.payment_method}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600 font-medium max-w-xs truncate">
-                      {t.reference_no && <span className="font-mono font-bold text-[#804652] mr-1">[{t.reference_no}]</span>}
+                    <td className="px-4 py-3 text-xs text-slate-600 font-semibold">{t.payment_method}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate">
+                      {t.reference_no && <span className="font-mono mr-1">[{t.reference_no}]</span>}
                       {t.notes || '—'}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => handleDelete(t.id)}
-                        className="rounded-lg px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
                       >
                         Delete
                       </button>
