@@ -6,6 +6,8 @@ import type { Unit } from '../lib/types'
 export function UnitsPage() {
   const [units, setUnits] = useState<Unit[] | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
+
   const [name, setName] = useState('')
   const [shortCode, setShortCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -20,18 +22,49 @@ export function UnitsPage() {
     load()
   }, [])
 
+  function handleOpenCreate() {
+    setEditingUnit(null)
+    setName('')
+    setShortCode('')
+    setError('')
+    setShowModal(true)
+  }
+
+  function handleOpenEdit(unit: Unit) {
+    setEditingUnit(unit)
+    setName(unit.name)
+    setShortCode(unit.short_code)
+    setError('')
+    setShowModal(true)
+  }
+
+  async function handleDelete(id: number, unitName: string) {
+    if (!window.confirm(`Are you sure you want to delete unit "${unitName}"?`)) return
+    try {
+      await api.delete(`/units/${id}`)
+      load()
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Failed to delete unit'))
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
     setSubmitting(true)
     try {
-      await api.post('/units', { name: name.trim(), short_code: shortCode.trim().toUpperCase() })
+      if (editingUnit) {
+        await api.put(`/units/${editingUnit.id}`, { name: name.trim(), short_code: shortCode.trim().toUpperCase() })
+      } else {
+        await api.post('/units', { name: name.trim(), short_code: shortCode.trim().toUpperCase() })
+      }
       setShowModal(false)
       setName('')
       setShortCode('')
+      setEditingUnit(null)
       load()
     } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to add unit'))
+      setError(apiErrorMessage(err, editingUnit ? 'Failed to update unit' : 'Failed to add unit'))
     } finally {
       setSubmitting(false)
     }
@@ -90,7 +123,7 @@ export function UnitsPage() {
               {/* + New Unit Button */}
               <button
                 type="button"
-                onClick={() => setShowModal(true)}
+                onClick={handleOpenCreate}
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
               >
                 + New Unit
@@ -105,7 +138,7 @@ export function UnitsPage() {
                 <tr>
                   <th className="px-6 py-4">Unit Name</th>
                   <th className="px-6 py-4">Short Code / Symbol</th>
-                  <th className="px-6 py-4 text-right">System ID</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F6EDEE]">
@@ -117,7 +150,22 @@ export function UnitsPage() {
                         {u.short_code}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-slate-700">#{u.id}</td>
+                    <td className="px-6 py-4 text-right space-x-3 font-bold">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(u)}
+                        className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(u.id, u.name)}
+                        className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filteredUnits.length === 0 && (
@@ -133,9 +181,9 @@ export function UnitsPage() {
         </div>
       )}
 
-      {/* ================= MODAL: NEW UNIT ================= */}
+      {/* ================= MODAL: CREATE / EDIT UNIT ================= */}
       {showModal && (
-        <Modal title="Add New Measurement Unit" onClose={() => setShowModal(false)}>
+        <Modal title={editingUnit ? 'Edit Measurement Unit' : 'Add New Measurement Unit'} onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <Alert tone="red">{error}</Alert>}
 
@@ -181,7 +229,7 @@ export function UnitsPage() {
                 disabled={submitting}
                 className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
-                {submitting ? 'Adding…' : 'Add Unit'}
+                {submitting ? 'Saving…' : editingUnit ? 'Save Changes' : 'Add Unit'}
               </button>
             </div>
           </form>

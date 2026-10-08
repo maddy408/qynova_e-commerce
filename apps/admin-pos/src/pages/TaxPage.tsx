@@ -9,6 +9,9 @@ export function TaxPage() {
   const [showGstForm, setShowGstForm] = useState(false)
   const [showHsnForm, setShowHsnForm] = useState(false)
 
+  const [editingGstRate, setEditingGstRate] = useState<GstRate | null>(null)
+  const [editingHsnCode, setEditingHsnCode] = useState<HsnCode | null>(null)
+
   // GST Form State
   const [gstName, setGstName] = useState('')
   const [gstPercent, setGstPercent] = useState('')
@@ -38,9 +41,61 @@ export function TaxPage() {
     loadHsnCodes()
   }, [])
 
+  function handleOpenGstCreate() {
+    setEditingGstRate(null)
+    setGstName('')
+    setGstPercent('')
+    setCgstPercent('')
+    setSgstPercent('')
+    setIgstPercent('')
+    setTaxMode('EXCLUSIVE')
+    setGstError('')
+    setShowGstForm(true)
+  }
+
+  function handleOpenGstEdit(rate: GstRate) {
+    setEditingGstRate(rate)
+    setGstName(rate.name)
+    setGstPercent(rate.gst_percent.toString())
+    setCgstPercent(rate.cgst_percent.toString())
+    setSgstPercent(rate.sgst_percent.toString())
+    setIgstPercent(rate.igst_percent.toString())
+    setTaxMode(rate.tax_mode)
+    setGstError('')
+    setShowGstForm(true)
+  }
+
+  async function handleDeleteGstRate(id: number, name: string) {
+    if (!window.confirm(`Are you sure you want to delete GST rate slab "${name}"?`)) return
+    try {
+      await api.delete(`/gst-rates/${id}`)
+      loadGstRates()
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Failed to delete GST rate'))
+    }
+  }
+
   async function toggleGstStatus(rate: GstRate) {
     await api.put(`/gst-rates/${rate.id}`, { status: rate.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' })
     loadGstRates()
+  }
+
+  function handleOpenHsnCreate() {
+    setEditingHsnCode(null)
+    setHsnCode('')
+    setHsnDescription('')
+    setHsnGstRateId('')
+    setHsnError('')
+    setShowHsnForm(true)
+  }
+
+  function handleOpenHsnEdit(hsn: HsnCode) {
+    setEditingHsnCode(hsn)
+    setHsnCode(hsn.code)
+    setHsnDescription(hsn.description || '')
+    setHsnGstRateId(hsn.gst_rate_id ? hsn.gst_rate_id.toString() : '')
+    setHsnError('')
+    setShowHsnForm(true)
   }
 
   async function removeHsnCode(id: number) {
@@ -53,24 +108,30 @@ export function TaxPage() {
     e.preventDefault()
     setGstError('')
     setGstSubmitting(true)
+    const payload = {
+      name: gstName,
+      gst_percent: parseFloat(gstPercent),
+      cgst_percent: parseFloat(cgstPercent || (parseFloat(gstPercent) / 2).toString()),
+      sgst_percent: parseFloat(sgstPercent || (parseFloat(gstPercent) / 2).toString()),
+      igst_percent: parseFloat(igstPercent || gstPercent),
+      tax_mode: taxMode,
+    }
     try {
-      await api.post('/gst-rates', {
-        name: gstName,
-        gst_percent: parseFloat(gstPercent),
-        cgst_percent: parseFloat(cgstPercent || (parseFloat(gstPercent) / 2).toString()),
-        sgst_percent: parseFloat(sgstPercent || (parseFloat(gstPercent) / 2).toString()),
-        igst_percent: parseFloat(igstPercent || gstPercent),
-        tax_mode: taxMode,
-      })
+      if (editingGstRate) {
+        await api.put(`/gst-rates/${editingGstRate.id}`, payload)
+      } else {
+        await api.post('/gst-rates', payload)
+      }
       setShowGstForm(false)
       setGstName('')
       setGstPercent('')
       setCgstPercent('')
       setSgstPercent('')
       setIgstPercent('')
+      setEditingGstRate(null)
       loadGstRates()
     } catch (err) {
-      setGstError(apiErrorMessage(err, 'Failed to create GST rate'))
+      setGstError(apiErrorMessage(err, editingGstRate ? 'Failed to update GST rate' : 'Failed to create GST rate'))
     } finally {
       setGstSubmitting(false)
     }
@@ -80,19 +141,25 @@ export function TaxPage() {
     e.preventDefault()
     setHsnError('')
     setHsnSubmitting(true)
+    const payload = {
+      code: hsnCode,
+      description: hsnDescription || null,
+      gst_rate_id: hsnGstRateId ? parseInt(hsnGstRateId) : null,
+    }
     try {
-      await api.post('/hsn-codes', {
-        code: hsnCode,
-        description: hsnDescription || null,
-        gst_rate_id: hsnGstRateId ? parseInt(hsnGstRateId) : null,
-      })
+      if (editingHsnCode) {
+        await api.put(`/hsn-codes/${editingHsnCode.id}`, payload)
+      } else {
+        await api.post('/hsn-codes', payload)
+      }
       setShowHsnForm(false)
       setHsnCode('')
       setHsnDescription('')
       setHsnGstRateId('')
+      setEditingHsnCode(null)
       loadHsnCodes()
     } catch (err) {
-      setHsnError(apiErrorMessage(err, 'Failed to create HSN code'))
+      setHsnError(apiErrorMessage(err, editingHsnCode ? 'Failed to update HSN code' : 'Failed to create HSN code'))
     } finally {
       setHsnSubmitting(false)
     }
@@ -109,7 +176,7 @@ export function TaxPage() {
           </div>
           <button
             type="button"
-            onClick={() => setShowGstForm(true)}
+            onClick={handleOpenGstCreate}
             className="px-4 py-1.5 rounded-full bg-[#FAF0F2] text-[#804652] border border-[#F2DFE2] text-xs font-bold hover:bg-[#F5E6E9] transition-colors shadow-2xs"
           >
             + Add GST Rate
@@ -163,15 +230,29 @@ export function TaxPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right space-x-3 font-bold">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenGstEdit(r)}
+                        className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline"
+                      >
+                        Edit
+                      </button>
                       <button
                         type="button"
                         onClick={() => toggleGstStatus(r)}
                         className={`text-xs font-bold hover:underline ${
-                          r.status === 'ACTIVE' ? 'text-rose-600 hover:text-rose-800' : 'text-emerald-700 hover:text-emerald-900'
+                          r.status === 'ACTIVE' ? 'text-amber-700 hover:text-amber-900' : 'text-emerald-700 hover:text-emerald-900'
                         }`}
                       >
                         {r.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteGstRate(r.id, r.name)}
+                        className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
+                      >
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -191,7 +272,7 @@ export function TaxPage() {
           </div>
           <button
             type="button"
-            onClick={() => setShowHsnForm(true)}
+            onClick={handleOpenHsnCreate}
             className="px-4 py-1.5 rounded-full bg-[#FAF0F2] text-[#804652] border border-[#F2DFE2] text-xs font-bold hover:bg-[#F5E6E9] transition-colors shadow-2xs"
           >
             + Add HSN Code
@@ -219,11 +300,18 @@ export function TaxPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-800 font-medium">{h.description || '—'}</td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right space-x-3 font-bold">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenHsnEdit(h)}
+                        className="text-xs text-indigo-700 hover:text-indigo-900 hover:underline"
+                      >
+                        Edit
+                      </button>
                       <button
                         type="button"
                         onClick={() => removeHsnCode(h.id)}
-                        className="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline"
+                        className="text-xs text-rose-600 hover:text-rose-800 hover:underline"
                       >
                         Delete
                       </button>
@@ -236,9 +324,9 @@ export function TaxPage() {
         )}
       </div>
 
-      {/* ================= MODAL: NEW GST RATE ================= */}
+      {/* ================= MODAL: NEW / EDIT GST RATE ================= */}
       {showGstForm && (
-        <Modal title="New GST Tax Rate Slab" onClose={() => setShowGstForm(false)}>
+        <Modal title={editingGstRate ? 'Edit GST Tax Rate Slab' : 'New GST Tax Rate Slab'} onClose={() => setShowGstForm(false)}>
           <form onSubmit={handleGstSubmit} className="space-y-4">
             {gstError && <Alert tone="red">{gstError}</Alert>}
 
@@ -347,16 +435,16 @@ export function TaxPage() {
                 disabled={gstSubmitting}
                 className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
-                {gstSubmitting ? 'Saving…' : 'Create GST Rate'}
+                {gstSubmitting ? 'Saving…' : editingGstRate ? 'Save Changes' : 'Create GST Rate'}
               </button>
             </div>
           </form>
         </Modal>
       )}
 
-      {/* ================= MODAL: NEW HSN CODE ================= */}
+      {/* ================= MODAL: NEW / EDIT HSN CODE ================= */}
       {showHsnForm && (
-        <Modal title="New HSN / SAC Code" onClose={() => setShowHsnForm(false)}>
+        <Modal title={editingHsnCode ? 'Edit HSN / SAC Code' : 'New HSN / SAC Code'} onClose={() => setShowHsnForm(false)}>
           <form onSubmit={handleHsnSubmit} className="space-y-4">
             {hsnError && <Alert tone="red">{hsnError}</Alert>}
 
@@ -419,7 +507,7 @@ export function TaxPage() {
                 disabled={hsnSubmitting}
                 className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
-                {hsnSubmitting ? 'Saving…' : 'Create HSN Code'}
+                {hsnSubmitting ? 'Saving…' : editingHsnCode ? 'Save Changes' : 'Create HSN Code'}
               </button>
             </div>
           </form>

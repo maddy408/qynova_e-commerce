@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { EyeIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
-import { Alert, Badge, Button, Card, Modal, Select, Spinner, TextField } from '../components/ui'
+import { Alert, Badge, Modal, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Supplier } from '../lib/types'
 
@@ -43,13 +43,6 @@ export function SuppliersPage() {
   }
 
   useEffect(load, [search, status, page])
-
-  function field<K extends keyof SupplierForm>(key: K) {
-    return {
-      value: form[key],
-      onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [key]: e.target.value })),
-    }
-  }
 
   function openCreateModal() {
     setForm(EMPTY_FORM)

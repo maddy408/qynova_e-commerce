@@ -6,7 +6,7 @@ import {
   extractSplitPaymentPayload,
   type SplitPaymentValues,
 } from '../components/SplitPaymentFields'
-import { Alert, Badge, Button, Card, Modal, Select, Spinner, TextField } from '../components/ui'
+import { Alert, Badge, Button, Modal, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 
 interface Supplier {

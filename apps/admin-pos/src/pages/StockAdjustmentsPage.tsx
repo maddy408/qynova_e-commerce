@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Alert, Badge, Button, Card, Modal, Spinner, TextField } from '../components/ui'
+import { Alert, Badge, Button, Modal, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
 

@@ -116,6 +116,7 @@ export interface HsnCode {
   id: number
   code: string
   description: string | null
+  gst_rate_id?: number | null
 }
 
 export interface ProductImage {

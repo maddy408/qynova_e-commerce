@@ -164,6 +164,58 @@ final class MasterDataController
         }
     }
 
+    public function updateUnit(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $body = Request::json();
+        $name = trim((string) ($body['name'] ?? ''));
+        $shortCode = trim((string) ($body['short_code'] ?? ''));
+
+        if ($name === '' || $shortCode === '') {
+            Response::error('name and short_code are required', 422);
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('UPDATE units SET name = :name, short_code = :code WHERE id = :id');
+            $stmt->execute(['name' => $name, 'code' => $shortCode, 'id' => (int) $id]);
+
+            if ($stmt->rowCount() === 0) {
+                Response::error('Unit not found', 404);
+            }
+
+            Response::json(['message' => 'Unit updated successfully']);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A unit with this name or code already exists', 409);
+            }
+            throw $e;
+        }
+    }
+
+    public function destroyUnit(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        try {
+            $stmt = $this->pdo->prepare('DELETE FROM units WHERE id = :id');
+            $stmt->execute(['id' => (int) $id]);
+
+            if ($stmt->rowCount() === 0) {
+                Response::error('Unit not found', 404);
+            }
+
+            Response::json(['message' => 'Unit deleted successfully']);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('Cannot delete unit because it is used by products or variants', 409);
+            }
+            throw $e;
+        }
+    }
+
     /** `?all=1` (the Tax admin page) also returns INACTIVE rates so they can be reactivated; everyone else only wants ACTIVE ones for a dropdown. */
     public function indexGstRates(): void
     {
@@ -248,6 +300,28 @@ final class MasterDataController
         } catch (PDOException $e) {
             if ((int) $e->getCode() === 23000) {
                 Response::error('A GST rate with this name already exists', 409);
+            }
+            throw $e;
+        }
+    }
+
+    public function destroyGstRate(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        try {
+            $stmt = $this->pdo->prepare('DELETE FROM gst_rates WHERE id = :id');
+            $stmt->execute(['id' => (int) $id]);
+
+            if ($stmt->rowCount() === 0) {
+                Response::error('GST rate not found', 404);
+            }
+
+            Response::json(['message' => 'GST rate deleted successfully']);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                Response::error('Cannot delete GST rate because it is used by products or variants', 409);
             }
             throw $e;
         }
