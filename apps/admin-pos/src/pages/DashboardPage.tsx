@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Card, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import { LayoutGridIcon, ListIcon } from '../components/Icons'
@@ -297,20 +296,6 @@ export function DashboardPage() {
                     <p className="text-xs text-[#804652] mt-1 max-w-md mx-auto leading-relaxed">
                       As POS checkout bills and online customer orders are fulfilled, your highest-selling products will automatically populate and rank here.
                     </p>
-                  </div>
-                  <div className="pt-2 flex items-center gap-3">
-                    <Link
-                      to="/pos-sale"
-                      className="rounded-full bg-[#7B3F4A] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#68343E] transition-all"
-                    >
-                      Start POS Billing
-                    </Link>
-                    <Link
-                      to="/catalog/products"
-                      className="rounded-full border border-[#EEDDE0] bg-[#FAF2F4] px-4 py-2 text-xs font-bold text-[#7B3F4A] hover:bg-[#F2E5E7] transition-all"
-                    >
-                      View Catalog
-                    </Link>
                   </div>
                 </Card>
               ) : viewMode === 'grid' ? (
