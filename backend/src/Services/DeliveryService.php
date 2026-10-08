@@ -154,10 +154,14 @@ final class DeliveryService
                     $invCheck = $this->pdo->prepare('SELECT id FROM invoices WHERE order_id = :id');
                     $invCheck->execute(['id' => $delivery['order_id']]);
                     if (!$invCheck->fetch()) {
-                        $orderSvc = new OrderService($this->pdo);
+                        $inventory = new InventoryService($this->pdo);
+                        $coupons = new CouponService($this->pdo);
+                        $refunds = new RefundService($this->pdo);
+                        $invoices = new InvoiceService($this->pdo, $inventory, $coupons, $refunds);
+                        $orderSvc = new OrderService($this->pdo, $inventory, $coupons, $invoices, $refunds);
                         $fullOrder = $orderSvc->find($delivery['order_id']);
                         if ($fullOrder) {
-                            (new InvoiceService($this->pdo))->createFromOrder($fullOrder);
+                            $invoices->createFromOrder($fullOrder);
                         }
                     }
                 }
