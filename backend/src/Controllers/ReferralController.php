@@ -19,9 +19,6 @@ final class ReferralController
 
     public function getSettings(): void
     {
-        $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'settings.manage');
-
         Response::json(['settings' => (new ReferralService($this->pdo))->getSettings()]);
     }
 

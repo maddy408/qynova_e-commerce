@@ -168,6 +168,15 @@ export async function fetchFlashDeal() {
   }
 }
 
+export async function fetchReferralSettings() {
+  try {
+    const res = await api.get('/referral-settings')
+    return res.data?.settings || null
+  } catch {
+    return null
+  }
+}
+
 export async function fetchHomeSections() {
   try {
     const res = await api.get('/home-sections')
