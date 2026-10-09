@@ -22,10 +22,32 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
     async function loadReferralData() {
       setIsLoading(true)
       try {
-        const res = await api.get('/customers/me')
-        if (res.data?.referral) {
-          setReferralSummary(res.data.referral)
-        }
+        const [meRes, settingsRes] = await Promise.allSettled([
+          api.get('/customers/me'),
+          api.get('/referral-settings'),
+        ])
+
+        const customerReferral =
+          meRes.status === 'fulfilled' && meRes.value?.data?.referral
+            ? meRes.value.data.referral
+            : null
+
+        const globalSettings =
+          settingsRes.status === 'fulfilled' && settingsRes.value?.data?.settings
+            ? settingsRes.value.data.settings
+            : null
+
+        const rate =
+          customerReferral?.reward_percent ??
+          (globalSettings?.referrer_discount_percent !== undefined && globalSettings?.referrer_discount_percent !== null
+            ? Number(globalSettings.referrer_discount_percent)
+            : null)
+
+        setReferralSummary({
+          ...globalSettings,
+          ...customerReferral,
+          reward_percent: rate,
+        })
       } catch (err) {
         console.error('Failed to load customer referral summary', err)
       } finally {
@@ -136,7 +158,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                     Refer & Earn
                   </h3>
                   <p className="text-[11px] text-purple-200 font-medium">
-                    Share your code & get 10% OFF each!
+                    Share your code & get {referralSummary?.reward_percent ? `${referralSummary.reward_percent}%` : 'special rewards'} OFF each!
                   </p>
                 </div>
               </div>
@@ -173,7 +195,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                       </button>
                     </div>
                     <p className="text-[11px] text-gray-500">
-                      Share this code with friends. When they apply it, you both get 10% OFF!
+                      Share this code with friends. When they apply it, you both get {referralSummary?.reward_percent ? `${referralSummary.reward_percent}%` : 'special rewards'} OFF!
                     </p>
                   </div>
 

@@ -305,12 +305,14 @@ export default function Profile() {
                       </div>
                       <div className="p-3 bg-pink-50 rounded-xl border border-pink-100">
                         <span className="text-[11px] text-pink-700 font-semibold block">Reward Rate</span>
-                        <span className="text-lg font-black text-pink-900">{referral.reward_percent || 10}% OFF</span>
+                        <span className="text-lg font-black text-pink-900">
+                          {referral.reward_percent !== undefined && referral.reward_percent !== null ? `${referral.reward_percent}% OFF` : '—'}
+                        </span>
                       </div>
                     </div>
 
                     <p className="text-[11px] text-gray-500 leading-relaxed pt-1">
-                      Share your code with friends to give them 10% OFF on their first purchase, and you'll earn 10% OFF too!
+                      Share your code with friends to give them {referral.referred_discount_percent ?? referral.reward_percent ?? ''}% OFF on their first purchase, and you'll earn {referral.referrer_discount_percent ?? referral.reward_percent ?? ''}% OFF too!
                     </p>
                   </div>
                 ) : (
