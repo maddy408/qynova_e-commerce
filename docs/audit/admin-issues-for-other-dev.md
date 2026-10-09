@@ -52,3 +52,48 @@ This document records the backend port and environment configuration discrepanci
 ## 3. Storefront Status (FYI)
 
 - `apps/storefront/src/lib/api.js` has had its default fallback updated from `http://localhost:8000/api` to `http://localhost:8080/api` in both `API_BASE_URL` and `resolveImageUrl` to align with `start-backend.bat` and Admin-POS.
+
+---
+
+## 4. Admin Backend Bug: `ReturnsController::storePurchaseReturn` NOT NULL Violation (DB-02 / DEF-28)
+
+- **File:** `backend/src/Controllers/ReturnsController.php`
+- **Method:** `public function storePurchaseReturn(): void` (line 256)
+- **Evidence:**
+  ```php
+  $this->pdo->prepare(
+      'INSERT INTO purchase_return_items (
+          purchase_return_id, purchase_item_id, product_id, variant_id, quantity, unit_price, line_total, reason
+      ) VALUES (
+          :return_id, :item_id, :product_id, :variant_id, :quantity, :unit_price, :line_total, :reason
+      )'
+  )->execute([
+      'return_id' => $returnId,
+      'item_id' => $item['purchase_item_id'] ?? null, // <-- purchase_item_id is NOT NULL in database schema!
+  ```
+- **Schema Constraint:** `database/migrations/0020_returns_finance_brand_categories.sql` line 34 defines:
+  `purchase_item_id BIGINT UNSIGNED NOT NULL`
+- **Impact:** Any purchase return created from the Admin panel crashes with a SQL PDOException error (`Column 'purchase_item_id' cannot be null`) whenever `purchase_item_id` is omitted in the request payload.
+
+---
+
+## 5. Admin Address Field Inconsistency: `address_line_1` vs `line1` (DEF-01 / DEF-13)
+
+- **Files:** `apps/admin-pos/src/pages/customers/CustomerDetail.tsx`, `apps/admin-pos/src/pages/pos/CheckoutModal.tsx`
+- **Method:** Customer address payload handlers and address form state
+- **Evidence:** Admin forms save addresses with keys `address_line_1` and `city`, while the authoritative database table `customer_addresses` (created in `database/migrations/0002_customers.sql`) defines:
+  ```sql
+  line1 VARCHAR(255) NOT NULL,
+  line2 VARCHAR(255) NULL,
+  city_district VARCHAR(100) NOT NULL,
+  ```
+- **Impact:** Backend `OrderService::checkout` previously failed validation when `address_line_1` was sent instead of `line1`. A backward-compatible alias fallback has now been implemented on the customer-facing side, but Admin POS address editors should align to either use `line1`/`city_district` directly or preserve both.
+
+---
+
+## 6. Admin Inventory Movements Trigger vs Transactions Architecture (DB-04)
+
+- **Files:** `database/migrations/0007_inventory.sql`, `database/migrations/0024_inventory_batches.sql`, `apps/admin-pos/src/pages/inventory/Batches.tsx`
+- **Evidence:** Migration 0007 defines an append-only trigger on `inventory_movements` preventing updates/deletes. Migration 0024 introduced a completely separate table `inventory_transactions` without syncing movements.
+- **Impact:** Batch adjustments performed in the Admin inventory batches interface do not log to `inventory_movements`, creating disjoint inventory audit ledgers.
+
