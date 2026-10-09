@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { clearCart } from '../lib/cart'
-import { api, getCustomerToken, fetchCustomerAddresses, fetchDeliverySettings } from '../lib/api'
+import { api, getCustomerToken, fetchCustomerAddresses, fetchDeliverySettings, resolveImageUrl } from '../lib/api'
 
 export default function CheckoutModal({ isOpen, onClose, cartData, customer, onOrderPlaced }) {
   const [formData, setFormData] = useState({
@@ -483,8 +483,11 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                       <div key={it.id} className="flex items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-2 min-w-0">
                           <img
-                            src={it.image}
+                            src={resolveImageUrl(it.image) || '/placeholder-product.svg'}
                             alt={it.name}
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder-product.svg'
+                            }}
                             className="w-9 h-9 rounded-lg object-cover border border-purple-100 shrink-0"
                           />
                           <div className="min-w-0">

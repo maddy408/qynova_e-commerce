@@ -87,13 +87,15 @@ final class ProductService
             }
         }
 
+        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE'" : "";
+
         if (!empty($filters['min_price'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.retail_price >= :min_price)';
+            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price >= :min_price)";
             $params['min_price'] = (float) $filters['min_price'];
         }
 
         if (!empty($filters['max_price'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.retail_price <= :max_price)';
+            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price <= :max_price)";
             $params['max_price'] = (float) $filters['max_price'];
         }
 
@@ -113,9 +115,9 @@ final class ProductService
         $sort = strtolower(trim((string) ($filters['sort'] ?? '')));
         $orderBy = 'p.created_at DESC';
         if ($sort === 'price_asc' || $sort === 'price_low') {
-            $orderBy = '(SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) ASC';
+            $orderBy = "(SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) ASC";
         } elseif ($sort === 'price_desc' || $sort === 'price_high') {
-            $orderBy = '(SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) DESC';
+            $orderBy = "(SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) DESC";
         } elseif ($sort === 'name_asc') {
             $orderBy = 'p.name ASC';
         } elseif ($sort === 'name_desc') {
@@ -135,26 +137,26 @@ final class ProductService
                     p.is_featured, p.is_trending, p.is_deal, p.show_discount, p.is_best_seller_override, p.is_new_arrival_override,
                     p.short_description, p.created_at, b.name AS brand_name,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
-                    (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS min_price,
-                    (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS max_price,
-                    (SELECT mrp FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL ORDER BY is_default DESC, id ASC LIMIT 1) AS mrp,
-                    (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS variant_count,
+                    (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS min_price,
+                    (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS max_price,
+                    (SELECT mrp FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} ORDER BY is_default DESC, id ASC LIMIT 1) AS mrp,
+                    (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS variant_count,
                     -- Section 18 of the merchant's variant-logic spec: the
                     -- product list needs variant-level stock rolled up,
                     -- not a separately-maintained product total.
                     (SELECT COALESCE(SUM(i.available), 0)
                      FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
-                     WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS total_stock,
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS total_stock,
                     (SELECT COUNT(*)
                      FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
-                     WHERE v.product_id = p.id AND v.deleted_at IS NULL
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
                        AND COALESCE(i.available, 0) > 0 AND COALESCE(i.available, 0) <= COALESCE(i.low_stock_threshold, 5)) AS low_stock_variant_count,
                     (SELECT COUNT(*)
                      FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
-                     WHERE v.product_id = p.id AND v.deleted_at IS NULL
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
                        AND COALESCE(i.available, 0) <= 0) AS out_of_stock_variant_count
              FROM products p
-             LEFT JOIN brands b ON b.id = p.brand_id
+             LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
              WHERE {$whereSql}
              ORDER BY {$orderBy}
              LIMIT :limit OFFSET :offset"
@@ -189,13 +191,13 @@ final class ProductService
     }
 
     /** @return array<string, mixed>|null */
-    public function find(int $id): ?array
+    public function find(int $id, bool $isStaff = true): ?array
     {
         $stmt = $this->pdo->prepare(
             'SELECT p.*, b.name AS brand_name, u.name AS unit_name, u.short_code AS unit_short_code,
                     h.code AS hsn_code, g.gst_percent
              FROM products p
-             LEFT JOIN brands b ON b.id = p.brand_id
+             LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
              LEFT JOIN units u ON u.id = p.unit_id
              LEFT JOIN hsn_codes h ON h.id = p.hsn_code_id
              LEFT JOIN gst_rates g ON g.id = p.gst_rate_id
@@ -218,25 +220,32 @@ final class ProductService
         $specifications->execute(['id' => $id]);
         $product['specifications'] = $specifications->fetchAll();
 
-        $categories = $this->pdo->prepare(
-            'SELECT c.id, c.name, pc.is_primary FROM product_categories pc
-             JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = :id'
-        );
+        $catSql = 'SELECT c.id, c.name, pc.is_primary FROM product_categories pc
+             JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = :id';
+        if (!$isStaff) {
+            $catSql .= ' AND c.status = "ACTIVE" AND c.deleted_at IS NULL';
+        }
+        $categories = $this->pdo->prepare($catSql);
         $categories->execute(['id' => $id]);
         $product['categories'] = $categories->fetchAll();
 
-        $subcategories = $this->pdo->prepare(
-            'SELECT s.id, s.name FROM product_subcategories ps
-             JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = :id'
-        );
+        $subSql = 'SELECT s.id, s.name FROM product_subcategories ps
+             JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = :id';
+        if (!$isStaff) {
+            $subSql .= ' AND s.status = "ACTIVE" AND s.deleted_at IS NULL';
+        }
+        $subcategories = $this->pdo->prepare($subSql);
         $subcategories->execute(['id' => $id]);
         $product['subcategories'] = $subcategories->fetchAll();
 
-        $variants = $this->pdo->prepare(
-            'SELECT v.*, i.on_hand, i.reserved, i.available, COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
+        $varSql = 'SELECT v.*, i.on_hand, i.reserved, i.available, COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
              FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
-             WHERE v.product_id = :id AND v.deleted_at IS NULL ORDER BY v.is_default DESC, v.id'
-        );
+             WHERE v.product_id = :id AND v.deleted_at IS NULL';
+        if (!$isStaff) {
+            $varSql .= ' AND v.status = "ACTIVE"';
+        }
+        $varSql .= ' ORDER BY v.is_default DESC, v.id';
+        $variants = $this->pdo->prepare($varSql);
         $variants->execute(['id' => $id]);
         $variantRows = $variants->fetchAll();
 

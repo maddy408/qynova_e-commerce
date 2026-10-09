@@ -18,6 +18,7 @@ export default function Shop() {
   const sectionParam = searchParams.get('section') || ''
   const categoryIdParam = searchParams.get('category_id') || ''
   const subcategoryIdParam = searchParams.get('subcategory_id') || ''
+  const brandIdParam = searchParams.get('brand_id') || ''
   const sortParam = searchParams.get('sort') || 'newest'
   const searchParam = searchParams.get('search') || ''
   const isWishlistParam = searchParams.get('wishlist') === '1'
@@ -36,6 +37,7 @@ export default function Shop() {
   })
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
+  const [brands, setBrands] = useState([])
   const [storeSettings, setStoreSettings] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -60,7 +62,7 @@ export default function Shop() {
     return () => window.removeEventListener('wishlist-updated', handleSync)
   }, [])
 
-  // Fetch store settings, categories & subcategories from DB
+  // Fetch store settings, categories, subcategories & brands from DB
   useEffect(() => {
     fetchStoreSettings().then((s) => s && setStoreSettings(s))
     api
@@ -77,6 +79,15 @@ export default function Shop() {
       .then((res) => {
         if (res.data?.subcategories) {
           setSubcategories(res.data.subcategories)
+        }
+      })
+      .catch(() => {})
+
+    api
+      .get('/brands')
+      .then((res) => {
+        if (res.data?.brands) {
+          setBrands(res.data.brands)
         }
       })
       .catch(() => {})
@@ -97,6 +108,7 @@ export default function Shop() {
       if (sectionParam) params.set('section', sectionParam)
       if (categoryIdParam) params.set('category_id', categoryIdParam)
       if (subcategoryIdParam) params.set('subcategory_id', subcategoryIdParam)
+      if (brandIdParam) params.set('brand_id', brandIdParam)
       if (sortParam) params.set('sort', sortParam)
       if (searchParam) params.set('search', searchParam)
       if (minPriceParam) params.set('min_price', minPriceParam)
@@ -142,6 +154,7 @@ export default function Shop() {
     sectionParam,
     categoryIdParam,
     subcategoryIdParam,
+    brandIdParam,
     sortParam,
     searchParam,
     isWishlistParam,
@@ -175,6 +188,17 @@ export default function Shop() {
       next.set('subcategory_id', String(subcatId))
     } else {
       next.delete('subcategory_id')
+    }
+    setSearchParams(next)
+  }
+
+  const handleBrandChange = (bId) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('page', '1')
+    if (bId) {
+      next.set('brand_id', String(bId))
+    } else {
+      next.delete('brand_id')
     }
     setSearchParams(next)
   }
@@ -224,6 +248,11 @@ export default function Shop() {
     return subcategories.find((s) => String(s.id) === String(subcategoryIdParam))
   }, [subcategoryIdParam, subcategories])
 
+  const currentBrandObj = useMemo(() => {
+    if (!brandIdParam) return null
+    return brands.find((b) => String(b.id) === String(brandIdParam))
+  }, [brandIdParam, brands])
+
   const relevantSubcategories = useMemo(() => {
     if (!categoryIdParam) return subcategories
     return subcategories.filter((s) => s.category_ids?.includes(Number(categoryIdParam)))
@@ -232,6 +261,8 @@ export default function Shop() {
   const pageTitle = useMemo(() => {
     if (isWishlistParam) return 'My Saved Wishlist'
     if (searchParam) return `Search Results for "${searchParam}"`
+    if (currentBrandObj && currentCategoryObj) return `${currentBrandObj.name} — ${currentCategoryObj.name}`
+    if (currentBrandObj) return `Brand: ${currentBrandObj.name}`
     if (currentCategoryObj && currentSubcategoryObj) return `${currentCategoryObj.name} — ${currentSubcategoryObj.name}`
     if (currentSubcategoryObj) return currentSubcategoryObj.name
     if (currentCategoryObj) return currentCategoryObj.name
@@ -241,7 +272,7 @@ export default function Shop() {
     if (sectionParam === 'trending') return 'Trending Products'
     if (sectionParam === 'deals') return 'Flash Deals & Special Offers'
     return 'All Products Catalog'
-  }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, sectionParam])
+  }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, currentBrandObj, sectionParam])
 
   return (
     <div className="min-h-screen bg-[#FDFBFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 flex flex-col justify-between">
@@ -319,7 +350,7 @@ export default function Shop() {
                 <option value="name_asc">Name: A to Z</option>
               </select>
 
-              {(categoryIdParam || subcategoryIdParam || sectionParam || searchParam || isWishlistParam || minPriceParam || maxPriceParam) && (
+              {(categoryIdParam || subcategoryIdParam || brandIdParam || sectionParam || searchParam || isWishlistParam || minPriceParam || maxPriceParam) && (
                 <button
                   type="button"
                   onClick={handleClearFilters}
@@ -394,6 +425,43 @@ export default function Shop() {
                     }`}
                   >
                     {subcat.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Brand Quick Chips Filter (Renders when brands exist in DB) */}
+          {brands.length > 0 && (
+            <div className="pb-3 flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 items-center">
+              <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider shrink-0 mr-1">
+                Brands:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleBrandChange('')}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  !brandIdParam
+                    ? 'bg-purple-900 text-white shadow-xs'
+                    : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                }`}
+              >
+                All
+              </button>
+              {brands.map((b) => {
+                const isSelected = String(b.id) === String(brandIdParam)
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => handleBrandChange(b.id)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                    }`}
+                  >
+                    {b.name}
                   </button>
                 )
               })}

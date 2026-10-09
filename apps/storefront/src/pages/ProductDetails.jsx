@@ -245,9 +245,9 @@ export default function ProductDetails() {
     return product.variants.find((v) => v.is_default) || product.variants[0]
   }, [product])
 
-  const retailPrice = Number(defaultVariant?.retail_price) || Number(product?.min_price) || 299
-  const mrp = Number(defaultVariant?.mrp) || Math.round(retailPrice * 1.8)
-  const discountPercent = mrp > retailPrice ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
+  const retailPrice = Number(defaultVariant?.retail_price ?? product?.min_price ?? product?.price ?? 0)
+  const mrp = Number(defaultVariant?.mrp ?? product?.mrp ?? retailPrice)
+  const discountPercent = mrp > retailPrice && retailPrice > 0 ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
   const savings = mrp > retailPrice ? mrp - retailPrice : 0
 
   // Available stock calculation

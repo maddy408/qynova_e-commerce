@@ -6,7 +6,7 @@ import {
   removeFromCart,
   clearCart,
 } from '../lib/cart'
-import { fetchDeliverySettings } from '../lib/api'
+import { fetchDeliverySettings, resolveImageUrl } from '../lib/api'
 
 export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onShowToast }) {
   const [cartItems, setCartItems] = useState([])
@@ -175,8 +175,11 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                 {/* Product Image */}
                 <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl bg-gray-50 overflow-hidden shrink-0 border border-gray-100">
                   <img
-                    src={item.image}
+                    src={resolveImageUrl(item.image) || '/placeholder-product.svg'}
                     alt={item.name}
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder-product.svg'
+                    }}
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />

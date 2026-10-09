@@ -123,15 +123,20 @@ export default function ProductCard({
         {onAddToCart && (
           <button
             type="button"
+            disabled={isOutOfStock}
             onClick={(e) => onAddToCart(product, e)}
-            className="flex-1 py-2 rounded-xl bg-purple-50 hover:bg-[#6B21A8] text-purple-900 hover:text-white font-bold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer min-h-[38px] active:scale-95"
-            title="Add to Cart"
+            className={`flex-1 py-2 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1 min-h-[38px] active:scale-95 ${
+              isOutOfStock
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-purple-50 hover:bg-[#6B21A8] text-purple-900 hover:text-white cursor-pointer'
+            }`}
+            title={isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>Add</span>
+            <span>{isOutOfStock ? 'Out of Stock' : 'Add'}</span>
           </button>
         )}
 

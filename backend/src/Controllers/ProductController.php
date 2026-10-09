@@ -37,26 +37,24 @@ final class ProductController
     public function index(): void
     {
         $filters = $_GET;
-        if (!$this->isStaff()) {
-            if (!isset($filters['channel'])) {
-                $filters['channel'] = 'ecommerce';
-            }
-            if (!isset($filters['is_active'])) {
-                $filters['is_active'] = 1;
-            }
+        $isStaff = $this->isStaff();
+        if (!$isStaff) {
+            $filters['channel'] = 'ecommerce';
+            $filters['is_active'] = 1;
         }
         Response::json((new ProductService($this->pdo))->list($filters));
     }
 
     public function show(string $id): void
     {
-        $product = (new ProductService($this->pdo))->find((int) $id);
+        $isStaff = $this->isStaff();
+        $product = (new ProductService($this->pdo))->find((int) $id, $isStaff);
 
         if ($product === null) {
             Response::error('Product not found', 404);
         }
 
-        if (!$this->isStaff() && (empty($product['is_active']) || empty($product['is_ecommerce_enabled']))) {
+        if (!$isStaff && (empty($product['is_active']) || empty($product['is_ecommerce_enabled']))) {
             Response::error('Product not found', 404);
         }
 
