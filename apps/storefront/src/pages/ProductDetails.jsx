@@ -257,14 +257,17 @@ export default function ProductDetails() {
 
   const defaultVariant = activeVariant
 
+  const hasVariants = Array.isArray(product?.variants) && product.variants.length > 0
   const retailPrice = Number(activeVariant?.retail_price ?? product?.min_price ?? product?.price ?? 0)
+  const hasPrice = retailPrice > 0
   const mrp = Number(activeVariant?.mrp ?? product?.mrp ?? retailPrice)
-  const discountPercent = mrp > retailPrice && retailPrice > 0 ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
-  const savings = mrp > retailPrice ? mrp - retailPrice : 0
+  const showDiscount = product?.show_discount !== 0 && product?.show_discount !== false && product?.show_discount !== '0'
+  const discountPercent = hasPrice && mrp > retailPrice && showDiscount ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
+  const savings = hasPrice && mrp > retailPrice && showDiscount ? mrp - retailPrice : 0
 
   // Available stock calculation
   const stockAvailable = useMemo(() => {
-    if (!product) return 0
+    if (!product || !hasVariants) return 0
     if (activeVariant && activeVariant.available !== null && activeVariant.available !== undefined) {
       return Number(activeVariant.available)
     }
@@ -272,23 +275,37 @@ export default function ProductDetails() {
       return Number(activeVariant.on_hand)
     }
     return 0
-  }, [product, activeVariant])
+  }, [product, activeVariant, hasVariants])
 
-  const isOutOfStock = stockAvailable <= 0
+  const isUnavailable = !hasVariants || !hasPrice
+  const isOutOfStock = isUnavailable || stockAvailable <= 0
 
-  // Image Gallery List (DB images as single source of truth)
+  // Image Gallery List (Variant images prioritized, then DB main images)
   const imageGallery = useMemo(() => {
     if (!product) return []
+    const urls = []
+
+    // If active variant has its own images, include them first
+    if (Array.isArray(activeVariant?.images) && activeVariant.images.length > 0) {
+      activeVariant.images.forEach((img) => {
+        const url = resolveImageUrl(img.image_path)
+        if (url && !urls.includes(url)) urls.push(url)
+      })
+    }
+
+    // Then include main product images
     if (Array.isArray(product.images) && product.images.length > 0) {
-      const urls = product.images.map((img) => resolveImageUrl(img.image_path)).filter(Boolean)
-      if (urls.length > 0) return urls
-    }
-    if (product.primary_image) {
+      product.images.forEach((img) => {
+        const url = resolveImageUrl(img.image_path)
+        if (url && !urls.includes(url)) urls.push(url)
+      })
+    } else if (product.primary_image) {
       const url = resolveImageUrl(product.primary_image)
-      if (url) return [url]
+      if (url && !urls.includes(url)) urls.push(url)
     }
-    return ['/placeholder-product.svg']
-  }, [product])
+
+    return urls.length > 0 ? urls : ['/placeholder-product.svg']
+  }, [product, activeVariant])
 
   const activeImage = imageGallery[selectedImageIndex] || imageGallery[0] || ''
 
@@ -613,7 +630,7 @@ export default function ProductDetails() {
 
                       {/* Top Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
-                        {discountPercent > 0 && (
+                        {discountPercent > 0 && showDiscount && (
                           <span className="bg-[#6B21A8] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
                             {discountPercent}% OFF
                           </span>
@@ -727,36 +744,52 @@ export default function ProductDetails() {
 
                   {/* PRICE SECTION (Actual Database Values) */}
                   <div className="bg-[#FAF5FF]/70 border border-purple-100 rounded-2xl p-4 sm:p-5 mb-5">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <span className="text-3xl sm:text-4xl font-black text-[#581C87] tracking-tight">
-                        ₹{retailPrice}
-                      </span>
-                      {mrp > retailPrice && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm sm:text-base text-gray-400 line-through">
-                            MRP ₹{mrp}
+                    {isUnavailable ? (
+                      <div>
+                        <span className="text-2xl sm:text-3xl font-black text-gray-500 tracking-tight">
+                          Currently Unavailable
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">This product is currently not available for purchase.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-baseline gap-3 flex-wrap">
+                          <span className="text-3xl sm:text-4xl font-black text-[#581C87] tracking-tight">
+                            ₹{retailPrice}
                           </span>
-                          <span className="text-xs sm:text-sm font-extrabold text-pink-600 bg-pink-50 border border-pink-200/60 px-2 py-0.5 rounded-md">
-                            {discountPercent}% OFF
-                          </span>
+                          {showDiscount && mrp > retailPrice && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm sm:text-base text-gray-400 line-through">
+                                MRP ₹{mrp}
+                              </span>
+                              <span className="text-xs sm:text-sm font-extrabold text-pink-600 bg-pink-50 border border-pink-200/60 px-2 py-0.5 rounded-md">
+                                {discountPercent}% OFF
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {savings > 0 && (
-                      <p className="text-xs font-bold text-emerald-700 mt-1">
-                        You save ₹{savings} on this product!
-                      </p>
+                        {savings > 0 && showDiscount && (
+                          <p className="text-xs font-bold text-emerald-700 mt-1">
+                            You save ₹{savings} on this product!
+                          </p>
+                        )}
+
+                        <div className="text-[11px] text-gray-500 font-medium mt-1">
+                          Inclusive of all applicable taxes
+                        </div>
+                      </>
                     )}
-
-                    <div className="text-[11px] text-gray-500 font-medium mt-1">
-                      Inclusive of all applicable taxes
-                    </div>
                   </div>
 
                   {/* STOCK STATUS */}
                   <div className="flex items-center gap-2 mb-5">
-                    {isOutOfStock ? (
+                    {isUnavailable ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl">
+                        <span className="w-2 h-2 rounded-full bg-gray-400" />
+                        Currently Unavailable
+                      </span>
+                    ) : isOutOfStock ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">
                         <span className="w-2 h-2 rounded-full bg-red-500" />
                         Currently Out of Stock
@@ -797,9 +830,10 @@ export default function ProductDetails() {
                           const label =
                             Array.isArray(v.attribute_values) && v.attribute_values.length > 0
                               ? v.attribute_values.map((av) => av.value).join(' / ')
-                              : v.sku || `Option #${v.id}`
+                              : v.variant_description || v.sku || `Option #${v.id}`
 
                           const colorHex = v.attribute_values?.find((av) => av.color_hex)?.color_hex
+                          const vImg = v.images?.[0]?.image_path ? resolveImageUrl(v.images[0].image_path) : null
 
                           return (
                             <button
@@ -807,12 +841,7 @@ export default function ProductDetails() {
                               type="button"
                               onClick={() => {
                                 setSelectedVariantId(v.id)
-                                if (Array.isArray(v.images) && v.images.length > 0 && v.images[0].image_path) {
-                                  const imgIdx = imageGallery.findIndex((url) =>
-                                    url.includes(v.images[0].image_path)
-                                  )
-                                  if (imgIdx >= 0) setSelectedImageIndex(imgIdx)
-                                }
+                                setSelectedImageIndex(0)
                               }}
                               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                                 isSelected
@@ -822,12 +851,14 @@ export default function ProductDetails() {
                                   : 'bg-white text-gray-800 border-purple-200 hover:border-purple-400 hover:bg-purple-50/50'
                               }`}
                             >
-                              {colorHex && (
+                              {vImg ? (
+                                <img src={vImg} alt={label} className="w-4 h-4 rounded-full object-cover border border-white/50 shrink-0" />
+                              ) : colorHex ? (
                                 <span
                                   className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
                                   style={{ backgroundColor: colorHex }}
                                 />
-                              )}
+                              ) : null}
                               <span>{label}</span>
                               <span
                                 className={`text-[11px] font-semibold ${
@@ -996,23 +1027,23 @@ export default function ProductDetails() {
                       <button
                         type="button"
                         onClick={() => handleAddToCart()}
-                        disabled={isOutOfStock || isAddingToCart}
+                        disabled={isOutOfStock || isAddingToCart || isUnavailable}
                         className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#6B21A8] text-[#6B21A8] hover:bg-purple-50 font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
-                        <span>{isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
+                        <span>{isUnavailable ? 'Unavailable' : isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
                       </button>
 
                       {/* Buy Now */}
                       <button
                         type="button"
                         onClick={handleBuyNow}
-                        disabled={isOutOfStock}
+                        disabled={isOutOfStock || isUnavailable}
                         className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#6B21A8] to-[#9333EA] hover:from-[#581C87] hover:to-[#7E22CE] text-white font-black text-sm tracking-wide shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
-                        <span>⚡ Buy Now</span>
+                        <span>{isUnavailable ? 'Unavailable' : '⚡ Buy Now'}</span>
                       </button>
                     </div>
 
@@ -1086,8 +1117,8 @@ export default function ProductDetails() {
                     {product.description}
                   </div>
                 ) : (
-                  <p className="text-gray-500">
-                    Handcrafted premium accessory designed for style, durability, and daily elegance. Sourced and verified for the best customer experience.
+                  <p className="text-gray-500 italic">
+                    No detailed description provided for this product.
                   </p>
                 )}
 
@@ -1108,69 +1139,83 @@ export default function ProductDetails() {
             {/* TAB 2: SPECIFICATIONS (From Database) */}
             {activeTab === 'specs' && (
               <div className="max-w-3xl">
-                <div className="divide-y divide-purple-50 text-xs sm:text-sm">
-                  {product.product_code && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Product Code</span>
-                      <span className="col-span-2 text-gray-900 font-mono">{product.product_code}</span>
-                    </div>
-                  )}
-                  {primaryCategory && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Category</span>
-                      <span className="col-span-2 text-gray-900">{primaryCategory.name}</span>
-                    </div>
-                  )}
-                  {product.brand_name && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Brand</span>
-                      <span className="col-span-2 text-gray-900">{product.brand_name}</span>
-                    </div>
-                  )}
-                  {product.material && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Material</span>
-                      <span className="col-span-2 text-gray-900">{product.material}</span>
-                    </div>
-                  )}
-                  {product.weight_grams && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Weight</span>
-                      <span className="col-span-2 text-gray-900">{product.weight_grams} g</span>
-                    </div>
-                  )}
-                  {product.length_cm && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Dimensions</span>
-                      <span className="col-span-2 text-gray-900">
-                        {product.length_cm} × {product.width_cm || 0} × {product.height_cm || 0} cm
-                      </span>
-                    </div>
-                  )}
-                  {product.country_of_origin && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Country of Origin</span>
-                      <span className="col-span-2 text-gray-900">{product.country_of_origin}</span>
-                    </div>
-                  )}
-                  {product.warranty_applicable === 1 && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Warranty</span>
-                      <span className="col-span-2 text-gray-900">
-                        {product.warranty_period} {product.warranty_unit} {product.warranty_description && `(${product.warranty_description})`}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Custom specifications from product_specifications table */}
-                  {Array.isArray(product.specifications) &&
-                    product.specifications.map((spec) => (
-                      <div key={spec.id} className="grid grid-cols-3 py-2.5">
-                        <span className="font-bold text-gray-500">{spec.name}</span>
-                        <span className="col-span-2 text-gray-900">{spec.value}</span>
+                {!(
+                  product.product_code ||
+                  primaryCategory ||
+                  product.brand_name ||
+                  product.material ||
+                  product.weight_grams ||
+                  product.length_cm ||
+                  product.country_of_origin ||
+                  product.warranty_applicable === 1 ||
+                  (Array.isArray(product.specifications) && product.specifications.length > 0)
+                ) ? (
+                  <p className="text-gray-500 italic py-4">No additional specifications available for this product.</p>
+                ) : (
+                  <div className="divide-y divide-purple-50 text-xs sm:text-sm">
+                    {product.product_code && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Product Code</span>
+                        <span className="col-span-2 text-gray-900 font-mono">{product.product_code}</span>
                       </div>
-                    ))}
-                </div>
+                    )}
+                    {primaryCategory && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Category</span>
+                        <span className="col-span-2 text-gray-900">{primaryCategory.name}</span>
+                      </div>
+                    )}
+                    {product.brand_name && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Brand</span>
+                        <span className="col-span-2 text-gray-900">{product.brand_name}</span>
+                      </div>
+                    )}
+                    {product.material && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Material</span>
+                        <span className="col-span-2 text-gray-900">{product.material}</span>
+                      </div>
+                    )}
+                    {product.weight_grams && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Weight</span>
+                        <span className="col-span-2 text-gray-900">{product.weight_grams} g</span>
+                      </div>
+                    )}
+                    {product.length_cm && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Dimensions</span>
+                        <span className="col-span-2 text-gray-900">
+                          {product.length_cm} × {product.width_cm || 0} × {product.height_cm || 0} cm
+                        </span>
+                      </div>
+                    )}
+                    {product.country_of_origin && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Country of Origin</span>
+                        <span className="col-span-2 text-gray-900">{product.country_of_origin}</span>
+                      </div>
+                    )}
+                    {product.warranty_applicable === 1 && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Warranty</span>
+                        <span className="col-span-2 text-gray-900">
+                          {product.warranty_period} {product.warranty_unit} {product.warranty_description && `(${product.warranty_description})`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Custom specifications from product_specifications table */}
+                    {Array.isArray(product.specifications) &&
+                      product.specifications.map((spec) => (
+                        <div key={spec.id} className="grid grid-cols-3 py-2.5">
+                          <span className="font-bold text-gray-500">{spec.name}</span>
+                          <span className="col-span-2 text-gray-900">{spec.value}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             )}
 

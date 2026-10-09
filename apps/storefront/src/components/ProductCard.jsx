@@ -11,8 +11,10 @@ export default function ProductCard({
   if (!product) return null
 
   const retailPrice = Number(product.min_price ?? product.price ?? product.selling_price) || 0
+  const hasPrice = retailPrice > 0
   const mrp = Number(product.mrp) || 0
-  const discountPercent = mrp > retailPrice && retailPrice > 0 ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
+  const showDiscount = product.show_discount !== 0 && product.show_discount !== false && product.show_discount !== '0'
+  const discountPercent = hasPrice && mrp > retailPrice && showDiscount ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
 
   const rawImage =
     product.primary_image ||
@@ -25,10 +27,9 @@ export default function ProductCard({
     setImgSrc(resolvedImage)
   }, [resolvedImage])
 
-  const isOutOfStock =
-    product.total_stock !== undefined && product.total_stock !== null
-      ? Number(product.total_stock) <= 0
-      : false
+  const hasVariants = product.variant_count === undefined || Number(product.variant_count) > 0
+  const isOutOfStock = !hasVariants || (product.total_stock !== undefined && product.total_stock !== null ? Number(product.total_stock) <= 0 : !hasPrice)
+  const isUnavailable = !hasVariants || !hasPrice
 
   return (
     <div
@@ -47,7 +48,7 @@ export default function ProductCard({
           />
 
           {/* Discount % Badge from DB pricing */}
-          {discountPercent > 0 && (
+          {discountPercent > 0 && showDiscount && (
             <span className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 bg-[#6B21A8] text-white font-black text-[9px] px-1.5 sm:px-2 py-0.5 rounded shadow-xs">
               {discountPercent}% OFF
             </span>
@@ -84,7 +85,11 @@ export default function ProductCard({
           ) : (
             <span />
           )}
-          {isOutOfStock ? (
+          {isUnavailable ? (
+            <span className="text-gray-500 font-bold bg-gray-100 px-1.5 py-0.5 rounded text-[9px]">
+              Unavailable
+            </span>
+          ) : isOutOfStock ? (
             <span className="text-red-700 font-bold bg-red-50 px-1.5 py-0.5 rounded text-[9px]">
               Out of Stock
             </span>
@@ -95,10 +100,12 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Brand / Product Code from DB */}
-        <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider truncate">
-          {product.brand_name || product.product_code || 'KiranaBazaar'}
-        </p>
+        {/* Brand / Product Code from DB (No fake fallback) */}
+        {(product.brand_name || product.product_code) && (
+          <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider truncate">
+            {product.brand_name || product.product_code}
+          </p>
+        )}
 
         {/* Product Name from DB */}
         <h4 className="text-xs sm:text-[13px] font-bold text-gray-900 line-clamp-2 mt-0.5 leading-snug min-h-[30px] sm:min-h-[34px] group-hover:text-purple-700 transition-colors">
@@ -107,13 +114,21 @@ export default function ProductCard({
 
         {/* Price display: Discounted Price & Original MRP from DB */}
         <div className="flex items-baseline gap-2 mt-1.5">
-          <span className="text-sm sm:text-base font-black text-[#581C87]">
-            ₹{retailPrice}
-          </span>
-          {mrp > retailPrice && (
-            <span className="text-[10px] sm:text-[11px] text-gray-400 line-through">
-              ₹{mrp}
+          {isUnavailable ? (
+            <span className="text-xs sm:text-sm font-bold text-gray-400">
+              Unavailable
             </span>
+          ) : (
+            <>
+              <span className="text-sm sm:text-base font-black text-[#581C87]">
+                ₹{retailPrice}
+              </span>
+              {showDiscount && mrp > retailPrice && (
+                <span className="text-[10px] sm:text-[11px] text-gray-400 line-through">
+                  ₹{mrp}
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -123,20 +138,20 @@ export default function ProductCard({
         {onAddToCart && (
           <button
             type="button"
-            disabled={isOutOfStock}
+            disabled={isOutOfStock || isUnavailable}
             onClick={(e) => onAddToCart(product, e)}
             className={`flex-1 py-2 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1 min-h-[38px] active:scale-95 ${
-              isOutOfStock
+              isOutOfStock || isUnavailable
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-purple-50 hover:bg-[#6B21A8] text-purple-900 hover:text-white cursor-pointer'
             }`}
-            title={isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+            title={isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>{isOutOfStock ? 'Out of Stock' : 'Add'}</span>
+            <span>{isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add'}</span>
           </button>
         )}
 

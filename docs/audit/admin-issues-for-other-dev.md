@@ -97,3 +97,23 @@ This document records the backend port and environment configuration discrepanci
 - **Evidence:** Migration 0007 defines an append-only trigger on `inventory_movements` preventing updates/deletes. Migration 0024 introduced a completely separate table `inventory_transactions` without syncing movements.
 - **Impact:** Batch adjustments performed in the Admin inventory batches interface do not log to `inventory_movements`, creating disjoint inventory audit ledgers.
 
+---
+
+## 7. Admin Product Variant Creation Failure: `POST /api/products/{id}/variants` Returns 500 (Unknown Column `customer_price`)
+
+- **Files:** `backend/src/Services/VariantService.php` (lines 76–85), `apps/admin-pos/src/pages/ProductCreatePage.tsx` (lines 463–480, 493–509)
+- **Method:** `VariantService::createVariant()`
+- **Evidence:**
+  ```php
+  $stmt = $this->pdo->prepare(
+      'INSERT INTO product_variants (
+          product_id, sku, barcode, mrp, retail_price, wholesale_price, customer_price, purchase_price,
+          min_selling_price, discount_percent, discount_amount, manufacturing_date, expiry_date,
+          weight_grams, hsn_code_id, gst_rate_id, variant_description, is_default, status
+      ) VALUES ( ... )'
+  );
+  ```
+- **Schema Reality:** In MySQL (`DESCRIBE product_variants`), `product_variants` contains `mrp`, `normal_price`, `retail_price`, `wholesale_price`, `purchase_price`, `min_selling_price`, etc. Columns `customer_price`, `discount_percent`, and `discount_amount` do not exist in `product_variants`.
+- **Impact:** Calling `POST /api/products/{id}/variants` immediately triggers a `PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'customer_price' in 'field list'`. As a result, product creation in the Admin panel fails at the variant creation step.
+
+

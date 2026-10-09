@@ -48,7 +48,7 @@ final class ProductController
     public function show(string $id): void
     {
         $isStaff = $this->isStaff();
-        $product = (new ProductService($this->pdo))->find((int) $id, $isStaff);
+        $product = (new ProductService($this->pdo))->find($id, $isStaff);
 
         if ($product === null) {
             Response::error('Product not found', 404);

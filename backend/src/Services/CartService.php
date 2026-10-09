@@ -68,7 +68,7 @@ final class CartService
                 'name' => $row['product_name'],
                 'product_name' => $row['product_name'],
                 'sku' => $row['sku'],
-                'brand' => $row['brand_name'] ?: 'Supermarket',
+                'brand' => $row['brand_name'] ?? null,
                 'image' => $row['primary_image'],
                 'quantity' => $quantity,
                 'price' => $unitPrice,

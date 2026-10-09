@@ -69,21 +69,22 @@ final class ProductService
         }
 
         if (($filters['is_deal'] ?? null) !== null) {
-            $where[] = '(p.is_deal = 1 OR p.show_discount = 1)';
+            $where[] = 'p.is_deal = :is_deal';
+            $params['is_deal'] = (int) (bool) $filters['is_deal'];
         }
 
         if (!empty($filters['section'])) {
             $section = strtolower(trim((string) $filters['section']));
             if ($section === 'best_sellers' || $section === 'bestsellers') {
-                $where[] = '(p.is_best_seller_override = 1 OR p.is_featured = 1)';
+                $where[] = 'p.is_best_seller_override = 1';
             } elseif ($section === 'new_arrivals' || $section === 'newarrivals') {
-                $where[] = '(p.is_new_arrival_override = 1 OR p.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY))';
+                $where[] = 'p.is_new_arrival_override = 1';
             } elseif ($section === 'featured') {
                 $where[] = 'p.is_featured = 1';
             } elseif ($section === 'trending') {
-                $where[] = '(p.is_trending = 1 OR p.is_featured = 1)';
+                $where[] = 'p.is_trending = 1';
             } elseif ($section === 'deals' || $section === 'flash_deals') {
-                $where[] = '(p.is_deal = 1 OR p.show_discount = 1)';
+                $where[] = 'p.is_deal = 1';
             }
         }
 
@@ -135,7 +136,7 @@ final class ProductService
         $stmt = $this->pdo->prepare(
             "SELECT p.id, p.name, p.slug, p.product_code, p.is_active, p.is_pos_enabled, p.is_ecommerce_enabled,
                     p.is_featured, p.is_trending, p.is_deal, p.show_discount, p.is_best_seller_override, p.is_new_arrival_override,
-                    p.short_description, p.created_at, b.name AS brand_name,
+                    p.short_description, p.created_at, p.brand_id, p.unit_id, b.name AS brand_name,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS min_price,
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS max_price,
@@ -191,51 +192,56 @@ final class ProductService
     }
 
     /** @return array<string, mixed>|null */
-    public function find(int $id, bool $isStaff = true): ?array
+    public function find(int|string $id, bool $isStaff = true): ?array
     {
+        $isNumeric = is_numeric($id);
+        $whereClause = $isNumeric ? 'p.id = :id' : 'p.slug = :id';
+
         $stmt = $this->pdo->prepare(
-            'SELECT p.*, b.name AS brand_name, u.name AS unit_name, u.short_code AS unit_short_code,
+            "SELECT p.*, b.name AS brand_name, u.name AS unit_name, u.short_code AS unit_short_code,
                     h.code AS hsn_code, g.gst_percent
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
              LEFT JOIN units u ON u.id = p.unit_id
              LEFT JOIN hsn_codes h ON h.id = p.hsn_code_id
              LEFT JOIN gst_rates g ON g.id = p.gst_rate_id
-             WHERE p.id = :id AND p.deleted_at IS NULL'
+             WHERE {$whereClause} AND p.deleted_at IS NULL"
         );
-        $stmt->execute(['id' => $id]);
+        $stmt->execute(['id' => $isNumeric ? (int) $id : (string) $id]);
         $product = $stmt->fetch();
 
         if ($product === false) {
             return null;
         }
 
+        $realId = (int) $product['id'];
+
         $product['bullet_points'] = $product['bullet_points'] !== null ? json_decode((string) $product['bullet_points'], true) : [];
 
         $images = $this->pdo->prepare('SELECT * FROM product_images WHERE product_id = :id ORDER BY sort_order');
-        $images->execute(['id' => $id]);
+        $images->execute(['id' => $realId]);
         $product['images'] = $images->fetchAll();
 
         $specifications = $this->pdo->prepare('SELECT * FROM product_specifications WHERE product_id = :id ORDER BY sort_order');
-        $specifications->execute(['id' => $id]);
+        $specifications->execute(['id' => $realId]);
         $product['specifications'] = $specifications->fetchAll();
 
-        $catSql = 'SELECT c.id, c.name, pc.is_primary FROM product_categories pc
+        $catSql = 'SELECT c.id, c.name, c.slug, pc.is_primary FROM product_categories pc
              JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = :id';
         if (!$isStaff) {
             $catSql .= ' AND c.status = "ACTIVE" AND c.deleted_at IS NULL';
         }
         $categories = $this->pdo->prepare($catSql);
-        $categories->execute(['id' => $id]);
+        $categories->execute(['id' => $realId]);
         $product['categories'] = $categories->fetchAll();
 
-        $subSql = 'SELECT s.id, s.name FROM product_subcategories ps
+        $subSql = 'SELECT s.id, s.name, s.slug FROM product_subcategories ps
              JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = :id';
         if (!$isStaff) {
             $subSql .= ' AND s.status = "ACTIVE" AND s.deleted_at IS NULL';
         }
         $subcategories = $this->pdo->prepare($subSql);
-        $subcategories->execute(['id' => $id]);
+        $subcategories->execute(['id' => $realId]);
         $product['subcategories'] = $subcategories->fetchAll();
 
         $varSql = 'SELECT v.*, i.on_hand, i.reserved, i.available, COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
@@ -246,15 +252,15 @@ final class ProductService
         }
         $varSql .= ' ORDER BY v.is_default DESC, v.id';
         $variants = $this->pdo->prepare($varSql);
-        $variants->execute(['id' => $id]);
+        $variants->execute(['id' => $realId]);
         $variantRows = $variants->fetchAll();
 
         foreach ($variantRows as &$variant) {
             $values = $this->pdo->prepare(
                 'SELECT va.id AS attribute_id, va.name AS attribute_name, vav.id AS value_id, vav.value, vav.color_hex
                  FROM product_variant_values pvv
-                 JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
-                 JOIN variant_attributes va ON va.id = vav.attribute_id
+                 LEFT JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                 LEFT JOIN variant_attributes va ON va.id = vav.attribute_id
                  WHERE pvv.variant_id = :variant_id'
             );
             $values->execute(['variant_id' => $variant['id']]);
@@ -263,9 +269,21 @@ final class ProductService
             $variantImages = $this->pdo->prepare('SELECT * FROM variant_images WHERE variant_id = :variant_id ORDER BY sort_order');
             $variantImages->execute(['variant_id' => $variant['id']]);
             $variant['images'] = $variantImages->fetchAll();
+
+            if (!$isStaff) {
+                unset(
+                    $variant['purchase_price'],
+                    $variant['cost_price'],
+                    $variant['wholesale_price'],
+                    $variant['min_selling_price']
+                );
+            }
         }
         unset($variant);
 
+        $prices = array_filter(array_column($variantRows, 'retail_price'), fn($p) => $p !== null && $p !== '');
+        $product['min_price'] = !empty($prices) ? min($prices) : null;
+        $product['max_price'] = !empty($prices) ? max($prices) : null;
         $product['variants'] = $variantRows;
 
         return $product;
