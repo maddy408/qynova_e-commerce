@@ -44,6 +44,7 @@ export default function Shop() {
   // Modals & local state
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [checkoutCartData, setCheckoutCartData] = useState(null)
   const [isReferralOpen, setIsReferralOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [wishlistIds, setWishlistIds] = useState(() => getWishlistIds())
@@ -623,7 +624,8 @@ export default function Shop() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onProceedToCheckout={() => {
+        onProceedToCheckout={(cartData) => {
+          setCheckoutCartData(cartData)
           setIsCartOpen(false)
           setIsCheckoutOpen(true)
         }}
@@ -632,6 +634,7 @@ export default function Shop() {
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
+        cartData={checkoutCartData}
       />
 
       {isReferralOpen && (

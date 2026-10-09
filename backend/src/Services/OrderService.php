@@ -55,6 +55,13 @@ final class OrderService
             throw new RuntimeException('Cart is empty');
         }
 
+        if (empty($address['line1'])) {
+            $address['line1'] = $address['address_line_1'] ?? $address['streetAddress'] ?? '';
+        }
+        if (empty($address['city_district'])) {
+            $address['city_district'] = $address['city'] ?? '';
+        }
+
         foreach (['name', 'phone', 'line1', 'city_district', 'state', 'pincode'] as $field) {
             if (trim((string) ($address[$field] ?? '')) === '') {
                 throw new RuntimeException("Address field '{$field}' is required");
@@ -189,6 +196,15 @@ final class OrderService
                 $this->pdo->prepare(
                     "UPDATE referral_rewards SET status = 'APPLIED', applied_order_id = :order_id WHERE id = :id"
                 )->execute(['order_id' => $orderId, 'id' => $totals['referral_reward_id']]);
+            }
+
+            // Clear cart items and mark active cart as CONVERTED in the same transaction
+            $cartStmt = $this->pdo->prepare("SELECT id FROM carts WHERE customer_id = :customer_id AND status = 'ACTIVE'");
+            $cartStmt->execute(['customer_id' => $customerId]);
+            $activeCartId = $cartStmt->fetchColumn();
+            if ($activeCartId) {
+                $this->pdo->prepare('DELETE FROM cart_items WHERE cart_id = :cart_id')->execute(['cart_id' => $activeCartId]);
+                $this->pdo->prepare("UPDATE carts SET status = 'CONVERTED' WHERE id = :cart_id")->execute(['cart_id' => $activeCartId]);
             }
 
             $this->logStatus($orderId, null, 'PENDING', null, 'SYSTEM', 'Order created at checkout');

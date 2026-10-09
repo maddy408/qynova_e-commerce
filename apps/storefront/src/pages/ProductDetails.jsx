@@ -1412,7 +1412,7 @@ export default function ProductDetails() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onCheckout={(cartData) => {
+        onProceedToCheckout={(cartData) => {
           setIsCartOpen(false)
           setCheckoutCartData(cartData)
           setIsCheckoutOpen(true)

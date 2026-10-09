@@ -12,6 +12,7 @@ export default function PolicyPage() {
   const [storeSettings, setStoreSettings] = useState(null)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [checkoutCartData, setCheckoutCartData] = useState(null)
 
   useEffect(() => {
     fetchStoreSettings().then((s) => s && setStoreSettings(s))
@@ -103,7 +104,8 @@ export default function PolicyPage() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onProceedToCheckout={() => {
+        onProceedToCheckout={(cartData) => {
+          setCheckoutCartData(cartData)
           setIsCartOpen(false)
           setIsCheckoutOpen(true)
         }}
@@ -112,6 +114,7 @@ export default function PolicyPage() {
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
+        cartData={checkoutCartData}
       />
     </div>
   )

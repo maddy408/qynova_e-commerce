@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { clearCart } from '../lib/cart'
+import { Link } from 'react-router-dom'
+import { clearCart, fetchCart } from '../lib/cart'
 import { api, getCustomerToken, fetchCustomerAddresses, fetchDeliverySettings, resolveImageUrl } from '../lib/api'
 
 export default function CheckoutModal({ isOpen, onClose, cartData, customer, onOrderPlaced }) {
@@ -15,7 +16,9 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
   })
 
   const [deliverySettings, setDeliverySettings] = useState(null)
+  const [internalCartData, setInternalCartData] = useState(null)
   const [errors, setErrors] = useState({})
+  const [submissionError, setSubmissionError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderConfirmed, setOrderConfirmed] = useState(false)
   const [confirmedOrderId, setConfirmedOrderId] = useState('')
@@ -25,8 +28,19 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
   }, [])
 
   useEffect(() => {
+    if (isOpen && (!cartData || !cartData.items || cartData.items.length === 0)) {
+      fetchCart().then((data) => {
+        if (data?.items?.length) {
+          setInternalCartData(data)
+        }
+      }).catch(() => {})
+    }
+  }, [isOpen, cartData])
+
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
+      setSubmissionError('')
       // Pre-fill customer data if available
       if (customer) {
         setFormData((prev) => ({
@@ -41,8 +55,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
             const def = res.addresses.find((a) => a.is_default) || res.addresses[0]
             setFormData((prev) => ({
               ...prev,
-              streetAddress: def.address_line_1 || prev.streetAddress,
-              city: def.city || prev.city,
+              streetAddress: def.line1 || def.address_line_1 || prev.streetAddress,
+              city: def.city_district || def.city || prev.city,
               state: def.state || prev.state,
               pincode: def.pincode || prev.pincode,
             }))
@@ -60,19 +74,23 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
 
   if (!isOpen) return null
 
-  const items = cartData?.items || []
-  const subtotal = cartData?.subtotal || items.reduce((s, i) => s + (i.price * i.quantity), 0)
-  const discountAmount = cartData?.discountAmount || 0
+  const activeCart = (cartData && cartData.items && cartData.items.length > 0) ? cartData : (internalCartData || cartData)
+  const items = activeCart?.items || []
+  const subtotal = activeCart?.subtotal || items.reduce((s, i) => s + ((i.price || i.unit_price || 0) * i.quantity), 0)
+  const discountAmount = activeCart?.discountAmount || 0
   const freeThreshold = Number(deliverySettings?.free_delivery_threshold) || 499
   const stdDeliveryFee = Number(deliverySettings?.standard_delivery_fee) || 49
-  const deliveryCharge = cartData?.deliveryCharge !== undefined ? cartData.deliveryCharge : (subtotal >= freeThreshold ? 0 : stdDeliveryFee)
-  const grandTotal = cartData?.grandTotal || (subtotal - discountAmount + deliveryCharge)
+  const deliveryCharge = activeCart?.deliveryCharge !== undefined ? activeCart.deliveryCharge : (subtotal >= freeThreshold ? 0 : stdDeliveryFee)
+  const grandTotal = activeCart?.grandTotal || (subtotal - discountAmount + deliveryCharge)
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }))
+    }
+    if (submissionError) {
+      setSubmissionError('')
     }
   }
 
@@ -90,6 +108,19 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault()
+    setSubmissionError('')
+
+    const token = getCustomerToken()
+    if (!token) {
+      setSubmissionError('Please sign in to place your order.')
+      return
+    }
+
+    if (!items || items.length === 0) {
+      setSubmissionError('Your cart is empty. Add items to checkout.')
+      return
+    }
+
     const validationErrors = validate()
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors)
@@ -99,43 +130,40 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
     setIsSubmitting(true)
 
     try {
-      const token = getCustomerToken()
-      if (token && items.length > 0) {
-        const orderPayload = {
-          items: items.map((i) => ({
-            product_id: i.product_id || i.id,
-            variant_id: i.variant_id || 1,
-            quantity: Number(i.quantity) || 1,
-            unit_price: Number(i.price) || 0,
-          })),
-          address: {
-            name: formData.fullName,
-            phone: formData.phone,
-            address_line_1: formData.streetAddress,
-            city: formData.city,
-            state: formData.state,
-            pincode: formData.pincode,
-          },
-          coupon_code: cartData?.appliedCoupon || null,
-        }
-
-        const res = await api.post('/orders/checkout', orderPayload).catch(() => null)
-        if (res?.data?.order?.id) {
-          const genId = 'KB-' + res.data.order.id
-          setConfirmedOrderId(genId)
-          setOrderConfirmed(true)
-          await clearCart()
-          onOrderPlaced?.(genId)
-          return
-        }
+      const orderPayload = {
+        items: items.map((i) => ({
+          product_id: i.product_id || i.id,
+          variant_id: i.variant_id,
+          quantity: Number(i.quantity) || 1,
+          unit_price: Number(i.price || i.unit_price) || 0,
+        })),
+        address: {
+          name: formData.fullName,
+          phone: formData.phone,
+          line1: formData.streetAddress,
+          address_line_1: formData.streetAddress,
+          city_district: formData.city,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+        },
+        coupon_code: activeCart?.appliedCoupon || null,
       }
 
-      // Guest order completion
-      const genId = 'KB-' + Math.floor(100000 + Math.random() * 900000)
-      setConfirmedOrderId(genId)
-      setOrderConfirmed(true)
-      await clearCart()
-      onOrderPlaced?.(genId)
+      const res = await api.post('/orders/checkout', orderPayload)
+      if (res?.data?.order) {
+        const order = res.data.order
+        const orderIdDisplay = order.order_no || ('KB-' + order.id)
+        setConfirmedOrderId(orderIdDisplay)
+        setOrderConfirmed(true)
+        await clearCart()
+        onOrderPlaced?.(orderIdDisplay)
+      } else {
+        throw new Error('Order creation failed on backend.')
+      }
+    } catch (err) {
+      const errMsg = err?.response?.data?.error || err?.message || 'Failed to place order. Please check details and try again.'
+      setSubmissionError(errMsg)
     } finally {
       setIsSubmitting(false)
     }
@@ -158,10 +186,10 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-black text-purple-950">
-                {orderConfirmed ? 'Order Confirmed!' : 'Secure Checkout'}
+                {orderConfirmed ? 'Order Confirmed!' : !getCustomerToken() ? 'Sign In Required' : 'Secure Checkout'}
               </h2>
               <p className="text-[11px] text-gray-500 font-medium">
-                {orderConfirmed ? 'Thank you for your purchase' : '100% Secure & Encrypted Transaction'}
+                {orderConfirmed ? 'Thank you for your purchase' : !getCustomerToken() ? 'Please authenticate to complete checkout' : '100% Secure & Encrypted Transaction'}
               </p>
             </div>
           </div>
@@ -232,9 +260,56 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
               </button>
             </div>
           </div>
+        ) : !getCustomerToken() ? (
+          <div className="p-8 sm:p-12 text-center space-y-6 overflow-y-auto">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-purple-100 text-purple-700 flex items-center justify-center text-3xl shadow-inner">
+              🔒
+            </div>
+            <div className="space-y-2">
+              <span className="text-xs font-black uppercase tracking-wider text-purple-800 bg-purple-100 px-3 py-1 rounded-full">
+                Authentication Required
+              </span>
+              <h3 className="text-2xl font-black text-purple-950">
+                Please Sign In to Checkout
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                Log in or create an account to complete your order, apply your discounts, and track delivery progress.
+              </p>
+            </div>
+            <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center items-center max-w-sm mx-auto">
+              <Link
+                to="/login"
+                onClick={onClose}
+                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#6B21A8] to-[#EC4899] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
+              >
+                Sign In / Register →
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         ) : (
           /* CHECKOUT FORM & SUMMARY: Fully Responsive Grid */
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 no-scrollbar">
+            {submissionError && (
+              <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center justify-between shadow-xs">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">⚠️</span> {submissionError}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSubmissionError('')}
+                  className="text-red-500 hover:text-red-700 text-sm font-bold ml-2 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
             <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
               
               {/* LEFT: Customer & Delivery Details (12 cols mobile, 7 cols desktop) */}
