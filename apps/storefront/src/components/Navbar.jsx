@@ -312,6 +312,15 @@ export default function Navbar({
                       <span>My Profile</span>
                     </Link>
 
+                    <Link
+                      to="/orders"
+                      onClick={() => setIsAccountDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-900 transition-colors"
+                    >
+                      <span>📦</span>
+                      <span>My Orders</span>
+                    </Link>
+
                     {onOpenReferral && (
                       <button
                         type="button"
@@ -619,13 +628,23 @@ export default function Navbar({
                     <p className="text-xs font-black text-gray-900 truncate">
                       Hello, {customer.name?.split(' ')[0]} 👋
                     </p>
-                    <Link
-                      to="/profile"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-[11px] text-[#6B21A8] hover:underline"
-                    >
-                      View Profile →
-                    </Link>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-[11px] text-[#6B21A8] hover:underline"
+                      >
+                        Profile
+                      </Link>
+                      <span className="text-gray-300">•</span>
+                      <Link
+                        to="/orders"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-[11px] text-[#6B21A8] font-bold hover:underline"
+                      >
+                        My Orders →
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ) : (

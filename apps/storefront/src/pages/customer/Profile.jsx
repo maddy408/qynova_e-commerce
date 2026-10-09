@@ -210,7 +210,7 @@ export default function Profile() {
             {/* Quick Access Tiles: Orders, Wishlist, Addresses */}
             <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
               <Link
-                to="/"
+                to="/orders"
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-purple-100 shadow-xs hover:border-purple-300 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">

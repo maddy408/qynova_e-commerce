@@ -6,6 +6,8 @@ import NotFound from './pages/NotFound'
 import Register from './pages/customer/Register'
 import Login from './pages/customer/Login'
 import Profile from './pages/customer/Profile'
+import Orders from './pages/customer/Orders'
+import OrderDetail from './pages/customer/OrderDetail'
 
 import PolicyPage from './pages/PolicyPage'
 
@@ -24,6 +26,10 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/customer/profile" element={<Profile />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/orders/:id" element={<OrderDetail />} />
+        <Route path="/customer/orders" element={<Orders />} />
+        <Route path="/customer/orders/:id" element={<OrderDetail />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
