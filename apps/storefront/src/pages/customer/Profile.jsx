@@ -6,6 +6,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const [customer, setCustomer] = useState(null)
   const [referral, setReferral] = useState(null)
+  const [copiedCode, setCopiedCode] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -293,8 +294,23 @@ export default function Profile() {
                   <div className="space-y-3 text-xs">
                     <div>
                       <span className="text-gray-400 font-semibold block mb-0.5">Your Referral Code</span>
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 font-black text-sm tracking-wider">
-                        <span>{referral.referral_code || 'Generating...'}</span>
+                      <div className="inline-flex items-center gap-2">
+                        <div className="px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-900 font-black text-sm tracking-wider">
+                          {referral.referral_code || 'Generating...'}
+                        </div>
+                        {referral.referral_code && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(referral.referral_code)
+                              setCopiedCode(true)
+                              setTimeout(() => setCopiedCode(false), 2000)
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            {copiedCode ? '✓ Copied' : 'Copy'}
+                          </button>
+                        )}
                       </div>
                     </div>
 

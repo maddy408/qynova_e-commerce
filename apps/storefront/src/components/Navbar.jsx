@@ -8,6 +8,7 @@ import {
   fetchStoreSettings,
   fetchDeliverySettings,
   fetchActiveOffers,
+  fetchReferralSettings,
 } from '../lib/api'
 import { getCartCount, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist } from '../lib/wishlist'
@@ -27,13 +28,19 @@ export default function Navbar({
   const [wishlistCount, setWishlistCount] = useState(() => getWishlistIds().length)
   const [storeSettings, setStoreSettings] = useState(null)
   const [deliverySettings, setDeliverySettings] = useState(null)
+  const [referralSettings, setReferralSettings] = useState(null)
   const [promoOffer, setPromoOffer] = useState(null)
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const accountDropdownRef = useRef(null)
 
-  // Fetch store, delivery, and promo settings from MySQL
+  const referralPercentText = referralSettings?.referrer_discount_percent
+    ? `${Number(referralSettings.referrer_discount_percent)}% OFF`
+    : 'Rewards'
+  const isReferralActive = referralSettings ? Boolean(referralSettings.is_enabled) : true
+
+  // Fetch store, delivery, promo, and referral settings from MySQL
   useEffect(() => {
     let mounted = true
     fetchStoreSettings().then((s) => {
@@ -41,6 +48,9 @@ export default function Navbar({
     })
     fetchDeliverySettings().then((d) => {
       if (mounted && d) setDeliverySettings(d)
+    })
+    fetchReferralSettings().then((ref) => {
+      if (mounted && ref) setReferralSettings(ref)
     })
     fetchActiveOffers().then((res) => {
       if (mounted && res && res.offers && res.offers.length > 0) {
@@ -321,7 +331,7 @@ export default function Navbar({
                       <span>My Orders</span>
                     </Link>
 
-                    {onOpenReferral && (
+                    {onOpenReferral && isReferralActive && (
                       <button
                         type="button"
                         onClick={() => {
@@ -331,7 +341,7 @@ export default function Navbar({
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-pink-600 hover:bg-pink-50 transition-colors text-left cursor-pointer"
                       >
                         <span>🎁</span>
-                        <span>Refer & Earn (10% OFF)</span>
+                        <span>Refer & Earn ({referralPercentText})</span>
                       </button>
                     )}
 
@@ -363,12 +373,12 @@ export default function Navbar({
             )}
 
             {/* Refer & Earn Button (Desktop/Tablet) */}
-            {customer && onOpenReferral && (
+            {customer && onOpenReferral && isReferralActive && (
               <button
                 type="button"
                 onClick={onOpenReferral}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-[#DB2777] hover:bg-pink-100 hover:border-pink-300 text-xs font-black transition-all shadow-xs cursor-pointer active:scale-95"
-                title="Refer & Earn 10% OFF"
+                title={`Refer & Earn ${referralPercentText}`}
               >
                 <span>🎁</span>
                 <span className="hidden md:inline">Refer & Earn</span>
@@ -742,7 +752,7 @@ export default function Navbar({
 
               {/* Bottom Quick Tools */}
               <div className="border-t border-gray-100 my-2 pt-2 space-y-1">
-                {onOpenReferral && (
+                {onOpenReferral && isReferralActive && (
                   <button
                     type="button"
                     onClick={() => {
@@ -752,7 +762,7 @@ export default function Navbar({
                     className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-pink-50 text-[#DB2777] font-bold"
                   >
                     <span>🎁</span>
-                    <span>Refer & Earn (10% OFF)</span>
+                    <span>Refer & Earn ({referralPercentText})</span>
                   </button>
                 )}
 

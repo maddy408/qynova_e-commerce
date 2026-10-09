@@ -222,3 +222,4 @@ export async function deleteCustomerAddress(id) {
   const res = await api.delete(`/customer/addresses/${id}`)
   return res.data
 }
+
