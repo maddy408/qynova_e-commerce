@@ -64,8 +64,8 @@ CREATE TABLE IF NOT EXISTS wishlist (
 
 -- 4. Enable session-based guest carts in MySQL
 ALTER TABLE carts MODIFY customer_id BIGINT UNSIGNED NULL;
-ALTER TABLE carts ADD COLUMN IF NOT EXISTS session_id VARCHAR(64) NULL AFTER customer_id;
-ALTER TABLE carts ADD UNIQUE KEY IF NOT EXISTS uq_carts_session (session_id);
+ALTER TABLE carts ADD COLUMN session_id VARCHAR(64) NULL AFTER customer_id;
+ALTER TABLE carts ADD UNIQUE KEY uq_carts_session (session_id);
 
 -- 5. Offers and Flash Deals table
 CREATE TABLE IF NOT EXISTS offers (
@@ -129,10 +129,10 @@ INSERT INTO pages (slug, title, page_type, content) VALUES
 ON DUPLICATE KEY UPDATE title = VALUES(title);
 
 -- 7. Home sections enrichment
-ALTER TABLE home_sections ADD COLUMN IF NOT EXISTS section_key VARCHAR(100) NULL AFTER type;
-ALTER TABLE home_sections ADD COLUMN IF NOT EXISTS subtitle VARCHAR(255) NULL AFTER title;
-ALTER TABLE home_sections ADD COLUMN IF NOT EXISTS badge_text VARCHAR(100) NULL AFTER subtitle;
-ALTER TABLE home_sections ADD COLUMN IF NOT EXISTS view_all_link VARCHAR(255) NULL AFTER item_limit;
+ALTER TABLE home_sections ADD COLUMN section_key VARCHAR(100) NULL AFTER type;
+ALTER TABLE home_sections ADD COLUMN subtitle VARCHAR(255) NULL AFTER title;
+ALTER TABLE home_sections ADD COLUMN badge_text VARCHAR(100) NULL AFTER subtitle;
+ALTER TABLE home_sections ADD COLUMN view_all_link VARCHAR(255) NULL AFTER item_limit;
 
 INSERT INTO home_sections (id, type, section_key, title, subtitle, badge_text, item_limit, sort_order, is_active, view_all_link)
 VALUES
@@ -144,5 +144,5 @@ VALUES
 ON DUPLICATE KEY UPDATE section_key = VALUES(section_key);
 
 -- 8. Customer addresses enhancements
-ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS landmark VARCHAR(255) NULL AFTER pincode;
-ALTER TABLE customer_addresses ADD COLUMN IF NOT EXISTS address_type VARCHAR(50) NOT NULL DEFAULT 'HOME' AFTER landmark;
+ALTER TABLE customer_addresses ADD COLUMN landmark VARCHAR(255) NULL AFTER pincode;
+ALTER TABLE customer_addresses ADD COLUMN address_type VARCHAR(50) NOT NULL DEFAULT 'HOME' AFTER landmark;
