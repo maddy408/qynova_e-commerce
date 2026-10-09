@@ -516,7 +516,8 @@ final class OrderService
                 'line_subtotal' => $lineSubtotal,
                 'product_discount_amount' => $productDiscount,
                 'tax_amount' => $taxAmount,
-                'line_total' => bcadd($lineSubtotal, $taxAmount, 2),
+                'tax_mode' => $variant['tax_mode'] ?? 'EXCLUSIVE',
+                'line_total' => ($variant['tax_mode'] ?? 'EXCLUSIVE') === 'EXCLUSIVE' ? bcadd($lineSubtotal, $taxAmount, 2) : $lineSubtotal,
                 'is_active' => (bool) $variant['is_active'],
                 'is_ecommerce_enabled' => (bool) $variant['is_ecommerce_enabled'],
                 'available' => (string) ($variant['available'] ?? '0'),
@@ -539,7 +540,12 @@ final class OrderService
         $subtotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['line_subtotal'], 2), '0.00');
         $productDiscountTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['product_discount_amount'], 2), '0.00');
         $taxTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['tax_amount'], 2), '0.00');
-        $shippingTotal = bccomp($subtotal, self::FREE_SHIPPING_ABOVE, 2) >= 0 ? '0.00' : self::FLAT_SHIPPING;
+
+        $delSettings = $this->pdo->query("SELECT * FROM delivery_settings WHERE is_active = 1 ORDER BY id ASC LIMIT 1")->fetch();
+        $flatShipping = $delSettings ? (string) ($delSettings['delivery_charge'] ?? self::FLAT_SHIPPING) : self::FLAT_SHIPPING;
+        $freeShippingAbove = $delSettings ? (string) ($delSettings['free_delivery_threshold'] ?? self::FREE_SHIPPING_ABOVE) : self::FREE_SHIPPING_ABOVE;
+
+        $shippingTotal = bccomp($subtotal, $freeShippingAbove, 2) >= 0 ? '0.00' : $flatShipping;
 
         $couponId = null;
         $couponDiscount = '0.00';
@@ -591,7 +597,11 @@ final class OrderService
         $totalDiscount = bcadd($couponDiscount, $referralDiscount, 2);
         $allocatedLines = $this->allocateDiscounts($lines, $couponDiscount, $referralDiscount);
 
-        $grandTotal = bcadd(bcadd(bcsub($subtotal, $totalDiscount, 2), $taxTotal, 2), $shippingTotal, 2);
+        $exclusiveTaxTotal = array_reduce($lines, function (string $c, array $l) {
+            return ($l['tax_mode'] ?? 'EXCLUSIVE') === 'EXCLUSIVE' ? bcadd($c, $l['tax_amount'], 2) : $c;
+        }, '0.00');
+
+        $grandTotal = bcadd(bcadd(bcsub($subtotal, $totalDiscount, 2), $exclusiveTaxTotal, 2), $shippingTotal, 2);
 
         return [
             'lines' => $allocatedLines,
@@ -602,7 +612,7 @@ final class OrderService
             'coupon_error' => $couponError,
             'referral_reward_id' => $referralRewardId,
             'referral_discount' => $referralDiscount,
-            'tax_total' => $taxTotal,
+            'tax_total' => $exclusiveTaxTotal,
             'shipping_total' => $shippingTotal,
             'grand_total' => $grandTotal,
         ];

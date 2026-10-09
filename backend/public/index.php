@@ -211,6 +211,7 @@ $router->get('/api/inventory/{variantId}', fn ($variantId) => $inventory->show($
 $coupons = new CouponController($pdo);
 $router->get('/api/coupons', fn () => $coupons->index());
 $router->get('/api/coupons/available', fn () => $coupons->availableForCustomer());
+$router->post('/api/coupons/validate', fn () => $coupons->validate());
 $router->get('/api/coupons/{id}', fn ($id) => $coupons->show($id));
 $router->post('/api/coupons', fn () => $coupons->store());
 $router->put('/api/coupons/{id}', fn ($id) => $coupons->update($id));

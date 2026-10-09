@@ -6,15 +6,17 @@ import {
   removeFromCart,
   clearCart,
 } from '../lib/cart'
-import { fetchDeliverySettings, resolveImageUrl } from '../lib/api'
+import { fetchDeliverySettings, resolveImageUrl, api } from '../lib/api'
 
 export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onShowToast }) {
   const [cartItems, setCartItems] = useState([])
   const [deliverySettings, setDeliverySettings] = useState(null)
   const [couponCode, setCouponCode] = useState('')
-  const [discountPercent, setDiscountPercent] = useState(0)
   const [appliedCoupon, setAppliedCoupon] = useState('')
+  const [couponDiscountAmount, setCouponDiscountAmount] = useState(0)
   const [couponError, setCouponError] = useState('')
+  const [availableCoupons, setAvailableCoupons] = useState([])
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
 
   const refreshItems = () => {
     fetchCart().then((c) => setCartItems(c.items || []))
@@ -22,6 +24,10 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
 
   useEffect(() => {
     fetchDeliverySettings().then((d) => d && setDeliverySettings(d))
+    api
+      .get('/coupons/available')
+      .then((res) => setAvailableCoupons(res.data?.coupons || []))
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -46,19 +52,18 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
   if (!isOpen) return null
 
   const freeThreshold = Number(deliverySettings?.free_delivery_threshold) || 499
-  const stdDeliveryFee = Number(deliverySettings?.standard_delivery_fee) || 49
+  const stdDeliveryFee = Number(deliverySettings?.delivery_charge || deliverySettings?.standard_delivery_fee) || 49
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
     0
   )
-  const discountAmount = Math.round((subtotal * discountPercent) / 100)
+  const discountAmount = appliedCoupon ? couponDiscountAmount : 0
   const deliveryCharge = subtotal >= freeThreshold || subtotal === 0 ? 0 : stdDeliveryFee
   const grandTotal = Math.max(0, subtotal - discountAmount + deliveryCharge)
 
-  const handleApplyCoupon = (e) => {
-    e.preventDefault()
-    const code = couponCode.trim().toUpperCase()
+  const applyCouponCode = async (codeToApply) => {
+    const code = (codeToApply || couponCode).trim().toUpperCase()
     setCouponError('')
 
     if (!code) {
@@ -66,23 +71,43 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
       return
     }
 
-    if (code === 'COMBO20' || code === 'SAVE20') {
-      setDiscountPercent(20)
+    setIsApplyingCoupon(true)
+    try {
+      const res = await api.post('/coupons/validate', {
+        code,
+        items: cartItems.map((ci) => ({
+          variant_id: ci.variant_id,
+          product_id: ci.product_id,
+          quantity: ci.quantity,
+          price: ci.price,
+          line_total: ci.line_total,
+        })),
+      })
+      const discount = Number(res.data?.discount_amount) || 0
+      setCouponDiscountAmount(discount)
       setAppliedCoupon(code)
-      onShowToast?.(`Coupon "${code}" applied! 20% discount added. 🎉`)
-    } else if (code === 'WELCOME10' || code === 'FIRST10') {
-      setDiscountPercent(10)
-      setAppliedCoupon(code)
-      onShowToast?.(`Coupon "${code}" applied! 10% discount added. 🎉`)
-    } else {
-      setCouponError('Invalid coupon code. Try COMBO20 or WELCOME10')
+      setCouponCode(code)
+      onShowToast?.(`Coupon "${code}" applied! Saved ₹${discount.toFixed(2)} 🎉`)
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Invalid coupon code'
+      setCouponError(msg)
+      setAppliedCoupon('')
+      setCouponDiscountAmount(0)
+    } finally {
+      setIsApplyingCoupon(false)
     }
+  }
+
+  const handleApplyCoupon = (e) => {
+    e.preventDefault()
+    applyCouponCode(couponCode)
   }
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon('')
-    setDiscountPercent(0)
+    setCouponDiscountAmount(0)
     setCouponCode('')
+    setCouponError('')
     onShowToast?.('Coupon removed.')
   }
 
@@ -253,7 +278,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                 <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800">
                   <div className="flex items-center gap-1.5 font-bold">
                     <span>🏷️</span>
-                    <span>Coupon <strong>{appliedCoupon}</strong> Applied ({discountPercent}% OFF)</span>
+                    <span>Coupon <strong>{appliedCoupon}</strong> Applied (-₹{discountAmount.toFixed(2)})</span>
                   </div>
                   <button
                     onClick={handleRemoveCoupon}
@@ -263,26 +288,55 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleApplyCoupon} className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      placeholder="Coupon Code (e.g. COMBO20)"
-                      className="flex-1 h-9 px-3 rounded-xl border border-purple-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-600 bg-white"
-                    />
-                    <button
-                      type="submit"
-                      className="h-9 px-4 rounded-xl bg-purple-900 hover:bg-purple-950 text-white font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                  {couponError && (
-                    <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>
+                <div className="space-y-2">
+                  <form onSubmit={handleApplyCoupon} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        placeholder="Enter coupon code..."
+                        className="flex-1 h-9 px-3 rounded-xl border border-purple-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-600 bg-white"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isApplyingCoupon}
+                        className="h-9 px-4 rounded-xl bg-purple-900 hover:bg-purple-950 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        {isApplyingCoupon ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>
+                    )}
+                  </form>
+
+                  {/* Available Database Coupons */}
+                  {availableCoupons.length > 0 && (
+                    <div className="pt-0.5">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                        Available Coupons:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableCoupons.map((c) => (
+                          <button
+                            key={c.id || c.code}
+                            type="button"
+                            onClick={() => applyCouponCode(c.code)}
+                            disabled={isApplyingCoupon}
+                            className="px-2 py-0.5 rounded-md bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 font-extrabold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                            title={`Apply ${c.code}: ${c.description || c.name}`}
+                          >
+                            <span>🏷️ {c.code}</span>
+                            <span className="text-purple-600 font-medium">
+                              ({c.discount_type === 'PERCENTAGE' ? `${c.discount_value}%` : `₹${c.discount_value}`})
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </form>
+                </div>
               )}
             </div>
 
@@ -290,12 +344,12 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
             <div className="space-y-1.5 text-xs text-gray-600 border-t border-purple-100 pt-2.5">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="font-bold text-gray-900">₹{subtotal}</span>
+                <span className="font-bold text-gray-900">₹{subtotal.toFixed(2)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-pink-700 font-semibold">
-                  <span>Discount ({discountPercent}%)</span>
-                  <span>-₹{discountAmount}</span>
+                  <span>Coupon Discount ({appliedCoupon})</span>
+                  <span>-₹{discountAmount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -303,12 +357,12 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                 {deliveryCharge === 0 ? (
                   <span className="text-emerald-700 font-bold">FREE</span>
                 ) : (
-                  <span className="font-bold text-gray-900">₹{deliveryCharge}</span>
+                  <span className="font-bold text-gray-900">₹{deliveryCharge.toFixed(2)}</span>
                 )}
               </div>
               <div className="flex justify-between text-sm sm:text-base font-black text-purple-950 border-t border-purple-100 pt-2">
                 <span>Total Payable</span>
-                <span className="text-[#581C87]">₹{grandTotal}</span>
+                <span className="text-[#581C87]">₹{grandTotal.toFixed(2)}</span>
               </div>
             </div>
 
