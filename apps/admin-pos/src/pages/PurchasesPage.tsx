@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { PencilIcon, WalletIcon, ReceiptIcon, PrinterIcon } from '../components/Icons'
 import {
   SplitPaymentFields,
@@ -11,6 +11,7 @@ import {
   type PurchasePrintData,
   type SinglePaymentPrintData,
   type PurchaseListPrintData,
+  type PurchaseListItem,
 } from '../components/PurchasePrintModal'
 import { Alert, Badge, Button, Modal, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
@@ -87,7 +88,7 @@ interface LineItem {
   discount_amount: string
 }
 
-// Feature Flag: When true, all 3 action buttons always look enabled and handle permissions via click-time toast notifications.
+// Feature Flag: When true, all action buttons handle permissions gracefully via click-time toast notifications.
 const ACTION_BUTTONS_ALWAYS_ENABLED = true
 
 interface ToastNotification {
@@ -96,15 +97,27 @@ interface ToastNotification {
   type: 'info' | 'warning' | 'error' | 'success'
 }
 
+function formatMoney(val: string | number | undefined | null): string {
+  if (val === undefined || val === null || isNaN(Number(val))) return '0.00'
+  return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 export function PurchasesPage() {
   const [purchases, setPurchases] = useState<Purchase[] | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const pageSize = 5
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [allVariants, setAllVariants] = useState<VariantOption[]>([])
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Filters & Pagination State
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSupplier, setSelectedSupplier] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
+  const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10) // Default 10 records per page
 
   // Toast Notification State
   const [toast, setToast] = useState<ToastNotification | null>(null)
@@ -112,7 +125,6 @@ export function PurchasesPage() {
 
   function showToast(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'warning') {
     if (!message) return
-    // De-duplicate identical consecutive toasts so repeated clicks do not stack
     if (toast && toast.message === message && toast.type === type) {
       return
     }
@@ -166,7 +178,146 @@ export function PurchasesPage() {
   const [listPrintData, setListPrintData] = useState<PurchaseListPrintData | null>(null)
   const [loadingPrintId, setLoadingPrintId] = useState<number | null>(null)
   const [loadingPaymentPrintId, setLoadingPaymentPrintId] = useState<number | null>(null)
-  const [loadingListPrint, setLoadingListPrint] = useState<boolean>(false)
+
+  // New Purchase Creation State
+  const [supplierId, setSupplierId] = useState('')
+  const [items, setItems] = useState<LineItem[]>([])
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10))
+  const [newPurchaseSplit, setNewPurchaseSplit] = useState<SplitPaymentValues>(INITIAL_SPLIT_PAYMENT_VALUES)
+
+  // Autocomplete dropdown state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(0)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  function load() {
+    api
+      .get('/purchases')
+      .then((res) => {
+        const list = Array.isArray(res.data?.purchases)
+          ? res.data.purchases
+          : Array.isArray(res.data)
+          ? res.data
+          : []
+        setPurchases(list)
+      })
+      .catch((err) => {
+        setPurchases([])
+        showToast(apiErrorMessage(err) || 'Failed to load purchases', 'error')
+      })
+  }
+
+  function fetchVariants(search = '') {
+    api.get('/inventory', { params: { limit: 200, search: search || undefined } }).then((res) => {
+      const list = res.data.items ?? res.data.inventory ?? []
+      const itemsList = list.map((inv: any) => ({
+        id: inv.variant_id ?? inv.id,
+        product_name: inv.product_name,
+        sku: inv.sku,
+        barcode: inv.barcode ?? null,
+        mrp: inv.mrp,
+        purchase_price: inv.purchase_price ?? inv.retail_price ?? '0',
+        on_hand: inv.on_hand ?? 0,
+      }))
+      setAllVariants(itemsList)
+    })
+  }
+
+  useEffect(() => {
+    load()
+    api.get('/suppliers').then((res) => setSuppliers(res.data.suppliers || []))
+    fetchVariants()
+  }, [])
+
+  // Filter purchases based on search and filters
+  const filteredPurchases = useMemo(() => {
+    if (!purchases) return []
+    return purchases.filter((p) => {
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim()
+        const matchNo = p.purchase_no?.toLowerCase().includes(q)
+        const matchSup = p.supplier_name?.toLowerCase().includes(q)
+        const matchNotes = p.notes?.toLowerCase().includes(q)
+        if (!matchNo && !matchSup && !matchNotes) return false
+      }
+      if (selectedSupplier && String(p.supplier_id) !== String(selectedSupplier)) {
+        return false
+      }
+      if (selectedStatus && p.status !== selectedStatus) {
+        return false
+      }
+      if (selectedPaymentStatus) {
+        const ps = p.payment_status?.toUpperCase()
+        if (selectedPaymentStatus === 'PAID' && ps !== 'PAID') return false
+        if (selectedPaymentStatus === 'PARTIAL' && ps !== 'PARTIAL' && ps !== 'PARTIALLY_PAID') return false
+        if (selectedPaymentStatus === 'UNPAID' && ps !== 'UNPAID') return false
+      }
+      if (dateFilter && !p.purchase_date?.startsWith(dateFilter)) {
+        return false
+      }
+      return true
+    })
+  }, [purchases, searchTerm, selectedSupplier, selectedStatus, selectedPaymentStatus, dateFilter])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedSupplier, selectedStatus, selectedPaymentStatus, dateFilter, pageSize])
+
+  // Pagination calculation
+  const totalFilteredCount = filteredPurchases.length
+  const totalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const startIndex = (safeCurrentPage - 1) * pageSize
+  const endIndex = Math.min(startIndex + pageSize, totalFilteredCount)
+  const paginatedPurchases = filteredPurchases.slice(startIndex, endIndex)
+
+  // Overall Financial Summary calculation
+  const summaryMetrics = useMemo(() => {
+    const list = purchases || []
+    let totalPurchasesAmt = 0
+    let totalPaidAmt = 0
+    let totalBalAmt = 0
+    let paidCount = 0
+    let partialCount = 0
+    let unpaidCount = 0
+    let activeCount = 0
+    let cancelledCount = 0
+
+    list.forEach((p) => {
+      const isCancelled = p.status === 'CANCELLED'
+      const paid = Number(p.paid_amount ?? p.amount_paid ?? 0)
+      const grand = Number(p.grand_total || 0)
+      const bal = Number(p.balance_amount ?? Math.max(0, grand - paid))
+
+      if (isCancelled) {
+        cancelledCount++
+      } else {
+        activeCount++
+        totalPurchasesAmt += grand
+        totalPaidAmt += paid
+        totalBalAmt += bal
+
+        const ps = p.payment_status?.toUpperCase()
+        if (ps === 'PAID') paidCount++
+        else if (ps === 'PARTIAL' || ps === 'PARTIALLY_PAID') partialCount++
+        else unpaidCount++
+      }
+    })
+
+    return {
+      totalPurchasesAmt,
+      totalPaidAmt,
+      totalBalAmt,
+      paidCount,
+      partialCount,
+      unpaidCount,
+      activeCount,
+      cancelledCount,
+      totalCount: list.length,
+    }
+  }, [purchases])
 
   // Action Click Handlers with Toast Feedback for Invalid Actions
   function handleCollectAction(p: Purchase) {
@@ -231,61 +382,167 @@ export function PurchasesPage() {
     }
   }
 
-  async function handlePrintListAction() {
-    setLoadingListPrint(true)
-    try {
-      const res = await api.get('/purchases/print-list')
-      if (res.data && res.data.list_print_data) {
-        setListPrintData(res.data.list_print_data)
-        setPrintData(null)
-        setSinglePaymentPrintData(null)
-      } else {
-        showToast('Could not load purchases list print report', 'error')
-      }
-    } catch (err: any) {
-      showToast(apiErrorMessage(err) || 'Failed to load purchases list print data', 'error')
-    } finally {
-      setLoadingListPrint(false)
+  // ================= PRINT CURRENT PAGE LIST =================
+  function handlePrintCurrentPage() {
+    if (paginatedPurchases.length === 0) {
+      showToast('No purchase records on the current page to print', 'warning')
+      return
     }
-  }
 
-  // New Purchase Creation State
-  const [supplierId, setSupplierId] = useState('')
-  const [items, setItems] = useState<LineItem[]>([])
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10))
-  const [newPurchaseSplit, setNewPurchaseSplit] = useState<SplitPaymentValues>(INITIAL_SPLIT_PAYMENT_VALUES)
+    const itemsForPrint: PurchaseListItem[] = paginatedPurchases.map((p) => ({
+      id: p.id,
+      purchase_no: p.purchase_no,
+      supplier_name: p.supplier_name,
+      purchase_date: p.purchase_date,
+      grand_total: p.grand_total,
+      paid_amount: p.paid_amount ?? p.amount_paid ?? '0.00',
+      balance_amount:
+        p.balance_amount ??
+        Math.max(0, (Number(p.grand_total) || 0) - (Number(p.paid_amount ?? p.amount_paid) || 0)).toFixed(2),
+      payment_method: p.payment_method || null,
+      payment_status: p.payment_status,
+      status: p.status,
+    }))
 
-  // Autocomplete dropdown state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [highlightedIndex, setHighlightedIndex] = useState(0)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+    let activeGrand = 0
+    let activePaid = 0
+    let activeBal = 0
+    let activeCount = 0
+    let cancelledCount = 0
 
-  function load() {
-    api.get('/purchases').then((res) => setPurchases(res.data.purchases))
-  }
-
-  function fetchVariants(search = '') {
-    api.get('/inventory', { params: { limit: 200, search: search || undefined } }).then((res) => {
-      const list = res.data.items ?? res.data.inventory ?? []
-      const itemsList = list.map((inv: any) => ({
-        id: inv.variant_id ?? inv.id,
-        product_name: inv.product_name,
-        sku: inv.sku,
-        barcode: inv.barcode ?? null,
-        mrp: inv.mrp,
-        purchase_price: inv.purchase_price ?? inv.retail_price ?? '0',
-        on_hand: inv.on_hand ?? 0,
-      }))
-      setAllVariants(itemsList)
+    itemsForPrint.forEach((item) => {
+      if (item.status === 'CANCELLED') {
+        cancelledCount++
+      } else {
+        activeCount++
+        activeGrand += Number(item.grand_total) || 0
+        activePaid += Number(item.paid_amount) || 0
+        activeBal += Number(item.balance_amount) || 0
+      }
     })
+
+    const selectedSupplierName = suppliers.find((s) => String(s.id) === String(selectedSupplier))?.name
+
+    const listDataPayload: PurchaseListPrintData = {
+      shop: {
+        name: '',
+        address: '',
+        phone: '',
+        email: '',
+        gstin: '',
+      },
+      scope_title: `Purchases List — Page ${safeCurrentPage} of ${totalPages}`,
+      page_info: {
+        current_page: safeCurrentPage,
+        total_pages: totalPages,
+        page_size: pageSize,
+        total_records: totalFilteredCount,
+      },
+      filters: {
+        search: searchTerm || undefined,
+        status: selectedStatus || undefined,
+        payment_status: selectedPaymentStatus || undefined,
+        from_date: dateFilter || undefined,
+        supplier_name: selectedSupplierName || undefined,
+      },
+      items: itemsForPrint,
+      totals: {
+        active_grand_total: activeGrand.toFixed(2),
+        active_paid_amount: activePaid.toFixed(2),
+        active_balance_amount: activeBal.toFixed(2),
+        total_count: itemsForPrint.length,
+        active_count: activeCount,
+        cancelled_count: cancelledCount,
+      },
+      printed_at: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+      printed_by: 'Admin',
+    }
+
+    setListPrintData(listDataPayload)
+    setPrintData(null)
+    setSinglePaymentPrintData(null)
   }
 
-  useEffect(() => {
-    load()
-    api.get('/suppliers').then((res) => setSuppliers(res.data.suppliers))
-    fetchVariants()
-  }, [])
+  // ================= PRINT ALL FILTERED PURCHASES =================
+  function handlePrintAllRecords() {
+    if (filteredPurchases.length === 0) {
+      showToast('No purchase records to print', 'warning')
+      return
+    }
+
+    const itemsForPrint: PurchaseListItem[] = filteredPurchases.map((p) => ({
+      id: p.id,
+      purchase_no: p.purchase_no,
+      supplier_name: p.supplier_name,
+      purchase_date: p.purchase_date,
+      grand_total: p.grand_total,
+      paid_amount: p.paid_amount ?? p.amount_paid ?? '0.00',
+      balance_amount:
+        p.balance_amount ??
+        Math.max(0, (Number(p.grand_total) || 0) - (Number(p.paid_amount ?? p.amount_paid) || 0)).toFixed(2),
+      payment_method: p.payment_method || null,
+      payment_status: p.payment_status,
+      status: p.status,
+    }))
+
+    let activeGrand = 0
+    let activePaid = 0
+    let activeBal = 0
+    let activeCount = 0
+    let cancelledCount = 0
+
+    itemsForPrint.forEach((item) => {
+      if (item.status === 'CANCELLED') {
+        cancelledCount++
+      } else {
+        activeCount++
+        activeGrand += Number(item.grand_total) || 0
+        activePaid += Number(item.paid_amount) || 0
+        activeBal += Number(item.balance_amount) || 0
+      }
+    })
+
+    const selectedSupplierName = suppliers.find((s) => String(s.id) === String(selectedSupplier))?.name
+
+    const listDataPayload: PurchaseListPrintData = {
+      shop: {
+        name: '',
+        address: '',
+        phone: '',
+        email: '',
+        gstin: '',
+      },
+      scope_title: `Full Filtered Purchases List (${itemsForPrint.length} Records)`,
+      page_info: {
+        current_page: 1,
+        total_pages: 1,
+        page_size: itemsForPrint.length,
+        total_records: itemsForPrint.length,
+      },
+      filters: {
+        search: searchTerm || undefined,
+        status: selectedStatus || undefined,
+        payment_status: selectedPaymentStatus || undefined,
+        from_date: dateFilter || undefined,
+        supplier_name: selectedSupplierName || undefined,
+      },
+      items: itemsForPrint,
+      totals: {
+        active_grand_total: activeGrand.toFixed(2),
+        active_paid_amount: activePaid.toFixed(2),
+        active_balance_amount: activeBal.toFixed(2),
+        total_count: itemsForPrint.length,
+        active_count: activeCount,
+        cancelled_count: cancelledCount,
+      },
+      printed_at: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+      printed_by: 'Admin',
+    }
+
+    setListPrintData(listDataPayload)
+    setPrintData(null)
+    setSinglePaymentPrintData(null)
+  }
 
   // ================= EDIT PAYMENT MODAL =================
   function openEditPaymentModal(p: Purchase) {
@@ -298,7 +555,7 @@ export function PurchasesPage() {
       singleMethod: p.payment_method && p.payment_method !== 'SPLIT' ? p.payment_method : 'CASH',
       singleAmount: paid !== '0.00' ? paid : '',
       singleRef: '',
-      cash: isSplit ? paid : (p.payment_method === 'CASH' ? paid : ''),
+      cash: isSplit ? paid : p.payment_method === 'CASH' ? paid : '',
       upi: p.payment_method === 'UPI' ? paid : '',
       card: p.payment_method === 'CARD' ? paid : '',
       bank: p.payment_method === 'NETBANKING' ? paid : '',
@@ -542,7 +799,18 @@ export function PurchasesPage() {
   }
 
   function removeItem(variantId: number) {
-    setItems((prev) => prev.filter((i) => i.variant_id !== variantId))
+    setItems((prev) => {
+      const nextItems = prev.filter((i) => i.variant_id !== variantId)
+      const newTotal = nextItems.reduce(
+        (sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)),
+        0
+      )
+      setNewPurchaseSplit((splitPrev) => ({
+        ...splitPrev,
+        singleAmount: newTotal > 0 ? newTotal.toFixed(2) : '',
+      }))
+      return nextItems
+    })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -662,7 +930,7 @@ export function PurchasesPage() {
   }
 
   return (
-    <div className={`space-y-6 pb-12 ${printData || singlePaymentPrintData ? 'no-print print:hidden' : ''}`}>
+    <div className="space-y-6 pb-12">
       {/* Toast Notifications */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-top-3 duration-200">
@@ -695,31 +963,133 @@ export function PurchasesPage() {
         </div>
       )}
 
+      {/* 1. TOP SUMMARY KPI CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Purchases */}
+        <div className="p-4 rounded-2xl bg-white border border-[#F2E5E7] shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Purchases</span>
+            <span className="p-1.5 rounded-xl bg-[#FAF2F4] text-[#804652] text-xs font-bold">
+              {summaryMetrics.activeCount} Active
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-slate-900">
+              ₹{formatMoney(summaryMetrics.totalPurchasesAmt)}
+            </span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">
+            {summaryMetrics.cancelledCount > 0 && <span>{summaryMetrics.cancelledCount} cancelled excluded</span>}
+          </div>
+        </div>
 
+        {/* Card 2: Total Paid */}
+        <div className="p-4 rounded-2xl bg-white border border-[#F2E5E7] shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Total Paid</span>
+            <span className="p-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold">
+              {summaryMetrics.paidCount} Fully Paid
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-800">
+              ₹{formatMoney(summaryMetrics.totalPaidAmt)}
+            </span>
+          </div>
+          <div className="mt-1 text-[11px] text-emerald-600 font-medium">
+            Supplier settlements completed
+          </div>
+        </div>
+
+        {/* Card 3: Outstanding Balance */}
+        <div className="p-4 rounded-2xl bg-white border border-[#F2E5E7] shadow-2xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#804652] uppercase tracking-wider">Balance Due</span>
+            <span className="p-1.5 rounded-xl bg-amber-50 text-amber-900 text-xs font-bold">
+              {summaryMetrics.partialCount + summaryMetrics.unpaidCount} Pending
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#804652]">
+              ₹{formatMoney(summaryMetrics.totalBalAmt)}
+            </span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">
+            {summaryMetrics.partialCount} Partial, {summaryMetrics.unpaidCount} Unpaid
+          </div>
+        </div>
+
+        {/* Card 4: Quick Action & Status Overview */}
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#804652] to-[#5e2b36] text-white shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-200">Stock Inflow</span>
+            <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
+              {summaryMetrics.totalCount} Bills
+            </span>
+          </div>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(true)
+                setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
+                fetchVariants()
+              }}
+              className="w-full py-2 px-3 bg-white text-[#804652] hover:bg-[#FAF2F4] text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>+ Record New Purchase</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. MAIN PURCHASES TABLE CARD */}
       {purchases === null ? (
         <div className="p-12 text-center">
           <Spinner />
         </div>
       ) : (
         <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
-          {/* Card Header with New Purchase Button */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+          {/* Card Header */}
+          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white">
             <div>
-              <h3 className="text-xl font-serif font-bold text-slate-900">All Purchases</h3>
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-xl font-serif font-bold text-slate-900">All Purchases</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0]">
+                  {totalFilteredCount} Record{totalFilteredCount === 1 ? '' : 's'}
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Supplier → Stock Purchase → Increase inventory with cost &amp; MRP tracking
+                Supplier stock inventory purchases, payment allocations &amp; receipt tracking
               </p>
             </div>
-            <div className="no-print flex items-center gap-2.5">
+
+            {/* Print & Action Controls */}
+            <div className="no-print flex flex-wrap items-center gap-2">
+              {/* Print Current Page (Requested Feature) */}
               <button
                 type="button"
-                onClick={handlePrintListAction}
-                disabled={loadingListPrint}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-white text-[#7B3F4A] hover:bg-[#FAF2F4] text-xs font-bold transition-all shadow-2xs cursor-pointer disabled:opacity-50"
-                title="Print Full Purchases List Report"
+                onClick={handlePrintCurrentPage}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F2E5E7] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                title={`Print ${paginatedPurchases.length} records on current Page ${safeCurrentPage}`}
               >
-                {loadingListPrint ? 'Loading List…' : '🖨️ Print List'}
+                <PrinterIcon className="h-3.5 w-3.5" />
+                <span>Print Page {safeCurrentPage} ({paginatedPurchases.length})</span>
               </button>
+
+              {/* Print All Filtered Records */}
+              {totalFilteredCount > pageSize && (
+                <button
+                  type="button"
+                  onClick={handlePrintAllRecords}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-semibold transition-all shadow-2xs cursor-pointer"
+                  title={`Print all ${totalFilteredCount} filtered purchases`}
+                >
+                  <span>Print All ({totalFilteredCount})</span>
+                </button>
+              )}
+
+              {/* New Purchase Button */}
               <button
                 type="button"
                 onClick={() => {
@@ -734,6 +1104,100 @@ export function PurchasesPage() {
             </div>
           </div>
 
+          {/* Search & Filter Toolbar */}
+          <div className="p-4 bg-[#FAF2F4]/30 border-b border-[#F2E5E7] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+            {/* 1. Search text */}
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search Pur No, Supplier, Notes…"
+                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-2 focus:ring-[#7B3F4A]/10 shadow-2xs"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* 2. Supplier Filter */}
+            <div>
+              <select
+                value={selectedSupplier}
+                onChange={(e) => setSelectedSupplier(e.target.value)}
+                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+              >
+                <option value="">All Suppliers ({suppliers.length})</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Payment Status Filter */}
+            <div>
+              <select
+                value={selectedPaymentStatus}
+                onChange={(e) => setSelectedPaymentStatus(e.target.value)}
+                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+              >
+                <option value="">All Payment Statuses</option>
+                <option value="PAID">PAID</option>
+                <option value="PARTIAL">PARTIALLY PAID</option>
+                <option value="UNPAID">UNPAID</option>
+              </select>
+            </div>
+
+            {/* 4. Status Filter */}
+            <div>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+              >
+                <option value="">All Status (Active &amp; Cancelled)</option>
+                <option value="ACTIVE">ACTIVE Only</option>
+                <option value="CANCELLED">CANCELLED Only</option>
+              </select>
+            </div>
+
+            {/* 5. Date Filter & Clear */}
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+                title="Filter by Purchase Date"
+              />
+              {(searchTerm || selectedSupplier || selectedPaymentStatus || selectedStatus || dateFilter) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setSelectedSupplier('')
+                    setSelectedPaymentStatus('')
+                    setSelectedStatus('')
+                    setDateFilter('')
+                  }}
+                  className="px-2.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200 transition-colors shrink-0 cursor-pointer"
+                  title="Reset all filters"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
@@ -751,25 +1215,15 @@ export function PurchasesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0E0E3]">
-                {(() => {
-                  const totalPurchases = purchases.length
-                  const totalPages = Math.max(1, Math.ceil(totalPurchases / pageSize))
-                  const safeCurrentPage = Math.min(currentPage, totalPages)
-                  const startIndex = (safeCurrentPage - 1) * pageSize
-                  const endIndex = Math.min(startIndex + pageSize, totalPurchases)
-                  const paginatedPurchases = purchases.slice(startIndex, endIndex)
-
-                  if (paginatedPurchases.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan={10} className="px-4 py-8 text-center font-semibold text-slate-500">
-                          No purchases recorded yet.
-                        </td>
-                      </tr>
-                    )
-                  }
-
-                  return paginatedPurchases.map((p) => {
+                {paginatedPurchases.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-12 text-center text-slate-500">
+                      <p className="font-semibold text-sm text-slate-700">No purchases found matching your criteria.</p>
+                      <p className="text-xs text-slate-400 mt-1">Try adjusting the search query or active filters.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedPurchases.map((p) => {
                     const effectivePaid = p.paid_amount ?? p.amount_paid ?? '0.00'
                     const effectiveBalance =
                       p.balance_amount ??
@@ -781,9 +1235,9 @@ export function PurchasesPage() {
                       <tr key={p.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
                         <td className="px-4 py-3 font-mono font-bold text-slate-950">{p.purchase_no}</td>
                         <td className="px-4 py-3 text-slate-950 font-bold">{p.supplier_name}</td>
-                        <td className="px-4 py-3 text-slate-950 font-black">₹{p.grand_total}</td>
-                        <td className="px-4 py-3 text-emerald-800 font-black">₹{effectivePaid}</td>
-                        <td className="px-4 py-3 text-[#804652] font-black">₹{effectiveBalance}</td>
+                        <td className="px-4 py-3 text-slate-950 font-black">₹{formatMoney(p.grand_total)}</td>
+                        <td className="px-4 py-3 text-emerald-800 font-black">₹{formatMoney(effectivePaid)}</td>
+                        <td className="px-4 py-3 text-[#804652] font-black">₹{formatMoney(effectiveBalance)}</td>
                         <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
                           {p.payment_method === 'SPLIT' ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FAF2F4] text-[#7B3F4A] border border-[#EEDDE0]">
@@ -841,8 +1295,8 @@ export function PurchasesPage() {
                             <button
                               type="button"
                               onClick={() => handlePrintAction(p)}
-                              title="Print Purchase"
-                              aria-label="Print Purchase"
+                              title="Print Purchase Bill"
+                              aria-label="Print Purchase Bill"
                               disabled={loadingPrintId === p.id}
                               className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[#7B3F4A] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/30 cursor-pointer disabled:opacity-50"
                             >
@@ -853,55 +1307,62 @@ export function PurchasesPage() {
                       </tr>
                     )
                   })
-                })()}
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Pagination Controls Footer */}
-          {purchases.length > 0 && (() => {
-            const totalPurchases = purchases.length
-            const totalPages = Math.max(1, Math.ceil(totalPurchases / pageSize))
-            const safeCurrentPage = Math.min(currentPage, totalPages)
-            const startIndex = (safeCurrentPage - 1) * pageSize
-            const endIndex = Math.min(startIndex + pageSize, totalPurchases)
-
-            return (
-              <div className="no-print flex items-center justify-between border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs text-slate-600">
-                <div>
-                  Showing <span className="font-semibold text-slate-900">{totalPurchases > 0 ? startIndex + 1 : 0}</span> to{' '}
-                  <span className="font-semibold text-slate-900">{endIndex}</span> of{' '}
-                  <span className="font-semibold text-slate-900">{totalPurchases}</span> purchases
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={safeCurrentPage <= 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors"
+          {totalFilteredCount > 0 && (
+            <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs text-slate-600">
+              <div className="flex items-center gap-3">
+                <span>
+                  Showing <strong className="text-slate-900">{totalFilteredCount > 0 ? startIndex + 1 : 0}</strong> to{' '}
+                  <strong className="text-slate-900">{endIndex}</strong> of{' '}
+                  <strong className="text-slate-900">{totalFilteredCount}</strong> purchases
+                </span>
+                <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                  <span>| Per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                    className="rounded-lg border border-[#E5D5D8] bg-white px-2 py-0.5 text-xs text-slate-800 font-bold focus:outline-none"
                   >
-                    ← Previous
-                  </button>
-                  <span className="px-2 font-medium text-slate-700">
-                    Page {safeCurrentPage} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={safeCurrentPage >= totalPages}
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors"
-                  >
-                    Next →
-                  </button>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
                 </div>
               </div>
-            )
-          })()}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={safeCurrentPage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="px-3.5 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-semibold disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  ← Previous
+                </button>
+                <span className="px-2 font-bold text-[#804652]">
+                  Page {safeCurrentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={safeCurrentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-3.5 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-semibold disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* ================= COLLECT PAYMENT MODAL ================= */}
-
       {collectPurchase && (
         <Modal
           title={`Collect Payment — ${collectPurchase.purchase_no}`}
@@ -1057,7 +1518,7 @@ export function PurchasesPage() {
         </Modal>
       )}
 
-      {/* ================= PAYMENT HISTORY DRAWER / MODAL ================= */}
+      {/* ================= PAYMENT HISTORY MODAL ================= */}
       {historyPurchase && (
         <Modal
           title={`Payment History & Receipts — ${historyPurchase.purchase_no}`}
@@ -1115,7 +1576,7 @@ export function PurchasesPage() {
                             title="Print Payment Receipt"
                             aria-label="Print Payment Receipt"
                             disabled={loadingPaymentPrintId === pay.id}
-                            className="ml-1 inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-[#7B3F4A] transition-colors shadow-2xs text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                            className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-[#7B3F4A] transition-colors shadow-2xs text-[11px] font-semibold cursor-pointer disabled:opacity-50"
                           >
                             <PrinterIcon className="h-3.5 w-3.5" />
                             <span>Print</span>
@@ -1168,7 +1629,7 @@ export function PurchasesPage() {
                                 setReversingPaymentId(pay.id)
                                 setReverseReason('')
                               }}
-                              className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline inline-flex items-center gap-1"
+                              className="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
                             >
                               ↩ Reverse Payment
                             </button>
@@ -1414,7 +1875,7 @@ export function PurchasesPage() {
                               <button
                                 type="button"
                                 onClick={() => removeItem(item.variant_id)}
-                                className="p-1 rounded-full text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                className="p-1 rounded-full text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                                 title="Remove item"
                               >
                                 ✕
@@ -1438,14 +1899,14 @@ export function PurchasesPage() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-5 py-2 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition-colors"
+                className="px-5 py-2 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? 'Creating…' : 'Submit Stock Purchase'}
               </button>
@@ -1470,4 +1931,3 @@ export function PurchasesPage() {
     </div>
   )
 }
-
