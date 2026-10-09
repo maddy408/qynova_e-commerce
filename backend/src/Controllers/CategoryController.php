@@ -25,7 +25,11 @@ final class CategoryController
     /** Public — the storefront needs this for category navigation too. */
     public function index(): void
     {
-        Response::json(['categories' => $this->categories->list()]);
+        $status = $_GET['status'] ?? null;
+        if ($status === null && Request::bearerToken() === null) {
+            $status = 'ACTIVE';
+        }
+        Response::json(['categories' => $this->categories->list($status)]);
     }
 
     public function show(string $id): void

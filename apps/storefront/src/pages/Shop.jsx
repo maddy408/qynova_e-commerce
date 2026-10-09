@@ -17,6 +17,7 @@ export default function Shop() {
   const pageParam = parseInt(searchParams.get('page') || '1', 10)
   const sectionParam = searchParams.get('section') || ''
   const categoryIdParam = searchParams.get('category_id') || ''
+  const subcategoryIdParam = searchParams.get('subcategory_id') || ''
   const sortParam = searchParams.get('sort') || 'newest'
   const searchParam = searchParams.get('search') || ''
   const isWishlistParam = searchParams.get('wishlist') === '1'
@@ -34,6 +35,7 @@ export default function Shop() {
     hasPreviousPage: false,
   })
   const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
   const [storeSettings, setStoreSettings] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -58,7 +60,7 @@ export default function Shop() {
     return () => window.removeEventListener('wishlist-updated', handleSync)
   }, [])
 
-  // Fetch store settings & categories from DB once
+  // Fetch store settings, categories & subcategories from DB
   useEffect(() => {
     fetchStoreSettings().then((s) => s && setStoreSettings(s))
     api
@@ -66,6 +68,15 @@ export default function Shop() {
       .then((res) => {
         if (res.data?.categories) {
           setCategories(res.data.categories)
+        }
+      })
+      .catch(() => {})
+
+    api
+      .get('/subcategories')
+      .then((res) => {
+        if (res.data?.subcategories) {
+          setSubcategories(res.data.subcategories)
         }
       })
       .catch(() => {})
@@ -80,9 +91,12 @@ export default function Shop() {
       const params = new URLSearchParams()
       params.set('page', String(pageParam))
       params.set('limit', '12') // 12 cards per page for 2/3/4-col responsive layout
+      params.set('channel', 'ecommerce')
+      params.set('is_active', '1')
 
       if (sectionParam) params.set('section', sectionParam)
       if (categoryIdParam) params.set('category_id', categoryIdParam)
+      if (subcategoryIdParam) params.set('subcategory_id', subcategoryIdParam)
       if (sortParam) params.set('sort', sortParam)
       if (searchParam) params.set('search', searchParam)
       if (minPriceParam) params.set('min_price', minPriceParam)
@@ -127,6 +141,7 @@ export default function Shop() {
     pageParam,
     sectionParam,
     categoryIdParam,
+    subcategoryIdParam,
     sortParam,
     searchParam,
     isWishlistParam,
@@ -144,10 +159,22 @@ export default function Shop() {
   const handleCategoryChange = (catId) => {
     const next = new URLSearchParams(searchParams)
     next.set('page', '1')
+    next.delete('subcategory_id')
     if (catId) {
       next.set('category_id', String(catId))
     } else {
       next.delete('category_id')
+    }
+    setSearchParams(next)
+  }
+
+  const handleSubcategoryChange = (subcatId) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('page', '1')
+    if (subcatId) {
+      next.set('subcategory_id', String(subcatId))
+    } else {
+      next.delete('subcategory_id')
     }
     setSearchParams(next)
   }
@@ -192,9 +219,21 @@ export default function Shop() {
     return categories.find((c) => String(c.id) === String(categoryIdParam))
   }, [categoryIdParam, categories])
 
+  const currentSubcategoryObj = useMemo(() => {
+    if (!subcategoryIdParam) return null
+    return subcategories.find((s) => String(s.id) === String(subcategoryIdParam))
+  }, [subcategoryIdParam, subcategories])
+
+  const relevantSubcategories = useMemo(() => {
+    if (!categoryIdParam) return subcategories
+    return subcategories.filter((s) => s.category_ids?.includes(Number(categoryIdParam)))
+  }, [categoryIdParam, subcategories])
+
   const pageTitle = useMemo(() => {
     if (isWishlistParam) return 'My Saved Wishlist'
     if (searchParam) return `Search Results for "${searchParam}"`
+    if (currentCategoryObj && currentSubcategoryObj) return `${currentCategoryObj.name} — ${currentSubcategoryObj.name}`
+    if (currentSubcategoryObj) return currentSubcategoryObj.name
     if (currentCategoryObj) return currentCategoryObj.name
     if (sectionParam === 'best_sellers') return 'Best Sellers'
     if (sectionParam === 'new_arrivals') return 'New Arrivals'
@@ -202,7 +241,7 @@ export default function Shop() {
     if (sectionParam === 'trending') return 'Trending Products'
     if (sectionParam === 'deals') return 'Flash Deals & Special Offers'
     return 'All Products Catalog'
-  }, [isWishlistParam, searchParam, currentCategoryObj, sectionParam])
+  }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, sectionParam])
 
   return (
     <div className="min-h-screen bg-[#FDFBFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 flex flex-col justify-between">
@@ -280,7 +319,7 @@ export default function Shop() {
                 <option value="name_asc">Name: A to Z</option>
               </select>
 
-              {(categoryIdParam || sectionParam || searchParam || isWishlistParam) && (
+              {(categoryIdParam || subcategoryIdParam || sectionParam || searchParam || isWishlistParam || minPriceParam || maxPriceParam) && (
                 <button
                   type="button"
                   onClick={handleClearFilters}
@@ -323,6 +362,43 @@ export default function Shop() {
               )
             })}
           </div>
+
+          {/* Subcategory Quick Chips Filter (Renders when relevant subcategories exist in DB) */}
+          {relevantSubcategories.length > 0 && (
+            <div className="pb-3 flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 items-center">
+              <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider shrink-0 mr-1">
+                Subcategories:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSubcategoryChange('')}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  !subcategoryIdParam
+                    ? 'bg-purple-900 text-white shadow-xs'
+                    : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                }`}
+              >
+                All
+              </button>
+              {relevantSubcategories.map((subcat) => {
+                const isSelected = String(subcat.id) === String(subcategoryIdParam)
+                return (
+                  <button
+                    key={subcat.id}
+                    type="button"
+                    onClick={() => handleSubcategoryChange(subcat.id)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                    }`}
+                  >
+                    {subcat.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Products Grid or Loading / Empty */}
           {isLoading ? (

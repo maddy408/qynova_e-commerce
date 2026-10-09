@@ -32,17 +32,17 @@ final class ProductService
         }
 
         if (!empty($filters['category_id'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = :category_id)';
+            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND pc.category_id = :category_id AND c.status = "ACTIVE" AND c.deleted_at IS NULL)';
             $params['category_id'] = (int) $filters['category_id'];
         }
 
         if (!empty($filters['category_slug'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND c.slug = :category_slug)';
+            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND c.slug = :category_slug AND c.status = "ACTIVE" AND c.deleted_at IS NULL)';
             $params['category_slug'] = (string) $filters['category_slug'];
         }
 
         if (!empty($filters['subcategory_id'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_subcategories ps WHERE ps.product_id = p.id AND ps.subcategory_id = :subcategory_id)';
+            $where[] = 'EXISTS (SELECT 1 FROM product_subcategories ps JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = p.id AND ps.subcategory_id = :subcategory_id AND s.status = "ACTIVE" AND s.deleted_at IS NULL)';
             $params['subcategory_id'] = (int) $filters['subcategory_id'];
         }
 
@@ -55,6 +55,7 @@ final class ProductService
             $where[] = 'p.is_pos_enabled = 1';
         } elseif (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') {
             $where[] = 'p.is_ecommerce_enabled = 1';
+            $where[] = 'p.is_active = 1';
         }
 
         if (($filters['is_featured'] ?? null) !== null) {

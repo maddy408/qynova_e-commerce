@@ -7,6 +7,7 @@ import {
   setCustomerSession,
   fetchStoreSettings,
   fetchDeliverySettings,
+  resolveImageUrl,
 } from '../lib/api'
 import Navbar from '../components/Navbar'
 import HorizontalProductSection from '../components/HorizontalProductSection'
@@ -175,9 +176,10 @@ export default function ProductDetails() {
           try {
             const filtered = inMemoryRecentlyViewed.filter((item) => Number(item.id) !== Number(prod.id))
             const defVar = prod.variants?.find((v) => v.is_default) || prod.variants?.[0]
-            const rPrice = Number(defVar?.retail_price || prod.min_price || prod.price) || 299
-            const rMrp = Number(defVar?.mrp) || Math.round(rPrice * 1.8)
-            const mainImg = prod.images?.[0]?.image_path || prod.primary_image || '/placeholder-product.svg'
+            const rPrice = Number(defVar?.retail_price ?? prod.min_price ?? prod.price) || 0
+            const rMrp = Number(defVar?.mrp ?? prod.mrp) || 0
+            const rawMainImg = prod.images?.[0]?.image_path || prod.primary_image || ''
+            const mainImg = resolveImageUrl(rawMainImg) || '/placeholder-product.svg'
 
             const currentEntry = {
               id: prod.id,
@@ -257,7 +259,7 @@ export default function ProductDetails() {
     if (defaultVariant && defaultVariant.on_hand !== null && defaultVariant.on_hand !== undefined) {
       return Number(defaultVariant.on_hand)
     }
-    return product.is_active ? 20 : 0
+    return 0
   }, [product, defaultVariant])
 
   const isOutOfStock = stockAvailable <= 0
@@ -266,10 +268,12 @@ export default function ProductDetails() {
   const imageGallery = useMemo(() => {
     if (!product) return []
     if (Array.isArray(product.images) && product.images.length > 0) {
-      return product.images.map((img) => img.image_path)
+      const urls = product.images.map((img) => resolveImageUrl(img.image_path)).filter(Boolean)
+      if (urls.length > 0) return urls
     }
     if (product.primary_image) {
-      return [product.primary_image]
+      const url = resolveImageUrl(product.primary_image)
+      if (url) return [url]
     }
     return ['/placeholder-product.svg']
   }, [product])
@@ -471,6 +475,17 @@ export default function ProductDetails() {
               className="text-purple-800 hover:text-purple-950 font-medium hover:underline"
             >
               {primaryCategory.name}
+            </Link>
+          </>
+        )}
+        {product?.subcategories?.[0] && (
+          <>
+            <span className="text-gray-300">/</span>
+            <Link
+              to={`/products?subcategory_id=${product.subcategories[0].id}`}
+              className="text-purple-800 hover:text-purple-950 font-medium hover:underline"
+            >
+              {product.subcategories[0].name}
             </Link>
           </>
         )}

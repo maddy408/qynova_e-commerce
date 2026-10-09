@@ -176,6 +176,18 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                 <div className="py-8 text-center text-xs font-bold text-purple-700 animate-pulse">
                   Loading referral details from database...
                 </div>
+              ) : referralSummary && (referralSummary.is_enabled === 0 || referralSummary.is_enabled === false) ? (
+                <div className="py-8 px-4 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
+                    ℹ️
+                  </div>
+                  <h4 className="text-sm font-black text-purple-950">
+                    Referral Program Currently Unavailable
+                  </h4>
+                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                    The referral program is currently disabled. Please check back later!
+                  </p>
+                </div>
               ) : (
                 <>
                   {/* Your Unique Referral Code */}

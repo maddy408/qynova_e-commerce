@@ -6,6 +6,7 @@ import {
   fetchDeliverySettings,
   fetchFlashDeal,
   fetchHomeSections,
+  resolveImageUrl,
 } from '../lib/api'
 import { getCategoryPalette } from '../lib/catalogData'
 import Navbar from '../components/Navbar'
@@ -309,8 +310,12 @@ export default function Home() {
                       : `${palette.bg} hover:shadow-md hover:-translate-y-1`
                   }`}
                 >
-                  <div className={`w-12 h-12 sm:w-13 sm:h-13 rounded-2xl ${palette.iconBg} text-2xl sm:text-3xl flex items-center justify-center mb-2 shadow-xs transition-transform duration-200 group-hover:scale-110`}>
-                    {icon}
+                  <div className={`w-12 h-12 sm:w-13 sm:h-13 rounded-2xl ${palette.iconBg} text-2xl sm:text-3xl flex items-center justify-center mb-2 shadow-xs transition-transform duration-200 group-hover:scale-110 overflow-hidden`}>
+                    {cat.image_path ? (
+                      <img src={resolveImageUrl(cat.image_path)} alt={cat.name} className="w-full h-full object-cover" />
+                    ) : (
+                      icon
+                    )}
                   </div>
                   <h3 className="text-xs font-extrabold text-purple-950 line-clamp-2 leading-snug min-h-[30px] flex items-center justify-center">
                     {cat.name}

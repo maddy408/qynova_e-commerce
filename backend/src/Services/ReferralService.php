@@ -237,6 +237,7 @@ final class ReferralService
         $row = $stmt->fetch();
         $row['is_enabled'] = (bool) $row['is_enabled'];
         $row['first_order_only'] = (bool) $row['first_order_only'];
+        $row['reward_percent'] = (float) ($row['referrer_discount_percent'] ?? 0);
 
         return $row;
     }

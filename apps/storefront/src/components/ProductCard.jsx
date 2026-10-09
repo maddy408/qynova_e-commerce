@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { resolveImageUrl } from '../lib/api'
+
 export default function ProductCard({
   product,
   isWishlist = false,
@@ -8,14 +10,25 @@ export default function ProductCard({
 }) {
   if (!product) return null
 
-  const retailPrice = Number(product.min_price || product.price) || 299
-  const mrp = Number(product.mrp) || Math.round(retailPrice * 1.8)
-  const discountPercent = mrp > retailPrice ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
+  const retailPrice = Number(product.min_price ?? product.price ?? product.selling_price) || 0
+  const mrp = Number(product.mrp) || 0
+  const discountPercent = mrp > retailPrice && retailPrice > 0 ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
 
-  const image =
+  const rawImage =
     product.primary_image ||
-    (Array.isArray(product.images) && product.images[0]?.image_path) ||
-    '/placeholder-product.svg'
+    (Array.isArray(product.images) && (product.images[0]?.image_path || product.images[0])) ||
+    ''
+  const resolvedImage = resolveImageUrl(rawImage) || '/placeholder-product.svg'
+
+  const [imgSrc, setImgSrc] = useState(resolvedImage)
+  useEffect(() => {
+    setImgSrc(resolvedImage)
+  }, [resolvedImage])
+
+  const isOutOfStock =
+    product.total_stock !== undefined && product.total_stock !== null
+      ? Number(product.total_stock) <= 0
+      : false
 
   return (
     <div
@@ -26,8 +39,9 @@ export default function ProductCard({
         {/* Product Image & Badges */}
         <div className="relative rounded-xl overflow-hidden bg-gray-50 aspect-square mb-2">
           <img
-            src={image}
+            src={imgSrc}
             alt={product.name}
+            onError={() => setImgSrc('/placeholder-product.svg')}
             className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500"
             loading="lazy"
           />
@@ -61,15 +75,24 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Rating & Stock Badge */}
+        {/* Stock Status Badge */}
         <div className="flex items-center justify-between text-[10px] mb-1">
-          <span className="inline-flex items-center gap-0.5 text-amber-500 font-extrabold">
-            <span>★</span>
-            <span className="text-gray-700">4.8</span>
-          </span>
-          <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded text-[9px]">
-            In Stock
-          </span>
+          {product.brand_name ? (
+            <span className="text-[10px] font-bold text-purple-900 truncate max-w-[120px]">
+              {product.brand_name}
+            </span>
+          ) : (
+            <span />
+          )}
+          {isOutOfStock ? (
+            <span className="text-red-700 font-bold bg-red-50 px-1.5 py-0.5 rounded text-[9px]">
+              Out of Stock
+            </span>
+          ) : (
+            <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded text-[9px]">
+              In Stock
+            </span>
+          )}
         </div>
 
         {/* Brand / Product Code from DB */}
