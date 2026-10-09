@@ -37,6 +37,7 @@ export default function ProductDetails() {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
 
   // Purchase & Actions State
+  const [selectedVariantId, setSelectedVariantId] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -99,6 +100,7 @@ export default function ProductDetails() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
     setSelectedImageIndex(0)
+    setSelectedVariantId(null)
     setQuantity(1)
     setPincodeStatus(null)
   }, [id])
@@ -171,6 +173,10 @@ export default function ProductDetails() {
         if (res.data?.product) {
           const prod = res.data.product
           setProduct(prod)
+          const initialVar = prod.variants?.find((v) => v.is_default) || prod.variants?.[0]
+          if (initialVar?.id) {
+            setSelectedVariantId(initialVar.id)
+          }
 
           // Manage Recently Viewed in in-memory session (no localStorage)
           try {
@@ -240,27 +246,33 @@ export default function ProductDetails() {
   }, [id])
 
   // Price & Inventory calculations from MySQL variants
-  const defaultVariant = useMemo(() => {
+  const activeVariant = useMemo(() => {
     if (!product?.variants || product.variants.length === 0) return null
+    if (selectedVariantId) {
+      const found = product.variants.find((v) => v.id === selectedVariantId)
+      if (found) return found
+    }
     return product.variants.find((v) => v.is_default) || product.variants[0]
-  }, [product])
+  }, [product, selectedVariantId])
 
-  const retailPrice = Number(defaultVariant?.retail_price ?? product?.min_price ?? product?.price ?? 0)
-  const mrp = Number(defaultVariant?.mrp ?? product?.mrp ?? retailPrice)
+  const defaultVariant = activeVariant
+
+  const retailPrice = Number(activeVariant?.retail_price ?? product?.min_price ?? product?.price ?? 0)
+  const mrp = Number(activeVariant?.mrp ?? product?.mrp ?? retailPrice)
   const discountPercent = mrp > retailPrice && retailPrice > 0 ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
   const savings = mrp > retailPrice ? mrp - retailPrice : 0
 
   // Available stock calculation
   const stockAvailable = useMemo(() => {
     if (!product) return 0
-    if (defaultVariant && defaultVariant.available !== null && defaultVariant.available !== undefined) {
-      return Number(defaultVariant.available)
+    if (activeVariant && activeVariant.available !== null && activeVariant.available !== undefined) {
+      return Number(activeVariant.available)
     }
-    if (defaultVariant && defaultVariant.on_hand !== null && defaultVariant.on_hand !== undefined) {
-      return Number(defaultVariant.on_hand)
+    if (activeVariant && activeVariant.on_hand !== null && activeVariant.on_hand !== undefined) {
+      return Number(activeVariant.on_hand)
     }
     return 0
-  }, [product, defaultVariant])
+  }, [product, activeVariant])
 
   const isOutOfStock = stockAvailable <= 0
 
@@ -322,6 +334,7 @@ export default function ProductDetails() {
       await addToCart(
         {
           ...prodToAdd,
+          variant_id: activeVariant?.id,
           retail_price: retailPrice,
           mrp,
           primary_image: activeImage,
@@ -344,6 +357,7 @@ export default function ProductDetails() {
     await addToCart(
       {
         ...product,
+        variant_id: activeVariant?.id,
         retail_price: retailPrice,
         mrp,
         primary_image: activeImage,
@@ -361,6 +375,8 @@ export default function ProductDetails() {
       items: [
         {
           id: product.id,
+          product_id: product.id,
+          variant_id: activeVariant?.id,
           name: product.name,
           price: retailPrice,
           originalPrice: mrp,
@@ -757,6 +773,80 @@ export default function ProductDetails() {
                       </span>
                     )}
                   </div>
+
+                  {/* VARIANT SELECTOR */}
+                  {Array.isArray(product?.variants) && product.variants.length > 1 && (
+                    <div className="mb-5 p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black uppercase tracking-wider text-purple-950">
+                          Select Variant / Option:
+                        </label>
+                        {activeVariant?.sku && (
+                          <span className="text-[11px] font-mono font-semibold text-gray-500">
+                            SKU: {activeVariant.sku}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2.5">
+                        {product.variants.map((v) => {
+                          const isSelected = v.id === activeVariant?.id
+                          const vStock = Number(v.available ?? v.on_hand ?? 0)
+                          const vOutOfStock = vStock <= 0
+
+                          const label =
+                            Array.isArray(v.attribute_values) && v.attribute_values.length > 0
+                              ? v.attribute_values.map((av) => av.value).join(' / ')
+                              : v.sku || `Option #${v.id}`
+
+                          const colorHex = v.attribute_values?.find((av) => av.color_hex)?.color_hex
+
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedVariantId(v.id)
+                                if (Array.isArray(v.images) && v.images.length > 0 && v.images[0].image_path) {
+                                  const imgIdx = imageGallery.findIndex((url) =>
+                                    url.includes(v.images[0].image_path)
+                                  )
+                                  if (imgIdx >= 0) setSelectedImageIndex(imgIdx)
+                                }
+                              }}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                                isSelected
+                                  ? 'bg-[#6B21A8] text-white border-[#6B21A8] shadow-xs'
+                                  : vOutOfStock
+                                  ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'
+                                  : 'bg-white text-gray-800 border-purple-200 hover:border-purple-400 hover:bg-purple-50/50'
+                              }`}
+                            >
+                              {colorHex && (
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
+                                  style={{ backgroundColor: colorHex }}
+                                />
+                              )}
+                              <span>{label}</span>
+                              <span
+                                className={`text-[11px] font-semibold ${
+                                  isSelected ? 'text-purple-200' : 'text-gray-500'
+                                }`}
+                              >
+                                ₹{v.retail_price}
+                              </span>
+                              {vOutOfStock && (
+                                <span className="text-[9px] font-black uppercase text-red-500">
+                                  Sold Out
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* OFFERS SECTION (Dynamic Backend Data) */}
                   <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-5">
