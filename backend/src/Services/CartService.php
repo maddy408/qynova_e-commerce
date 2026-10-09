@@ -54,7 +54,7 @@ final class CartService
 
         foreach ($rows as $row) {
             $unitPrice = PricingService::resolveUnitPrice($row, $customerType);
-            $available = (string) ($row['available'] ?? '100');
+            $available = (string) ($row['available'] ?? '0');
             $quantity = (int) $row['quantity'];
             $lineTotal = bcmul($unitPrice, (string) $quantity, 2);
             $subtotal = bcadd($subtotal, $lineTotal, 2);
