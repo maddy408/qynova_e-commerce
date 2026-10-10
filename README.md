@@ -12,7 +12,7 @@ Specs this build follows (in order of precedence where they overlap):
    customer auth, the referral system, and the full variant/coupon/order/
    delivery/refund business logic.
 2. [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md) — the original 40-section
-   build spec (3-app layout, Google login, Firebase push, Razorpay,
+   build spec (3-app layout, Google login, Firebase push,
    wholesale pricing, combos/deals, shipping-provider tracking). Superseded
    on app count by spec 1, but still the source for everything spec 1
    doesn't redefine (GST/HSN master, invoice-numbering rules, inventory
@@ -25,7 +25,7 @@ Specs this build follows (in order of precedence where they overlap):
 - **Customer auth** — mobile number + OTP is the primary signup/login flow
   (spec 2 section 2); "Continue with Google" stays available as an
   additional option (spec 1 section 5), not a replacement.
-- **Firebase push, Razorpay, wholesale customer type, combos/deals/
+- **Firebase push, wholesale customer type, combos/deals/
   banners/home-sections** — all kept from spec 1; spec 2 doesn't mention
   them but doesn't exclude them either.
 - **Product Line** — stays removed (spec 1's decision). Spec 2's Product
@@ -304,5 +304,5 @@ npm run dev
 
 Still ahead: editing a product's basic fields from the detail page, the
 storefront app (still the default scaffold), an automatic (non-coupon)
-discount engine, Razorpay, and a real shipping provider adapter — per
+discount engine, and a real shipping provider adapter — per
 `docs/ECOMMERCE_POS_ADMIN_SPEC.md` section 46's phase order.

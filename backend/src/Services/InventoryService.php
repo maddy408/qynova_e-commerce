@@ -228,11 +228,26 @@ final class InventoryService
                     v.mrp, v.retail_price, v.wholesale_price, g.gst_percent, g.tax_mode,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
-                    COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
+                    COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold,
+                    b.id AS batch_id,
+                    b.batch_no,
+                    b.manufacturing_date,
+                    b.expiry_date,
+                    b.selling_price AS batch_selling_price,
+                    b.mrp AS batch_mrp
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN inventory i ON i.variant_id = v.id
              LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
+             LEFT JOIN (
+                 SELECT b1.*
+                 FROM inventory_batches b1
+                 INNER JOIN (
+                     SELECT variant_id, MAX(id) AS max_id
+                     FROM inventory_batches
+                     GROUP BY variant_id
+                 ) b2 ON b1.id = b2.max_id
+             ) b ON b.variant_id = v.id
              WHERE {$whereSql}
              ORDER BY p.name, v.sku
              LIMIT :limit OFFSET :offset"
@@ -289,7 +304,8 @@ final class InventoryService
      * Creates a stock_adjustments header + items, then applies each item
      * as a STOCK_ADJUSTMENT_IN/OUT movement, all in one transaction.
      * product_id is resolved from each variant's own inventory row, not
-     * accepted from the caller.
+     * accepted from the caller. If the variant does not yet have an inventory
+     * row, it is lazily initialized from product_variants with 0 stock.
      *
      * @param array<int, array<string, mixed>> $items
      */
@@ -317,7 +333,31 @@ final class InventoryService
                 $stock = $this->getStock($variantId);
 
                 if ($stock === null) {
-                    throw new RuntimeException("Variant {$variantId} has no inventory record");
+                    $vStmt = $this->pdo->prepare('SELECT id, product_id FROM product_variants WHERE id = :id AND deleted_at IS NULL');
+                    $vStmt->execute(['id' => $variantId]);
+                    $variantRow = $vStmt->fetch();
+
+                    if ($variantRow === false) {
+                        throw new RuntimeException("Variant {$variantId} does not exist");
+                    }
+
+                    // Lazily initialize inventory row with 0 on_hand / 0 reserved
+                    $this->pdo->prepare(
+                        'INSERT INTO inventory (variant_id, product_id)
+                         VALUES (:variant_id, :product_id)
+                         ON DUPLICATE KEY UPDATE variant_id = variant_id'
+                    )->execute([
+                        'variant_id' => $variantId,
+                        'product_id' => (int) $variantRow['product_id'],
+                    ]);
+
+                    $stock = [
+                        'variant_id' => $variantId,
+                        'product_id' => (int) $variantRow['product_id'],
+                        'on_hand' => '0.000',
+                        'reserved' => '0.000',
+                        'available' => '0.000',
+                    ];
                 }
 
                 $systemQty = (string) ($stock['on_hand'] ?? '0');
@@ -412,6 +452,26 @@ final class InventoryService
                     'variant_id' => $variantId,
                     'counted_qty' => $newTotalQty,
                 ];
+            } elseif (
+                isset($item['batch_no']) ||
+                isset($item['mfg_date']) ||
+                isset($item['exp_date']) ||
+                isset($item['manufacturing_date']) ||
+                isset($item['expiry_date']) ||
+                isset($item['selling_price']) ||
+                isset($item['price']) ||
+                isset($item['mrp'])
+            ) {
+                // Save inline batch details directly
+                $batchService->saveOpeningBatchDetailed($variantId, [
+                    'batch_id' => !empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    'batch_no' => $item['batch_no'] ?? null,
+                    'quantity' => isset($item['quantity']) ? (float) $item['quantity'] : (isset($item['opening_stock']) ? (float) $item['opening_stock'] : 0),
+                    'selling_price' => (float) ($item['selling_price'] ?? ($item['price'] ?? 0)),
+                    'mrp' => (float) ($item['mrp'] ?? 0),
+                    'manufacturing_date' => $item['mfg_date'] ?? ($item['manufacturing_date'] ?? null),
+                    'expiry_date' => $item['exp_date'] ?? ($item['expiry_date'] ?? null),
+                ], $userId);
             } elseif (isset($item['opening_stock'])) {
                 $newQty = (string) $item['opening_stock'];
 
