@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FAF8FF;
-  --foreground: #27213A;
-  --lavender-bg: #FAF8FF;
-  --lavender-light: #EDE5FF;
-  --lavender-secondary: #E0D6FF;
-  --lavender-surface: #F5F0FF;
-  --brand-purple: #8B5CF6;
-  --brand-purple-hover: #7042D2;
-  --text-main: #27213A;
-  --text-secondary: #716A82;
-  --border-subtle: #E8E0F5;
+  --background: #F8F3F6;
+  --foreground: #2D252B;
+  --brand-burgundy: #601D49;
+  --brand-burgundy-hover: #4D153A;
+  --brand-hover: #F2DDE9;
+  --surface-card: #FFFFFF;
+  --text-main: #2D252B;
+  --text-muted: #6B5E68;
+  --bg-main: #F8F3F6;
+  --bg-alt: #F7F5F7;
+  --border-subtle: #E8E0E5;
 }
 
 @theme {
@@ -20,29 +20,41 @@
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Design System Lavender & Purple Tokens */
-  --color-lavender-bg: #FAF8FF;
-  --color-lavender-light: #EDE5FF;
-  --color-lavender-secondary: #E0D6FF;
-  --color-lavender-surface: #F5F0FF;
-  --color-brand-purple: #8B5CF6;
-  --color-brand-purple-hover: #7042D2;
-  --color-text-main: #27213A;
-  --color-text-secondary: #716A82;
-  --color-border-subtle: #E8E0F5;
+  /* Theme Burgundy Tokens */
+  --color-burgundy: #601D49;
+  --color-burgundy-hover: #4D153A;
+  --color-burgundy-light: #F2DDE9;
+  --color-burgundy-surface: #FFFFFF;
+  --color-brand: #601D49;
+  --color-brand-hover: #4D153A;
+  --color-text-main: #2D252B;
+  --color-text-muted: #6B5E68;
+  --color-border-subtle: #E8E0E5;
+  --color-bg-main: #F8F3F6;
+  --color-bg-alt: #F7F5F7;
+  --color-bg-hover: #F2DDE9;
 
-  /* Harmonized Tailwind Purple Scale mapped to Lavender & Brand Purple */
-  --color-purple-50: #FAF8FF;
-  --color-purple-100: #EDE5FF;
-  --color-purple-200: #E0D6FF;
-  --color-purple-300: #C4B5FD;
-  --color-purple-400: #A78BFA;
-  --color-purple-500: #8B5CF6;
-  --color-purple-600: #7042D2;
-  --color-purple-700: #5D31B8;
-  --color-purple-800: #451F8E;
-  --color-purple-900: #27213A;
-  --color-purple-950: #1B152B;
+  /* Mapped Tailwind Purple Scale to Burgundy Palette */
+  --color-purple-50: #F8F3F6;
+  --color-purple-100: #F2DDE9;
+  --color-purple-200: #E8CEDB;
+  --color-purple-300: #D8ADC5;
+  --color-purple-400: #9B3E7A;
+  --color-purple-500: #75235A;
+  --color-purple-600: #601D49;
+  --color-purple-700: #4D153A;
+  --color-purple-800: #421332;
+  --color-purple-900: #2D252B;
+  --color-purple-950: #2D252B;
+
+  /* Backward compatibility aliases */
+  --color-lavender-bg: #F8F3F6;
+  --color-lavender-light: #F2DDE9;
+  --color-lavender-accent: #F2DDE9;
+  --color-lavender-secondary: #F2DDE9;
+  --color-lavender-surface: #FFFFFF;
+  --color-brand-purple: #601D49;
+  --color-brand-purple-hover: #4D153A;
 }
 
 html, body {

@@ -6,7 +6,7 @@ export default function HorizontalProductSection({
   title,
   subtitle,
   badgeText,
-  badgeBg = 'bg-purple-50 text-purple-800',
+  badgeBg = 'bg-[#F2DDE9] text-[#601D49]',
   products = [],
   viewAllLink,
   isLoading = false,
@@ -15,6 +15,7 @@ export default function HorizontalProductSection({
   onToggleWishlist,
   onAddToCart,
   id,
+  backgroundImage = null,
 }) {
   const navigate = useNavigate()
   const scrollRef = useRef(null)
@@ -55,24 +56,37 @@ export default function HorizontalProductSection({
 
   const hasProducts = Array.isArray(products) && products.length > 0
 
+  // Gracefully hide section if no products are available in MySQL for this section
+  if (!isLoading && !hasProducts) {
+    return null
+  }
+
   return (
-    <section id={id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full overflow-hidden">
+    <section
+      id={id}
+      className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 overflow-hidden relative"
+      style={backgroundImage ? {
+        backgroundImage: `linear-gradient(rgba(248, 243, 246, 0.92), rgba(248, 243, 246, 0.96)), url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      } : undefined}
+    >
       
       {/* 1. SECTION HEADER: Title, Subtitle, Carousel Arrows & View All */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4 sm:mb-5">
         <div>
           {badgeText && (
-            <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-1">
+            <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
               <span className={`px-2.5 py-0.5 rounded-full ${badgeBg}`}>
                 {badgeText}
               </span>
             </div>
           )}
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-purple-950 tracking-tight">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2D252B] tracking-tight">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-[#6B5E68] mt-0.5">
               {subtitle}
             </p>
           )}
@@ -88,10 +102,10 @@ export default function HorizontalProductSection({
                 onClick={() => handleScroll('left')}
                 disabled={!canScrollLeft}
                 aria-label={`Scroll ${title} left`}
-                className={`w-9 h-9 rounded-full border border-[#E8E0F5] flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[#E8E0E5] flex items-center justify-center transition-all ${
                   canScrollLeft
-                    ? 'bg-white hover:bg-[#F5F0FF] text-[#27213A] shadow-sm cursor-pointer hover:border-[#8B5CF6] active:scale-95'
-                    : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed opacity-50'
+                    ? 'bg-white hover:bg-[#F2DDE9] text-[#2D252B] shadow-sm cursor-pointer hover:border-[#601D49] active:scale-95'
+                    : 'bg-[#F8F3F6] text-[#6B5E68]/40 border-[#E8E0E5] cursor-not-allowed opacity-50'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -104,10 +118,10 @@ export default function HorizontalProductSection({
                 onClick={() => handleScroll('right')}
                 disabled={!canScrollRight}
                 aria-label={`Scroll ${title} right`}
-                className={`w-9 h-9 rounded-full border border-[#E8E0F5] flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[#E8E0E5] flex items-center justify-center transition-all ${
                   canScrollRight
-                    ? 'bg-white hover:bg-[#F5F0FF] text-[#27213A] shadow-sm cursor-pointer hover:border-[#8B5CF6] active:scale-95'
-                    : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed opacity-50'
+                    ? 'bg-white hover:bg-[#F2DDE9] text-[#2D252B] shadow-sm cursor-pointer hover:border-[#601D49] active:scale-95'
+                    : 'bg-[#F8F3F6] text-[#6B5E68]/40 border-[#E8E0E5] cursor-not-allowed opacity-50'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -121,7 +135,7 @@ export default function HorizontalProductSection({
           {viewAllLink && (hasProducts || isLoading) && (
             <Link
               to={viewAllLink}
-              className="inline-flex items-center gap-1 text-xs font-black text-[#8B5CF6] hover:text-[#7042D2] hover:underline px-3 py-1.5 rounded-full hover:bg-[#F5F0FF] transition-colors shrink-0"
+              className="inline-flex items-center gap-1 text-xs font-black text-[#601D49] hover:text-[#4D153A] hover:underline px-3 py-1.5 rounded-full hover:bg-[#F2DDE9] transition-colors shrink-0"
             >
               <span>View All</span>
               <span className="text-sm">→</span>
@@ -137,19 +151,19 @@ export default function HorizontalProductSection({
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div
               key={idx}
-              className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-purple-100 animate-pulse space-y-3"
+              className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse space-y-3"
             >
-              <div className="bg-purple-100/60 aspect-square rounded-xl w-full" />
-              <div className="h-3 bg-purple-100/70 rounded w-2/3" />
-              <div className="h-4 bg-purple-100/70 rounded w-full" />
-              <div className="h-4 bg-purple-100/70 rounded w-1/2" />
+              <div className="bg-[#F2DDE9]/60 aspect-square rounded-xl w-full" />
+              <div className="h-3 bg-[#F2DDE9]/70 rounded w-2/3" />
+              <div className="h-4 bg-[#F2DDE9]/70 rounded w-full" />
+              <div className="h-4 bg-[#F2DDE9]/70 rounded w-1/2" />
             </div>
           ))}
         </div>
       ) : !hasProducts ? (
         /* Empty State */
-        <div className="py-8 text-center bg-purple-50/40 rounded-2xl border border-purple-100/80 p-6 space-y-2">
-          <p className="text-sm font-bold text-gray-600">
+        <div className="py-8 text-center bg-[#F8F3F6] rounded-2xl border border-[#E8E0E5] p-6 space-y-2">
+          <p className="text-sm font-bold text-[#6B5E68]">
             {emptyMessage}
           </p>
         </div>

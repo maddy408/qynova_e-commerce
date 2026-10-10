@@ -210,6 +210,10 @@ $router->get('/api/inventory/batches', fn () => $batchController->getBatches());
 $router->get('/api/inventory/batches/expiry', fn () => $batchController->getExpiryReport());
 $router->get('/api/inventory/consumption-rule', fn () => $batchController->getConsumptionRule());
 $router->put('/api/inventory/consumption-rule', fn () => $batchController->updateConsumptionRule());
+$router->get('/api/inventory/{variantId}/batches', fn ($variantId) => $batchController->getVariantBatches($variantId));
+$router->post('/api/inventory/{variantId}/batches', fn ($variantId) => $batchController->saveOpeningBatch($variantId));
+$router->delete('/api/inventory/batches/{id}', fn ($id) => $batchController->deleteBatch($id));
+$router->delete('/api/inventory/{variantId}/opening-stock', fn ($variantId) => $batchController->resetOpeningStock($variantId));
 $router->get('/api/inventory/{variantId}', fn ($variantId) => $inventory->show($variantId));
 
 // Coupons (ECOMMERCE_POS_ADMIN_SPEC.md sections 14-17)
