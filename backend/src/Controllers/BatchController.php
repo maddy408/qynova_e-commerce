@@ -58,4 +58,54 @@ final class BatchController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    public function getVariantBatches(string $variantId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.view');
+
+        $batches = $this->batchService->getVariantBatches((int) $variantId);
+        Response::json(['batches' => $batches]);
+    }
+
+    public function saveOpeningBatch(string $variantId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.adjust');
+
+        $body = Request::json();
+
+        try {
+            $result = $this->batchService->saveOpeningBatchDetailed((int) $variantId, $body, (int) $claims['sub']);
+            Response::json($result, 200);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function deleteBatch(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.adjust');
+
+        try {
+            $result = $this->batchService->deleteOrDeactivateBatch((int) $id, (int) $claims['sub']);
+            Response::json($result, 200);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function resetOpeningStock(string $variantId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'inventory.adjust');
+
+        try {
+            $result = $this->batchService->resetVariantOpeningStock((int) $variantId, (int) $claims['sub']);
+            Response::json($result, 200);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
 }
