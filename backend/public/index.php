@@ -161,8 +161,10 @@ $router->get('/api/products/export', fn () => $productExport->export());
 
 $router->get('/api/products/price-settings', fn () => $products->getPriceSettings());
 $router->put('/api/products/price-settings', fn () => $products->updatePriceSettings());
+$router->get('/api/products/recently-viewed', fn () => $products->recentlyViewed());
 
 $router->get('/api/products/{id}', fn ($id) => $products->show($id));
+$router->post('/api/products/{id}/view', fn ($id) => $products->recordView($id));
 $router->put('/api/products/{id}', fn ($id) => $products->update($id));
 $router->delete('/api/products/{id}', fn ($id) => $products->destroy($id));
 $router->put('/api/products/{id}/specifications', fn ($id) => $products->updateSpecifications($id));

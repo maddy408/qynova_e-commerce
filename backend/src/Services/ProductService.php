@@ -85,6 +85,8 @@ final class ProductService
                 $where[] = 'p.is_trending = 1';
             } elseif ($section === 'deals' || $section === 'flash_deals') {
                 $where[] = 'p.is_deal = 1';
+            } elseif ($section === 'popular_sale' || $section === 'popular') {
+                // T15: Popular sale section calculated from order sales data
             }
         }
 
@@ -125,12 +127,14 @@ final class ProductService
             $orderBy = 'p.name DESC';
         } elseif ($sort === 'best_sellers' || $sort === 'bestsellers') {
             $orderBy = 'COALESCE(p.is_best_seller_override, 0) DESC, p.is_featured DESC, p.created_at DESC';
-        } elseif ($sort === 'popular') {
-            $orderBy = 'p.is_featured DESC, p.is_trending DESC, p.created_at DESC';
+        } elseif ($sort === 'popular' || $sort === 'popular_sale') {
+            $orderBy = 'COALESCE((SELECT ps.units_sold_30d FROM product_stats ps WHERE ps.product_id = p.id), 0) DESC, p.is_featured DESC, p.id DESC';
         } elseif ($sort === 'newest') {
             $orderBy = 'p.created_at DESC';
         } elseif (!empty($filters['section']) && ($filters['section'] === 'best_sellers' || $filters['section'] === 'bestsellers')) {
             $orderBy = 'COALESCE(p.is_best_seller_override, 0) DESC, p.is_featured DESC, p.created_at DESC';
+        } elseif (!empty($filters['section']) && in_array(strtolower((string) $filters['section']), ['popular_sale', 'popular'], true)) {
+            $orderBy = 'COALESCE((SELECT ps.units_sold_30d FROM product_stats ps WHERE ps.product_id = p.id), 0) DESC, p.is_featured DESC, p.id DESC';
         }
 
         $stmt = $this->pdo->prepare(
@@ -142,6 +146,8 @@ final class ProductService
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS max_price,
                     (SELECT mrp FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} ORDER BY is_default DESC, id ASC LIMIT 1) AS mrp,
                     (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS variant_count,
+                    (SELECT COALESCE(ps.units_sold_30d, 0) FROM product_stats ps WHERE ps.product_id = p.id) AS units_sold,
+                    (SELECT COALESCE(ps.view_count, 0) FROM product_stats ps WHERE ps.product_id = p.id) AS view_count,
                     -- Section 18 of the merchant's variant-logic spec: the
                     -- product list needs variant-level stock rolled up,
                     -- not a separately-maintained product total.

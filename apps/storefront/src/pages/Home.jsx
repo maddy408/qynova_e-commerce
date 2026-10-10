@@ -36,10 +36,12 @@ export default function Home() {
 
   // Dynamic Horizontal Product Sections (Limited fetch for performance)
   const [bestSellers, setBestSellers] = useState([])
+  const [popularSale, setPopularSale] = useState([])
   const [newArrivals, setNewArrivals] = useState([])
   const [featuredProducts, setFeaturedProducts] = useState([])
   const [flashDeals, setFlashDeals] = useState([])
   const [trendingProducts, setTrendingProducts] = useState([])
+  const [recentlyViewed, setRecentlyViewed] = useState([])
   const [isLoadingSections, setIsLoadingSections] = useState(true)
 
   // Modals & Feedback State
@@ -95,15 +97,22 @@ export default function Home() {
       fetchFlashDeal().then((fd) => fd && setFlashDeal(fd.deal || fd))
 
       try {
-        const [catRes, heroBannerRes, middleBannerRes, bsRes, naRes, featRes, dealsRes, trendRes] = await Promise.all([
+        let sessId = ''
+        try {
+          sessId = localStorage.getItem('customer_session_id') || ''
+        } catch {}
+
+        const [catRes, heroBannerRes, middleBannerRes, bsRes, popRes, naRes, featRes, dealsRes, trendRes, recentsRes] = await Promise.all([
           api.get('/categories').catch(() => ({ data: { categories: [] } })),
           api.get('/banners?position=HOME_HERO&is_active=1').catch(() => ({ data: { banners: [] } })),
           api.get('/banners?position=HOME_MIDDLE&is_active=1').catch(() => ({ data: { banners: [] } })),
           api.get('/products?section=best_sellers&limit=8').catch(() => ({ data: { items: [] } })),
+          api.get('/products?section=popular_sale&limit=8').catch(() => ({ data: { items: [] } })),
           api.get('/products?section=new_arrivals&limit=8').catch(() => ({ data: { items: [] } })),
           api.get('/products?section=featured&limit=8').catch(() => ({ data: { items: [] } })),
           api.get('/products?section=deals&limit=8').catch(() => ({ data: { items: [] } })),
           api.get('/products?section=trending&limit=8').catch(() => ({ data: { items: [] } })),
+          api.get(`/products/recently-viewed?limit=8${sessId ? `&session_id=${sessId}` : ''}`).catch(() => ({ data: { items: [] } })),
         ])
 
         const loadedCats = catRes.data?.categories || []
@@ -118,16 +127,20 @@ export default function Home() {
         }
 
         const bsItems = bsRes.data?.items || bsRes.data?.data || []
+        const popItems = popRes.data?.items || popRes.data?.data || []
         const naItems = naRes.data?.items || naRes.data?.data || []
         const featItems = featRes.data?.items || featRes.data?.data || []
         const dealsItems = dealsRes.data?.items || dealsRes.data?.data || []
         const trendItems = trendRes.data?.items || trendRes.data?.data || []
+        const recentsItems = recentsRes.data?.items || recentsRes.data?.data || []
 
         setBestSellers(bsItems)
+        setPopularSale(popItems)
         setNewArrivals(naItems)
         setFeaturedProducts(featItems)
         setFlashDeals(dealsItems)
         setTrendingProducts(trendItems)
+        setRecentlyViewed(recentsItems)
       } catch (err) {
         console.error('Failed to load home sections data from API:', err)
       } finally {
@@ -369,6 +382,23 @@ export default function Home() {
           onAddToCart={handleAddToCart}
         />
 
+        {/* 4B. POPULAR SALE (T15: CALCULATED FROM ORDER SALES DATA) */}
+        {popularSale.length > 0 && (
+          <HorizontalProductSection
+            id="popular-sale-section"
+            badgeText="🔥 POPULAR SALE"
+            badgeBg="bg-rose-100 text-rose-800"
+            title="Popular Sale"
+            subtitle="Top products calculated from verified customer order volume and sales velocity"
+            products={popularSale}
+            viewAllLink="/products?section=popular_sale"
+            isLoading={isLoadingSections}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+          />
+        )}
+
         {/* 5. NEW ARRIVALS HORIZONTAL SECTION + VIEW ALL */}
         <HorizontalProductSection
           id="new-arrivals-section"
@@ -428,6 +458,23 @@ export default function Home() {
           onToggleWishlist={handleToggleWishlist}
           onAddToCart={handleAddToCart}
         />
+
+        {/* 9. RECENTLY VIEWED PRODUCTS (T16: TRACKED FROM CUSTOMER ACTIVITY LOGS) */}
+        {recentlyViewed.length > 0 && (
+          <HorizontalProductSection
+            id="recently-viewed-section"
+            badgeText="👁️ RECENTLY VIEWED"
+            badgeBg="bg-blue-100 text-blue-800"
+            title="Recently Viewed Products"
+            subtitle="Products you browsed during recent visits"
+            products={recentlyViewed}
+            viewAllLink="/products"
+            isLoading={isLoadingSections}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+          />
+        )}
 
 
         {/* 10. CUSTOMER SUPPORT & WHATSAPP */}

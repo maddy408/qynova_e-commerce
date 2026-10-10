@@ -173,4 +173,73 @@ final class ProductController
 
         Response::json(['updated' => true]);
     }
+
+    /**
+     * Track product view event in customer activity logs and increment view_count (Task T16)
+     */
+    public function recordView(string $id): void
+    {
+        $productId = (int) $id;
+        if ($productId <= 0) {
+            Response::error('Invalid product ID', 400);
+        }
+
+        $customerId = null;
+        $token = Request::bearerToken();
+        if ($token !== null) {
+            try {
+                $claims = \App\Helpers\JwtHelper::verify($token);
+                if (isset($claims['type']) && $claims['type'] === 'customer') {
+                    $customerId = (int) $claims['sub'];
+                }
+            } catch (\Throwable) {
+                // Ignore token errors for public view tracking
+            }
+        }
+
+        $body = Request::json();
+        $sessionId = isset($body['session_id']) ? trim((string) $body['session_id']) : null;
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        try {
+            $activityService = new \App\Services\CustomerActivityService($this->pdo);
+            $newCount = $activityService->recordProductView($productId, $customerId, $sessionId, $ip, $ua);
+            Response::json(['status' => 'success', 'product_id' => $productId, 'view_count' => $newCount]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 404);
+        }
+    }
+
+    /**
+     * Retrieve recently viewed products for customer, session, or specified product IDs (Task T16)
+     */
+    public function recentlyViewed(): void
+    {
+        $customerId = null;
+        $token = Request::bearerToken();
+        if ($token !== null) {
+            try {
+                $claims = \App\Helpers\JwtHelper::verify($token);
+                if (isset($claims['type']) && $claims['type'] === 'customer') {
+                    $customerId = (int) $claims['sub'];
+                }
+            } catch (\Throwable) {
+            }
+        }
+
+        $sessionId = isset($_GET['session_id']) ? trim((string) $_GET['session_id']) : null;
+        $idsParam = isset($_GET['ids']) ? trim((string) $_GET['ids']) : '';
+        $productIds = [];
+        if ($idsParam !== '') {
+            $productIds = array_map('intval', explode(',', $idsParam));
+        }
+
+        $limit = isset($_GET['limit']) ? max(1, min(50, (int) $_GET['limit'])) : 10;
+
+        $activityService = new \App\Services\CustomerActivityService($this->pdo);
+        $items = $activityService->getRecentlyViewed($customerId, $sessionId, $productIds, $limit);
+
+        Response::json(['items' => $items, 'total' => count($items)]);
+    }
 }

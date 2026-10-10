@@ -11,7 +11,7 @@ function imageUrl(path: string | null) {
 }
 
 const TYPES: HomeSectionType[] = ['BANNER', 'CATEGORIES', 'BEST_SELLERS', 'NEW_ARRIVALS', 'FEATURED', 'COMBOS', 'DEALS', 'CUSTOM']
-const UNWIRED: HomeSectionType[] = ['BEST_SELLERS', 'COMBOS', 'DEALS']
+const UNWIRED: HomeSectionType[] = ['COMBOS', 'DEALS']
 
 export function HomeSectionsPage() {
   const [sections, setSections] = useState<HomeSection[] | null>(null)
