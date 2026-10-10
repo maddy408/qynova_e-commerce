@@ -42,7 +42,7 @@ final class HomeSectionController
     public function publicSections(): void
     {
         $stmt = $this->pdo->query(
-            "SELECT id, type, section_key, title, subtitle, badge_text, item_limit, sort_order, view_all_link
+            "SELECT id, type, section_key, title, subtitle, badge_text, image_path, item_limit, sort_order, view_all_link
              FROM home_sections
              WHERE is_active = 1
              ORDER BY sort_order ASC, id ASC"

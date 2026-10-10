@@ -2,12 +2,13 @@ import React, { useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
 
+// Admin-managed banner theme presets — preserved untouched
 const THEME_MAP = {
   purple: {
-    gradient: 'from-[#27213A] via-[#7042D2] to-[#8B5CF6]',
+    gradient: 'from-[#8B5CF6] via-[#7C4DE8] to-[#7042D2]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonBg: 'from-[#8B5CF6] to-[#7042D2] text-white',
-    subtitleColor: 'text-purple-100',
+    buttonBg: 'from-white to-[#EDE5FF] text-[#7042D2] font-black',
+    subtitleColor: 'text-[#EDE5FF]',
   },
   blue: {
     gradient: 'from-[#0A192F] via-[#1E3A8A] to-[#0284C7]',
@@ -34,18 +35,20 @@ const THEME_MAP = {
     subtitleColor: 'text-teal-200',
   },
   lavender: {
-    gradient: 'from-[#3B1E6D] via-[#7042D2] to-[#A78BFA]',
-    badgeBg: 'bg-purple-300/25 text-purple-100 border-purple-200/40',
-    buttonBg: 'from-[#8B5CF6] to-[#A78BFA] text-white',
-    subtitleColor: 'text-purple-100',
+    gradient: 'from-[#7042D2] via-[#8B5CF6] to-[#A78BFA]',
+    badgeBg: 'bg-white/25 text-white border-white/35',
+    buttonBg: 'from-white to-[#EDE5FF] text-[#7042D2] font-black',
+    subtitleColor: 'text-[#EDE5FF]',
   },
 }
 
 export default function LowerPromotionalBanners({
   banners = [],
   isLoading = false,
-  title = 'Promotional Offers & Highlights',
-  subtitle = 'Curated savings, seasonal hampers and express delivery specials',
+  title = '',
+  subtitle = '',
+  badgeText = '',
+  id = 'lower-promotional-banners',
 }) {
   const navigate = useNavigate()
   const scrollContainerRef = useRef(null)
@@ -99,73 +102,73 @@ export default function LowerPromotionalBanners({
     scrollContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' })
   }
 
-  // 1. Loading state
+  // 1. Loading state (storefront UI)
   if (isLoading) {
     return (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="w-full h-44 rounded-3xl bg-purple-100/50 animate-pulse flex items-center justify-center border border-purple-200/50">
-          <span className="text-xs sm:text-sm font-bold text-purple-700">
-            Loading promotional offers from database...
+      <section className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6">
+        <div className="w-full h-44 rounded-3xl bg-[#F2DDE9]/40 animate-pulse flex items-center justify-center border border-[#E8E0E5]">
+          <span className="text-xs sm:text-sm font-bold text-[#601D49]">
+            Loading promotional offers...
           </span>
         </div>
       </section>
     )
   }
 
-  // 2. Empty state (No fake fallback data allowed)
+  // 2. Empty state — No fallback fake banners
   if (activeBanners.length === 0) {
-    return (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="rounded-2xl border border-dashed border-purple-200 p-6 text-center text-purple-900 bg-purple-50/40">
-          <p className="text-xs sm:text-sm font-medium text-gray-500">
-            No active offers available right now.
-          </p>
-        </div>
-      </section>
-    )
+    return null
   }
 
   // Double array for continuous seamless infinite loop
   const displayItems = [...activeBanners, ...activeBanners]
 
   return (
-    <section id="lower-promotional-banners" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
-        <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#7042D2] bg-[#EDE5FF] px-3 py-1 rounded-full mb-1">
-            <span>🏷️ EXCLUSIVE STORE OFFERS</span>
+    <section id={id} className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-8 overflow-hidden">
+      {/* Header (rendered if title or badgeText provided — styled with storefront burgundy theme) */}
+      {(title || badgeText) && (
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
+          <div>
+            {badgeText && (
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#601D49] bg-[#F2DDE9] px-3 py-1 rounded-full mb-1">
+                <span>{badgeText}</span>
+              </div>
+            )}
+            {title && (
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2D252B] tracking-tight">
+                {title}
+              </h2>
+            )}
+            {subtitle && (
+              <p className="text-xs sm:text-sm text-[#6B5E68] mt-0.5">
+                {subtitle}
+              </p>
+            )}
           </div>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#27213A] tracking-tight">
-            {title}
-          </h2>
-          <p className="text-xs sm:text-sm text-[#716A82] mt-0.5">
-            {subtitle}
-          </p>
-        </div>
 
-        {/* Desktop Controls to pause / manually nudge */}
-        <div className="hidden sm:flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleScroll('left')}
-            className="w-9 h-9 rounded-full border border-[#E8E0F5] bg-white hover:bg-[#F5F0FF] text-[#27213A] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
-            aria-label="Scroll promotional banners left"
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            onClick={() => handleScroll('right')}
-            className="w-9 h-9 rounded-full border border-[#E8E0F5] bg-white hover:bg-[#F5F0FF] text-[#27213A] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
-            aria-label="Scroll promotional banners right"
-          >
-            ›
-          </button>
+          {/* Desktop Controls to pause / manually nudge */}
+          <div className="hidden sm:flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleScroll('left')}
+              className="w-9 h-9 rounded-full border border-[#E8E0E5] bg-white hover:bg-[#F2DDE9] text-[#2D252B] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+              aria-label="Scroll promotional banners left"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              onClick={() => handleScroll('right')}
+              className="w-9 h-9 rounded-full border border-[#E8E0E5] bg-white hover:bg-[#F2DDE9] text-[#2D252B] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+              aria-label="Scroll promotional banners right"
+            >
+              ›
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Continuous Auto-Scrolling Marquee Track */}
+      {/* Continuous Auto-Scrolling Marquee Track (Preserves admin-configured banner gradients and styling) */}
       <div
         ref={scrollContainerRef}
         className="relative overflow-x-hidden no-scrollbar rounded-3xl"

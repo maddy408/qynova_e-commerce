@@ -136,8 +136,8 @@ All modifications were additive, backwards compatible, and preserved existing Ad
 
 Documented in detail in [`docs/audit/blocked-items.md`](file:///c:/Users/ramya/OneDrive/Documents/qynova_e-commerce/docs/audit/blocked-items.md):
 
-1. **Online Razorpay / Card Gateway Live Processing (BLK-01):**
-   - *Reason:* Production Razorpay API credentials and webhook secrets are not in repository. Admin webhook callback handler is admin-side.
+1. **Online Payment Gateway Live Processing (BLK-01):**
+   - *Reason:* Online payment gateway integration is excluded from current scope.
    - *Status:* Cash on Delivery (COD) is fully functional end-to-end. Backend `confirmPayment` endpoint is available for mock/admin confirmation.
 2. **Direct Database Migration Execution (BLK-02):**
    - *Reason:* Hard boundary prohibited running migrations or altering the database directly.
