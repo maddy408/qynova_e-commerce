@@ -34,7 +34,7 @@ export default function ProductCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl p-2.5 sm:p-3 border border-purple-100 hover:border-purple-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full select-none"
+      className="bg-white rounded-2xl p-2.5 sm:p-3 border border-[#E8E0F5] hover:border-[#8B5CF6] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full select-none"
     >
       <div>
         {/* Product Image & Badges */}
@@ -49,7 +49,7 @@ export default function ProductCard({
 
           {/* Discount % Badge from DB pricing */}
           {discountPercent > 0 && showDiscount && (
-            <span className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 bg-[#6B21A8] text-white font-black text-[9px] px-1.5 sm:px-2 py-0.5 rounded shadow-xs">
+            <span className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 bg-[#8B5CF6] text-white font-black text-[9px] px-1.5 sm:px-2 py-0.5 rounded shadow-xs">
               {discountPercent}% OFF
             </span>
           )}
@@ -79,7 +79,7 @@ export default function ProductCard({
         {/* Stock Status Badge */}
         <div className="flex items-center justify-between text-[10px] mb-1">
           {product.brand_name ? (
-            <span className="text-[10px] font-bold text-purple-900 truncate max-w-[120px]">
+            <span className="text-[10px] font-bold text-[#7042D2] truncate max-w-[120px]">
               {product.brand_name}
             </span>
           ) : (
@@ -108,7 +108,7 @@ export default function ProductCard({
         )}
 
         {/* Product Name from DB */}
-        <h4 className="text-xs sm:text-[13px] font-bold text-gray-900 line-clamp-2 mt-0.5 leading-snug min-h-[30px] sm:min-h-[34px] group-hover:text-purple-700 transition-colors">
+        <h4 className="text-xs sm:text-[13px] font-bold text-gray-900 line-clamp-2 mt-0.5 leading-snug min-h-[30px] sm:min-h-[34px] group-hover:text-[#7042D2] transition-colors">
           {product.name}
         </h4>
 
@@ -120,7 +120,7 @@ export default function ProductCard({
             </span>
           ) : (
             <>
-              <span className="text-sm sm:text-base font-black text-[#581C87]">
+              <span className="text-sm sm:text-base font-black text-[#8B5CF6]">
                 ₹{retailPrice}
               </span>
               {showDiscount && mrp > retailPrice && (
@@ -134,7 +134,7 @@ export default function ProductCard({
       </div>
 
       {/* Actions: Add to Cart button */}
-      <div className="mt-2.5 pt-2 border-t border-purple-50 flex items-center gap-1.5">
+      <div className="mt-2.5 pt-2 border-t border-[#E8E0F5] flex items-center gap-1.5">
         {onAddToCart && (
           <button
             type="button"
@@ -143,7 +143,7 @@ export default function ProductCard({
             className={`flex-1 py-2 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1 min-h-[38px] active:scale-95 ${
               isOutOfStock || isUnavailable
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-purple-50 hover:bg-[#6B21A8] text-purple-900 hover:text-white cursor-pointer'
+                : 'bg-[#F5F0FF] hover:bg-[#8B5CF6] text-[#7042D2] hover:text-white cursor-pointer'
             }`}
             title={isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
           >

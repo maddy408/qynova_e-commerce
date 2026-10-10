@@ -4,10 +4,10 @@ import { resolveImageUrl } from '../lib/api'
 
 const THEME_MAP = {
   purple: {
-    gradient: 'from-[#3B0764] via-[#581C87] to-[#7E22CE]',
+    gradient: 'from-[#27213A] via-[#7042D2] to-[#8B5CF6]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonBg: 'from-[#EC4899] to-[#F43F5E] text-white',
-    subtitleColor: 'text-pink-200',
+    buttonBg: 'from-[#8B5CF6] to-[#7042D2] text-white',
+    subtitleColor: 'text-purple-100',
   },
   blue: {
     gradient: 'from-[#0A192F] via-[#1E3A8A] to-[#0284C7]',
@@ -34,10 +34,10 @@ const THEME_MAP = {
     subtitleColor: 'text-teal-200',
   },
   lavender: {
-    gradient: 'from-[#1E1035] via-[#4C1D95] to-[#6D28D9]',
-    badgeBg: 'bg-purple-400/25 text-purple-200 border-purple-300/40',
-    buttonBg: 'from-[#A855F7] to-[#C084FC] text-white',
-    subtitleColor: 'text-purple-200',
+    gradient: 'from-[#3B1E6D] via-[#7042D2] to-[#A78BFA]',
+    badgeBg: 'bg-purple-300/25 text-purple-100 border-purple-200/40',
+    buttonBg: 'from-[#8B5CF6] to-[#A78BFA] text-white',
+    subtitleColor: 'text-purple-100',
   },
 }
 
@@ -133,13 +133,13 @@ export default function LowerPromotionalBanners({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-3 py-1 rounded-full mb-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#7042D2] bg-[#EDE5FF] px-3 py-1 rounded-full mb-1">
             <span>🏷️ EXCLUSIVE STORE OFFERS</span>
           </div>
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-purple-950 tracking-tight">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#27213A] tracking-tight">
             {title}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-[#716A82] mt-0.5">
             {subtitle}
           </p>
         </div>
@@ -149,7 +149,7 @@ export default function LowerPromotionalBanners({
           <button
             type="button"
             onClick={() => handleScroll('left')}
-            className="w-9 h-9 rounded-full border border-purple-200 bg-white hover:bg-purple-50 text-purple-900 flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+            className="w-9 h-9 rounded-full border border-[#E8E0F5] bg-white hover:bg-[#F5F0FF] text-[#27213A] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
             aria-label="Scroll promotional banners left"
           >
             ‹
@@ -157,7 +157,7 @@ export default function LowerPromotionalBanners({
           <button
             type="button"
             onClick={() => handleScroll('right')}
-            className="w-9 h-9 rounded-full border border-purple-200 bg-white hover:bg-purple-50 text-purple-900 flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+            className="w-9 h-9 rounded-full border border-[#E8E0F5] bg-white hover:bg-[#F5F0FF] text-[#27213A] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
             aria-label="Scroll promotional banners right"
           >
             ›

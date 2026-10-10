@@ -234,11 +234,11 @@ export default function Home() {
   }, [selectedCategory, categories])
 
   return (
-    <div className="min-h-screen bg-[#FDFBFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden flex flex-col justify-between">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#2E1065] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-purple-500/30 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#27213A] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[#8B5CF6]/30 animate-bounce">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -307,7 +307,7 @@ export default function Home() {
                   onClick={() => handleSelectCategory(cat.slug)}
                   className={`group flex flex-col items-center justify-between p-3 sm:p-4 rounded-2xl border text-center transition-all duration-200 cursor-pointer min-h-[130px] ${
                     isSelected
-                      ? 'bg-purple-50 border-2 border-[#6B21A8] shadow-lg scale-102 ring-2 ring-purple-600/30'
+                      ? 'bg-[#F5F0FF] border-2 border-[#8B5CF6] shadow-lg scale-102 ring-2 ring-[#8B5CF6]/30'
                       : `${palette.bg} hover:shadow-md hover:-translate-y-1`
                   }`}
                 >
@@ -318,14 +318,14 @@ export default function Home() {
                       icon
                     )}
                   </div>
-                  <h3 className="text-xs font-extrabold text-purple-950 line-clamp-2 leading-snug min-h-[30px] flex items-center justify-center">
+                  <h3 className="text-xs font-extrabold text-[#27213A] line-clamp-2 leading-snug min-h-[30px] flex items-center justify-center">
                     {cat.name}
                   </h3>
-                  <span className="text-[10px] font-semibold text-purple-800/60 mt-0.5 opacity-80 group-hover:opacity-100">
+                  <span className="text-[10px] font-semibold text-[#716A82] mt-0.5 opacity-80 group-hover:opacity-100">
                     Collection
                   </span>
                   {isSelected && (
-                    <span className="mt-1.5 w-2 h-2 rounded-full bg-[#6B21A8] ring-2 ring-purple-300" />
+                    <span className="mt-1.5 w-2 h-2 rounded-full bg-[#8B5CF6] ring-2 ring-purple-300" />
                   )}
                 </button>
               )
@@ -473,7 +473,7 @@ export default function Home() {
       </div>
 
       {/* 11. FOOTER */}
-      <footer className="bg-[#1E0B36] text-white pt-12 pb-8 border-t border-purple-950 mt-12">
+      <footer className="bg-[#27213A] text-white pt-12 pb-8 border-t border-[#E8E0F5]/20 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-purple-900/60">
             <div className="lg:col-span-2 space-y-3.5">

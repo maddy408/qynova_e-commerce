@@ -479,11 +479,11 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFAFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden">
       
       {/* TOAST FEEDBACK NOTIFICATION */}
       {toastMessage && (
-        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 bg-[#2E1065] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce border border-purple-500/30">
+        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 bg-[#27213A] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce border border-[#8B5CF6]/30">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -562,7 +562,7 @@ export default function ProductDetails() {
             <p className="text-sm text-gray-600 mb-6">{error}</p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#6B21A8] hover:bg-[#581C87] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#8B5CF6] hover:bg-[#7042D2] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
             >
               ← Return to Catalog
             </Link>
@@ -590,7 +590,7 @@ export default function ProductDetails() {
                           onClick={() => setSelectedImageIndex(idx)}
                           className={`relative aspect-square w-16 sm:w-18 md:w-full rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-gray-50 shrink-0 ${
                             selectedImageIndex === idx
-                              ? 'border-[#6B21A8] shadow-md ring-2 ring-purple-200'
+                              ? 'border-[#8B5CF6] shadow-md ring-2 ring-purple-200'
                               : 'border-purple-100 hover:border-purple-300 opacity-80 hover:opacity-100'
                           }`}
                         >
@@ -631,7 +631,7 @@ export default function ProductDetails() {
                       {/* Top Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
                         {discountPercent > 0 && showDiscount && (
-                          <span className="bg-[#6B21A8] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
+                          <span className="bg-[#8B5CF6] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
                             {discountPercent}% OFF
                           </span>
                         )}
@@ -724,7 +724,7 @@ export default function ProductDetails() {
                   </div>
 
                   {/* Product Title */}
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1E0B36] tracking-tight leading-snug mb-2.5">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#27213A] tracking-tight leading-snug mb-2.5">
                     {product.name}
                   </h1>
 
@@ -743,7 +743,7 @@ export default function ProductDetails() {
                   </div>
 
                   {/* PRICE SECTION (Actual Database Values) */}
-                  <div className="bg-[#FAF5FF]/70 border border-purple-100 rounded-2xl p-4 sm:p-5 mb-5">
+                  <div className="bg-[#F5F0FF]/80 border border-[#E8E0F5] rounded-2xl p-4 sm:p-5 mb-5">
                     {isUnavailable ? (
                       <div>
                         <span className="text-2xl sm:text-3xl font-black text-gray-500 tracking-tight">
@@ -754,7 +754,7 @@ export default function ProductDetails() {
                     ) : (
                       <>
                         <div className="flex items-baseline gap-3 flex-wrap">
-                          <span className="text-3xl sm:text-4xl font-black text-[#581C87] tracking-tight">
+                          <span className="text-3xl sm:text-4xl font-black text-[#8B5CF6] tracking-tight">
                             ₹{retailPrice}
                           </span>
                           {showDiscount && mrp > retailPrice && (
@@ -845,7 +845,7 @@ export default function ProductDetails() {
                               }}
                               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                                 isSelected
-                                  ? 'bg-[#6B21A8] text-white border-[#6B21A8] shadow-xs'
+                                  ? 'bg-[#8B5CF6] text-white border-[#8B5CF6] shadow-xs'
                                   : vOutOfStock
                                   ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'
                                   : 'bg-white text-gray-800 border-purple-200 hover:border-purple-400 hover:bg-purple-50/50'
@@ -882,7 +882,7 @@ export default function ProductDetails() {
                   {/* OFFERS SECTION (Dynamic Backend Data) */}
                   <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-5">
                     <div className="flex items-center justify-between mb-2.5">
-                      <h3 className="text-xs sm:text-sm font-extrabold text-[#1E0B36] uppercase tracking-wider flex items-center gap-1.5">
+                      <h3 className="text-xs sm:text-sm font-extrabold text-[#27213A] uppercase tracking-wider flex items-center gap-1.5">
                         <span>🏷️</span> Available Offers
                       </h3>
                       {availableCoupons.length > 0 && (
@@ -942,7 +942,7 @@ export default function ProductDetails() {
 
                   {/* DELIVERY / PINCODE CHECKER */}
                   <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-6">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-[#1E0B36] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <h3 className="text-xs sm:text-sm font-extrabold text-[#27213A] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <span>🚚</span> Delivery Availability
                     </h3>
 
@@ -961,7 +961,7 @@ export default function ProductDetails() {
                       <button
                         type="submit"
                         disabled={isPincodeLoading || pincode.trim().length !== 6}
-                        className="px-4 py-2 bg-[#6B21A8] hover:bg-[#581C87] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="px-4 py-2 bg-[#8B5CF6] hover:bg-[#7042D2] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                       >
                         {isPincodeLoading ? 'Checking...' : 'Check'}
                       </button>
@@ -1002,7 +1002,7 @@ export default function ProductDetails() {
                         >
                           −
                         </button>
-                        <span className="w-10 text-center font-extrabold text-sm text-[#1E0B36]">
+                        <span className="w-10 text-center font-extrabold text-sm text-[#27213A]">
                           {quantity}
                         </span>
                         <button
@@ -1028,10 +1028,10 @@ export default function ProductDetails() {
                         type="button"
                         onClick={() => handleAddToCart()}
                         disabled={isOutOfStock || isAddingToCart || isUnavailable}
-                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#6B21A8] text-[#6B21A8] hover:bg-purple-50 font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#F5F0FF] font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                         <span>{isUnavailable ? 'Unavailable' : isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
                       </button>
@@ -1041,7 +1041,7 @@ export default function ProductDetails() {
                         type="button"
                         onClick={handleBuyNow}
                         disabled={isOutOfStock || isUnavailable}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#6B21A8] to-[#9333EA] hover:from-[#581C87] hover:to-[#7E22CE] text-white font-black text-sm tracking-wide shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] hover:brightness-105 text-white font-black text-sm tracking-wide shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <span>{isUnavailable ? 'Unavailable' : '⚡ Buy Now'}</span>
                       </button>
@@ -1094,7 +1094,7 @@ export default function ProductDetails() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`pb-3 text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap border-b-2 ${
                     activeTab === tab.id
-                      ? 'border-[#6B21A8] text-[#6B21A8]'
+                      ? 'border-[#8B5CF6] text-[#8B5CF6]'
                       : 'border-transparent text-gray-500 hover:text-gray-900'
                   }`}
                 >
@@ -1398,7 +1398,7 @@ export default function ProductDetails() {
                   {product.name}
                 </h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-base sm:text-lg font-black text-[#581C87]">
+                  <span className="text-base sm:text-lg font-black text-[#8B5CF6]">
                     ₹{retailPrice}
                   </span>
                   {mrp > retailPrice && (
@@ -1446,7 +1446,7 @@ export default function ProductDetails() {
                 type="button"
                 onClick={() => handleAddToCart()}
                 disabled={isOutOfStock || isAddingToCart}
-                className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[#6B21A8] text-[#6B21A8] hover:bg-purple-50 font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#F5F0FF] font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
                 {isAddingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
@@ -1456,7 +1456,7 @@ export default function ProductDetails() {
                 type="button"
                 onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                className="py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-[#6B21A8] to-[#9333EA] hover:from-[#581C87] hover:to-[#7E22CE] text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                className="py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] hover:brightness-105 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
                 ⚡ Buy Now
               </button>
@@ -1562,7 +1562,7 @@ export default function ProductDetails() {
       />
 
       {/* FOOTER */}
-      <footer className="bg-[#1E0B36] text-white pt-12 pb-8 border-t border-purple-950 mt-16">
+      <footer className="bg-[#27213A] text-white pt-12 pb-8 border-t border-[#E8E0F5]/20 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-purple-900/60">
             <div>

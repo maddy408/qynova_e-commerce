@@ -276,11 +276,11 @@ export default function Shop() {
   }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, currentBrandObj, sectionParam])
 
   return (
-    <div className="min-h-screen bg-[#FDFBFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-purple-100 selection:text-purple-900 flex flex-col justify-between">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#2E1065] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-purple-500/30 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#27213A] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[#8B5CF6]/30 animate-bounce">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -355,7 +355,7 @@ export default function Shop() {
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="px-3.5 py-2 bg-purple-100 hover:bg-purple-200 text-purple-900 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-2 bg-[#EDE5FF] hover:bg-[#E0D6FF] text-[#7042D2] text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Clear Filters ✕
                 </button>
@@ -370,8 +370,8 @@ export default function Shop() {
               onClick={() => handleCategoryChange('')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 !categoryIdParam
-                  ? 'bg-[#6B21A8] text-white shadow-xs'
-                  : 'bg-purple-50 text-purple-900 hover:bg-purple-100'
+                  ? 'bg-[#8B5CF6] text-white shadow-xs'
+                  : 'bg-[#F5F0FF] text-[#27213A] hover:bg-[#EDE5FF]'
               }`}
             >
               All Categories
@@ -385,8 +385,8 @@ export default function Shop() {
                   onClick={() => handleCategoryChange(cat.id)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#6B21A8] text-white shadow-xs'
-                      : 'bg-purple-50 text-purple-900 hover:bg-purple-100'
+                      ? 'bg-[#8B5CF6] text-white shadow-xs'
+                      : 'bg-[#F5F0FF] text-[#27213A] hover:bg-[#EDE5FF]'
                   }`}
                 >
                   {cat.name}
@@ -496,7 +496,7 @@ export default function Shop() {
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="inline-block px-5 py-2.5 bg-[#6B21A8] text-white rounded-full text-xs font-bold shadow-xs cursor-pointer hover:bg-[#581C87]"
+                className="inline-block px-5 py-2.5 bg-[#8B5CF6] text-white rounded-full text-xs font-bold shadow-xs cursor-pointer hover:bg-[#7042D2]"
               >
                 View All Products
               </button>
@@ -549,8 +549,8 @@ export default function Shop() {
                       onClick={() => handlePageChange(p)}
                       className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         isCurrent
-                          ? 'bg-[#6B21A8] text-white shadow-xs'
-                          : 'bg-white border border-purple-100 text-purple-900 hover:bg-purple-50'
+                          ? 'bg-[#8B5CF6] text-white shadow-xs'
+                          : 'bg-white border border-[#E8E0F5] text-[#27213A] hover:bg-[#F5F0FF]'
                       }`}
                     >
                       {p}
@@ -579,7 +579,7 @@ export default function Shop() {
       </div>
 
       {/* FOOTER */}
-      <footer className="bg-[#1E0B36] text-white pt-12 pb-8 border-t border-purple-950 mt-12">
+      <footer className="bg-[#27213A] text-white pt-12 pb-8 border-t border-[#E8E0F5]/20 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-purple-900/60">
             <div className="space-y-3">

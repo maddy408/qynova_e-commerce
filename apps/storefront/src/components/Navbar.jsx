@@ -147,7 +147,7 @@ export default function Navbar({
     <div className="sticky top-0 z-40 w-full shadow-xs">
       
       {/* 1. TOP PROMOTIONAL STRIP */}
-      <div className="bg-[#2E1065] text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-purple-900/60">
+      <div className="bg-[#27213A] text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-[#E8E0F5]/20">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-2.5 truncate">
             {promoOffer ? (
@@ -181,13 +181,13 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* 2. MAIN HEADER (White with Purple Accents) */}
-      <header className="bg-white border-b border-purple-100">
+      {/* 2. MAIN HEADER (White with Lavender & Purple Accents) */}
+      <header className="bg-white border-b border-[#E8E0F5]">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-6">
           
           {/* Brand Logo & Name */}
           <Link to="/" className="flex items-center gap-2 sm:gap-3 shrink-0 group">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#6B21A8] to-[#9333EA] flex items-center justify-center text-white shadow-md shadow-purple-950/20 group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#8B5CF6] to-[#7042D2] flex items-center justify-center text-white shadow-md shadow-purple-950/20 group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="8" cy="21" r="1" />
                 <circle cx="19" cy="21" r="1" />
@@ -197,10 +197,10 @@ export default function Navbar({
             </div>
             <div>
               <div className="flex items-baseline leading-none">
-                <span className="text-lg sm:text-2xl font-black tracking-tight text-[#4C1D95]">Kirana</span>
+                <span className="text-lg sm:text-2xl font-black tracking-tight text-[#8B5CF6]">Kirana</span>
                 <span className="text-lg sm:text-2xl font-black tracking-tight text-[#EC4899]">Bazaar</span>
               </div>
-              <p className="text-[8px] sm:text-[10px] font-bold tracking-wider text-purple-900/60 uppercase mt-0.5">
+              <p className="text-[8px] sm:text-[10px] font-bold tracking-wider text-[#716A82] uppercase mt-0.5">
                 Accessories & Gifts Hub
               </p>
             </div>
@@ -217,11 +217,11 @@ export default function Navbar({
                   if (onSearchChange) onSearchChange(e.target.value)
                 }}
                 placeholder="Search accessories, jewellery, gifts, toys, pouches..."
-                className="w-full h-11 pl-11 pr-10 rounded-full bg-purple-50/40 border border-purple-200 text-xs sm:text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-600 focus:bg-white focus:ring-2 focus:ring-purple-600/15 transition-all"
+                className="w-full h-11 pl-11 pr-10 rounded-full bg-[#FAF8FF] border border-[#E8E0F5] text-xs sm:text-sm text-[#27213A] placeholder-[#716A82] focus:outline-none focus:border-[#8B5CF6] focus:bg-white focus:ring-2 focus:ring-[#8B5CF6]/15 transition-all"
               />
               <button
                 type="submit"
-                className="absolute left-4 top-3.5 text-purple-400 hover:text-purple-700 cursor-pointer"
+                className="absolute left-4 top-3.5 text-[#716A82] hover:text-[#8B5CF6] cursor-pointer"
                 aria-label="Search"
               >
                 <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -253,7 +253,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsAccountDropdownOpen((prev) => !prev)}
-                  className="flex items-center gap-1 sm:gap-2 p-1 sm:pl-1 sm:pr-3 sm:py-1 rounded-full bg-purple-50 hover:bg-purple-100/70 border border-purple-200 transition-all cursor-pointer shadow-xs active:scale-98 select-none"
+                  className="flex items-center gap-1 sm:gap-2 p-1 sm:pl-1 sm:pr-3 sm:py-1 rounded-full bg-[#F5F0FF] hover:bg-[#EDE5FF] border border-[#E8E0F5] transition-all cursor-pointer shadow-xs active:scale-98 select-none"
                   title="Customer Account Menu"
                 >
                   {customer.profile_photo_path ? (
@@ -261,7 +261,7 @@ export default function Navbar({
                       src={customer.profile_photo_path}
                       alt={customer.name || 'Customer'}
                       referrerPolicy="no-referrer"
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-purple-200 shadow-xs"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[#E8E0F5] shadow-xs"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
                         if (e.currentTarget.nextElementSibling) {
@@ -271,17 +271,17 @@ export default function Navbar({
                     />
                   ) : null}
                   <div
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#6B21A8] text-white font-black text-xs uppercase shadow-xs items-center justify-center ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#8B5CF6] text-white font-black text-xs uppercase shadow-xs items-center justify-center ${
                       customer.profile_photo_path ? 'hidden' : 'flex'
                     }`}
                   >
                     {customer.name?.trim().charAt(0) || 'C'}
                   </div>
                   <div className="hidden sm:flex items-center gap-1 text-left">
-                    <span className="text-xs font-black text-gray-900 leading-tight">
+                    <span className="text-xs font-black text-[#27213A] leading-tight">
                       {customer.name?.split(' ')[0] || 'Customer'}
                     </span>
-                    <span className={`text-[10px] text-purple-700 transition-transform duration-200 ${isAccountDropdownOpen ? 'rotate-180' : ''}`}>
+                    <span className={`text-[10px] text-[#8B5CF6] transition-transform duration-200 ${isAccountDropdownOpen ? 'rotate-180' : ''}`}>
                       ▼
                     </span>
                   </div>
@@ -289,25 +289,25 @@ export default function Navbar({
 
                 {/* Account Dropdown Menu */}
                 {isAccountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-60 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-[#E8E0F5] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-3">
                       {customer.profile_photo_path ? (
                         <img
                           src={customer.profile_photo_path}
                           alt={customer.name}
                           referrerPolicy="no-referrer"
-                          className="w-10 h-10 rounded-full object-cover border border-purple-200 shadow-xs"
+                          className="w-10 h-10 rounded-full object-cover border border-[#E8E0F5] shadow-xs"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#6B21A8] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs">
+                        <div className="w-10 h-10 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs">
                           {customer.name?.trim().charAt(0) || 'C'}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-black text-gray-900 truncate">
+                        <p className="text-xs font-black text-[#27213A] truncate">
                           {customer.name}
                         </p>
-                        <p className="text-[11px] text-gray-500 truncate">
+                        <p className="text-[11px] text-[#716A82] truncate">
                           {customer.email || (customer.phone ? `+91 ${customer.phone}` : 'Store Customer')}
                         </p>
                       </div>
@@ -316,7 +316,7 @@ export default function Navbar({
                     <Link
                       to="/profile"
                       onClick={() => setIsAccountDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-900 transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[#27213A] hover:bg-[#F5F0FF] hover:text-[#7042D2] transition-colors"
                     >
                       <span>👤</span>
                       <span>My Profile</span>
@@ -325,7 +325,7 @@ export default function Navbar({
                     <Link
                       to="/orders"
                       onClick={() => setIsAccountDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-900 transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[#27213A] hover:bg-[#F5F0FF] hover:text-[#7042D2] transition-colors"
                     >
                       <span>📦</span>
                       <span>My Orders</span>
@@ -361,10 +361,10 @@ export default function Navbar({
             ) : (
               <Link
                 to="/login"
-                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-purple-200 text-xs font-bold text-purple-800 hover:border-purple-600 hover:bg-purple-50 transition-all shadow-xs"
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#E8E0F5] text-xs font-bold text-[#7042D2] hover:border-[#8B5CF6] hover:bg-[#F5F0FF] transition-all shadow-xs"
                 title="Customer Login"
               >
-                <svg className="w-4 h-4 text-purple-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="w-4 h-4 text-[#8B5CF6] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                   <circle cx="12" cy="7" r="4" />
                 </svg>
@@ -411,7 +411,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={onOpenCart}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#6B21A8] hover:bg-[#581C87] text-white active:scale-95 transition-all shadow-md shadow-purple-950/20 cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#8B5CF6] hover:bg-[#7042D2] text-white active:scale-95 transition-all shadow-md shadow-purple-950/20 cursor-pointer"
               title="Shopping Cart"
             >
               <div className="relative">
@@ -421,7 +421,7 @@ export default function Navbar({
                   <path d="M16 10a4 4 0 0 1-8 0" />
                 </svg>
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-amber-400 text-purple-950 font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-amber-400 text-[#27213A] font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center">
                     {cartCount}
                   </span>
                 )}
@@ -435,7 +435,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#4C1D95] border border-purple-200 flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+              className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F5F0FF] hover:bg-[#EDE5FF] text-[#27213A] border border-[#E8E0F5] flex items-center justify-center transition-colors cursor-pointer active:scale-95"
               title="Toggle Menu"
               aria-label="Navigation menu"
             >
@@ -464,11 +464,11 @@ export default function Navbar({
                 if (onSearchChange) onSearchChange(e.target.value)
               }}
               placeholder="Search accessories, jewellery, gifts..."
-              className="w-full h-10 pl-10 pr-9 rounded-full bg-purple-50/50 border border-purple-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-600 focus:bg-white focus:ring-1 focus:ring-purple-600/20 transition-all"
+              className="w-full h-10 pl-10 pr-9 rounded-full bg-[#FAF8FF] border border-[#E8E0F5] text-xs text-[#27213A] placeholder-[#716A82] focus:outline-none focus:border-[#8B5CF6] focus:bg-white focus:ring-1 focus:ring-[#8B5CF6]/20 transition-all"
             />
             <button
               type="submit"
-              className="absolute left-3.5 top-3 text-purple-400 hover:text-purple-700 cursor-pointer"
+              className="absolute left-3.5 top-3 text-[#716A82] hover:text-[#8B5CF6] cursor-pointer"
               aria-label="Search"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -492,7 +492,7 @@ export default function Navbar({
         </div>
 
         {/* 2C. DESKTOP NAVIGATION BAR (>= 1024px) */}
-        <nav className="hidden lg:block bg-[#4C1D95] text-white border-t border-purple-800/60 shadow-md">
+        <nav className="hidden lg:block bg-[#7042D2] text-white border-t border-[#8B5CF6]/50 shadow-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between py-2">
             
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 text-xs sm:text-sm font-bold">
@@ -501,7 +501,7 @@ export default function Navbar({
                 to="/"
                 className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   location.pathname === '/' && activeNav === 'home'
-                    ? 'bg-white text-[#4C1D95] shadow-sm font-extrabold'
+                    ? 'bg-white text-[#7042D2] shadow-sm font-extrabold'
                     : 'text-purple-100 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -513,7 +513,7 @@ export default function Navbar({
                 to="/products"
                 className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   location.pathname === '/products' && !location.search
-                    ? 'bg-white text-[#4C1D95] shadow-sm font-extrabold'
+                    ? 'bg-white text-[#7042D2] shadow-sm font-extrabold'
                     : 'text-purple-100 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -525,7 +525,7 @@ export default function Navbar({
                 to="/products?section=best_sellers"
                 className={`px-3.5 py-1.5 rounded-xl transition-all ${
                   location.search.includes('best_sellers')
-                    ? 'bg-white text-[#4C1D95] shadow-sm font-extrabold'
+                    ? 'bg-white text-[#7042D2] shadow-sm font-extrabold'
                     : 'text-purple-100 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -537,7 +537,7 @@ export default function Navbar({
                 to="/products?section=new_arrivals"
                 className={`px-3.5 py-1.5 rounded-xl transition-all ${
                   location.search.includes('new_arrivals')
-                    ? 'bg-white text-[#4C1D95] shadow-sm font-extrabold'
+                    ? 'bg-white text-[#7042D2] shadow-sm font-extrabold'
                     : 'text-purple-100 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -549,7 +549,7 @@ export default function Navbar({
                 to="/products?section=featured"
                 className={`px-3.5 py-1.5 rounded-xl transition-all ${
                   location.search.includes('featured')
-                    ? 'bg-white text-[#4C1D95] shadow-sm font-extrabold'
+                    ? 'bg-white text-[#7042D2] shadow-sm font-extrabold'
                     : 'text-purple-100 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -561,7 +561,7 @@ export default function Navbar({
                 to="/products?section=deals"
                 className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
                   location.search.includes('deals')
-                    ? 'bg-white text-[#4C1D95] shadow-sm font-extrabold'
+                    ? 'bg-white text-[#7042D2] shadow-sm font-extrabold'
                     : 'text-purple-100 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -598,14 +598,14 @@ export default function Navbar({
           <div className="fixed inset-y-0 left-0 w-[84%] max-w-[340px] bg-white shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-250">
             
             {/* Drawer Header */}
-            <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50">
+            <div className="p-4 border-b border-[#E8E0F5] flex items-center justify-between bg-gradient-to-r from-[#FAF8FF] to-[#EDE5FF]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#6B21A8] text-white flex items-center justify-center font-black text-sm shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-[#8B5CF6] text-white flex items-center justify-center font-black text-sm shadow-xs">
                   KB
                 </div>
                 <div>
-                  <h3 className="font-black text-sm text-purple-950">KiranaBazaar Hub</h3>
-                  <p className="text-[10px] text-purple-700/80 font-semibold">Store Navigation</p>
+                  <h3 className="font-black text-sm text-[#27213A]">KiranaBazaar Hub</h3>
+                  <p className="text-[10px] text-[#7042D2] font-semibold">Store Navigation</p>
                 </div>
               </div>
               <button
@@ -621,28 +621,28 @@ export default function Navbar({
             <div className="flex-1 overflow-y-auto p-3 space-y-1 text-xs font-bold text-gray-700">
               {/* Customer Greeting / Auth */}
               {customer ? (
-                <div className="p-3 mb-2 rounded-2xl bg-purple-50/70 border border-purple-100 flex items-center gap-3">
+                <div className="p-3 mb-2 rounded-2xl bg-[#F5F0FF] border border-[#E8E0F5] flex items-center gap-3">
                   {customer.profile_photo_path ? (
                     <img
                       src={customer.profile_photo_path}
                       alt={customer.name}
                       referrerPolicy="no-referrer"
-                      className="w-10 h-10 rounded-full object-cover border border-purple-200 shadow-xs shrink-0"
+                      className="w-10 h-10 rounded-full object-cover border border-[#E8E0F5] shadow-xs shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#6B21A8] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs shrink-0">
                       {customer.name?.trim().charAt(0) || 'C'}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-gray-900 truncate">
+                    <p className="text-xs font-black text-[#27213A] truncate">
                       Hello, {customer.name?.split(' ')[0]} 👋
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Link
                         to="/profile"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-[11px] text-[#6B21A8] hover:underline"
+                        className="text-[11px] text-[#8B5CF6] hover:underline"
                       >
                         Profile
                       </Link>
@@ -650,7 +650,7 @@ export default function Navbar({
                       <Link
                         to="/orders"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-[11px] text-[#6B21A8] font-bold hover:underline"
+                        className="text-[11px] text-[#8B5CF6] font-bold hover:underline"
                       >
                         My Orders →
                       </Link>
@@ -658,15 +658,15 @@ export default function Navbar({
                   </div>
                 </div>
               ) : (
-                <div className="p-3 mb-2 rounded-2xl bg-purple-50/80 border border-purple-100 flex items-center justify-between">
+                <div className="p-3 mb-2 rounded-2xl bg-[#F5F0FF] border border-[#E8E0F5] flex items-center justify-between">
                   <div>
-                    <p className="font-extrabold text-purple-950">Welcome, Guest</p>
-                    <p className="text-[10px] text-gray-500">Sign in to track orders & rewards</p>
+                    <p className="font-extrabold text-[#27213A]">Welcome, Guest</p>
+                    <p className="text-[10px] text-[#716A82]">Sign in to track orders & rewards</p>
                   </div>
                   <Link
                     to="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="px-3 py-1.5 rounded-full bg-[#6B21A8] text-white text-[11px] font-black shadow-xs"
+                    className="px-3 py-1.5 rounded-full bg-[#8B5CF6] hover:bg-[#7042D2] text-white text-[11px] font-black shadow-xs"
                   >
                     Login
                   </Link>
@@ -800,7 +800,7 @@ export default function Navbar({
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-4 border-t border-purple-100 bg-purple-50/40 text-xs text-gray-500 space-y-2">
+            <div className="p-4 border-t border-[#E8E0F5] bg-[#FAF8FF] text-xs text-gray-500 space-y-2">
               <a
                 href={whatsappUrl}
                 target="_blank"
@@ -809,7 +809,7 @@ export default function Navbar({
               >
                 <span>💬 WhatsApp Support</span>
               </a>
-              <div className="flex items-center justify-between text-[11px] pt-1 text-purple-900 font-semibold">
+              <div className="flex items-center justify-between text-[11px] pt-1 text-[#7042D2] font-semibold">
                 <span>🛡️ 100% Quality</span>
                 <span>•</span>
                 <span>📦 7-Day Return</span>
