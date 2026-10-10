@@ -302,11 +302,10 @@ automatically.
   pincodes`/`shipping_rules` for pincode-gated checkout and computed
   shipping charges (checkout currently uses a flat rate/free-above
   threshold — see `OrderService::FLAT_SHIPPING`).
-- **Payment gateway & ledgers** — `payments`, `payment_transactions`,
-  `payment_transaction_events`, `customer_ledger`, `supplier_ledger`.
-  Invoice/purchase/refund payment tracking is currently just columns
-  directly on each row — deliberately simplified, no Razorpay
-  integration or running ledger balance yet.
+- **Payment & ledgers** — `payments`, `customer_ledger`, `supplier_ledger`.
+  Invoice/purchase/refund payment tracking is currently columns
+  directly on each row (supporting Cash on Delivery, Cash, UPI, and Card)
+  with offline settlement.
 - **Finance** — `expenses`, `income`.
 - **Notifications** — `notification_templates`, `notification_queue`,
   `notification_logs`, `notification_preferences`.

@@ -351,4 +351,206 @@ final class BatchService
         $stmt->execute(['days' => $daysThreshold]);
         return $stmt->fetchAll();
     }
+
+    /**
+     * Save or update an opening stock batch with full details:
+     * Batch Number, Opening Quantity, Price, MRP, Manufacturing Date, and Expiry Date.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function saveOpeningBatchDetailed(int $variantId, array $data, int $userId): array
+    {
+        $batchId = !empty($data['batch_id']) ? (int) $data['batch_id'] : null;
+        $batchNo = trim((string) ($data['batch_no'] ?? ''));
+        if ($batchNo === '') {
+            $batchNo = 'OPENING-' . date('Ymd') . '-' . random_int(100, 999);
+        }
+
+        $qty = isset($data['quantity']) ? (float) $data['quantity'] : (isset($data['qty']) ? (float) $data['qty'] : 0.0);
+        $selling = isset($data['selling_price']) ? (float) $data['selling_price'] : (isset($data['price']) ? (float) $data['price'] : 0.0);
+        $mrp = isset($data['mrp']) ? (float) $data['mrp'] : 0.0;
+        $mfgDate = !empty($data['manufacturing_date']) ? (string) $data['manufacturing_date'] : null;
+        $expDate = !empty($data['expiry_date']) ? (string) $data['expiry_date'] : null;
+
+        if ($qty < 0) {
+            throw new RuntimeException('Opening quantity must not be negative');
+        }
+        if ($selling < 0 || $mrp < 0) {
+            throw new RuntimeException('Price and MRP must not be negative');
+        }
+        if (!empty($mfgDate) && !empty($expDate) && $expDate < $mfgDate) {
+            throw new RuntimeException('Expiry date must not be earlier than manufacturing date');
+        }
+
+        $invService = new InventoryService($this->pdo);
+
+        if ($batchId !== null && $batchId > 0) {
+            // Edit existing batch
+            $stmt = $this->pdo->prepare('SELECT * FROM inventory_batches WHERE id = :id AND variant_id = :variant_id');
+            $stmt->execute(['id' => $batchId, 'variant_id' => $variantId]);
+            $existing = $stmt->fetch();
+
+            if (!$existing) {
+                throw new RuntimeException('Batch not found for this variant');
+            }
+
+            $oldQty = (float) $existing['quantity'];
+            $oldAvail = (float) $existing['available_quantity'];
+            $consumed = max(0.0, $oldQty - $oldAvail);
+
+            if ($qty < $consumed) {
+                throw new RuntimeException("Quantity cannot be reduced below already sold/consumed quantity ({$consumed})");
+            }
+
+            $newAvail = $qty - $consumed;
+            $qtyDelta = $qty - $oldQty;
+
+            $update = $this->pdo->prepare(
+                "UPDATE inventory_batches 
+                 SET batch_no = :b_no, manufacturing_date = :mfg, expiry_date = :exp,
+                     selling_price = :selling, mrp = :mrp, quantity = :qty, available_quantity = :avail,
+                     status = :status
+                 WHERE id = :id"
+            );
+            $update->execute([
+                'b_no' => $batchNo,
+                'mfg' => $mfgDate ?: null,
+                'exp' => $expDate ?: null,
+                'selling' => $selling,
+                'mrp' => $mrp,
+                'qty' => $qty,
+                'avail' => $newAvail,
+                'status' => $newAvail > 0 ? 'ACTIVE' : 'DEPLETED',
+                'id' => $batchId,
+            ]);
+
+            // Adjust inventory on_hand if quantity changed
+            if (abs($qtyDelta) > 0.0001) {
+                $stock = $invService->getStock($variantId);
+                $currentOnHand = $stock !== null ? (float) $stock['on_hand'] : 0.0;
+                $newOnHand = max(0.0, $currentOnHand + $qtyDelta);
+                $invService->createAdjustment([
+                    ['variant_id' => $variantId, 'counted_qty' => (string) $newOnHand],
+                ], "Opening Batch {$batchNo} quantity edited", $userId);
+            }
+
+            $savedId = $batchId;
+        } else {
+            // Create new batch
+            $insert = $this->pdo->prepare(
+                "INSERT INTO inventory_batches 
+                 (variant_id, batch_no, manufacturing_date, expiry_date, cost_price, selling_price, mrp, quantity, available_quantity, status) 
+                 VALUES (:variant_id, :batch_no, :mfg, :exp, 0.00, :selling, :mrp, :qty, :avail, 'ACTIVE')"
+            );
+            $insert->execute([
+                'variant_id' => $variantId,
+                'batch_no' => $batchNo,
+                'mfg' => $mfgDate ?: null,
+                'exp' => $expDate ?: null,
+                'selling' => $selling,
+                'mrp' => $mrp,
+                'qty' => $qty,
+                'avail' => $qty,
+            ]);
+            $savedId = (int) $this->pdo->lastInsertId();
+
+            if ($qty > 0) {
+                $stock = $invService->getStock($variantId);
+                $currentOnHand = $stock !== null ? (float) $stock['on_hand'] : 0.0;
+                $newOnHand = $currentOnHand + $qty;
+                $invService->createAdjustment([
+                    ['variant_id' => $variantId, 'counted_qty' => (string) $newOnHand],
+                ], "New Opening Batch {$batchNo} created", $userId);
+            }
+        }
+
+        $stmt = $this->pdo->prepare('SELECT * FROM inventory_batches WHERE id = :id');
+        $stmt->execute(['id' => $savedId]);
+        $batchRow = $stmt->fetch();
+
+        $stock = $invService->getStock($variantId);
+
+        return [
+            'batch' => $batchRow,
+            'on_hand' => $stock !== null ? (string) $stock['on_hand'] : '0.000',
+        ];
+    }
+
+    /**
+     * Safely deletes an unconsumed opening batch, or deactivates if already partially consumed.
+     */
+    public function deleteOrDeactivateBatch(int $batchId, int $userId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM inventory_batches WHERE id = :id');
+        $stmt->execute(['id' => $batchId]);
+        $batch = $stmt->fetch();
+
+        if (!$batch) {
+            throw new RuntimeException('Batch not found');
+        }
+
+        $variantId = (int) $batch['variant_id'];
+        $availQty = (float) $batch['available_quantity'];
+        $totalQty = (float) $batch['quantity'];
+        $consumed = max(0.0, $totalQty - $availQty);
+
+        $invService = new InventoryService($this->pdo);
+
+        if ($consumed > 0.0001) {
+            // Partially consumed in sales: safe deactivation of remaining available units
+            if ($availQty > 0) {
+                $stock = $invService->getStock($variantId);
+                $currentOnHand = $stock !== null ? (float) $stock['on_hand'] : 0.0;
+                $newOnHand = max(0.0, $currentOnHand - $availQty);
+                $invService->createAdjustment([
+                    ['variant_id' => $variantId, 'counted_qty' => (string) $newOnHand],
+                ], "Batch {$batch['batch_no']} deactivated / remaining stock cleared", $userId);
+            }
+
+            $this->pdo->prepare("UPDATE inventory_batches SET available_quantity = 0, status = 'INACTIVE' WHERE id = :id")->execute(['id' => $batchId]);
+            $action = 'deactivated';
+        } else {
+            // Zero consumption: safely adjust on_hand down and delete row
+            if ($availQty > 0) {
+                $stock = $invService->getStock($variantId);
+                $currentOnHand = $stock !== null ? (float) $stock['on_hand'] : 0.0;
+                $newOnHand = max(0.0, $currentOnHand - $availQty);
+                $invService->createAdjustment([
+                    ['variant_id' => $variantId, 'counted_qty' => (string) $newOnHand],
+                ], "Batch {$batch['batch_no']} deleted / opening stock removed", $userId);
+            }
+
+            $this->pdo->prepare('DELETE FROM inventory_batches WHERE id = :id')->execute(['id' => $batchId]);
+            $action = 'deleted';
+        }
+
+        $stock = $invService->getStock($variantId);
+
+        return [
+            'action' => $action,
+            'on_hand' => $stock !== null ? (string) $stock['on_hand'] : '0.000',
+        ];
+    }
+
+    /**
+     * Resets opening stock for a variant to 0, deactivating all active opening batches.
+     */
+    public function resetVariantOpeningStock(int $variantId, int $userId): array
+    {
+        $invService = new InventoryService($this->pdo);
+        $stock = $invService->getStock($variantId);
+        $currentOnHand = $stock !== null ? (float) $stock['on_hand'] : 0.0;
+
+        if ($currentOnHand > 0) {
+            $invService->createAdjustment([
+                ['variant_id' => $variantId, 'counted_qty' => '0'],
+            ], 'Reset Opening Stock to 0', $userId);
+        }
+
+        // Deactivate all active batches for this variant
+        $this->pdo->prepare("UPDATE inventory_batches SET available_quantity = 0, status = 'INACTIVE' WHERE variant_id = :v_id")->execute(['v_id' => $variantId]);
+
+        return ['reset' => true, 'on_hand' => '0.000'];
+    }
 }
