@@ -54,6 +54,7 @@ final class ReturnsController
 
         $body = Request::json();
         $orderId = !empty($body['order_id']) ? (int) $body['order_id'] : null;
+        $invoiceId = !empty($body['invoice_id']) ? (int) $body['invoice_id'] : (!empty($body['order_id']) ? (int) $body['order_id'] : null);
         $customerId = !empty($body['customer_id']) ? (int) $body['customer_id'] : null;
         $reason = trim((string) ($body['reason'] ?? 'Customer Return'));
         $notes = trim((string) ($body['notes'] ?? ''));
@@ -63,17 +64,69 @@ final class ReturnsController
             Response::error('At least one return item is required', 422);
         }
 
+        // If an invoice is referenced, fetch invoice details and items for allocation-aware refund
+        $invoice = null;
+        $invoiceItemsMap = [];
+        if ($invoiceId !== null) {
+            $stmtInv = $this->pdo->prepare('SELECT id, grand_total, amount_paid, bill_discount_amount FROM invoices WHERE id = :id');
+            $stmtInv->execute(['id' => $invoiceId]);
+            $invoice = $stmtInv->fetch(PDO::FETCH_ASSOC);
+
+            if ($invoice) {
+                $stmtInvItems = $this->pdo->prepare('SELECT id, variant_id, quantity, unit_price, discount_amount, bill_discount_amount, tax_amount, line_total FROM invoice_items WHERE invoice_id = :id');
+                $stmtInvItems->execute(['id' => $invoiceId]);
+                foreach ($stmtInvItems->fetchAll(PDO::FETCH_ASSOC) as $ii) {
+                    $invoiceItemsMap[(int) $ii['variant_id']] = $ii;
+                }
+            }
+        }
+
         $this->pdo->beginTransaction();
 
         try {
             $returnNo = 'SRET-' . date('YmdHis') . '-' . random_int(100, 999);
             $totalAmount = 0.0;
+            $processedItems = [];
 
             foreach ($items as $item) {
+                $variantId = (int) ($item['variant_id'] ?? 0);
                 $qty = (int) ($item['qty'] ?? 0);
                 $unitPrice = (float) ($item['unit_price'] ?? 0);
-                if ($qty <= 0) continue;
-                $totalAmount += ($qty * $unitPrice);
+                if ($variantId <= 0 || $qty <= 0) continue;
+
+                // If invoice exists, use the net discounted rate for the item
+                if ($invoice && isset($invoiceItemsMap[$variantId])) {
+                    $invItem = $invoiceItemsMap[$variantId];
+                    $invQty = (int) $invItem['quantity'];
+                    if ($invQty > 0) {
+                        $effectiveNetUnitPrice = (float) $invItem['line_total'] / $invQty;
+                        // Never refund more than the discounted line unit value
+                        $unitPrice = min($unitPrice > 0 ? $unitPrice : $effectiveNetUnitPrice, $effectiveNetUnitPrice);
+                    }
+                }
+
+                $itemTotal = round($qty * $unitPrice, 2);
+                $totalAmount += $itemTotal;
+                $processedItems[] = [
+                    'variant_id' => $variantId,
+                    'qty' => $qty,
+                    'unit_price' => $unitPrice,
+                    'item_total' => $itemTotal,
+                ];
+            }
+
+            // Ensure cumulative refunds for this invoice do not exceed amount paid
+            if ($invoice) {
+                $stmtPastRefunds = $this->pdo->prepare('SELECT COALESCE(SUM(total_amount), 0) FROM sale_returns WHERE order_id = :inv_id');
+                $stmtPastRefunds->execute(['inv_id' => $invoiceId]);
+                $pastRefundTotal = (float) $stmtPastRefunds->fetchColumn();
+                $maxRefundAllowed = (float) $invoice['amount_paid'];
+
+                if (($pastRefundTotal + $totalAmount) > ($maxRefundAllowed + 0.001)) {
+                    $this->pdo->rollBack();
+                    Response::error("Total refund cannot exceed paid amount of Rs. " . number_format($maxRefundAllowed, 2), 422);
+                    return;
+                }
             }
 
             $stmt = $this->pdo->prepare(
@@ -109,13 +162,12 @@ final class ReturnsController
                  VALUES (:adj_id, :variant_id, :sys_qty, :count_qty)"
             );
 
-            foreach ($items as $item) {
-                $variantId = (int) ($item['variant_id'] ?? 0);
-                $qty = (float) ($item['qty'] ?? 0);
-                $unitPrice = (float) ($item['unit_price'] ?? 0);
-                if ($variantId <= 0 || $qty <= 0) continue;
+            foreach ($processedItems as $pItem) {
+                $variantId = $pItem['variant_id'];
+                $qty = $pItem['qty'];
+                $unitPrice = $pItem['unit_price'];
+                $itemTotal = $pItem['item_total'];
 
-                $itemTotal = $qty * $unitPrice;
                 $insertItem->execute([
                     'return_id' => $returnId,
                     'variant_id' => $variantId,

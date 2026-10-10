@@ -177,17 +177,19 @@ final class InventoryService
      * Every active variant with its current stock, for the Stock
      * Adjustment screen's product list (left-joined, not inner-joined —
      * a variant with no stock movement yet has no `inventory` row at
-     * all, since that row is created lazily by apply()/setLowStockThreshold()).
-     * Also carries pricing/image/category columns so the POS Sale
-     * screen's product grid can reuse the same endpoint instead of a
-     * second variant-level listing query — pass $posOnly to restrict it
-     * to `is_pos_enabled` products, as Sale does (Stock Adjustment wants
-     * every product regardless of channel).
-     *
-     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+    /**
+     * Product ordering definition kept in one place for POS & inventory listings.
      */
-    public function listAllStock(?string $search, int $page, int $limit, bool $posOnly = false, ?int $categoryId = null): array
-    {
+    public const DEFAULT_STOCK_ORDER_BY = 'p.name ASC, v.sku ASC, v.id ASC';
+
+    public function listAllStock(
+        ?string $search,
+        int $page = 1,
+        int $limit = 50,
+        bool $posOnly = false,
+        ?int $categoryId = null,
+        string $sort = 'sales'
+    ): array {
         $page = max(1, $page);
         $limit = min(200, max(1, $limit));
         $offset = ($page - 1) * $limit;
@@ -197,6 +199,7 @@ final class InventoryService
 
         if ($posOnly) {
             $where[] = 'p.is_pos_enabled = 1';
+            $where[] = 'p.is_active = 1';
         }
 
         if ($categoryId !== null) {
@@ -204,12 +207,10 @@ final class InventoryService
             $params['category_id'] = $categoryId;
         }
 
-        if ($search !== null && trim($search) !== '') {
-            // Three distinct placeholders for the same value — with
-            // emulated prepares off, PDO rejects reusing one named
-            // placeholder twice in a query.
+        $searchTrimmed = $search !== null ? trim($search) : '';
+        if ($searchTrimmed !== '') {
             $where[] = '(p.name LIKE :search1 OR v.sku LIKE :search2 OR v.barcode LIKE :search3)';
-            $needle = '%' . trim($search) . '%';
+            $needle = '%' . $searchTrimmed . '%';
             $params['search1'] = $needle;
             $params['search2'] = $needle;
             $params['search3'] = $needle;
@@ -217,15 +218,121 @@ final class InventoryService
 
         $whereSql = implode(' AND ', $where);
 
-        $countStmt = $this->pdo->prepare(
-            "SELECT COUNT(*) FROM product_variants v JOIN products p ON p.id = v.product_id WHERE {$whereSql}"
-        );
-        $countStmt->execute($params);
-        $total = (int) $countStmt->fetchColumn();
+        // If sort by name or standard alphabetic order requested
+        if ($sort === 'name') {
+            $countStmt = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM product_variants v JOIN products p ON p.id = v.product_id WHERE {$whereSql}"
+            );
+            $countStmt->execute($params);
+            $total = (int) $countStmt->fetchColumn();
 
-        $stmt = $this->pdo->prepare(
+            $stmt = $this->pdo->prepare(
+                "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name,
+                        v.mrp, v.normal_price, v.retail_price, v.wholesale_price, v.customer_price,
+                        g.gst_percent, g.tax_mode,
+                        (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
+                        COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
+                        COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
+                 FROM product_variants v
+                 JOIN products p ON p.id = v.product_id
+                 LEFT JOIN inventory i ON i.variant_id = v.id
+                 LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
+                 WHERE {$whereSql}
+                 ORDER BY " . self::DEFAULT_STOCK_ORDER_BY . "
+                 LIMIT :limit OFFSET :offset"
+            );
+            foreach ($params as $key => $value) {
+                $stmt->bindValue(":{$key}", $value);
+            }
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->execute();
+
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as &$r) {
+                $r['sales_units'] = '0.000';
+            }
+            unset($r);
+
+            return ['items' => $rows, 'total' => $total, 'page' => $page, 'limit' => $limit];
+        }
+
+        // --- SALES-BASED ORDERING (T03 Requirement) ---
+        // 1. Fetch cached variant sales map [variant_id => net_units]
+        $salesRankingService = new SalesRankingService($this->pdo);
+        $salesMap = $salesRankingService->getVariantSalesMap();
+
+        // 2. Fetch all matching candidate variants (ID, Name, SKU, Barcode) for fast in-memory sorting
+        $candidatesStmt = $this->pdo->prepare(
+            "SELECT v.id AS variant_id, p.name AS product_name, v.sku, v.barcode
+             FROM product_variants v
+             JOIN products p ON p.id = v.product_id
+             WHERE {$whereSql}"
+        );
+        $candidatesStmt->execute($params);
+        $candidates = $candidatesStmt->fetchAll(PDO::FETCH_ASSOC);
+        $total = count($candidates);
+
+        if ($total === 0) {
+            return ['items' => [], 'total' => 0, 'page' => $page, 'limit' => $limit];
+        }
+
+        // 3. Sort candidates deterministically
+        $searchExact = $searchTrimmed !== '' ? $searchTrimmed : null;
+        usort($candidates, function (array $a, array $b) use ($salesMap, $searchExact): int {
+            // (a) Exact barcode/SKU match first if search is present
+            if ($searchExact !== null) {
+                $aExact = ($a['barcode'] === $searchExact || strcasecmp((string) $a['sku'], $searchExact) === 0) ? 1 : 0;
+                $bExact = ($b['barcode'] === $searchExact || strcasecmp((string) $b['sku'], $searchExact) === 0) ? 1 : 0;
+                if ($aExact !== $bExact) {
+                    return $bExact <=> $aExact;
+                }
+            }
+
+            $aUnits = (float) ($salesMap[(int) $a['variant_id']] ?? 0);
+            $bUnits = (float) ($salesMap[(int) $b['variant_id']] ?? 0);
+
+            $aHasSales = $aUnits > 0 ? 1 : 0;
+            $bHasSales = $bUnits > 0 ? 1 : 0;
+
+            // (b) Items with sales > 0 come before items with <= 0 sales
+            if ($aHasSales !== $bHasSales) {
+                return $bHasSales <=> $aHasSales;
+            }
+
+            // (c) Net units sold DESC
+            if ($aHasSales === 1 && $aUnits !== $bUnits) {
+                return ($bUnits < $aUnits) ? -1 : 1;
+            }
+
+            // (d) Tie breaks: product name ASC, SKU ASC, ID ASC
+            $nameCmp = strcasecmp((string) $a['product_name'], (string) $b['product_name']);
+            if ($nameCmp !== 0) {
+                return $nameCmp;
+            }
+
+            $skuCmp = strcasecmp((string) $a['sku'], (string) $b['sku']);
+            if ($skuCmp !== 0) {
+                return $skuCmp;
+            }
+
+            return ((int) $a['variant_id']) <=> ((int) $b['variant_id']);
+        });
+
+        // 4. Slice current page IDs
+        $pageCandidates = array_slice($candidates, $offset, $limit);
+        if (empty($pageCandidates)) {
+            return ['items' => [], 'total' => $total, 'page' => $page, 'limit' => $limit];
+        }
+
+        $pageVariantIds = array_map(fn (array $c) => (int) $c['variant_id'], $pageCandidates);
+        $inPlaceholders = implode(',', array_fill(0, count($pageVariantIds), '?'));
+
+        // 5. Fetch full row details for only this page's variants
+        $detailStmt = $this->pdo->prepare(
             "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name,
-                    v.mrp, v.retail_price, v.wholesale_price, g.gst_percent, g.tax_mode,
+                    v.mrp, v.normal_price, v.retail_price, v.wholesale_price, v.customer_price,
+                    g.gst_percent, g.tax_mode,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
                     COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
@@ -233,18 +340,29 @@ final class InventoryService
              JOIN products p ON p.id = v.product_id
              LEFT JOIN inventory i ON i.variant_id = v.id
              LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
-             WHERE {$whereSql}
-             ORDER BY p.name, v.sku
-             LIMIT :limit OFFSET :offset"
+             WHERE v.id IN ({$inPlaceholders})"
         );
-        foreach ($params as $key => $value) {
-            $stmt->bindValue(":{$key}", $value);
-        }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
+        $detailStmt->execute($pageVariantIds);
+        $fetchedRows = $detailStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
+        // Index fetched rows by variant_id
+        $indexedRows = [];
+        foreach ($fetchedRows as $row) {
+            $indexedRows[(int) $row['variant_id']] = $row;
+        }
+
+        // 6. Build final items matching the sorted page order exactly
+        $finalItems = [];
+        foreach ($pageVariantIds as $vId) {
+            if (isset($indexedRows[$vId])) {
+                $item = $indexedRows[$vId];
+                $netUnits = (float) ($salesMap[$vId] ?? 0);
+                $item['sales_units'] = number_format($netUnits, 3, '.', '');
+                $finalItems[] = $item;
+            }
+        }
+
+        return ['items' => $finalItems, 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
     /** @return list<array<string, mixed>> */

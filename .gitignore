@@ -1,8 +1,21 @@
 # Env files — never commit secrets
 .env
 .env.local
+.env.test
 **/.env
 **/.env.local
+**/.env.test
+
+# Storage & Cache
+backend/storage/cache/
+**/storage/cache/
+backend/storage/
+
+# Test artifacts
+test_artifacts/
+test-results/
+playwright-report/
+scratch/
 
 # Dependencies and build output (apps/* also carry their own .gitignore)
 node_modules/

@@ -9,6 +9,7 @@ use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\CategoryService;
+use App\Services\SalesRankingService;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -16,10 +17,12 @@ use RuntimeException;
 final class CategoryController
 {
     private readonly CategoryService $categories;
+    private readonly SalesRankingService $salesRanking;
 
     public function __construct(private readonly PDO $pdo)
     {
         $this->categories = new CategoryService($pdo);
+        $this->salesRanking = new SalesRankingService($pdo);
     }
 
     private function isStaff(): bool
@@ -46,6 +49,24 @@ final class CategoryController
             $status = 'ACTIVE';
         }
         Response::json(['categories' => $this->categories->list($status)]);
+    }
+
+    /** POS-specific categories endpoint with sales ranking, auth check, and top limit metadata */
+    public function posIndex(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        if (($claims['role'] ?? '') === 'CUSTOMER') {
+            Response::error('Forbidden for customer role', 403);
+            return;
+        }
+
+        $topLimit = isset($_GET['top_limit']) && is_numeric($_GET['top_limit']) ? (int) $_GET['top_limit'] : null;
+        $periodDays = isset($_GET['period_days']) && is_numeric($_GET['period_days']) ? (int) $_GET['period_days'] : null;
+        $defaultView = isset($_GET['default_view']) ? (string) $_GET['default_view'] : null;
+        $bypassCache = isset($_GET['no_cache']) && ($_GET['no_cache'] === '1' || $_GET['no_cache'] === 'true');
+
+        $result = $this->salesRanking->getPosCategorySales($topLimit, $periodDays, $defaultView, $bypassCache);
+        Response::json($result);
     }
 
     public function show(string $id): void

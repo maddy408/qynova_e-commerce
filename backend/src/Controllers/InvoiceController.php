@@ -69,6 +69,8 @@ final class InvoiceController
                 amountPaid: (string) ($body['amount_paid'] ?? '0'),
                 couponCode: $body['coupon_code'] ?? null,
                 priceType: isset($body['price_type']) ? (string) $body['price_type'] : null,
+                discountType: $body['discount_type'] ?? null,
+                discountValue: $body['discount_value'] ?? 0,
             );
             Response::json(['invoice' => $this->invoices->find($id)], 201);
         } catch (RuntimeException $e) {

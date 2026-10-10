@@ -29,6 +29,9 @@ interface InvoiceDetail {
   cashier_name: string | null
   subtotal: string
   discount_total: string
+  bill_discount_type?: 'PERCENT' | 'AMOUNT' | null
+  bill_discount_value?: string | number | null
+  bill_discount_amount?: string | number | null
   tax_total: string
   shipping_total: string
   grand_total: string
@@ -425,10 +428,14 @@ export function InvoiceDetailPage() {
                   <span className="uppercase font-semibold">GROSS AMOUNT</span>
                   <span className="font-mono">{money(subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-slate-700">
-                  <span className="uppercase font-semibold">DISCOUNT</span>
-                  <span className="font-mono">{money(discountTotal)}</span>
-                </div>
+                {discountTotal > 0 && (
+                  <div className="flex justify-between text-emerald-800 font-semibold">
+                    <span className="uppercase">
+                      DISCOUNT{invoice.bill_discount_type === 'PERCENT' && Number(invoice.bill_discount_value) > 0 ? ` (${Number(invoice.bill_discount_value)}%)` : ''}
+                    </span>
+                    <span className="font-mono">-{money(discountTotal)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-slate-700">
                   <span className="uppercase font-semibold">GST TAX</span>
                   <span className="font-mono">{money(taxTotal)}</span>
@@ -509,6 +516,20 @@ export function InvoiceDetailPage() {
                 <span>Subtotal</span>
                 <span>Rs. {money(subtotal)}</span>
               </div>
+              {discountTotal > 0 && (
+                <div className="flex justify-between font-medium text-emerald-800">
+                  <span>
+                    Discount{invoice.bill_discount_type === 'PERCENT' && Number(invoice.bill_discount_value) > 0 ? ` (${Number(invoice.bill_discount_value)}%)` : ''}
+                  </span>
+                  <span>-Rs. {money(discountTotal)}</span>
+                </div>
+              )}
+              {taxTotal > 0 && (
+                <div className="flex justify-between font-medium text-slate-700">
+                  <span>Tax (GST)</span>
+                  <span>Rs. {money(taxTotal)}</span>
+                </div>
+              )}
               <div className="border-b border-slate-800 my-1" />
               <div className="flex justify-between text-sm font-black text-slate-900">
                 <span>TOTAL AMOUNT</span>

@@ -84,6 +84,15 @@ final class InvoiceService
         return $invoiceId;
     }
 
+    public const ALLOWED_POS_PAYMENT_METHODS = [
+        'CASH',
+        'UPI',
+        'CARD',
+        'NETBANKING',
+        'CREDIT',
+        'GOOGLE_PAY',
+    ];
+
     /**
      * POS billing (docs/DOCUMENTATION.md section 12). Deducts stock
      * immediately — POS has no reservation phase, it's a completed
@@ -98,10 +107,21 @@ final class InvoiceService
         string $paymentMethod,
         string $amountPaid,
         ?string $couponCode = null,
-        ?string $priceType = null
+        ?string $priceType = null,
+        ?string $discountType = null,
+        string|float|int $discountValue = 0
     ): int {
         if ($items === []) {
             throw new RuntimeException('At least one item is required');
+        }
+
+        $normalizedMethod = strtoupper(trim($paymentMethod));
+        if (!in_array($normalizedMethod, self::ALLOWED_POS_PAYMENT_METHODS, true)) {
+            throw new RuntimeException("Invalid payment method '{$paymentMethod}'");
+        }
+
+        if ($normalizedMethod === 'CREDIT' && $customerId === null) {
+            throw new RuntimeException('Credit payment is only allowed for registered customers');
         }
 
         $customerType = 'RETAIL';
@@ -121,7 +141,70 @@ final class InvoiceService
         }
 
         $subtotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['line_subtotal'], 2), '0.00');
-        $taxTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['tax_amount'], 2), '0.00');
+
+        // Bill Discount Validation & Calculation
+        $normalizedDiscountType = null;
+        if ($discountType !== null && trim((string) $discountType) !== '') {
+            $normalizedDiscountType = strtoupper(trim((string) $discountType));
+            if (!in_array($normalizedDiscountType, ['PERCENT', 'AMOUNT'], true)) {
+                throw new RuntimeException("Invalid discount type '{$discountType}'");
+            }
+        }
+
+        $discountValueStr = trim((string) $discountValue);
+        if ($discountValueStr === '') {
+            $discountValueStr = '0';
+        }
+
+        if (!is_numeric($discountValueStr)) {
+            throw new RuntimeException('Discount value must be numeric');
+        }
+
+        if (bccomp($discountValueStr, '0', 4) < 0) {
+            throw new RuntimeException('Discount value cannot be negative');
+        }
+
+        if (str_contains($discountValueStr, '.')) {
+            $parts = explode('.', $discountValueStr);
+            if (isset($parts[1]) && strlen($parts[1]) > 2) {
+                throw new RuntimeException('Discount value cannot have more than 2 decimal places');
+            }
+        }
+
+        $billDiscountAmount = '0.00';
+        if ($normalizedDiscountType === 'PERCENT') {
+            if (bccomp($discountValueStr, '100', 2) > 0) {
+                throw new RuntimeException('Discount percentage cannot exceed 100%');
+            }
+            $rawPercentDiscount = bcdiv(bcmul($subtotal, $discountValueStr, 6), '100', 4);
+            $billDiscountAmount = number_format((float) $rawPercentDiscount, 2, '.', '');
+        } elseif ($normalizedDiscountType === 'AMOUNT') {
+            if (bccomp($discountValueStr, $subtotal, 2) > 0) {
+                throw new RuntimeException('Discount amount cannot exceed subtotal');
+            }
+            $billDiscountAmount = bcadd($discountValueStr, '0', 2);
+        }
+
+        // Cashier role max discount check
+        $stmtUserRole = $this->pdo->prepare('SELECT r.code FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = :id LIMIT 1');
+        $stmtUserRole->execute(['id' => $cashierUserId]);
+        $userRole = strtoupper((string) ($stmtUserRole->fetchColumn() ?: 'CASHIER'));
+
+        if ($userRole === 'CASHIER' && bccomp($subtotal, '0', 2) > 0 && bccomp($billDiscountAmount, '0', 2) > 0) {
+            $maxDiscountPercent = (float) $this->getSetting('pos_cashier_max_discount_percent', '100');
+            $effectivePercent = (float) bcdiv(bcmul($billDiscountAmount, '100', 4), $subtotal, 2);
+            if ($effectivePercent > $maxDiscountPercent) {
+                throw new RuntimeException("Discount exceeds cashier maximum allowed limit of {$maxDiscountPercent}%");
+            }
+        }
+
+        // Coupon + Bill Discount conflict check
+        if ($couponCode !== null && trim($couponCode) !== '' && bccomp($billDiscountAmount, '0', 2) > 0) {
+            $allowWithCoupon = (bool) (int) $this->getSetting('pos_allow_bill_discount_with_coupon', '0');
+            if (!$allowWithCoupon) {
+                throw new RuntimeException('Cannot combine bill discount with coupon');
+            }
+        }
 
         $couponId = null;
         $couponDiscount = '0.00';
@@ -145,21 +228,87 @@ final class InvoiceService
             $couponDiscount = $result['discount_amount'];
         }
 
-        $grandTotal = bcadd(bcsub($subtotal, $couponDiscount, 2), $taxTotal, 2);
+        // Proportional line allocation of Bill Discount and Tax computation on discounted value
+        $lineCount = count($lines);
+        $remainingBillDiscount = $billDiscountAmount;
+        $taxTotal = '0.00';
+        $grandTotal = '0.00';
+        $allocatedLines = [];
+
+        foreach ($lines as $index => $line) {
+            $lineSub = $line['line_subtotal'];
+            $allocated = '0.00';
+
+            if (bccomp($billDiscountAmount, '0', 2) > 0 && bccomp($subtotal, '0', 2) > 0) {
+                if ($index === $lineCount - 1) {
+                    $allocated = $remainingBillDiscount;
+                } else {
+                    $share = bcdiv($lineSub, $subtotal, 10);
+                    $rawAlloc = bcmul($billDiscountAmount, $share, 4);
+                    $allocated = number_format((float) $rawAlloc, 2, '.', '');
+                    if (bccomp($allocated, $remainingBillDiscount, 2) > 0) {
+                        $allocated = $remainingBillDiscount;
+                    }
+                }
+                $remainingBillDiscount = bcsub($remainingBillDiscount, $allocated, 2);
+            }
+
+            $discountedLineSub = bcsub($lineSub, $allocated, 2);
+            if (bccomp($discountedLineSub, '0', 2) < 0) {
+                $discountedLineSub = '0.00';
+            }
+
+            $gstPercent = (string) ($line['gst_percent'] ?? '0');
+            $taxMode = (string) ($line['tax_mode'] ?? 'EXCLUSIVE');
+
+            if ($taxMode === 'INCLUSIVE') {
+                $rawBase = bcdiv(bcmul($discountedLineSub, '100', 6), bcadd('100', $gstPercent, 6), 4);
+                $rawTax = bcsub($discountedLineSub, $rawBase, 4);
+                $lineTax = number_format((float) $rawTax, 2, '.', '');
+                $lineTotal = $discountedLineSub;
+            } else {
+                $rawTax = bcdiv(bcmul($discountedLineSub, $gstPercent, 6), '100', 4);
+                $lineTax = number_format((float) $rawTax, 2, '.', '');
+                $lineTotal = bcadd($discountedLineSub, $lineTax, 2);
+            }
+
+            $taxTotal = bcadd($taxTotal, $lineTax, 2);
+            $grandTotal = bcadd($grandTotal, $lineTotal, 2);
+
+            $allocatedLines[] = array_merge($line, [
+                'allocated_bill_discount' => $allocated,
+                'discounted_line_subtotal' => $discountedLineSub,
+                'tax_amount' => $lineTax,
+                'line_total' => $lineTotal,
+            ]);
+        }
+
+        if (bccomp($couponDiscount, '0', 2) > 0) {
+            $grandTotal = bcsub($grandTotal, $couponDiscount, 2);
+            if (bccomp($grandTotal, '0', 2) < 0) {
+                $grandTotal = '0.00';
+            }
+        }
+
+        $discountTotal = bcadd($billDiscountAmount, $couponDiscount, 2);
         $paymentStatus = bccomp($amountPaid, $grandTotal, 2) >= 0 ? 'PAID' : (bccomp($amountPaid, '0', 2) > 0 ? 'PARTIAL' : 'UNPAID');
 
         $this->pdo->beginTransaction();
 
         try {
             $invoiceId = $this->insertWithRetry(function (string $invoiceNo) use (
-                $customerId, $cashierUserId, $effectivePriceType, $subtotal, $couponDiscount, $taxTotal, $grandTotal, $amountPaid, $paymentMethod, $paymentStatus
+                $customerId, $cashierUserId, $effectivePriceType, $subtotal, $discountTotal,
+                $normalizedDiscountType, $discountValueStr, $billDiscountAmount,
+                $taxTotal, $grandTotal, $amountPaid, $normalizedMethod, $paymentStatus
             ) {
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO invoices (
                         invoice_no, channel, customer_id, cashier_user_id, customer_type, subtotal, discount_total,
+                        bill_discount_type, bill_discount_value, bill_discount_amount,
                         tax_total, shipping_total, grand_total, payment_method, amount_paid, payment_status, status
                     ) VALUES (
                         :invoice_no, 'POS', :customer_id, :cashier_user_id, :customer_type, :subtotal, :discount_total,
+                        :bill_discount_type, :bill_discount_value, :bill_discount_amount,
                         :tax_total, 0, :grand_total, :payment_method, :amount_paid, :payment_status, 'ACTIVE'
                     )"
                 );
@@ -169,10 +318,13 @@ final class InvoiceService
                     'cashier_user_id' => $cashierUserId,
                     'customer_type' => in_array(strtoupper($effectivePriceType), ['NORMAL', 'RETAIL', 'WHOLESALE'], true) ? strtoupper($effectivePriceType) : 'NORMAL',
                     'subtotal' => $subtotal,
-                    'discount_total' => $couponDiscount,
+                    'discount_total' => $discountTotal,
+                    'bill_discount_type' => $normalizedDiscountType,
+                    'bill_discount_value' => $discountValueStr,
+                    'bill_discount_amount' => $billDiscountAmount,
                     'tax_total' => $taxTotal,
                     'grand_total' => $grandTotal,
-                    'payment_method' => $paymentMethod,
+                    'payment_method' => $normalizedMethod,
                     'amount_paid' => $amountPaid,
                     'payment_status' => $paymentStatus,
                 ]);
@@ -180,21 +332,14 @@ final class InvoiceService
                 return (int) $this->pdo->lastInsertId();
             });
 
-            $lineCount = count($lines);
-            $remainingDiscount = $couponDiscount;
-
-            foreach ($lines as $index => $line) {
-                $share = bccomp($subtotal, '0', 2) === 0 ? '0' : bcdiv($line['line_subtotal'], $subtotal, 6);
-                $allocated = $index === $lineCount - 1 ? $remainingDiscount : bcmul($couponDiscount, $share, 2);
-                $remainingDiscount = bcsub($remainingDiscount, $allocated, 2);
-
+            foreach ($allocatedLines as $line) {
                 $this->pdo->prepare(
                     'INSERT INTO invoice_items (
                         invoice_id, product_id, variant_id, product_name_snapshot, variant_label_snapshot,
-                        sku_snapshot, quantity, mrp, unit_price, discount_amount, tax_amount, line_total
+                        sku_snapshot, quantity, mrp, unit_price, discount_amount, bill_discount_amount, tax_amount, line_total
                     ) VALUES (
                         :invoice_id, :product_id, :variant_id, :product_name, :variant_label,
-                        :sku, :quantity, :mrp, :unit_price, :discount, :tax_amount, :line_total
+                        :sku, :quantity, :mrp, :unit_price, :discount, :bill_discount_amount, :tax_amount, :line_total
                     )'
                 )->execute([
                     'invoice_id' => $invoiceId,
@@ -206,9 +351,10 @@ final class InvoiceService
                     'quantity' => $line['quantity'],
                     'mrp' => $line['mrp'],
                     'unit_price' => $line['unit_price'],
-                    'discount' => $allocated,
+                    'discount' => $line['allocated_bill_discount'],
+                    'bill_discount_amount' => $line['allocated_bill_discount'],
                     'tax_amount' => $line['tax_amount'],
-                    'line_total' => bcsub(bcadd($line['line_subtotal'], $line['tax_amount'], 2), $allocated, 2),
+                    'line_total' => $line['line_total'],
                 ]);
 
                 if (!empty($line['variant_id']) && (int) $line['variant_id'] > 0) {
@@ -580,5 +726,17 @@ final class InvoiceService
         }
 
         return $lines;
+    }
+
+    private function getSetting(string $key, string $default): string
+    {
+        try {
+            $stmt = $this->pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = :k LIMIT 1');
+            $stmt->execute(['k' => $key]);
+            $val = $stmt->fetchColumn();
+            return $val !== false ? (string) $val : $default;
+        } catch (\Throwable) {
+            return $default;
+        }
     }
 }
