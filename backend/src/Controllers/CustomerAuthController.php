@@ -492,6 +492,61 @@ final class CustomerAuthController
         Response::json(['customers' => $stmt->fetchAll()]);
     }
 
+    /** Staff creating a new customer for POS billing. Requires Name & Phone. */
+    public function createForStaff(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+
+        $body = Request::json();
+        $name = trim((string) ($body['name'] ?? ''));
+        $phone = trim((string) ($body['phone'] ?? ''));
+        $email = trim((string) ($body['email'] ?? ''));
+        $rawType = strtoupper(trim((string) ($body['customer_type'] ?? 'RETAIL')));
+        $type = in_array($rawType, ['WHOLESALE'], true) ? 'WHOLESALE' : 'RETAIL';
+
+        if ($name === '') {
+            Response::error('Customer Name is required', 422);
+        }
+
+        if ($phone === '') {
+            Response::error('Phone Number is required', 422);
+        }
+
+        // Check if customer with this phone already exists
+        $stmt = $this->pdo->prepare('SELECT id, name, phone, email, customer_type, status FROM customers WHERE phone = :phone AND deleted_at IS NULL LIMIT 1');
+        $stmt->execute(['phone' => $phone]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($existing) {
+            // Update name & customer_type if provided
+            $updateStmt = $this->pdo->prepare('UPDATE customers SET name = :name, customer_type = :type WHERE id = :id');
+            $updateStmt->execute(['name' => $name, 'type' => $type, 'id' => $existing['id']]);
+            $existing['name'] = $name;
+            $existing['customer_type'] = $type;
+            Response::json(['customer' => $existing], 200);
+            return;
+        }
+
+        // Create new customer
+        $insert = $this->pdo->prepare(
+            'INSERT INTO customers (name, phone, email, customer_type, status)
+             VALUES (:name, :phone, :email, :customer_type, "ACTIVE")'
+        );
+        $insert->execute([
+            'name' => $name,
+            'phone' => $phone,
+            'email' => $email !== '' ? $email : null,
+            'customer_type' => $type,
+        ]);
+        $id = (int) $this->pdo->lastInsertId();
+
+        $fetch = $this->pdo->prepare('SELECT id, name, phone, email, customer_type, status FROM customers WHERE id = :id');
+        $fetch->execute(['id' => $id]);
+        $customer = $fetch->fetch(PDO::FETCH_ASSOC);
+
+        Response::json(['customer' => $customer], 201);
+    }
+
     /** Staff updating customer_type (Retail vs Wholesale mapping) & customer profile. */
     public function updateForStaff(string $id): void
     {

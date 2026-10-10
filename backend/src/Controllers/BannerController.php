@@ -22,14 +22,34 @@ final class BannerController
         $this->banners = new BannerService($pdo, new ImageUploadService());
     }
 
+    private function isStaff(): bool
+    {
+        $token = Request::bearerToken();
+        if ($token === null) {
+            return false;
+        }
+        try {
+            $claims = \App\Helpers\JwtHelper::verify($token);
+            return isset($claims['role']) && !empty($claims['role']);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     /** Public — storefront home/category pages render banners by position. */
     public function index(): void
     {
         $position = $_GET['position'] ?? null;
-        $isActive = isset($_GET['is_active']) ? (bool) (int) $_GET['is_active'] : null;
-        $currentOnly = isset($_GET['current_only'])
-            ? (bool) (int) $_GET['current_only']
-            : ($isActive === true);
+        $isStaff = $this->isStaff();
+        if (!$isStaff) {
+            $isActive = true;
+            $currentOnly = true;
+        } else {
+            $isActive = isset($_GET['is_active']) ? (bool) (int) $_GET['is_active'] : null;
+            $currentOnly = isset($_GET['current_only'])
+                ? (bool) (int) $_GET['current_only']
+                : ($isActive === true);
+        }
 
         Response::json(['banners' => $this->banners->list($position, $isActive, $currentOnly)]);
     }
@@ -40,6 +60,18 @@ final class BannerController
         $banner = $this->banners->find((int) $id);
         if ($banner === null) {
             Response::error('Banner not found', 404);
+        }
+
+        if (!$this->isStaff()) {
+            if (empty($banner['is_active'])) {
+                Response::error('Banner not found', 404);
+            }
+            if (!empty($banner['starts_at']) && strtotime($banner['starts_at']) > time()) {
+                Response::error('Banner not found', 404);
+            }
+            if (!empty($banner['ends_at']) && strtotime($banner['ends_at']) < time()) {
+                Response::error('Banner not found', 404);
+            }
         }
 
         Response::json(['banner' => $banner]);

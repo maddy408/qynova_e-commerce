@@ -17,6 +17,8 @@ export default function Shop() {
   const pageParam = parseInt(searchParams.get('page') || '1', 10)
   const sectionParam = searchParams.get('section') || ''
   const categoryIdParam = searchParams.get('category_id') || ''
+  const subcategoryIdParam = searchParams.get('subcategory_id') || ''
+  const brandIdParam = searchParams.get('brand_id') || ''
   const sortParam = searchParams.get('sort') || 'newest'
   const searchParam = searchParams.get('search') || ''
   const isWishlistParam = searchParams.get('wishlist') === '1'
@@ -34,12 +36,15 @@ export default function Shop() {
     hasPreviousPage: false,
   })
   const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
+  const [brands, setBrands] = useState([])
   const [storeSettings, setStoreSettings] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // Modals & local state
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [checkoutCartData, setCheckoutCartData] = useState(null)
   const [isReferralOpen, setIsReferralOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [wishlistIds, setWishlistIds] = useState(() => getWishlistIds())
@@ -58,7 +63,7 @@ export default function Shop() {
     return () => window.removeEventListener('wishlist-updated', handleSync)
   }, [])
 
-  // Fetch store settings & categories from DB once
+  // Fetch store settings, categories, subcategories & brands from DB
   useEffect(() => {
     fetchStoreSettings().then((s) => s && setStoreSettings(s))
     api
@@ -66,6 +71,24 @@ export default function Shop() {
       .then((res) => {
         if (res.data?.categories) {
           setCategories(res.data.categories)
+        }
+      })
+      .catch(() => {})
+
+    api
+      .get('/subcategories')
+      .then((res) => {
+        if (res.data?.subcategories) {
+          setSubcategories(res.data.subcategories)
+        }
+      })
+      .catch(() => {})
+
+    api
+      .get('/brands')
+      .then((res) => {
+        if (res.data?.brands) {
+          setBrands(res.data.brands)
         }
       })
       .catch(() => {})
@@ -80,9 +103,13 @@ export default function Shop() {
       const params = new URLSearchParams()
       params.set('page', String(pageParam))
       params.set('limit', '12') // 12 cards per page for 2/3/4-col responsive layout
+      params.set('channel', 'ecommerce')
+      params.set('is_active', '1')
 
       if (sectionParam) params.set('section', sectionParam)
       if (categoryIdParam) params.set('category_id', categoryIdParam)
+      if (subcategoryIdParam) params.set('subcategory_id', subcategoryIdParam)
+      if (brandIdParam) params.set('brand_id', brandIdParam)
       if (sortParam) params.set('sort', sortParam)
       if (searchParam) params.set('search', searchParam)
       if (minPriceParam) params.set('min_price', minPriceParam)
@@ -127,6 +154,8 @@ export default function Shop() {
     pageParam,
     sectionParam,
     categoryIdParam,
+    subcategoryIdParam,
+    brandIdParam,
     sortParam,
     searchParam,
     isWishlistParam,
@@ -144,10 +173,33 @@ export default function Shop() {
   const handleCategoryChange = (catId) => {
     const next = new URLSearchParams(searchParams)
     next.set('page', '1')
+    next.delete('subcategory_id')
     if (catId) {
       next.set('category_id', String(catId))
     } else {
       next.delete('category_id')
+    }
+    setSearchParams(next)
+  }
+
+  const handleSubcategoryChange = (subcatId) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('page', '1')
+    if (subcatId) {
+      next.set('subcategory_id', String(subcatId))
+    } else {
+      next.delete('subcategory_id')
+    }
+    setSearchParams(next)
+  }
+
+  const handleBrandChange = (bId) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('page', '1')
+    if (bId) {
+      next.set('brand_id', String(bId))
+    } else {
+      next.delete('brand_id')
     }
     setSearchParams(next)
   }
@@ -192,9 +244,28 @@ export default function Shop() {
     return categories.find((c) => String(c.id) === String(categoryIdParam))
   }, [categoryIdParam, categories])
 
+  const currentSubcategoryObj = useMemo(() => {
+    if (!subcategoryIdParam) return null
+    return subcategories.find((s) => String(s.id) === String(subcategoryIdParam))
+  }, [subcategoryIdParam, subcategories])
+
+  const currentBrandObj = useMemo(() => {
+    if (!brandIdParam) return null
+    return brands.find((b) => String(b.id) === String(brandIdParam))
+  }, [brandIdParam, brands])
+
+  const relevantSubcategories = useMemo(() => {
+    if (!categoryIdParam) return subcategories
+    return subcategories.filter((s) => s.category_ids?.includes(Number(categoryIdParam)))
+  }, [categoryIdParam, subcategories])
+
   const pageTitle = useMemo(() => {
     if (isWishlistParam) return 'My Saved Wishlist'
     if (searchParam) return `Search Results for "${searchParam}"`
+    if (currentBrandObj && currentCategoryObj) return `${currentBrandObj.name} — ${currentCategoryObj.name}`
+    if (currentBrandObj) return `Brand: ${currentBrandObj.name}`
+    if (currentCategoryObj && currentSubcategoryObj) return `${currentCategoryObj.name} — ${currentSubcategoryObj.name}`
+    if (currentSubcategoryObj) return currentSubcategoryObj.name
     if (currentCategoryObj) return currentCategoryObj.name
     if (sectionParam === 'best_sellers') return 'Best Sellers'
     if (sectionParam === 'new_arrivals') return 'New Arrivals'
@@ -202,14 +273,14 @@ export default function Shop() {
     if (sectionParam === 'trending') return 'Trending Products'
     if (sectionParam === 'deals') return 'Flash Deals & Special Offers'
     return 'All Products Catalog'
-  }, [isWishlistParam, searchParam, currentCategoryObj, sectionParam])
+  }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, currentBrandObj, sectionParam])
 
   return (
-    <div className="min-h-screen bg-[#FDFBFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-purple-100 selection:text-purple-900 flex flex-col justify-between">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#2E1065] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-purple-500/30 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#27213A] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[#8B5CF6]/30 animate-bounce">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -280,11 +351,11 @@ export default function Shop() {
                 <option value="name_asc">Name: A to Z</option>
               </select>
 
-              {(categoryIdParam || sectionParam || searchParam || isWishlistParam) && (
+              {(categoryIdParam || subcategoryIdParam || brandIdParam || sectionParam || searchParam || isWishlistParam || minPriceParam || maxPriceParam) && (
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="px-3.5 py-2 bg-purple-100 hover:bg-purple-200 text-purple-900 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-2 bg-[#EDE5FF] hover:bg-[#E0D6FF] text-[#7042D2] text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Clear Filters ✕
                 </button>
@@ -299,8 +370,8 @@ export default function Shop() {
               onClick={() => handleCategoryChange('')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 !categoryIdParam
-                  ? 'bg-[#6B21A8] text-white shadow-xs'
-                  : 'bg-purple-50 text-purple-900 hover:bg-purple-100'
+                  ? 'bg-[#8B5CF6] text-white shadow-xs'
+                  : 'bg-[#F5F0FF] text-[#27213A] hover:bg-[#EDE5FF]'
               }`}
             >
               All Categories
@@ -314,8 +385,8 @@ export default function Shop() {
                   onClick={() => handleCategoryChange(cat.id)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#6B21A8] text-white shadow-xs'
-                      : 'bg-purple-50 text-purple-900 hover:bg-purple-100'
+                      ? 'bg-[#8B5CF6] text-white shadow-xs'
+                      : 'bg-[#F5F0FF] text-[#27213A] hover:bg-[#EDE5FF]'
                   }`}
                 >
                   {cat.name}
@@ -323,6 +394,80 @@ export default function Shop() {
               )
             })}
           </div>
+
+          {/* Subcategory Quick Chips Filter (Renders when relevant subcategories exist in DB) */}
+          {relevantSubcategories.length > 0 && (
+            <div className="pb-3 flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 items-center">
+              <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider shrink-0 mr-1">
+                Subcategories:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSubcategoryChange('')}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  !subcategoryIdParam
+                    ? 'bg-purple-900 text-white shadow-xs'
+                    : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                }`}
+              >
+                All
+              </button>
+              {relevantSubcategories.map((subcat) => {
+                const isSelected = String(subcat.id) === String(subcategoryIdParam)
+                return (
+                  <button
+                    key={subcat.id}
+                    type="button"
+                    onClick={() => handleSubcategoryChange(subcat.id)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                    }`}
+                  >
+                    {subcat.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Brand Quick Chips Filter (Renders when brands exist in DB) */}
+          {brands.length > 0 && (
+            <div className="pb-3 flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 items-center">
+              <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider shrink-0 mr-1">
+                Brands:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleBrandChange('')}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                  !brandIdParam
+                    ? 'bg-purple-900 text-white shadow-xs'
+                    : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                }`}
+              >
+                All
+              </button>
+              {brands.map((b) => {
+                const isSelected = String(b.id) === String(brandIdParam)
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => handleBrandChange(b.id)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-900 text-white shadow-xs'
+                        : 'bg-white border border-purple-200 text-purple-900 hover:bg-purple-50'
+                    }`}
+                  >
+                    {b.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Products Grid or Loading / Empty */}
           {isLoading ? (
@@ -351,7 +496,7 @@ export default function Shop() {
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="inline-block px-5 py-2.5 bg-[#6B21A8] text-white rounded-full text-xs font-bold shadow-xs cursor-pointer hover:bg-[#581C87]"
+                className="inline-block px-5 py-2.5 bg-[#8B5CF6] text-white rounded-full text-xs font-bold shadow-xs cursor-pointer hover:bg-[#7042D2]"
               >
                 View All Products
               </button>
@@ -404,8 +549,8 @@ export default function Shop() {
                       onClick={() => handlePageChange(p)}
                       className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         isCurrent
-                          ? 'bg-[#6B21A8] text-white shadow-xs'
-                          : 'bg-white border border-purple-100 text-purple-900 hover:bg-purple-50'
+                          ? 'bg-[#8B5CF6] text-white shadow-xs'
+                          : 'bg-white border border-[#E8E0F5] text-[#27213A] hover:bg-[#F5F0FF]'
                       }`}
                     >
                       {p}
@@ -434,7 +579,7 @@ export default function Shop() {
       </div>
 
       {/* FOOTER */}
-      <footer className="bg-[#1E0B36] text-white pt-12 pb-8 border-t border-purple-950 mt-12">
+      <footer className="bg-[#27213A] text-white pt-12 pb-8 border-t border-[#E8E0F5]/20 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-purple-900/60">
             <div className="space-y-3">
@@ -479,7 +624,8 @@ export default function Shop() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onProceedToCheckout={() => {
+        onProceedToCheckout={(cartData) => {
+          setCheckoutCartData(cartData)
           setIsCartOpen(false)
           setIsCheckoutOpen(true)
         }}
@@ -488,6 +634,7 @@ export default function Shop() {
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
+        cartData={checkoutCartData}
       />
 
       {isReferralOpen && (

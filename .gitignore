@@ -27,6 +27,9 @@ backend/public/uploads/*
 # Logs
 *.log
 
+# Scratch scripts
+scratch/
+
 # OS / editor
 .DS_Store
 .idea/

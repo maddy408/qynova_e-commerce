@@ -169,11 +169,11 @@ final class ReturnsController
 
         foreach ($returns as &$ret) {
             $itemStmt = $this->pdo->prepare(
-                "SELECT pri.*, pv.sku, p.name as product_name
+                "SELECT pri.*, pri.quantity AS qty, pri.unit_cost AS unit_price, pri.line_total AS total_amount, pv.sku, p.name as product_name
                  FROM purchase_return_items pri
                  JOIN product_variants pv ON pv.id = pri.variant_id
                  JOIN products p ON p.id = pv.product_id
-                 WHERE pri.return_id = :id"
+                 WHERE pri.purchase_return_id = :id"
             );
             $itemStmt->execute(['id' => $ret['id']]);
             $ret['items'] = $itemStmt->fetchAll();
@@ -227,8 +227,8 @@ final class ReturnsController
             $returnId = (int) $this->pdo->lastInsertId();
 
             $insertItem = $this->pdo->prepare(
-                "INSERT INTO purchase_return_items (return_id, variant_id, qty, unit_price, total_amount)
-                 VALUES (:return_id, :variant_id, :qty, :unit_price, :total_amount)"
+                "INSERT INTO purchase_return_items (purchase_return_id, purchase_item_id, variant_id, quantity, unit_cost, line_total)
+                 VALUES (:purchase_return_id, :purchase_item_id, :variant_id, :quantity, :unit_cost, :line_total)"
             );
 
             // Record stock adjustment to deduct items from inventory
@@ -252,11 +252,12 @@ final class ReturnsController
 
                 $itemTotal = $qty * $unitPrice;
                 $insertItem->execute([
-                    'return_id' => $returnId,
+                    'purchase_return_id' => $returnId,
+                    'purchase_item_id' => null,
                     'variant_id' => $variantId,
-                    'qty' => $qty,
-                    'unit_price' => $unitPrice,
-                    'total_amount' => $itemTotal,
+                    'quantity' => $qty,
+                    'unit_cost' => $unitPrice,
+                    'line_total' => $itemTotal,
                 ]);
 
                 // Current stock on hand

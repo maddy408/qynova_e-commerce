@@ -22,10 +22,32 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
     async function loadReferralData() {
       setIsLoading(true)
       try {
-        const res = await api.get('/customers/me')
-        if (res.data?.referral) {
-          setReferralSummary(res.data.referral)
-        }
+        const [meRes, settingsRes] = await Promise.allSettled([
+          api.get('/customers/me'),
+          api.get('/referral-settings'),
+        ])
+
+        const customerReferral =
+          meRes.status === 'fulfilled' && meRes.value?.data?.referral
+            ? meRes.value.data.referral
+            : null
+
+        const globalSettings =
+          settingsRes.status === 'fulfilled' && settingsRes.value?.data?.settings
+            ? settingsRes.value.data.settings
+            : null
+
+        const rate =
+          customerReferral?.reward_percent ??
+          (globalSettings?.referrer_discount_percent !== undefined && globalSettings?.referrer_discount_percent !== null
+            ? Number(globalSettings.referrer_discount_percent)
+            : null)
+
+        setReferralSummary({
+          ...globalSettings,
+          ...customerReferral,
+          reward_percent: rate,
+        })
       } catch (err) {
         console.error('Failed to load customer referral summary', err)
       } finally {
@@ -136,7 +158,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                     Refer & Earn
                   </h3>
                   <p className="text-[11px] text-purple-200 font-medium">
-                    Share your code & get 10% OFF each!
+                    Share your code & get {referralSummary?.reward_percent ? `${referralSummary.reward_percent}%` : 'special rewards'} OFF each!
                   </p>
                 </div>
               </div>
@@ -153,6 +175,18 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
               {isLoading ? (
                 <div className="py-8 text-center text-xs font-bold text-purple-700 animate-pulse">
                   Loading referral details from database...
+                </div>
+              ) : referralSummary && (referralSummary.is_enabled === 0 || referralSummary.is_enabled === false) ? (
+                <div className="py-8 px-4 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
+                    ℹ️
+                  </div>
+                  <h4 className="text-sm font-black text-purple-950">
+                    Referral Program Currently Unavailable
+                  </h4>
+                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                    The referral program is currently disabled. Please check back later!
+                  </p>
                 </div>
               ) : (
                 <>
@@ -173,7 +207,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                       </button>
                     </div>
                     <p className="text-[11px] text-gray-500">
-                      Share this code with friends. When they apply it, you both get 10% OFF!
+                      Share this code with friends. When they apply it, you both get {referralSummary?.reward_percent ? `${referralSummary.reward_percent}%` : 'special rewards'} OFF!
                     </p>
                   </div>
 

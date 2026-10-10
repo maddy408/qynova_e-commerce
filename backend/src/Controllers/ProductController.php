@@ -20,17 +20,41 @@ final class ProductController
     {
     }
 
+    private function isStaff(): bool
+    {
+        $token = Request::bearerToken();
+        if ($token === null) {
+            return false;
+        }
+        try {
+            $claims = \App\Helpers\JwtHelper::verify($token);
+            return isset($claims['role']) && !empty($claims['role']);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function index(): void
     {
         $filters = $_GET;
+        $isStaff = $this->isStaff();
+        if (!$isStaff) {
+            $filters['channel'] = 'ecommerce';
+            $filters['is_active'] = 1;
+        }
         Response::json((new ProductService($this->pdo))->list($filters));
     }
 
     public function show(string $id): void
     {
-        $product = (new ProductService($this->pdo))->find((int) $id);
+        $isStaff = $this->isStaff();
+        $product = (new ProductService($this->pdo))->find($id, $isStaff);
 
         if ($product === null) {
+            Response::error('Product not found', 404);
+        }
+
+        if (!$isStaff && (empty($product['is_active']) || empty($product['is_ecommerce_enabled']))) {
             Response::error('Product not found', 404);
         }
 
