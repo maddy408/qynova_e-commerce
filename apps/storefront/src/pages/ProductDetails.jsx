@@ -178,7 +178,24 @@ export default function ProductDetails() {
             setSelectedVariantId(initialVar.id)
           }
 
-          // Manage Recently Viewed in in-memory session (no localStorage)
+          // T16: Log product view event to customer activity logs & update product_stats.view_count
+          try {
+            let sessId = localStorage.getItem('customer_session_id')
+            if (!sessId) {
+              sessId = 'sess_' + Math.random().toString(36).substring(2, 15)
+              localStorage.setItem('customer_session_id', sessId)
+            }
+            api.post(`/products/${prod.id}/view`, { session_id: sessId }).catch(() => {})
+
+            // Store in persistent local history
+            const storedIds = JSON.parse(localStorage.getItem('recently_viewed_ids') || '[]')
+            const nextIds = [prod.id, ...storedIds.filter((id) => Number(id) !== Number(prod.id))].slice(0, 10)
+            localStorage.setItem('recently_viewed_ids', JSON.stringify(nextIds))
+          } catch {
+            // ignore
+          }
+
+          // Manage Recently Viewed list for UI carousel
           try {
             const filtered = inMemoryRecentlyViewed.filter((item) => Number(item.id) !== Number(prod.id))
             const defVar = prod.variants?.find((v) => v.is_default) || prod.variants?.[0]
@@ -200,6 +217,19 @@ export default function ProductDetails() {
 
             inMemoryRecentlyViewed = [currentEntry, ...filtered].slice(0, 10)
             setRecentlyViewed(filtered)
+
+            // Asynchronously hydrate recently viewed from server to capture full catalog items
+            let sessId = ''
+            try { sessId = localStorage.getItem('customer_session_id') || '' } catch {}
+            api.get(`/products/recently-viewed?limit=8${sessId ? `&session_id=${sessId}` : ''}`)
+              .then((res) => {
+                const sItems = res.data?.items || []
+                const filteredServer = sItems.filter((item) => Number(item.id) !== Number(prod.id))
+                if (filteredServer.length > 0) {
+                  setRecentlyViewed(filteredServer)
+                }
+              })
+              .catch(() => {})
           } catch {
             // ignore
           }
