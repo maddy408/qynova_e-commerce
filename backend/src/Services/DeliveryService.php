@@ -154,10 +154,17 @@ final class DeliveryService
                     $invCheck = $this->pdo->prepare('SELECT id FROM invoices WHERE order_id = :id');
                     $invCheck->execute(['id' => $delivery['order_id']]);
                     if (!$invCheck->fetch()) {
-                        $orderSvc = new OrderService($this->pdo);
+                        // Same dependency wiring as OrderController — OrderService
+                        // and InvoiceService both take several collaborators, none
+                        // of which are optional.
+                        $inventory = new InventoryService($this->pdo);
+                        $coupons = new CouponService($this->pdo);
+                        $refunds = new RefundService($this->pdo);
+                        $invoiceSvc = new InvoiceService($this->pdo, $inventory, $coupons, $refunds);
+                        $orderSvc = new OrderService($this->pdo, $inventory, $coupons, $invoiceSvc, $refunds);
                         $fullOrder = $orderSvc->find($delivery['order_id']);
                         if ($fullOrder) {
-                            (new InvoiceService($this->pdo))->createFromOrder($fullOrder);
+                            $invoiceSvc->createFromOrder($fullOrder);
                         }
                     }
                 }

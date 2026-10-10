@@ -22,17 +22,37 @@ final class CategoryController
         $this->categories = new CategoryService($pdo);
     }
 
+    private function isStaff(): bool
+    {
+        $token = Request::bearerToken();
+        if ($token === null) {
+            return false;
+        }
+        try {
+            $claims = \App\Helpers\JwtHelper::verify($token);
+            return isset($claims['role']) && !empty($claims['role']);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     /** Public — the storefront needs this for category navigation too. */
     public function index(): void
     {
-        Response::json(['categories' => $this->categories->list()]);
+        $status = $_GET['status'] ?? null;
+        if (!$this->isStaff()) {
+            $status = 'ACTIVE';
+        } elseif ($status === null && Request::bearerToken() === null) {
+            $status = 'ACTIVE';
+        }
+        Response::json(['categories' => $this->categories->list($status)]);
     }
 
     public function show(string $id): void
     {
         $category = $this->categories->find((int) $id);
 
-        if ($category === null) {
+        if ($category === null || (!$this->isStaff() && ($category['status'] !== 'ACTIVE' || !empty($category['deleted_at'])))) {
             Response::error('Category not found', 404);
         }
 

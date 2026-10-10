@@ -5,11 +5,11 @@ import { resolveImageUrl } from '../lib/api'
 // Color theme definitions derived from database 'color_theme' values
 const BANNER_THEMES = {
   purple: {
-    bgGradient: 'from-[#2E1065] via-[#581C87] to-[#7E22CE]',
-    accentButton: 'from-[#EC4899] to-[#F43F5E] shadow-pink-900/40 text-white',
+    bgGradient: 'from-[#27213A] via-[#7042D2] to-[#8B5CF6]',
+    accentButton: 'from-[#8B5CF6] to-[#7042D2] shadow-purple-950/40 text-white',
     badge: 'bg-white/20 text-white border-white/30',
-    subtitleText: 'text-pink-200',
-    blobColor: 'bg-pink-500/20',
+    subtitleText: 'text-[#EDE5FF]',
+    blobColor: 'bg-[#8B5CF6]/20',
   },
   blue: {
     bgGradient: 'from-[#0A192F] via-[#1E3A8A] to-[#0284C7]',
@@ -26,10 +26,10 @@ const BANNER_THEMES = {
     blobColor: 'bg-amber-400/20',
   },
   lavender: {
-    bgGradient: 'from-[#1E1035] via-[#4C1D95] to-[#6D28D9]',
-    accentButton: 'from-[#A855F7] to-[#C084FC] shadow-purple-950/40 text-white',
-    badge: 'bg-purple-400/25 text-purple-200 border-purple-300/30',
-    subtitleText: 'text-purple-200',
+    bgGradient: 'from-[#27213A] via-[#5D31B8] to-[#7042D2]',
+    accentButton: 'from-[#8B5CF6] to-[#A78BFA] shadow-purple-950/40 text-white',
+    badge: 'bg-[#EDE5FF]/25 text-[#EDE5FF] border-[#E8E0F5]/30',
+    subtitleText: 'text-[#EDE5FF]',
     blobColor: 'bg-purple-400/20',
   },
   pink: {
@@ -168,20 +168,20 @@ export default function PromotionalBannerCarousel({
   if (totalSlides === 0) {
     return (
       <section className="w-[96%] sm:w-[97%] max-w-[1536px] mx-auto py-3 sm:py-5">
-        <div className="w-full rounded-2xl sm:rounded-3xl bg-gradient-to-r from-purple-50 via-purple-100/60 to-pink-50 border border-purple-200/80 p-6 sm:p-10 text-center text-purple-950 shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-purple-200/60 text-purple-800 flex items-center justify-center text-2xl mx-auto mb-2">
+        <div className="w-full rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#FAF8FF] via-[#EDE5FF]/60 to-[#F5F0FF] border border-[#E8E0F5] p-6 sm:p-10 text-center text-[#27213A] shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-[#EDE5FF] text-[#7042D2] flex items-center justify-center text-2xl mx-auto mb-2">
             ✨
           </div>
-          <h2 className="text-lg sm:text-2xl font-black text-purple-950">
+          <h2 className="text-lg sm:text-2xl font-black text-[#27213A]">
             Welcome to KiranaBazaar
           </h2>
-          <p className="text-xs sm:text-sm text-purple-700/80 mt-1 max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-[#716A82] mt-1 max-w-md mx-auto">
             Discover premium hair styling accessories, handcrafted jewellery, gifts and daily essentials.
           </p>
           <div className="mt-4">
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-purple-900 text-white font-extrabold text-xs tracking-wide hover:bg-purple-800 transition-all shadow-md"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#8B5CF6] text-white font-extrabold text-xs tracking-wide hover:bg-[#7042D2] transition-all shadow-md"
             >
               Browse Catalog →
             </Link>
