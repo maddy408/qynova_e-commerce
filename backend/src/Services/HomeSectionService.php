@@ -39,14 +39,18 @@ final class HomeSectionService
         }
 
         $this->pdo->prepare(
-            'INSERT INTO home_sections (type, title, item_limit, sort_order, is_active)
-             VALUES (:type, :title, :item_limit, :sort_order, :is_active)'
+            'INSERT INTO home_sections (type, section_key, title, subtitle, badge_text, item_limit, sort_order, is_active, view_all_link)
+             VALUES (:type, :section_key, :title, :subtitle, :badge_text, :item_limit, :sort_order, :is_active, :view_all_link)'
         )->execute([
             'type' => $type,
+            'section_key' => $data['section_key'] ?? null,
             'title' => $data['title'] ?? null,
+            'subtitle' => $data['subtitle'] ?? null,
+            'badge_text' => $data['badge_text'] ?? null,
             'item_limit' => (int) ($data['item_limit'] ?? 10),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_active' => (int) (bool) ($data['is_active'] ?? true),
+            'view_all_link' => $data['view_all_link'] ?? null,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -55,7 +59,7 @@ final class HomeSectionService
     /** @param array<string, mixed> $data */
     public function update(int $id, array $data): void
     {
-        $fields = ['type', 'title', 'item_limit', 'sort_order', 'is_active', 'image_path'];
+        $fields = ['type', 'section_key', 'title', 'subtitle', 'badge_text', 'item_limit', 'sort_order', 'is_active', 'image_path', 'view_all_link'];
         $sets = [];
         $params = ['id' => $id];
 
