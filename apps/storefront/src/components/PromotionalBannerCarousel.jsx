@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
 
-// Color theme definitions derived from database 'color_theme' values
+// Color theme definitions derived from database 'color_theme' values — preserved untouched for admin-managed banners
 const BANNER_THEMES = {
   purple: {
-    bgGradient: 'from-[#27213A] via-[#7042D2] to-[#8B5CF6]',
-    accentButton: 'from-[#8B5CF6] to-[#7042D2] shadow-purple-950/40 text-white',
+    bgGradient: 'from-[#8B5CF6] via-[#7C4DE8] to-[#7042D2]',
+    accentButton: 'from-white to-[#EDE5FF] text-[#7042D2] font-black shadow-md',
     badge: 'bg-white/20 text-white border-white/30',
     subtitleText: 'text-[#EDE5FF]',
-    blobColor: 'bg-[#8B5CF6]/20',
+    blobColor: 'bg-[#D8C8FF]/20',
   },
   blue: {
     bgGradient: 'from-[#0A192F] via-[#1E3A8A] to-[#0284C7]',
@@ -26,11 +26,11 @@ const BANNER_THEMES = {
     blobColor: 'bg-amber-400/20',
   },
   lavender: {
-    bgGradient: 'from-[#27213A] via-[#5D31B8] to-[#7042D2]',
-    accentButton: 'from-[#8B5CF6] to-[#A78BFA] shadow-purple-950/40 text-white',
-    badge: 'bg-[#EDE5FF]/25 text-[#EDE5FF] border-[#E8E0F5]/30',
+    bgGradient: 'from-[#7042D2] via-[#8B5CF6] to-[#A78BFA]',
+    accentButton: 'from-white to-[#EDE5FF] text-[#7042D2] font-black shadow-md',
+    badge: 'bg-white/25 text-white border-white/35',
     subtitleText: 'text-[#EDE5FF]',
-    blobColor: 'bg-purple-400/20',
+    blobColor: 'bg-[#EDE5FF]/20',
   },
   pink: {
     bgGradient: 'from-[#4C0519] via-[#831843] to-[#BE185D]',
@@ -52,6 +52,7 @@ export default function PromotionalBannerCarousel({
   banners = [],
   isLoading = false,
   autoPlayInterval = 5500,
+  storeSettings = null,
 }) {
   const navigate = useNavigate()
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -148,14 +149,14 @@ export default function PromotionalBannerCarousel({
     navigate('/products')
   }
 
-  // Loading skeleton state
+  // Loading skeleton state (storefront UI)
   if (isLoading) {
     return (
-      <section className="w-[96%] sm:w-[97%] max-w-[1536px] mx-auto py-3 sm:py-5">
-        <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px] rounded-2xl sm:rounded-3xl bg-purple-100/50 animate-pulse border border-purple-200/60 flex items-center justify-center">
+      <section className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-3 sm:py-5">
+        <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px] rounded-2xl sm:rounded-3xl bg-[#F2DDE9]/40 animate-pulse border border-[#E8E0E5] flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-full border-3 border-purple-600 border-t-transparent animate-spin" />
-            <span className="text-xs sm:text-sm font-bold text-purple-800">
+            <div className="w-8 h-8 rounded-full border-3 border-[#601D49] border-t-transparent animate-spin" />
+            <span className="text-xs sm:text-sm font-bold text-[#601D49]">
               Loading promotions...
             </span>
           </div>
@@ -164,31 +165,9 @@ export default function PromotionalBannerCarousel({
     )
   }
 
-  // Empty state — If no active banners in DB, render clean neutral banner without fake data
+  // Empty state — If no active banners in DB, do not render hardcoded fallback banners
   if (totalSlides === 0) {
-    return (
-      <section className="w-[96%] sm:w-[97%] max-w-[1536px] mx-auto py-3 sm:py-5">
-        <div className="w-full rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#FAF8FF] via-[#EDE5FF]/60 to-[#F5F0FF] border border-[#E8E0F5] p-6 sm:p-10 text-center text-[#27213A] shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-[#EDE5FF] text-[#7042D2] flex items-center justify-center text-2xl mx-auto mb-2">
-            ✨
-          </div>
-          <h2 className="text-lg sm:text-2xl font-black text-[#27213A]">
-            Welcome to KiranaBazaar
-          </h2>
-          <p className="text-xs sm:text-sm text-[#716A82] mt-1 max-w-md mx-auto">
-            Discover premium hair styling accessories, handcrafted jewellery, gifts and daily essentials.
-          </p>
-          <div className="mt-4">
-            <Link
-              to="/products"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#8B5CF6] text-white font-extrabold text-xs tracking-wide hover:bg-[#7042D2] transition-all shadow-md"
-            >
-              Browse Catalog →
-            </Link>
-          </div>
-        </div>
-      </section>
-    )
+    return null
   }
 
   const activeBanner = activeBanners[currentSlide] || activeBanners[0]
@@ -203,7 +182,7 @@ export default function PromotionalBannerCarousel({
   return (
     <section
       id="hero-promotional-carousel"
-      className="w-[96%] sm:w-[97%] max-w-[1536px] mx-auto py-2.5 sm:py-4 select-none"
+      className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-2.5 sm:py-4 select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={handleTouchStart}
@@ -211,8 +190,8 @@ export default function PromotionalBannerCarousel({
       onTouchEnd={handleTouchEnd}
       aria-label="Promotional Offers"
     >
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl shadow-purple-950/15 border border-purple-200/30">
-        {/* Main Banner Slide Container */}
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl shadow-black/10 border border-[#E8E0E5]/60">
+        {/* Main Banner Slide Container (Admin-managed banner gradients and styling preserved) */}
         <div
           className={`w-full min-h-[240px] sm:min-h-[290px] lg:h-[350px] bg-gradient-to-r ${theme.bgGradient} text-white flex items-center relative overflow-hidden transition-colors duration-700`}
         >
@@ -241,7 +220,7 @@ export default function PromotionalBannerCarousel({
               <h1 className="text-xl sm:text-3xl lg:text-4xl xl:text-5xl font-black tracking-tight leading-tight sm:leading-[1.14]">
                 {activeBanner.title}
                 {activeBanner.subtitle && (
-                  <span className={`block font-extrabold mt-0.5 sm:mt-1 text-sm sm:text-xl lg:text-2xl ${theme.subtitleText}`}>
+                  <span className={`block font-extrabold mt-0.5 sm:mt-1 text-sm sm:xl lg:text-2xl ${theme.subtitleText}`}>
                     {activeBanner.subtitle}
                   </span>
                 )}
@@ -278,7 +257,7 @@ export default function PromotionalBannerCarousel({
               <div className="lg:col-span-5 flex justify-center items-center">
                 <div
                   onClick={() => handleNavigate(activeBanner)}
-                  className="relative w-full max-w-[260px] sm:max-w-xs md:max-w-sm rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 sm:border-3 border-white/30 bg-black/20 aspect-4/3 sm:aspect-16/10 cursor-pointer group"
+                  className="relative w-full max-w-[260px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border-2 sm:border-3 border-white/30 bg-black/20 aspect-4/3 sm:aspect-16/10 cursor-pointer group"
                 >
                   <picture>
                     {activeBanner.image_mobile_path && (

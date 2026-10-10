@@ -107,7 +107,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-purple-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-[#E8E0E5] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* SUCCESS POPUP (Renders ONLY on REAL successful response from PHP backend) */}
         {successData ? (
@@ -125,12 +125,12 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
               </h3>
             </div>
 
-            <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-4 sm:p-5 space-y-2 text-left shadow-xs">
-              <div className="flex items-center gap-2 text-purple-900 font-extrabold text-sm sm:text-base">
+            <div className="bg-purple-50/80 border border-[#E8E0E5]/80 rounded-2xl p-4 sm:p-5 space-y-2 text-left shadow-xs">
+              <div className="flex items-center gap-2 text-[#2D252B] font-extrabold text-sm sm:text-base">
                 <span className="text-lg">✨</span>
                 <span>You received <span className="text-[#EC4899] font-black">{successData.referred_discount_percent}% OFF</span></span>
               </div>
-              <div className="flex items-center gap-2 text-purple-800/90 font-semibold text-xs sm:text-sm pt-1 border-t border-purple-200/60">
+              <div className="flex items-center gap-2 text-purple-800/90 font-semibold text-xs sm:text-sm pt-1 border-t border-[#E8E0E5]/60">
                 <span className="text-lg">🎁</span>
                 <span>Your friend ({successData.referrer_name}) received <span className="text-[#6B21A8] font-bold">{successData.referrer_discount_percent}% OFF</span></span>
               </div>
@@ -192,7 +192,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                 <>
                   {/* Your Unique Referral Code */}
                   <div className="space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-wider text-purple-900">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-[#2D252B]">
                       Your Unique Referral Code
                     </label>
                     <div className="flex items-center gap-2">
@@ -212,8 +212,8 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                   </div>
 
                   {/* Apply a Referral Code Form (For Customer B or new referrals) */}
-                  <div className="pt-3 border-t border-purple-100 space-y-2">
-                    <label className="block text-[11px] font-black uppercase tracking-wider text-purple-900">
+                  <div className="pt-3 border-t border-[#E8E0E5] space-y-2">
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-[#2D252B]">
                       Have a friend's referral code?
                     </label>
                     <form onSubmit={handleApplyReferral} className="flex gap-2">
@@ -225,7 +225,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                           if (applyError) setApplyError('')
                         }}
                         placeholder="Enter referral code"
-                        className="flex-1 h-10 px-3.5 rounded-xl border border-purple-200 text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-600 uppercase tracking-wider bg-purple-50/30"
+                        className="flex-1 h-10 px-3.5 rounded-xl border border-[#E8E0E5] text-xs font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#601D49] uppercase tracking-wider bg-[#F8F3F6]"
                       />
                       <button
                         type="submit"
@@ -246,8 +246,8 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
 
                   {/* Customer's Referral Rewards from Database */}
                   {referralSummary?.rewards && referralSummary.rewards.length > 0 && (
-                    <div className="pt-3 border-t border-purple-100 space-y-2">
-                      <label className="block text-[11px] font-black uppercase tracking-wider text-purple-900">
+                    <div className="pt-3 border-t border-[#E8E0E5] space-y-2">
+                      <label className="block text-[11px] font-black uppercase tracking-wider text-[#2D252B]">
                         Your Earned Rewards ({referralSummary.rewards.length})
                       </label>
                       <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">

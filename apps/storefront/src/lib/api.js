@@ -43,28 +43,39 @@ export function getSessionId() {
   return memorySessionId
 }
 
-// Customer Auth token management (JWT token only; no customer business data stored in storage)
+// Customer Auth token management (Session cookie and memory only; NO localStorage or sessionStorage)
+let memoryCustomerToken = null
+
 export function setCustomerToken(token) {
   if (token) {
+    memoryCustomerToken = token
     try {
-      sessionStorage.setItem('customer_jwt', token)
+      document.cookie = `storefront_customer_jwt=${encodeURIComponent(token)}; path=/; SameSite=Lax`
     } catch {
-      window.__customer_jwt = token
+      // ignore
     }
+    window.__customer_jwt = token
   }
 }
 
 export function getCustomerToken() {
+  if (memoryCustomerToken) return memoryCustomerToken
   try {
-    return sessionStorage.getItem('customer_jwt') || window.__customer_jwt || null
+    const match = document.cookie.match(/(?:^|;\s*)storefront_customer_jwt=([^;]+)/)
+    if (match && match[1]) {
+      memoryCustomerToken = decodeURIComponent(match[1])
+      return memoryCustomerToken
+    }
   } catch {
-    return window.__customer_jwt || null
+    // ignore
   }
+  return window.__customer_jwt || null
 }
 
 export function clearCustomerSession() {
+  memoryCustomerToken = null
   try {
-    sessionStorage.removeItem('customer_jwt')
+    document.cookie = 'storefront_customer_jwt=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
   } catch {
     // ignore
   }
@@ -221,5 +232,86 @@ export async function saveCustomerAddress(data) {
 export async function deleteCustomerAddress(id) {
   const res = await api.delete(`/customer/addresses/${id}`)
   return res.data
+}
+
+let cachedCategories = null
+export async function fetchCategories(forceRefresh = false) {
+  if (cachedCategories && !forceRefresh) return cachedCategories
+  try {
+    const res = await api.get('/categories')
+    cachedCategories = res.data?.categories || []
+    return cachedCategories
+  } catch {
+    return []
+  }
+}
+
+let cachedSubcategories = null
+export async function fetchSubcategories(forceRefresh = false) {
+  if (cachedSubcategories && !forceRefresh) return cachedSubcategories
+  try {
+    const res = await api.get('/subcategories')
+    cachedSubcategories = res.data?.subcategories || []
+    return cachedSubcategories
+  } catch {
+    return []
+  }
+}
+
+let cachedBrands = null
+export async function fetchBrands(forceRefresh = false) {
+  if (cachedBrands && !forceRefresh) return cachedBrands
+  try {
+    const res = await api.get('/brands')
+    cachedBrands = res.data?.brands || []
+    return cachedBrands
+  } catch {
+    return []
+  }
+}
+
+export async function fetchAvailableCoupons() {
+  try {
+    const res = await api.get('/coupons/available')
+    return res.data?.coupons || []
+  } catch {
+    return []
+  }
+}
+
+/** Clear all in-memory API caches to force fresh GET requests on next read */
+export function clearApiCache() {
+  cachedStoreSettings = null
+  cachedDeliverySettings = null
+  cachedCategories = null
+  cachedSubcategories = null
+  cachedBrands = null
+}
+
+/** Invalidate cache and broadcast a revalidation event across the storefront */
+export function revalidateStorefront() {
+  clearApiCache()
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('storefront-revalidate'))
+  }
+}
+
+// Window focus & tab visibility change listener to auto-revalidate when switching back from Admin Panel
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', () => {
+    revalidateStorefront()
+  })
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        revalidateStorefront()
+      }
+    })
+  }
+  window.addEventListener('storage', (e) => {
+    if (e.key?.includes('admin') || e.key?.includes('token') || e.key?.includes('setting') || e.key?.includes('catalog')) {
+      revalidateStorefront()
+    }
+  })
 }
 
