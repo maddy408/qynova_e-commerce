@@ -273,51 +273,7 @@ export function PurchasesPage() {
   const endIndex = Math.min(startIndex + pageSize, totalFilteredCount)
   const paginatedPurchases = filteredPurchases.slice(startIndex, endIndex)
 
-  // Overall Financial Summary calculation
-  const summaryMetrics = useMemo(() => {
-    const list = purchases || []
-    let totalPurchasesAmt = 0
-    let totalPaidAmt = 0
-    let totalBalAmt = 0
-    let paidCount = 0
-    let partialCount = 0
-    let unpaidCount = 0
-    let activeCount = 0
-    let cancelledCount = 0
 
-    list.forEach((p) => {
-      const isCancelled = p.status === 'CANCELLED'
-      const paid = Number(p.paid_amount ?? p.amount_paid ?? 0)
-      const grand = Number(p.grand_total || 0)
-      const bal = Number(p.balance_amount ?? Math.max(0, grand - paid))
-
-      if (isCancelled) {
-        cancelledCount++
-      } else {
-        activeCount++
-        totalPurchasesAmt += grand
-        totalPaidAmt += paid
-        totalBalAmt += bal
-
-        const ps = p.payment_status?.toUpperCase()
-        if (ps === 'PAID') paidCount++
-        else if (ps === 'PARTIAL' || ps === 'PARTIALLY_PAID') partialCount++
-        else unpaidCount++
-      }
-    })
-
-    return {
-      totalPurchasesAmt,
-      totalPaidAmt,
-      totalBalAmt,
-      paidCount,
-      partialCount,
-      unpaidCount,
-      activeCount,
-      cancelledCount,
-      totalCount: list.length,
-    }
-  }, [purchases])
 
   // Action Click Handlers with Toast Feedback for Invalid Actions
   function handleCollectAction(p: Purchase) {
@@ -963,85 +919,7 @@ export function PurchasesPage() {
         </div>
       )}
 
-      {/* 1. TOP SUMMARY KPI CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Purchases */}
-        <div className="p-4 rounded-2xl bg-white border border-[#F2E5E7] shadow-2xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Purchases</span>
-            <span className="p-1.5 rounded-xl bg-[#FAF2F4] text-[#804652] text-xs font-bold">
-              {summaryMetrics.activeCount} Active
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">
-              ₹{formatMoney(summaryMetrics.totalPurchasesAmt)}
-            </span>
-          </div>
-          <div className="mt-1 text-[11px] text-slate-500">
-            {summaryMetrics.cancelledCount > 0 && <span>{summaryMetrics.cancelledCount} cancelled excluded</span>}
-          </div>
-        </div>
 
-        {/* Card 2: Total Paid */}
-        <div className="p-4 rounded-2xl bg-white border border-[#F2E5E7] shadow-2xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Total Paid</span>
-            <span className="p-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold">
-              {summaryMetrics.paidCount} Fully Paid
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-800">
-              ₹{formatMoney(summaryMetrics.totalPaidAmt)}
-            </span>
-          </div>
-          <div className="mt-1 text-[11px] text-emerald-600 font-medium">
-            Supplier settlements completed
-          </div>
-        </div>
-
-        {/* Card 3: Outstanding Balance */}
-        <div className="p-4 rounded-2xl bg-white border border-[#F2E5E7] shadow-2xs relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#804652] uppercase tracking-wider">Balance Due</span>
-            <span className="p-1.5 rounded-xl bg-amber-50 text-amber-900 text-xs font-bold">
-              {summaryMetrics.partialCount + summaryMetrics.unpaidCount} Pending
-            </span>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-[#804652]">
-              ₹{formatMoney(summaryMetrics.totalBalAmt)}
-            </span>
-          </div>
-          <div className="mt-1 text-[11px] text-slate-500">
-            {summaryMetrics.partialCount} Partial, {summaryMetrics.unpaidCount} Unpaid
-          </div>
-        </div>
-
-        {/* Card 4: Quick Action & Status Overview */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#804652] to-[#5e2b36] text-white shadow-2xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-rose-200">Stock Inflow</span>
-            <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">
-              {summaryMetrics.totalCount} Bills
-            </span>
-          </div>
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(true)
-                setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
-                fetchVariants()
-              }}
-              className="w-full py-2 px-3 bg-white text-[#804652] hover:bg-[#FAF2F4] text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span>+ Record New Purchase</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* 2. MAIN PURCHASES TABLE CARD */}
       {purchases === null ? (
