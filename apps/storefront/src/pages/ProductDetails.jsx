@@ -7,6 +7,7 @@ import {
   setCustomerSession,
   fetchStoreSettings,
   fetchDeliverySettings,
+  fetchCategories,
   resolveImageUrl,
 } from '../lib/api'
 import Navbar from '../components/Navbar'
@@ -29,6 +30,7 @@ export default function ProductDetails() {
   const [error, setError] = useState(null)
   const [storeSettings, setStoreSettings] = useState(null)
   const [deliverySettings, setDeliverySettings] = useState(null)
+  const [categories, setCategories] = useState([])
 
   // Gallery & Image States
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -44,7 +46,7 @@ export default function ProductDetails() {
   const [activeTab, setActiveTab] = useState('description')
 
   // Pincode & Delivery Checker State
-  const [pincode, setPincode] = useState('560001')
+  const [pincode, setPincode] = useState('')
   const [pincodeStatus, setPincodeStatus] = useState(null)
   const [isPincodeLoading, setIsPincodeLoading] = useState(false)
 
@@ -90,10 +92,11 @@ export default function ProductDetails() {
     return () => window.removeEventListener('wishlist-updated', handleWishlistSync)
   }, [])
 
-  // Load store and delivery settings from MySQL
+  // Load store, delivery settings and categories from MySQL
   useEffect(() => {
     fetchStoreSettings().then((s) => s && setStoreSettings(s))
     fetchDeliverySettings().then((d) => d && setDeliverySettings(d))
+    fetchCategories().then((cats) => cats && setCategories(cats))
   }, [])
 
   // Scroll to top whenever ID changes & reset states
@@ -243,6 +246,15 @@ export default function ProductDetails() {
     if (id) {
       fetchProductData()
     }
+
+    const handleRevalidate = () => {
+      if (id) fetchProductData()
+    }
+    window.addEventListener('storefront-revalidate', handleRevalidate)
+
+    return () => {
+      window.removeEventListener('storefront-revalidate', handleRevalidate)
+    }
   }, [id])
 
   // Price & Inventory calculations from MySQL variants
@@ -362,7 +374,7 @@ export default function ProductDetails() {
       showToast(`Added ${addQty > 1 ? addQty + ' × ' : ''}"${prodToAdd.name}" to Cart! 🛍️`)
       setIsCartOpen(true)
     } catch {
-      showToast(`Added "${prodToAdd.name}" to Cart! 🛍️`)
+      showToast('Could not add item to cart. Please try again.')
     } finally {
       setIsAddingToCart(false)
     }
@@ -384,9 +396,9 @@ export default function ProductDetails() {
     setCartCount(getCartCount())
 
     const subtotal = retailPrice * quantity
-    const freeThreshold = Number(deliverySettings?.free_delivery_threshold) || 499
-    const stdFee = Number(deliverySettings?.standard_delivery_fee) || 49
-    const deliveryCharge = subtotal >= freeThreshold ? 0 : stdFee
+    const freeThreshold = deliverySettings?.free_delivery_threshold != null ? Number(deliverySettings.free_delivery_threshold) : null
+    const stdFee = Number(deliverySettings?.delivery_charge ?? deliverySettings?.standard_delivery_fee ?? 0)
+    const deliveryCharge = (freeThreshold !== null && subtotal >= freeThreshold) || subtotal === 0 ? 0 : stdFee
 
     setCheckoutCartData({
       items: [
@@ -479,11 +491,11 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8F3F6] text-[#2D252B] font-sans selection:bg-[#F2DDE9] selection:text-[#601D49] overflow-x-hidden">
       
       {/* TOAST FEEDBACK NOTIFICATION */}
       {toastMessage && (
-        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 bg-[#27213A] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce border border-[#8B5CF6]/30">
+        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 bg-[#2D252B] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce border border-[#601D49]/30">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -492,12 +504,12 @@ export default function ProductDetails() {
       <Navbar onOpenCart={() => setIsCartOpen(true)} />
 
       {/* BREADCRUMB NAVIGATION */}
-      <nav aria-label="Breadcrumb" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 text-xs font-medium text-gray-500 flex items-center gap-2 flex-wrap">
-        <Link to="/" className="text-purple-800 hover:text-purple-950 font-bold hover:underline">
+      <nav aria-label="Breadcrumb" className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-3.5 text-xs font-medium text-gray-500 flex items-center gap-2 flex-wrap">
+        <Link to="/" className="text-[#601D49] hover:text-[#2D252B] font-bold hover:underline">
           Home
         </Link>
         <span className="text-gray-300">/</span>
-        <Link to="/products" className="text-purple-800 hover:text-purple-950 font-medium hover:underline">
+        <Link to="/products" className="text-[#601D49] hover:text-[#2D252B] font-medium hover:underline">
           Shop
         </Link>
         {primaryCategory && (
@@ -505,7 +517,7 @@ export default function ProductDetails() {
             <span className="text-gray-300">/</span>
             <Link
               to={`/products?category_id=${primaryCategory.id}`}
-              className="text-purple-800 hover:text-purple-950 font-medium hover:underline"
+              className="text-[#601D49] hover:text-[#2D252B] font-medium hover:underline"
             >
               {primaryCategory.name}
             </Link>
@@ -516,7 +528,7 @@ export default function ProductDetails() {
             <span className="text-gray-300">/</span>
             <Link
               to={`/products?subcategory_id=${product.subcategories[0].id}`}
-              className="text-purple-800 hover:text-purple-950 font-medium hover:underline"
+              className="text-[#601D49] hover:text-[#2D252B] font-medium hover:underline"
             >
               {product.subcategories[0].name}
             </Link>
@@ -529,7 +541,7 @@ export default function ProductDetails() {
       </nav>
 
       {/* MAIN CONTAINER */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-24 lg:pb-16">
+      <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 pt-2 pb-24 lg:pb-16">
         
         {/* LOADING SKELETON */}
         {isLoading && (
@@ -537,17 +549,17 @@ export default function ProductDetails() {
             <div className="lg:col-span-6 flex flex-col md:flex-row gap-4">
               <div className="hidden md:flex flex-col gap-3 w-20">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="aspect-square bg-purple-100/60 rounded-xl" />
+                  <div key={i} className="aspect-square bg-[#F2DDE9]/40 rounded-xl" />
                 ))}
               </div>
-              <div className="flex-1 aspect-square bg-purple-100/60 rounded-3xl" />
+              <div className="flex-1 aspect-square bg-[#F2DDE9]/40 rounded-3xl" />
             </div>
             <div className="lg:col-span-6 space-y-4">
-              <div className="h-6 w-32 bg-purple-100/60 rounded-full" />
-              <div className="h-8 w-3/4 bg-purple-100/60 rounded-xl" />
-              <div className="h-10 w-48 bg-purple-100/60 rounded-xl" />
-              <div className="h-24 w-full bg-purple-100/60 rounded-2xl" />
-              <div className="h-12 w-full bg-purple-100/60 rounded-2xl" />
+              <div className="h-6 w-32 bg-[#F2DDE9]/40 rounded-full" />
+              <div className="h-8 w-3/4 bg-[#F2DDE9]/40 rounded-xl" />
+              <div className="h-10 w-48 bg-[#F2DDE9]/40 rounded-xl" />
+              <div className="h-24 w-full bg-[#F2DDE9]/40 rounded-2xl" />
+              <div className="h-12 w-full bg-[#F2DDE9]/40 rounded-2xl" />
             </div>
           </div>
         )}
@@ -562,7 +574,7 @@ export default function ProductDetails() {
             <p className="text-sm text-gray-600 mb-6">{error}</p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#8B5CF6] hover:bg-[#7042D2] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#601D49] hover:bg-[#4D153A] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
             >
               ← Return to Catalog
             </Link>
@@ -571,7 +583,7 @@ export default function ProductDetails() {
 
         {/* TWO-COLUMN PRODUCT DETAIL SECTION */}
         {!isLoading && product && (
-          <div className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 border border-purple-100/80 shadow-xs mb-10">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 border border-[#E8E0E5] shadow-xs mb-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
               
               {/* ==================================================== */}
@@ -590,8 +602,8 @@ export default function ProductDetails() {
                           onClick={() => setSelectedImageIndex(idx)}
                           className={`relative aspect-square w-16 sm:w-18 md:w-full rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-gray-50 shrink-0 ${
                             selectedImageIndex === idx
-                              ? 'border-[#8B5CF6] shadow-md ring-2 ring-purple-200'
-                              : 'border-purple-100 hover:border-purple-300 opacity-80 hover:opacity-100'
+                              ? 'border-[#601D49] shadow-md ring-2 ring-[#F2DDE9]'
+                              : 'border-[#E8E0E5] hover:border-[#E8E0E5] opacity-80 hover:opacity-100'
                           }`}
                         >
                           <img
@@ -612,7 +624,7 @@ export default function ProductDetails() {
                       onMouseLeave={() => setIsZoomActive(false)}
                       onMouseMove={handleMouseMoveZoom}
                       onClick={() => setIsFullscreenOpen(true)}
-                      className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-gradient-to-b from-gray-50 to-purple-50/20 border border-purple-100 shadow-xs group cursor-zoom-in select-none"
+                      className="relative aspect-square rounded-2xl md:rounded-3xl overflow-hidden bg-gradient-to-b from-gray-50 to-[#F8F3F6] border border-[#E8E0E5] shadow-xs group cursor-zoom-in select-none"
                     >
                       <img
                         src={activeImage}
@@ -631,7 +643,7 @@ export default function ProductDetails() {
                       {/* Top Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
                         {discountPercent > 0 && showDiscount && (
-                          <span className="bg-[#8B5CF6] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
+                          <span className="bg-[#601D49] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
                             {discountPercent}% OFF
                           </span>
                         )}
@@ -660,8 +672,8 @@ export default function ProductDetails() {
                         <svg
                           className="w-5 h-5"
                           viewBox="0 0 24 24"
-                          fill={isWishlisted ? '#EC4899' : 'none'}
-                          stroke={isWishlisted ? '#EC4899' : 'currentColor'}
+                          fill={isWishlisted ? '#601D49' : 'none'}
+                          stroke={isWishlisted ? '#601D49' : 'currentColor'}
                           strokeWidth="2.2"
                         >
                           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -670,7 +682,7 @@ export default function ProductDetails() {
 
                       {/* Click to Expand Lightbox Hint */}
                       <div className="absolute bottom-3 right-3 bg-white/85 backdrop-blur-xs text-gray-700 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg className="w-3.5 h-3.5 text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-3.5 h-3.5 text-[#601D49]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                         </svg>
                         <span>Click to Expand</span>
@@ -684,7 +696,7 @@ export default function ProductDetails() {
                           <div
                             key={i}
                             className={`h-1.5 rounded-full transition-all ${
-                              selectedImageIndex === i ? 'w-5 bg-purple-700' : 'w-1.5 bg-purple-200'
+                              selectedImageIndex === i ? 'w-5 bg-[#601D49]' : 'w-1.5 bg-[#E8E0E5]'
                             }`}
                           />
                         ))}
@@ -706,7 +718,7 @@ export default function ProductDetails() {
                     {primaryCategory && (
                       <Link
                         to={`/products?category_id=${primaryCategory.id}`}
-                        className="text-xs font-bold text-purple-700 uppercase tracking-wider bg-purple-50 px-2.5 py-1 rounded-md hover:bg-purple-100 transition-colors"
+                        className="text-xs font-bold text-[#601D49] uppercase tracking-wider bg-[#F8F3F6] px-2.5 py-1 rounded-md hover:bg-[#F2DDE9] transition-colors"
                       >
                         {primaryCategory.name}
                       </Link>
@@ -724,7 +736,7 @@ export default function ProductDetails() {
                   </div>
 
                   {/* Product Title */}
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#27213A] tracking-tight leading-snug mb-2.5">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#2D252B] tracking-tight leading-snug mb-2.5">
                     {product.name}
                   </h1>
 
@@ -743,7 +755,7 @@ export default function ProductDetails() {
                   </div>
 
                   {/* PRICE SECTION (Actual Database Values) */}
-                  <div className="bg-[#F5F0FF]/80 border border-[#E8E0F5] rounded-2xl p-4 sm:p-5 mb-5">
+                  <div className="bg-[#F7F5F7]/80 border border-[#E8E0E5] rounded-2xl p-4 sm:p-5 mb-5">
                     {isUnavailable ? (
                       <div>
                         <span className="text-2xl sm:text-3xl font-black text-gray-500 tracking-tight">
@@ -754,7 +766,7 @@ export default function ProductDetails() {
                     ) : (
                       <>
                         <div className="flex items-baseline gap-3 flex-wrap">
-                          <span className="text-3xl sm:text-4xl font-black text-[#8B5CF6] tracking-tight">
+                          <span className="text-3xl sm:text-4xl font-black text-[#601D49] tracking-tight">
                             ₹{retailPrice}
                           </span>
                           {showDiscount && mrp > retailPrice && (
@@ -809,9 +821,9 @@ export default function ProductDetails() {
 
                   {/* VARIANT SELECTOR */}
                   {Array.isArray(product?.variants) && product.variants.length > 1 && (
-                    <div className="mb-5 p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                    <div className="mb-5 p-4 rounded-2xl bg-[#F8F3F6] border border-[#E8E0E5] space-y-3">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-black uppercase tracking-wider text-purple-950">
+                        <label className="text-xs font-black uppercase tracking-wider text-[#2D252B]">
                           Select Variant / Option:
                         </label>
                         {activeVariant?.sku && (
@@ -845,10 +857,10 @@ export default function ProductDetails() {
                               }}
                               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                                 isSelected
-                                  ? 'bg-[#8B5CF6] text-white border-[#8B5CF6] shadow-xs'
+                                  ? 'bg-[#601D49] text-white border-[#601D49] shadow-xs'
                                   : vOutOfStock
                                   ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'
-                                  : 'bg-white text-gray-800 border-purple-200 hover:border-purple-400 hover:bg-purple-50/50'
+                                  : 'bg-white text-gray-800 border-[#E8E0E5] hover:border-[#601D49] hover:bg-[#F2DDE9]/40'
                               }`}
                             >
                               {vImg ? (
@@ -862,7 +874,7 @@ export default function ProductDetails() {
                               <span>{label}</span>
                               <span
                                 className={`text-[11px] font-semibold ${
-                                  isSelected ? 'text-purple-200' : 'text-gray-500'
+                                  isSelected ? 'text-[#F2DDE9]' : 'text-gray-500'
                                 }`}
                               >
                                 ₹{v.retail_price}
@@ -880,13 +892,13 @@ export default function ProductDetails() {
                   )}
 
                   {/* OFFERS SECTION (Dynamic Backend Data) */}
-                  <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-5">
+                  <div className="border border-[#E8E0E5] rounded-2xl p-4 bg-white shadow-2xs mb-5">
                     <div className="flex items-center justify-between mb-2.5">
-                      <h3 className="text-xs sm:text-sm font-extrabold text-[#27213A] uppercase tracking-wider flex items-center gap-1.5">
+                      <h3 className="text-xs sm:text-sm font-extrabold text-[#2D252B] uppercase tracking-wider flex items-center gap-1.5">
                         <span>🏷️</span> Available Offers
                       </h3>
                       {availableCoupons.length > 0 && (
-                        <span className="text-[11px] font-bold text-purple-700">
+                        <span className="text-[11px] font-bold text-[#601D49]">
                           {availableCoupons.length} Active Coupon{availableCoupons.length > 1 ? 's' : ''}
                         </span>
                       )}
@@ -897,14 +909,14 @@ export default function ProductDetails() {
                         {availableCoupons.map((coupon) => (
                           <div
                             key={coupon.id}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-purple-50/50 border border-purple-100 hover:border-purple-200 transition-colors"
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8F3F6] border border-[#E8E0E5] hover:border-[#E8E0E5] transition-colors"
                           >
                             <div className="text-xs">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-purple-900 bg-white border border-purple-200 px-2 py-0.5 rounded text-[11px]">
+                                <span className="font-mono font-black text-[#2D252B] bg-white border border-[#E8E0E5] px-2 py-0.5 rounded text-[11px]">
                                   {coupon.code}
                                 </span>
-                                <span className="font-bold text-purple-950">
+                                <span className="font-bold text-[#2D252B]">
                                   {coupon.name}
                                 </span>
                               </div>
@@ -918,7 +930,7 @@ export default function ProductDetails() {
                             <button
                               type="button"
                               onClick={() => handleCopyCoupon(coupon.code)}
-                              className="text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-white hover:bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-200 transition-colors shrink-0 ml-2 cursor-pointer"
+                              className="text-[11px] font-bold text-[#601D49] hover:text-[#2D252B] bg-white hover:bg-[#F2DDE9] px-2.5 py-1 rounded-lg border border-[#E8E0E5] transition-colors shrink-0 ml-2 cursor-pointer"
                             >
                               Copy
                             </button>
@@ -941,8 +953,8 @@ export default function ProductDetails() {
                   </div>
 
                   {/* DELIVERY / PINCODE CHECKER */}
-                  <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-6">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-[#27213A] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <div className="border border-[#E8E0E5] rounded-2xl p-4 bg-white shadow-2xs mb-6">
+                    <h3 className="text-xs sm:text-sm font-extrabold text-[#2D252B] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <span>🚚</span> Delivery Availability
                     </h3>
 
@@ -955,13 +967,13 @@ export default function ProductDetails() {
                           value={pincode}
                           onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
                           placeholder="Enter 6-digit PIN code"
-                          className="w-full px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border border-gray-200 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-100 transition-all bg-gray-50/50"
+                          className="w-full px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl border border-gray-200 focus:outline-none focus:border-[#601D49] focus:ring-2 focus:ring-[#F2DDE9] transition-all bg-gray-50/50"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={isPincodeLoading || pincode.trim().length !== 6}
-                        className="px-4 py-2 bg-[#8B5CF6] hover:bg-[#7042D2] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="px-4 py-2 bg-[#601D49] hover:bg-[#4D153A] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                       >
                         {isPincodeLoading ? 'Checking...' : 'Check'}
                       </button>
@@ -988,28 +1000,28 @@ export default function ProductDetails() {
                   </div>
 
                   {/* QUANTITY & PRIMARY PURCHASE ACTIONS CONTAINER */}
-                  <div ref={purchaseSectionRef} className="space-y-4 pt-2 border-t border-purple-50">
+                  <div ref={purchaseSectionRef} className="space-y-4 pt-2 border-t border-[#E8E0E5]">
                     
                     {/* Quantity Selector */}
                     <div className="flex items-center gap-3">
                       <span className="text-xs sm:text-sm font-bold text-gray-700">Quantity:</span>
-                      <div className="flex items-center border border-purple-200 rounded-xl bg-purple-50/30 overflow-hidden">
+                      <div className="flex items-center border border-[#E8E0E5] rounded-xl bg-[#F8F3F6] overflow-hidden">
                         <button
                           type="button"
                           onClick={() => handleQuantityChange(-1)}
                           disabled={quantity <= 1 || isOutOfStock}
-                          className="w-9 h-9 flex items-center justify-center font-bold text-purple-900 hover:bg-purple-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-base"
+                          className="w-9 h-9 flex items-center justify-center font-bold text-[#2D252B] hover:bg-[#F2DDE9] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-base"
                         >
                           −
                         </button>
-                        <span className="w-10 text-center font-extrabold text-sm text-[#27213A]">
+                        <span className="w-10 text-center font-extrabold text-sm text-[#2D252B]">
                           {quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleQuantityChange(1)}
                           disabled={isOutOfStock || (stockAvailable > 0 && quantity >= stockAvailable)}
-                          className="w-9 h-9 flex items-center justify-center font-bold text-purple-900 hover:bg-purple-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-base"
+                          className="w-9 h-9 flex items-center justify-center font-bold text-[#2D252B] hover:bg-[#F2DDE9] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-base"
                         >
                           +
                         </button>
@@ -1028,7 +1040,7 @@ export default function ProductDetails() {
                         type="button"
                         onClick={() => handleAddToCart()}
                         disabled={isOutOfStock || isAddingToCart || isUnavailable}
-                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#F5F0FF] font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#601D49] text-[#601D49] hover:bg-[#F7F5F7] font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -1041,7 +1053,7 @@ export default function ProductDetails() {
                         type="button"
                         onClick={handleBuyNow}
                         disabled={isOutOfStock || isUnavailable}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] hover:brightness-105 text-white font-black text-sm tracking-wide shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full py-3.5 px-6 rounded-2xl bg-[#601D49] hover:bg-[#4D153A] hover:brightness-105 text-white font-black text-sm tracking-wide shadow-lg shadow-black/15 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <span>{isUnavailable ? 'Unavailable' : '⚡ Buy Now'}</span>
                       </button>
@@ -1052,7 +1064,7 @@ export default function ProductDetails() {
                       <button
                         type="button"
                         onClick={() => handleToggleWishlist(product.id)}
-                        className="font-bold text-purple-800 hover:text-purple-950 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="font-bold text-[#601D49] hover:text-[#2D252B] flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <span>{isWishlisted ? '♥ Saved in Wishlist' : '♡ Add to Wishlist'}</span>
                       </button>
@@ -1077,10 +1089,10 @@ export default function ProductDetails() {
         {/* PRODUCT DETAILS TABS / ACCORDION                     */}
         {/* ==================================================== */}
         {!isLoading && product && (
-          <div className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 border border-purple-100 shadow-xs mb-10">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 border border-[#E8E0E5] shadow-xs mb-10">
             
             {/* Tab Navigation Header */}
-            <div className="flex border-b border-purple-100 gap-2 sm:gap-6 overflow-x-auto no-scrollbar mb-6">
+            <div className="flex border-b border-[#E8E0E5] gap-2 sm:gap-6 overflow-x-auto no-scrollbar mb-6">
               {[
                 { id: 'description', label: 'Description' },
                 { id: 'specs', label: 'Specifications' },
@@ -1094,7 +1106,7 @@ export default function ProductDetails() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`pb-3 text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap border-b-2 ${
                     activeTab === tab.id
-                      ? 'border-[#8B5CF6] text-[#8B5CF6]'
+                      ? 'border-[#601D49] text-[#601D49]'
                       : 'border-transparent text-gray-500 hover:text-gray-900'
                   }`}
                 >
@@ -1107,7 +1119,7 @@ export default function ProductDetails() {
             {activeTab === 'description' && (
               <div className="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed max-w-4xl">
                 {product.short_description && (
-                  <p className="font-semibold text-purple-950 text-sm sm:text-base leading-snug">
+                  <p className="font-semibold text-[#2D252B] text-sm sm:text-base leading-snug">
                     {product.short_description}
                   </p>
                 )}
@@ -1152,7 +1164,7 @@ export default function ProductDetails() {
                 ) ? (
                   <p className="text-gray-500 italic py-4">No additional specifications available for this product.</p>
                 ) : (
-                  <div className="divide-y divide-purple-50 text-xs sm:text-sm">
+                  <div className="divide-y divide-[#E8E0E5] text-xs sm:text-sm">
                     {product.product_code && (
                       <div className="grid grid-cols-3 py-2.5">
                         <span className="font-bold text-gray-500">Product Code</span>
@@ -1222,20 +1234,20 @@ export default function ProductDetails() {
             {/* TAB 3: DELIVERY & RETURNS */}
             {activeTab === 'delivery' && (
               <div className="max-w-3xl space-y-4 text-xs sm:text-sm text-gray-700">
-                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-start gap-3">
+                <div className="p-4 rounded-2xl bg-[#F8F3F6] border border-[#E8E0E5] flex items-start gap-3">
                   <span className="text-xl">📦</span>
                   <div>
-                    <h4 className="font-bold text-purple-950 mb-1">Standard Shipping & Delivery</h4>
+                    <h4 className="font-bold text-[#2D252B] mb-1">Standard Shipping & Delivery</h4>
                     <p className="text-gray-600">
                       Dispatched within 24 hours from verified hubs. Average delivery timeline 2–4 business days across India. Free shipping on all orders above ₹499.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-start gap-3">
+                <div className="p-4 rounded-2xl bg-[#F8F3F6] border border-[#E8E0E5] flex items-start gap-3">
                   <span className="text-xl">💵</span>
                   <div>
-                    <h4 className="font-bold text-purple-950 mb-1">Cash on Delivery (COD)</h4>
+                    <h4 className="font-bold text-[#2D252B] mb-1">Cash on Delivery (COD)</h4>
                     <p className="text-gray-600">
                       {product.cod_available
                         ? 'Cash on Delivery is available for this product across eligible pin codes.'
@@ -1244,10 +1256,10 @@ export default function ProductDetails() {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-start gap-3">
+                <div className="p-4 rounded-2xl bg-[#F8F3F6] border border-[#E8E0E5] flex items-start gap-3">
                   <span className="text-xl">🔄</span>
                   <div>
-                    <h4 className="font-bold text-purple-950 mb-1">7-Day Return / Replacement Guarantee</h4>
+                    <h4 className="font-bold text-[#2D252B] mb-1">7-Day Return / Replacement Guarantee</h4>
                     <p className="text-gray-600">
                       {product.returnable
                         ? `This product is returnable within ${product.return_window_days || 7} days of delivery if damaged or defective.`
@@ -1266,18 +1278,18 @@ export default function ProductDetails() {
                     {availableCoupons.map((coupon) => (
                       <div
                         key={coupon.id}
-                        className="border border-purple-200 rounded-2xl p-4 bg-gradient-to-br from-white to-purple-50/30 flex flex-col justify-between"
+                        className="border border-[#E8E0E5] rounded-2xl p-4 bg-gradient-to-br from-white to-[#F8F3F6] flex flex-col justify-between"
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono font-black text-xs text-purple-900 bg-purple-100 px-2.5 py-1 rounded-md">
+                            <span className="font-mono font-black text-xs text-[#2D252B] bg-[#F2DDE9] px-2.5 py-1 rounded-md">
                               {coupon.code}
                             </span>
                             <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
                               Active
                             </span>
                           </div>
-                          <h4 className="font-bold text-sm text-purple-950 mb-1">{coupon.name}</h4>
+                          <h4 className="font-bold text-sm text-[#2D252B] mb-1">{coupon.name}</h4>
                           <p className="text-xs text-gray-600 mb-2">{coupon.description}</p>
                           {coupon.min_order_amount && (
                             <p className="text-[11px] text-gray-500">
@@ -1288,7 +1300,7 @@ export default function ProductDetails() {
                         <button
                           type="button"
                           onClick={() => handleCopyCoupon(coupon.code)}
-                          className="mt-3 w-full py-1.5 rounded-xl border border-purple-300 text-purple-800 hover:bg-purple-600 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                          className="mt-3 w-full py-1.5 rounded-xl border border-[#E8E0E5] text-[#601D49] hover:bg-[#4D153A] hover:text-white font-bold text-xs transition-colors cursor-pointer"
                         >
                           Copy Coupon Code
                         </button>
@@ -1306,20 +1318,20 @@ export default function ProductDetails() {
             {/* TAB 5: CUSTOMER REVIEWS */}
             {activeTab === 'reviews' && (
               <div className="max-w-3xl">
-                <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-purple-50/40 border border-purple-100 mb-6">
+                <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-[#F8F3F6] border border-[#E8E0E5] mb-6">
                   <div className="text-center sm:text-left">
-                    <div className="text-4xl font-black text-purple-950">4.8</div>
+                    <div className="text-4xl font-black text-[#2D252B]">4.8</div>
                     <div className="text-amber-500 text-sm font-bold my-1">★★★★★</div>
                     <p className="text-xs text-gray-500">Overall Customer Satisfaction</p>
                   </div>
-                  <div className="w-full border-t sm:border-t-0 sm:border-l border-purple-200/60 pt-4 sm:pt-0 sm:pl-6 text-xs text-gray-600 space-y-1.5">
+                  <div className="w-full border-t sm:border-t-0 sm:border-l border-[#E8E0E5] pt-4 sm:pt-0 sm:pl-6 text-xs text-gray-600 space-y-1.5">
                     <p>✓ 100% verified customer purchase guarantee</p>
                     <p>✓ Quality checked before dispatch</p>
                     <p>✓ Fast delivery across India</p>
                   </div>
                 </div>
 
-                <div className="text-center py-6 border border-dashed border-purple-200 rounded-2xl bg-white">
+                <div className="text-center py-6 border border-dashed border-[#E8E0E5] rounded-2xl bg-white">
                   <p className="text-sm font-bold text-gray-700 mb-1">
                     Have you purchased this product?
                   </p>
@@ -1329,7 +1341,7 @@ export default function ProductDetails() {
                   <button
                     type="button"
                     onClick={() => showToast('Review submission will open after delivery verification.')}
-                    className="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs rounded-xl border border-purple-200 transition-colors cursor-pointer"
+                    className="px-4 py-2 bg-[#F8F3F6] hover:bg-[#F2DDE9] text-[#2D252B] font-bold text-xs rounded-xl border border-[#E8E0E5] transition-colors cursor-pointer"
                   >
                     Write a Review
                   </button>
@@ -1382,23 +1394,23 @@ export default function ProductDetails() {
       {showStickyBar && product && (
         <aside
           aria-label="Quick Purchase Bar"
-          className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-purple-200 shadow-2xl py-2.5 px-4 sm:px-6 transition-all duration-300"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E8E0E5] shadow-2xl py-2.5 px-3 sm:px-6 lg:px-8 xl:px-12 transition-all duration-300"
         >
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-6">
+          <div className="w-full flex items-center justify-between gap-3 sm:gap-6">
             
             {/* Desktop Left: Image + Title + Price */}
             <div className="flex items-center gap-3 min-w-0">
               <img
                 src={activeImage}
                 alt={product.name}
-                className="w-11 h-11 rounded-xl object-cover border border-purple-100 shrink-0 hidden sm:block"
+                className="w-11 h-11 rounded-xl object-cover border border-[#E8E0E5] shrink-0 hidden sm:block"
               />
               <div className="min-w-0">
                 <h4 className="text-xs sm:text-sm font-bold text-gray-900 truncate max-w-[140px] sm:max-w-xs md:max-w-md">
                   {product.name}
                 </h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-base sm:text-lg font-black text-[#8B5CF6]">
+                  <span className="text-base sm:text-lg font-black text-[#601D49]">
                     ₹{retailPrice}
                   </span>
                   {mrp > retailPrice && (
@@ -1419,23 +1431,23 @@ export default function ProductDetails() {
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               
               {/* Quantity Selector (Desktop only) */}
-              <div className="hidden md:flex items-center border border-purple-200 rounded-xl bg-purple-50/50 overflow-hidden">
+              <div className="hidden md:flex items-center border border-[#E8E0E5] rounded-xl bg-[#F8F3F6] overflow-hidden">
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(-1)}
                   disabled={quantity <= 1 || isOutOfStock}
-                  className="w-7 h-7 flex items-center justify-center font-bold text-purple-900 hover:bg-purple-100 disabled:opacity-30 transition-colors cursor-pointer text-sm"
+                  className="w-7 h-7 flex items-center justify-center font-bold text-[#2D252B] hover:bg-[#F2DDE9] disabled:opacity-30 transition-colors cursor-pointer text-sm"
                 >
                   −
                 </button>
-                <span className="w-8 text-center font-bold text-xs text-purple-950">
+                <span className="w-8 text-center font-bold text-xs text-[#2D252B]">
                   {quantity}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleQuantityChange(1)}
                   disabled={isOutOfStock || (stockAvailable > 0 && quantity >= stockAvailable)}
-                  className="w-7 h-7 flex items-center justify-center font-bold text-purple-900 hover:bg-purple-100 disabled:opacity-30 transition-colors cursor-pointer text-sm"
+                  className="w-7 h-7 flex items-center justify-center font-bold text-[#2D252B] hover:bg-[#F2DDE9] disabled:opacity-30 transition-colors cursor-pointer text-sm"
                 >
                   +
                 </button>
@@ -1446,7 +1458,7 @@ export default function ProductDetails() {
                 type="button"
                 onClick={() => handleAddToCart()}
                 disabled={isOutOfStock || isAddingToCart}
-                className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#F5F0FF] font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[#601D49] text-[#601D49] hover:bg-[#F7F5F7] font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
                 {isAddingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
@@ -1456,7 +1468,7 @@ export default function ProductDetails() {
                 type="button"
                 onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                className="py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] hover:brightness-105 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                className="py-2.5 px-4 sm:px-6 rounded-xl bg-[#601D49] hover:bg-[#4D153A] hover:brightness-105 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
                 ⚡ Buy Now
               </button>
@@ -1477,7 +1489,7 @@ export default function ProductDetails() {
           className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 sm:p-6 animate-fade-in"
         >
           {/* Top Bar: Close & Image Count */}
-          <div className="flex items-center justify-between text-white max-w-7xl mx-auto w-full">
+          <div className="flex items-center justify-between text-white w-full px-3 sm:px-6 lg:px-8 xl:px-12">
             <span className="text-xs sm:text-sm font-semibold text-gray-300">
               {product?.name} ({selectedImageIndex + 1} of {imageGallery.length})
             </span>
@@ -1532,7 +1544,7 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() => setSelectedImageIndex(idx)}
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                    selectedImageIndex === idx ? 'border-purple-400 scale-105' : 'border-transparent opacity-60 hover:opacity-100'
+                    selectedImageIndex === idx ? 'border-[#601D49] scale-105' : 'border-transparent opacity-60 hover:opacity-100'
                   }`}
                 >
                   <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
@@ -1561,50 +1573,65 @@ export default function ProductDetails() {
         cartData={checkoutCartData}
       />
 
-      {/* FOOTER */}
-      <footer className="bg-[#27213A] text-white pt-12 pb-8 border-t border-[#E8E0F5]/20 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-purple-900/60">
+      {/* FOOTER (Burgundy & White Aesthetic) */}
+      <footer className="bg-white text-[#2D252B] pt-12 pb-8 border-t border-[#E8E0E5] mt-16">
+        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-[#E8E0E5]">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white font-black text-lg">
-                  K
-                </span>
-                <span className="text-xl font-extrabold tracking-tight text-white">
-                  Kirana<span className="text-pink-400">Bazaar</span>
+                {storeSettings?.logo ? (
+                  <img src={resolveImageUrl(storeSettings.logo)} alt={storeSettings.store_name} className="w-9 h-9 rounded-xl object-cover" />
+                ) : (
+                  <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#601D49] to-[#601D49] flex items-center justify-center text-white font-black text-lg">
+                    {storeSettings?.store_name ? storeSettings.store_name.charAt(0) : 'S'}
+                  </span>
+                )}
+                <span className="text-xl font-extrabold tracking-tight text-[#601D49]">
+                  {storeSettings?.store_name || 'Store'}
                 </span>
               </div>
-              <p className="text-xs text-purple-200/80 leading-relaxed">
-                Your trusted neighborhood store for trending accessories, jewellery, cosmetics, and lifestyle gifts at unmatched prices.
+              <p className="text-xs text-[#6B5E68] leading-relaxed">
+                {storeSettings?.description || 'Your trusted online shopping destination.'}
               </p>
             </div>
 
             <div>
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Shop Categories</h4>
-              <ul className="space-y-2 text-xs text-purple-200/70">
-                <li><Link to="/products?category_id=1" className="hover:text-pink-300 transition-colors">Hair Accessories</Link></li>
-                <li><Link to="/products?category_id=2" className="hover:text-pink-300 transition-colors">Fashion Jewellery</Link></li>
-                <li><Link to="/products?category_id=3" className="hover:text-pink-300 transition-colors">Gift Hampers</Link></li>
-                <li><Link to="/products?category_id=4" className="hover:text-pink-300 transition-colors">Soft Toys & Games</Link></li>
+              <h4 className="text-xs font-black text-[#2D252B] uppercase tracking-wider mb-3">Shop Categories</h4>
+              <ul className="space-y-2 text-xs text-[#6B5E68]">
+                {categories.length > 0 ? (
+                  categories.slice(0, 6).map((c) => (
+                    <li key={c.id}>
+                      <Link to={`/products?category_id=${c.id}`} className="hover:text-[#4D153A] transition-colors">
+                        {c.name}
+                      </Link>
+                    </li>
+                  ))
+                ) : (
+                  <li><Link to="/products" className="hover:text-[#601D49] transition-colors">All Products</Link></li>
+                )}
               </ul>
             </div>
 
             <div>
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Customer Service</h4>
-              <ul className="space-y-2 text-xs text-purple-200/70">
-                <li><Link to="/pages/shipping-policy" className="hover:text-pink-300 transition-colors">Shipping & Delivery Policy</Link></li>
-                <li><Link to="/pages/return-exchange-policy" className="hover:text-pink-300 transition-colors">Returns & Refunds</Link></li>
-                <li><Link to="/pages/privacy-policy" className="hover:text-pink-300 transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/pages/terms-and-conditions" className="hover:text-pink-300 transition-colors">Terms and Conditions</Link></li>
+              <h4 className="text-xs font-black text-[#2D252B] uppercase tracking-wider mb-3">Customer Service</h4>
+              <ul className="space-y-2 text-xs text-[#6B5E68]">
+                <li><Link to="/pages/shipping-policy" className="hover:text-[#601D49] transition-colors">Shipping & Delivery Policy</Link></li>
+                <li><Link to="/pages/return-exchange-policy" className="hover:text-[#601D49] transition-colors">Returns & Refunds</Link></li>
+                <li><Link to="/pages/privacy-policy" className="hover:text-[#601D49] transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/pages/terms-and-conditions" className="hover:text-[#601D49] transition-colors">Terms and Conditions</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-3">Fast & Secure Delivery</h4>
-              <p className="text-xs text-purple-200/80 leading-relaxed mb-3">
-                Orders dispatched directly from our hubs. {deliverySettings?.free_delivery_threshold ? `Free shipping across India on orders above ₹${Number(deliverySettings.free_delivery_threshold).toFixed(0)}.` : 'Express shipping across India.'}
+              <h4 className="text-xs font-black text-[#2D252B] uppercase tracking-wider mb-3">Fast & Secure Delivery</h4>
+              <p className="text-xs text-[#6B5E68] leading-relaxed mb-3">
+                {deliverySettings?.free_delivery_threshold != null && Number(deliverySettings.free_delivery_threshold) > 0
+                  ? `Free shipping on orders above ₹${Number(deliverySettings.free_delivery_threshold).toFixed(0)}.`
+                  : deliverySettings?.estimated_delivery_text
+                  ? `Express shipping: ${deliverySettings.estimated_delivery_text}.`
+                  : 'Fast and reliable shipping across India.'}
               </p>
-              <div className="flex items-center gap-2 text-xs text-purple-300">
+              <div className="flex items-center gap-2 text-xs text-[#6B5E68]">
                 <span>🔒 SSL Encrypted</span>
                 <span>•</span>
                 <span>💵 COD Available</span>
@@ -1612,9 +1639,9 @@ export default function ProductDetails() {
             </div>
           </div>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-purple-300/60 gap-4">
-            <p>© {new Date().getFullYear()} KiranaBazaar Storefront. All rights reserved.</p>
-            <p>Made with ❤️ for smart Indian shoppers.</p>
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#6B5E68] gap-4">
+            <p>© {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}</p>
+            <p>100% Secure Checkout • Express Shipping • Quality Assured</p>
           </div>
         </div>
       </footer>
