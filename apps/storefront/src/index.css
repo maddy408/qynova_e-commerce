@@ -1,15 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FAF8FF;
+  --foreground: #27213A;
+  --lavender-bg: #FAF8FF;
+  --lavender-light: #EDE5FF;
+  --lavender-secondary: #E0D6FF;
+  --lavender-surface: #F5F0FF;
+  --brand-purple: #8B5CF6;
+  --brand-purple-hover: #7042D2;
+  --text-main: #27213A;
+  --text-secondary: #716A82;
+  --border-subtle: #E8E0F5;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Design System Lavender & Purple Tokens */
+  --color-lavender-bg: #FAF8FF;
+  --color-lavender-light: #EDE5FF;
+  --color-lavender-secondary: #E0D6FF;
+  --color-lavender-surface: #F5F0FF;
+  --color-brand-purple: #8B5CF6;
+  --color-brand-purple-hover: #7042D2;
+  --color-text-main: #27213A;
+  --color-text-secondary: #716A82;
+  --color-border-subtle: #E8E0F5;
+
+  /* Harmonized Tailwind Purple Scale mapped to Lavender & Brand Purple */
+  --color-purple-50: #FAF8FF;
+  --color-purple-100: #EDE5FF;
+  --color-purple-200: #E0D6FF;
+  --color-purple-300: #C4B5FD;
+  --color-purple-400: #A78BFA;
+  --color-purple-500: #8B5CF6;
+  --color-purple-600: #7042D2;
+  --color-purple-700: #5D31B8;
+  --color-purple-800: #451F8E;
+  --color-purple-900: #27213A;
+  --color-purple-950: #1B152B;
 }
 
 html, body {

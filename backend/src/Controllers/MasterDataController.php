@@ -22,18 +22,39 @@ final class MasterDataController
     {
     }
 
+    private function isStaff(): bool
+    {
+        $token = Request::bearerToken();
+        if ($token === null) {
+            return false;
+        }
+        try {
+            $claims = \App\Helpers\JwtHelper::verify($token);
+            return isset($claims['role']) && !empty($claims['role']);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function indexBrands(): void
     {
-        $brands = $this->pdo->query(
-            "SELECT * FROM brands WHERE deleted_at IS NULL ORDER BY name"
-        )->fetchAll();
+        $isStaff = $this->isStaff();
+        $brandSql = $isStaff
+            ? "SELECT * FROM brands WHERE deleted_at IS NULL ORDER BY name"
+            : "SELECT * FROM brands WHERE deleted_at IS NULL AND status = 'ACTIVE' ORDER BY name";
+
+        $brands = $this->pdo->query($brandSql)->fetchAll();
 
         foreach ($brands as &$brand) {
-            $catStmt = $this->pdo->prepare(
-                "SELECT c.id, c.name FROM brand_categories bc
-                 JOIN categories c ON c.id = bc.category_id
-                 WHERE bc.brand_id = :id"
-            );
+            $catSql = $isStaff
+                ? "SELECT c.id, c.name FROM brand_categories bc
+                   JOIN categories c ON c.id = bc.category_id
+                   WHERE bc.brand_id = :id AND c.deleted_at IS NULL"
+                : "SELECT c.id, c.name FROM brand_categories bc
+                   JOIN categories c ON c.id = bc.category_id
+                   WHERE bc.brand_id = :id AND c.deleted_at IS NULL AND c.status = 'ACTIVE'";
+
+            $catStmt = $this->pdo->prepare($catSql);
             $catStmt->execute(['id' => $brand['id']]);
             $categories = $catStmt->fetchAll();
             $brand['categories'] = $categories;

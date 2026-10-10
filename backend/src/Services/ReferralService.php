@@ -237,6 +237,7 @@ final class ReferralService
         $row = $stmt->fetch();
         $row['is_enabled'] = (bool) $row['is_enabled'];
         $row['first_order_only'] = (bool) $row['first_order_only'];
+        $row['reward_percent'] = (float) ($row['referrer_discount_percent'] ?? 0);
 
         return $row;
     }
@@ -272,6 +273,8 @@ final class ReferralService
     /** @return array<string, mixed> */
     public function getCustomerReferralSummary(int $customerId): array
     {
+        $settings = $this->getSettings();
+
         $code = $this->pdo->prepare('SELECT code FROM referral_codes WHERE customer_id = :id');
         $code->execute(['id' => $customerId]);
 
@@ -281,17 +284,25 @@ final class ReferralService
              WHERE r.referrer_customer_id = :id ORDER BY r.created_at DESC'
         );
         $referrals->execute(['id' => $customerId]);
+        $referralList = $referrals->fetchAll();
 
         $rewards = $this->pdo->prepare(
             'SELECT id, reward_side, discount_percent, discount_amount, status, trigger_event, expires_at
              FROM referral_rewards WHERE beneficiary_customer_id = :id ORDER BY id DESC'
         );
         $rewards->execute(['id' => $customerId]);
+        $rewardList = $rewards->fetchAll();
 
         return [
             'referral_code' => $code->fetchColumn() ?: null,
-            'referrals' => $referrals->fetchAll(),
-            'rewards' => $rewards->fetchAll(),
+            'referrals' => $referralList,
+            'rewards' => $rewardList,
+            'total_referrals' => count($referralList),
+            'reward_percent' => (float) ($settings['referrer_discount_percent'] ?? 0),
+            'referrer_discount_percent' => (float) ($settings['referrer_discount_percent'] ?? 0),
+            'referred_discount_percent' => (float) ($settings['referred_discount_percent'] ?? 0),
+            'is_enabled' => (bool) ($settings['is_enabled'] ?? false),
+            'settings' => $settings,
         ];
     }
 
