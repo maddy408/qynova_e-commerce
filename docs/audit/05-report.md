@@ -161,7 +161,7 @@ The following complete workflows are currently missing from the application:
    - Customer cannot view itemized order receipts, GST breakdowns, or download tax invoices.
    - Customer cannot inspect live courier status, tracking numbers (AWB), or dispatch timelines.
    - Customer cannot initiate self-service order cancellations or return requests.
-2. **Real Payment Gateway Integration (Razorpay / PhonePe / Cashfree):**
+2. **Online Payment Gateway Integration:**
    - System currently contains only a mock payment confirmation endpoint (`POST /api/orders/{id}/confirm-payment`).
    - No payment gateway SDK or redirect flow is implemented.
    - No webhook listeners exist to verify payment signatures or capture asynchronous payment success/failure events.

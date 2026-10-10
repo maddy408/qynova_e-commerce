@@ -74,12 +74,12 @@ final class VariantService
         try {
             $stmt = $this->pdo->prepare(
                 'INSERT INTO product_variants (
-                    product_id, sku, barcode, mrp, retail_price, wholesale_price, customer_price, purchase_price,
-                    min_selling_price, discount_percent, discount_amount, manufacturing_date, expiry_date,
+                    product_id, sku, barcode, mrp, normal_price, retail_price, wholesale_price, customer_price, purchase_price,
+                    min_selling_price, manufacturing_date, expiry_date,
                     weight_grams, hsn_code_id, gst_rate_id, variant_description, is_default, status
                 ) VALUES (
-                    :product_id, :sku, :barcode, :mrp, :retail_price, :wholesale_price, :customer_price, :purchase_price,
-                    :min_selling_price, :discount_percent, :discount_amount, :manufacturing_date, :expiry_date,
+                    :product_id, :sku, :barcode, :mrp, :normal_price, :retail_price, :wholesale_price, :customer_price, :purchase_price,
+                    :min_selling_price, :manufacturing_date, :expiry_date,
                     :weight_grams, :hsn_code_id, :gst_rate_id, :variant_description, :is_default, :status
                 )'
             );
@@ -88,13 +88,12 @@ final class VariantService
                 'sku' => $sku,
                 'barcode' => $data['barcode'] ?? null,
                 'mrp' => $data['mrp'] ?? 0,
+                'normal_price' => $data['normal_price'] ?? $data['retail_price'] ?? 0,
                 'retail_price' => $data['retail_price'] ?? 0,
                 'wholesale_price' => $data['wholesale_price'] ?? null,
                 'customer_price' => $data['customer_price'] ?? null,
                 'purchase_price' => $data['purchase_price'] ?? null,
                 'min_selling_price' => $data['min_selling_price'] ?? null,
-                'discount_percent' => $data['discount_percent'] ?? 0,
-                'discount_amount' => $data['discount_amount'] ?? 0,
                 'manufacturing_date' => $data['manufacturing_date'] ?? null,
                 'expiry_date' => $data['expiry_date'] ?? null,
                 'weight_grams' => $data['weight_grams'] ?? null,
@@ -144,8 +143,8 @@ final class VariantService
     public function updateVariant(int $variantId, array $data): void
     {
         $fields = [
-            'barcode', 'mrp', 'retail_price', 'wholesale_price', 'customer_price', 'purchase_price',
-            'min_selling_price', 'discount_percent', 'discount_amount', 'manufacturing_date', 'expiry_date',
+            'barcode', 'mrp', 'normal_price', 'retail_price', 'wholesale_price', 'customer_price', 'purchase_price',
+            'min_selling_price', 'manufacturing_date', 'expiry_date',
             'weight_grams', 'hsn_code_id', 'gst_rate_id', 'variant_description', 'is_default', 'status',
         ];
 

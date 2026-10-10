@@ -2,7 +2,7 @@ UNIFIED POS + E-COMMERCE SYSTEM
 Complete Documentation and Claude Build Prompt (single document, top to bottom)
 Project: one shop (single branch) selling accessories, gifts, toys and related products. Stack: ReactJS + PHP
 REST API + MySQL. Notifications: Firebase Cloud Messaging (push) + email + SMS/WhatsApp adapters.
-Payments: Razorpay. Shipping tracking: third-party API through an adapter. Architecture: three separate
+Payments: Cash on Delivery (COD) & POS methods (Cash, UPI, Card). Shipping tracking: third-party API through an adapter. Architecture: three separate
 React apps (Admin panel, POS billing, Storefront) -> ONE PHP backend -> ONE MySQL database.
 How to use this document as a prompt
 You are a senior full-stack engineer. Build a NEW project from scratch, following every section below in order.
@@ -519,7 +519,7 @@ Money transactions (separate from DB transactions)
 payment_transactions (
 id, order_id NULL, invoice_id NULL, customer_id,
 txn_type ENUM('PAYMENT','REFUND'), method ENUM('CASH','UPI','CARD','NETBANKING','WALLET','CREDIT'),
-gateway ENUM('RAZORPAY','OFFLINE'), gateway_order_id, gateway_payment_id, gateway_refund_id,
+gateway ENUM('OFFLINE'), gateway_order_id, gateway_payment_id, gateway_refund_id,
 amount DECIMAL(15,2), currency CHAR(3) DEFAULT 'INR',
 status ENUM('INITIATED','PENDING','SUCCESS','FAILED','REFUNDED'),
 failure_reason, idempotency_key UNIQUE, webhook_event_id UNIQUE NULL,
@@ -670,28 +670,14 @@ PAYMENT SYSTEM
 Payment methods can include: Cash, UPI, Card, Credit.
 Payment record: Invoice / Order ID, Customer, Amount, Payment Method, Reference Number, Payment
 Status, Date, Created By.
-Razorpay Online Payment
-Flow: Cart, Checkout page, Pay Online (Razorpay) or other enabled methods.
-1. Frontend sends cart + address + coupon_code (NO prices) to POST /api/orders/checkout .
-2. Backend revalidates everything, creates our orders row with status PENDING and payment_status =
-PENDING , reserves stock, then calls Razorpay Orders API to create a Razorpay order. Amount (in paise) is
-computed only by the backend.
-3. Frontend opens Razorpay Checkout using the returned razorpay_order_id and public key id.
-4. On success, frontend posts razorpay_payment_id , razorpay_order_id , razorpay_signature to POST
-/api/payments/razorpay/verify . Backend verifies HMAC_SHA256(order_id + "|" + payment_id,
-key_secret) with hash_equals , then marks the order CONFIRMED, creates the payment record,
-generates the invoice.
-5. Webhook POST /api/payments/razorpay/webhook : verify X-Razorpay-Signature against the raw body,
-handle payment.captured , payment.failed , refund.processed . Idempotent (the same event twice
-must not double-process).
-6. Failed or abandoned payment: auto-release reserved stock after N minutes (cron or scheduled job).
-7. Refunds (on cancel/return) go through Razorpay Refund API, stored in payments with reference.
-Provide sample config in .env.example (test mode):
-RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
-RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxx
-RAZORPAY_WEBHOOK_SECRET=xxxxxxxxxxxx
-Also add backend/services/RazorpayService.php (createOrder, verifySignature, verifyWebhook, refund)
-and a working test-mode sample end to end. Admin settings page to enable/disable Razorpay, COD, UPI etc.
+Cash on Delivery & Supermarket Payment Methods
+Flow: Cart, Checkout page, Cash on Delivery (COD) or in-store/POS payment methods.
+1. Frontend sends cart + address + payment_method (CASH_ON_DELIVERY) + coupon_code (NO prices) to POST /api/orders/checkout .
+2. Backend revalidates everything, creates our orders row with status PENDING/CONFIRMED and payment_status = PENDING (for COD), reserves/deducts stock. Amount is computed only by the backend.
+3. In-store / POS payments support Cash, Card, UPI, and Customer Credit with immediate confirmation and invoice generation.
+4. Payment collection for COD is recorded upon delivery by the delivery agent or cashier, updating the order payment_status to PAID and creating a payment record.
+5. Order cancellation or return reverses payment effect, restores stock, and adjusts customer credit/ledger where applicable.
+Admin settings page to manage payment methods (COD, Cash, UPI, Card, Customer Credit).
 15. Orders, Cancellation and Tracking
 ORDER CANCELLATION
 Validate Order -> Check Current Status -> Change To CANCELLED
@@ -909,7 +895,7 @@ Inventory /api/inventory /api/inventory-movements /api/stock-adjustments /api/st
 Purchases /api/purchases /api/purchase-returns
 Sales 	/api/orders /api/orders/checkout /api/orders/{id}/cancel-preview /api/orders/{id}/canc
 /api/invoices /api/invoice-cancel /api/invoice-delete
-Payments /api/payments /api/payments/razorpay/verify /api/payments/razorpay/webhook /api/custom
+Payments /api/payments /api/payments/{id}/confirm /api/custom
 Shipping /api/shipments /api/tracking /api/shipping/webhook /api/serviceable-pincodes /api/shi
 Finance 	/api/expenses /api/income
 Reports 	/api/reports /api/dashboard
@@ -1087,7 +1073,7 @@ then expire (RELEASE) both end with correct stock; cancel and return restore sto
 idempotency key twice changes nothing; last-unit race between POS and e-commerce; stock never
 negative.
 3. Transactions: a forced failure after payment insert but before ledger insert rolls everything back; duplicate
-Razorpay webhook does not double-process; refund creates a REFUND row and ledger entry.
+payment callback does not double-process; refund creates a REFUND row and ledger entry.
 4. Wishlist: add, change quantity, move to cart with quantity; merge with an existing cart line; cap by stock
 with message; out-of-stock disabled; price shown equals backend price for retail vs wholesale customer;
 guest merge without duplicates.
@@ -1185,12 +1171,12 @@ products). Create catalog, category mapping, variants, inventory, ledger and tra
 InventoryService , pricing, coupon (with partial-cancel logic), shipping and settings services.
 4. Admin app: masters, multi-select category/subcategory product form, variants, pricing, discounts,
 coupons, combos, deals, banners, home sections, customers, inventory screens, shipping rules, pincodes,
-CMS pages, FAQ, settings (hardware, Razorpay, Firebase, shipping provider).
+CMS pages, FAQ, settings (hardware, payment methods, Firebase, shipping provider).
 5. Shared financial logic: invoices, payments, payment transactions, customer ledger, returns, cancellation,
 inventory, P&L.
 6. POS app: billing, keyboard navigation, scanner, thermal printing, returns and cancellation.
 7. Storefront (Next.js): guest browsing, login gate, catalogue, search and filters, wishlist, cart, Buy Now,
-pincode check, coupon, checkout, Razorpay, orders, tracking, cancellation with preview, My Account.
+pincode check, coupon, checkout (Cash on Delivery), orders, tracking, cancellation with preview, My Account.
 8. Notifications: Firebase setup, device tokens, templates, queue and worker, admin test button, email
 fallback.
 9. Shipping adapter and cron jobs: mock provider, webhooks, reservation expiry, reconciliation, backups.
@@ -1210,9 +1196,6 @@ JWT_SECRET=
 TIMEZONE=Asia/Kolkata
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
 SHIPPING_PROVIDER=mock
 SHIPROCKET_EMAIL=
 SHIPROCKET PASSWORD
@@ -1240,6 +1223,6 @@ At the end of Phase 1 and after every phase:
 not skip pushing silently, and do not invent a remote URL.
 4. Use feature commits per phase ( feat: ... ), push to main .
 5. Finish with a summary: what is done, how to run each app, test results, and anything that needs my keys
-(Google, Razorpay, shipping provider).
+(Google, shipping provider).
 Start now with step 1 and ask me only if something blocks you.
 

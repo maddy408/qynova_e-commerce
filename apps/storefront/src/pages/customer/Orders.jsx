@@ -76,8 +76,8 @@ export default function Orders() {
       case 'PACKED':
       case 'CONFIRMED':
         return {
-          bg: 'bg-purple-50 text-purple-800 border-purple-200',
-          dot: 'bg-purple-500',
+          bg: 'bg-[#F8F3F6] text-[#601D49] border-[#E8E0E5]',
+          dot: 'bg-[#601D49]',
           label: status.charAt(0) + status.slice(1).toLowerCase(),
         }
       case 'PENDING':
@@ -106,7 +106,7 @@ export default function Orders() {
       case 'PAID':
         return 'text-emerald-700 bg-emerald-50 border-emerald-200'
       case 'REFUNDED':
-        return 'text-purple-700 bg-purple-50 border-purple-200'
+        return 'text-[#601D49] bg-[#F8F3F6] border-[#E8E0E5]'
       case 'FAILED':
         return 'text-red-700 bg-red-50 border-red-200'
       default:
@@ -121,26 +121,26 @@ export default function Orders() {
   })
 
   return (
-    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-[#EDE5FF] selection:text-[#27213A]">
+    <div className="min-h-screen bg-[#F8F3F6] text-[#2D252B] font-sans selection:bg-[#F2DDE9] selection:text-[#2D252B]">
       
       {/* Top Header */}
-      <header className="bg-white border-b border-[#E8E0F5] sticky top-0 z-30 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 flex items-center justify-between gap-4">
+      <header className="bg-white border-b border-[#E8E0E5] sticky top-0 z-30 shadow-xs">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#7042D2] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#601D49] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <circle cx="8" cy="21" r="1" />
                 <circle cx="19" cy="21" r="1" />
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="#EDE5FF" stroke="none" />
+                <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="#F2DDE9" stroke="none" />
               </svg>
             </div>
             <div>
               <div className="flex items-baseline leading-none">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[#27213A]">Qynova</span>
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[#8B5CF6]">.</span>
+                <span className="text-lg sm:text-xl font-black tracking-tight text-[#2D252B]">Qynova</span>
+                <span className="text-lg sm:text-xl font-black tracking-tight text-[#601D49]">.</span>
               </div>
-              <p className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[#716A82] uppercase">
+              <p className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[#6B5E68] uppercase">
                 Customer Orders
               </p>
             </div>
@@ -149,14 +149,14 @@ export default function Orders() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/profile"
-              className="text-xs font-bold text-[#716A82] hover:text-[#27213A] px-3 py-2 rounded-full hover:bg-[#F5F0FF] transition-colors flex items-center gap-1.5"
+              className="text-xs font-bold text-[#6B5E68] hover:text-[#2D252B] px-3 py-2 rounded-full hover:bg-[#F7F5F7] transition-colors flex items-center gap-1.5"
             >
               <span>👤</span>
               <span className="hidden sm:inline">My Profile</span>
             </Link>
             <Link
               to="/shop"
-              className="text-xs font-bold text-white bg-[#8B5CF6] hover:bg-[#7042D2] px-4 py-2 rounded-full transition-colors shadow-xs"
+              className="text-xs font-bold text-white bg-[#601D49] hover:bg-[#601D49] px-4 py-2 rounded-full transition-colors shadow-xs"
             >
               Shop More
             </Link>
@@ -165,23 +165,23 @@ export default function Orders() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-10">
         
         {/* Breadcrumb & Title */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#716A82] mb-2">
-            <Link to="/" className="hover:text-[#8B5CF6]">Home</Link>
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#6B5E68] mb-2">
+            <Link to="/" className="hover:text-[#601D49]">Home</Link>
             <span>/</span>
-            <Link to="/profile" className="hover:text-[#8B5CF6]">Account</Link>
+            <Link to="/profile" className="hover:text-[#601D49]">Account</Link>
             <span>/</span>
-            <span className="text-[#27213A] font-bold">My Orders</span>
+            <span className="text-[#2D252B] font-bold">My Orders</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[#27213A] tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-[#2D252B] tracking-tight">
                 My Orders
               </h1>
-              <p className="text-xs sm:text-sm text-[#716A82] mt-1">
+              <p className="text-xs sm:text-sm text-[#6B5E68] mt-1">
                 Track your active shipments, view order details, and see past purchases.
               </p>
             </div>
@@ -200,8 +200,8 @@ export default function Orders() {
                   onClick={() => setStatusFilter(pill.id)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     statusFilter === pill.id
-                      ? 'bg-[#8B5CF6] text-white shadow-xs'
-                      : 'bg-white text-[#716A82] border border-[#E8E0F5] hover:border-[#8B5CF6]/50'
+                      ? 'bg-[#601D49] text-white shadow-xs'
+                      : 'bg-white text-[#6B5E68] border border-[#E8E0E5] hover:border-[#601D49]/50'
                   }`}
                 >
                   {pill.label}
@@ -214,8 +214,8 @@ export default function Orders() {
         {/* Loading State */}
         {isLoading && (
           <div className="py-20 text-center space-y-3">
-            <div className="w-10 h-10 border-4 border-[#8B5CF6] border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-xs font-bold text-[#716A82]">Loading your orders...</p>
+            <div className="w-10 h-10 border-4 border-[#601D49] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="text-xs font-bold text-[#6B5E68]">Loading your orders...</p>
           </div>
         )}
 
@@ -235,15 +235,15 @@ export default function Orders() {
 
         {/* Empty State */}
         {!isLoading && !error && filteredOrders.length === 0 && (
-          <div className="bg-white rounded-3xl p-8 sm:p-14 border border-[#E8E0F5] shadow-xs text-center max-w-md mx-auto space-y-4 my-8">
-            <div className="w-20 h-20 rounded-3xl bg-[#F5F0FF] text-[#8B5CF6] flex items-center justify-center text-4xl mx-auto shadow-inner">
+          <div className="bg-white rounded-3xl p-8 sm:p-14 border border-[#E8E0E5] shadow-xs text-center max-w-md mx-auto space-y-4 my-8">
+            <div className="w-20 h-20 rounded-3xl bg-[#F7F5F7] text-[#601D49] flex items-center justify-center text-4xl mx-auto shadow-inner">
               📦
             </div>
             <div className="space-y-1">
-              <h3 className="text-lg sm:text-xl font-black text-[#27213A]">
+              <h3 className="text-lg sm:text-xl font-black text-[#2D252B]">
                 {statusFilter === 'ALL' ? 'No Orders Yet' : `No ${statusFilter.toLowerCase()} orders`}
               </h3>
-              <p className="text-xs text-[#716A82] leading-relaxed">
+              <p className="text-xs text-[#6B5E68] leading-relaxed">
                 {statusFilter === 'ALL'
                   ? 'You haven\'t placed any orders yet. Discover our vibrant collection and start shopping today!'
                   : 'There are no orders matching this filter.'}
@@ -252,7 +252,7 @@ export default function Orders() {
             <div className="pt-2">
               <Link
                 to="/shop"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] text-white font-extrabold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#601D49] text-white font-extrabold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
               >
                 <span>Start Shopping</span>
                 <span>→</span>
@@ -271,15 +271,15 @@ export default function Orders() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-3xl p-5 sm:p-6 border border-[#E8E0F5] shadow-xs hover:border-[#8B5CF6]/40 hover:shadow-md transition-all space-y-4"
+                  className="bg-white rounded-3xl p-5 sm:p-6 border border-[#E8E0E5] shadow-xs hover:border-[#601D49]/40 hover:shadow-md transition-all space-y-4"
                 >
                   {/* Top Bar: Order ID, Date, Badges */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      <span className="font-mono font-black text-sm sm:text-base text-[#27213A]">
+                      <span className="font-mono font-black text-sm sm:text-base text-[#2D252B]">
                         {order.order_no || `Order #${order.id}`}
                       </span>
-                      <span className="text-[11px] text-[#716A82]">
+                      <span className="text-[11px] text-[#6B5E68]">
                         • {formatDate(order.created_at)}
                       </span>
                     </div>
@@ -301,8 +301,8 @@ export default function Orders() {
                   {/* Summary & Actions Row */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
                     <div className="space-y-1">
-                      <span className="text-[11px] font-semibold text-[#716A82] block">Total Amount</span>
-                      <p className="text-xl font-black text-[#8B5CF6]">
+                      <span className="text-[11px] font-semibold text-[#6B5E68] block">Total Amount</span>
+                      <p className="text-xl font-black text-[#601D49]">
                         ₹{Number(order.grand_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -310,7 +310,7 @@ export default function Orders() {
                     <div className="flex items-center gap-2.5">
                       <Link
                         to={`/orders/${order.id}`}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#F5F0FF] hover:bg-[#EDE5FF] text-[#7042D2] text-xs font-black transition-colors"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#F7F5F7] hover:bg-[#F2DDE9] text-[#601D49] text-xs font-black transition-colors"
                       >
                         <span>View Details</span>
                         <span>→</span>

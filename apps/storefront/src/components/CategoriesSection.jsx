@@ -1,28 +1,22 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import ProductCard from './ProductCard'
+import { resolveImageUrl } from '../lib/api'
+import { getCategoryPalette } from '../lib/catalogData'
 
-export default function HorizontalProductSection({
-  title,
+export default function CategoriesSection({
+  title = 'Shop by Category',
   subtitle,
-  badgeText,
-  badgeBg = 'bg-[#F2DDE9] text-[#601D49]',
-  products = [],
-  viewAllLink,
+  badgeText = 'COLLECTIONS',
+  categories = [],
+  viewAllLink = '/products',
   isLoading = false,
-  emptyMessage = 'No products available right now.',
-  wishlistIds = [],
-  onToggleWishlist,
-  onAddToCart,
-  id,
-  backgroundImage = null,
+  id = 'categories-section',
 }) {
   const navigate = useNavigate()
   const scrollRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
-  // Check scroll boundary to disable/hide arrows
   const checkScrollBounds = () => {
     if (!scrollRef.current) return
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
@@ -42,9 +36,8 @@ export default function HorizontalProductSection({
       container.removeEventListener('scroll', checkScrollBounds)
       window.removeEventListener('resize', checkScrollBounds)
     }
-  }, [products, isLoading])
+  }, [categories, isLoading])
 
-  // Desktop Carousel Scroll Handler
   const handleScroll = (direction) => {
     if (!scrollRef.current) return
     const scrollAmount = scrollRef.current.clientWidth * 0.75
@@ -54,30 +47,20 @@ export default function HorizontalProductSection({
     })
   }
 
-  const hasProducts = Array.isArray(products) && products.length > 0
+  const hasCategories = Array.isArray(categories) && categories.length > 0
 
-  // Gracefully hide section if no products are available in MySQL for this section
-  if (!isLoading && !hasProducts) {
+  if (!isLoading && !hasCategories) {
     return null
   }
 
   return (
-    <section
-      id={id}
-      className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 overflow-hidden relative"
-      style={backgroundImage ? {
-        backgroundImage: `linear-gradient(rgba(248, 243, 246, 0.92), rgba(248, 243, 246, 0.96)), url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      } : undefined}
-    >
-      
-      {/* 1. SECTION HEADER: Title, Subtitle, Carousel Arrows & View All */}
+    <section id={id} className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 overflow-hidden">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4 sm:mb-5">
         <div>
           {badgeText && (
             <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
-              <span className={`px-2.5 py-0.5 rounded-full ${badgeBg}`}>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#F2DDE9] text-[#601D49]">
                 {badgeText}
               </span>
             </div>
@@ -92,10 +75,9 @@ export default function HorizontalProductSection({
           )}
         </div>
 
-        {/* Right Action Bar: Carousel Arrows + View All Link */}
+        {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
-          {/* Desktop Left/Right Carousel Controls */}
-          {hasProducts && (
+          {hasCategories && (
             <div className="hidden sm:flex items-center gap-1.5">
               <button
                 type="button"
@@ -131,8 +113,7 @@ export default function HorizontalProductSection({
             </div>
           )}
 
-          {/* View All Button (Only shown if section has destination and products/loading) */}
-          {viewAllLink && (hasProducts || isLoading) && (
+          {viewAllLink && (
             <Link
               to={viewAllLink}
               className="inline-flex items-center gap-1 text-xs font-black text-[#601D49] hover:text-[#4D153A] hover:underline px-3 py-1.5 rounded-full hover:bg-[#F2DDE9] transition-colors shrink-0"
@@ -144,31 +125,20 @@ export default function HorizontalProductSection({
         </div>
       </div>
 
-      {/* 2. PRODUCT CAROUSEL TRACK (Strictly ONE horizontal row, no page overflow) */}
+      {/* Track */}
       {isLoading ? (
-        /* Loading Skeleton */
         <div className="flex gap-3.5 sm:gap-4 overflow-hidden py-2">
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div
               key={idx}
-              className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse space-y-3"
+              className="w-32 sm:w-36 shrink-0 bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse space-y-2.5 flex flex-col items-center text-center"
             >
-              <div className="bg-[#F2DDE9]/60 aspect-square rounded-xl w-full" />
-              <div className="h-3 bg-[#F2DDE9]/70 rounded w-2/3" />
-              <div className="h-4 bg-[#F2DDE9]/70 rounded w-full" />
-              <div className="h-4 bg-[#F2DDE9]/70 rounded w-1/2" />
+              <div className="w-16 h-16 rounded-full bg-[#F2DDE9]/60" />
+              <div className="h-3 bg-[#F2DDE9]/70 rounded w-20" />
             </div>
           ))}
         </div>
-      ) : !hasProducts ? (
-        /* Empty State */
-        <div className="py-8 text-center bg-[#F8F3F6] rounded-2xl border border-[#E8E0E5] p-6 space-y-2">
-          <p className="text-sm font-bold text-[#6B5E68]">
-            {emptyMessage}
-          </p>
-        </div>
       ) : (
-        /* Products in ONE Horizontal Scrollable Row */
         <div
           ref={scrollRef}
           className="flex flex-nowrap overflow-x-auto scroll-smooth no-scrollbar gap-3 sm:gap-4 py-2 px-0.5 select-none"
@@ -178,23 +148,43 @@ export default function HorizontalProductSection({
             msOverflowStyle: 'none',
           }}
         >
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="w-[calc(50%-8px)] min-w-[155px] max-w-[210px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0"
-            >
-              <ProductCard
-                product={product}
-                isWishlist={wishlistIds.includes(product.id)}
-                onToggleWishlist={onToggleWishlist}
-                onAddToCart={onAddToCart}
-                onClick={() => navigate(`/product/${product.id}`)}
-              />
-            </div>
-          ))}
+          {categories.map((cat, idx) => {
+            const img = cat.image_path || cat.thumb_path ? resolveImageUrl(cat.image_path || cat.thumb_path) : null
+
+            return (
+              <div
+                key={cat.id}
+                onClick={() => navigate(`/products?category_id=${cat.id}`)}
+                className="w-32 sm:w-36 shrink-0 rounded-2xl p-3 sm:p-4 border border-[#E8E0E5] transition-all duration-300 cursor-pointer flex flex-col items-center text-center group bg-white hover:shadow-md hover:border-[#601D49]"
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[#F7F5F7] border-2 border-[#E8E0E5] group-hover:border-[#601D49] transition-colors flex items-center justify-center mb-2.5 shadow-xs">
+                  {img ? (
+                    <img
+                      src={img}
+                      alt={cat.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="text-xl sm:text-2xl font-black text-[#601D49]">
+                      {cat.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-xs sm:text-sm font-bold text-[#2D252B] group-hover:text-[#601D49] transition-colors line-clamp-1">
+                  {cat.name}
+                </h3>
+                {cat.product_count !== undefined && (
+                  <span className="text-[10px] text-[#6B5E68] mt-0.5 font-medium">
+                    {cat.product_count} {cat.product_count === 1 ? 'item' : 'items'}
+                  </span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
-
     </section>
   )
 }
