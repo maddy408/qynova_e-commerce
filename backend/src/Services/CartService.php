@@ -54,7 +54,7 @@ final class CartService
 
         foreach ($rows as $row) {
             $unitPrice = PricingService::resolveUnitPrice($row, $customerType);
-            $available = (string) ($row['available'] ?? '100');
+            $available = (string) ($row['available'] ?? '0');
             $quantity = (int) $row['quantity'];
             $lineTotal = bcmul($unitPrice, (string) $quantity, 2);
             $subtotal = bcadd($subtotal, $lineTotal, 2);
@@ -68,7 +68,7 @@ final class CartService
                 'name' => $row['product_name'],
                 'product_name' => $row['product_name'],
                 'sku' => $row['sku'],
-                'brand' => $row['brand_name'] ?: 'Supermarket',
+                'brand' => $row['brand_name'] ?? null,
                 'image' => $row['primary_image'],
                 'quantity' => $quantity,
                 'price' => $unitPrice,
@@ -186,14 +186,14 @@ final class CartService
     private function findCartId(?int $customerId, ?string $sessionId): ?int
     {
         if ($customerId !== null) {
-            $stmt = $this->pdo->prepare('SELECT id FROM carts WHERE customer_id = :customer_id');
+            $stmt = $this->pdo->prepare("SELECT id FROM carts WHERE customer_id = :customer_id AND status = 'ACTIVE'");
             $stmt->execute(['customer_id' => $customerId]);
             $id = $stmt->fetchColumn();
             return $id !== false ? (int) $id : null;
         }
 
         if ($sessionId !== null && $sessionId !== '') {
-            $stmt = $this->pdo->prepare('SELECT id FROM carts WHERE session_id = :session_id');
+            $stmt = $this->pdo->prepare("SELECT id FROM carts WHERE session_id = :session_id AND status = 'ACTIVE'");
             $stmt->execute(['session_id' => $sessionId]);
             $id = $stmt->fetchColumn();
             return $id !== false ? (int) $id : null;
@@ -212,10 +212,10 @@ final class CartService
         if ($customerId !== null) {
             $this->pdo->prepare(
                 "INSERT INTO carts (customer_id, status) VALUES (:customer_id, 'ACTIVE')
-                 ON DUPLICATE KEY UPDATE customer_id = customer_id"
+                 ON DUPLICATE KEY UPDATE status = 'ACTIVE'"
             )->execute(['customer_id' => $customerId]);
 
-            $stmt = $this->pdo->prepare('SELECT id FROM carts WHERE customer_id = :customer_id');
+            $stmt = $this->pdo->prepare("SELECT id FROM carts WHERE customer_id = :customer_id AND status = 'ACTIVE'");
             $stmt->execute(['customer_id' => $customerId]);
             return (int) $stmt->fetchColumn();
         }
@@ -223,10 +223,10 @@ final class CartService
         $session = $sessionId ?: bin2hex(random_bytes(16));
         $this->pdo->prepare(
             "INSERT INTO carts (session_id, status) VALUES (:session_id, 'ACTIVE')
-             ON DUPLICATE KEY UPDATE session_id = session_id"
+             ON DUPLICATE KEY UPDATE status = 'ACTIVE'"
         )->execute(['session_id' => $session]);
 
-        $stmt = $this->pdo->prepare('SELECT id FROM carts WHERE session_id = :session_id');
+        $stmt = $this->pdo->prepare("SELECT id FROM carts WHERE session_id = :session_id AND status = 'ACTIVE'");
         $stmt->execute(['session_id' => $session]);
         return (int) $stmt->fetchColumn();
     }

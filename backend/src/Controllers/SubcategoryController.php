@@ -22,17 +22,38 @@ final class SubcategoryController
         $this->subcategories = new SubcategoryService($pdo);
     }
 
+    private function isStaff(): bool
+    {
+        $token = Request::bearerToken();
+        if ($token === null) {
+            return false;
+        }
+        try {
+            $claims = \App\Helpers\JwtHelper::verify($token);
+            return isset($claims['role']) && !empty($claims['role']);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     /** Public — the storefront needs this for category/subcategory navigation too. */
     public function index(): void
     {
-        Response::json(['subcategories' => $this->subcategories->list()]);
+        $categoryId = isset($_GET['category_id']) && is_numeric($_GET['category_id']) ? (int) $_GET['category_id'] : null;
+        $status = $_GET['status'] ?? null;
+        if (!$this->isStaff()) {
+            $status = 'ACTIVE';
+        } elseif ($status === null && Request::bearerToken() === null) {
+            $status = 'ACTIVE';
+        }
+        Response::json(['subcategories' => $this->subcategories->list($categoryId, $status)]);
     }
 
     public function show(string $id): void
     {
         $subcategory = $this->subcategories->find((int) $id);
 
-        if ($subcategory === null) {
+        if ($subcategory === null || (!$this->isStaff() && ($subcategory['status'] !== 'ACTIVE' || !empty($subcategory['deleted_at'])))) {
             Response::error('Subcategory not found', 404);
         }
 

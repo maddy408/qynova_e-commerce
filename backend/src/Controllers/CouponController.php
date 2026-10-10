@@ -97,4 +97,86 @@ final class CouponController
 
         Response::json(['coupons' => $stmt->fetchAll()]);
     }
+
+    /** Customer / Storefront coupon validation against live MySQL rules */
+    public function validate(): void
+    {
+        $body = Request::json();
+        $code = trim((string) ($body['code'] ?? ''));
+        if ($code === '') {
+            Response::error('Coupon code is required', 422);
+        }
+
+        $customerId = 0;
+        $token = Request::bearerToken();
+        if ($token !== null) {
+            try {
+                $claims = \App\Helpers\JwtHelper::verify($token);
+                if (($claims['type'] ?? '') === 'customer') {
+                    $customerId = (int) $claims['sub'];
+                }
+            } catch (\Throwable) {
+                // Guest validation
+            }
+        }
+
+        $rawItems = (array) ($body['items'] ?? []);
+        $items = [];
+        if (!empty($rawItems)) {
+            foreach ($rawItems as $it) {
+                $pId = (int) ($it['product_id'] ?? 0);
+                $pStmt = $this->pdo->prepare('SELECT brand_id FROM products WHERE id = :id');
+                $pStmt->execute(['id' => $pId]);
+                $brandId = $pStmt->fetchColumn() ?: null;
+
+                $catStmt = $this->pdo->prepare('SELECT category_id FROM product_categories WHERE product_id = :id');
+                $catStmt->execute(['id' => $pId]);
+                $categoryIds = array_map('intval', $catStmt->fetchAll(PDO::FETCH_COLUMN));
+
+                $unitPrice = (string) ($it['price'] ?? $it['unit_price'] ?? '0');
+                $quantity = (int) ($it['quantity'] ?? 1);
+                $lineSubtotal = (string) ($it['line_total'] ?? bcmul($unitPrice, (string) $quantity, 2));
+
+                $items[] = [
+                    'variant_id' => (int) ($it['variant_id'] ?? 0),
+                    'product_id' => $pId,
+                    'category_ids' => $categoryIds,
+                    'brand_id' => $brandId !== null ? (int) $brandId : null,
+                    'quantity' => $quantity,
+                    'line_subtotal' => $lineSubtotal,
+                ];
+            }
+        } else {
+            $sessionId = Request::header('X-Session-ID');
+            $cartService = new \App\Services\CartService($this->pdo);
+            $cart = $cartService->getCart($customerId > 0 ? $customerId : null, $sessionId);
+            $cartItems = $cart['items'] ?? [];
+            foreach ($cartItems as $ci) {
+                $pStmt = $this->pdo->prepare('SELECT brand_id FROM products WHERE id = :id');
+                $pStmt->execute(['id' => $ci['product_id']]);
+                $brandId = $pStmt->fetchColumn() ?: null;
+
+                $catStmt = $this->pdo->prepare('SELECT category_id FROM product_categories WHERE product_id = :id');
+                $catStmt->execute(['id' => $ci['product_id']]);
+                $categoryIds = array_map('intval', $catStmt->fetchAll(PDO::FETCH_COLUMN));
+
+                $items[] = [
+                    'variant_id' => (int) $ci['variant_id'],
+                    'product_id' => (int) $ci['product_id'],
+                    'category_ids' => $categoryIds,
+                    'brand_id' => $brandId !== null ? (int) $brandId : null,
+                    'quantity' => (int) $ci['quantity'],
+                    'line_subtotal' => (string) $ci['line_total'],
+                ];
+            }
+        }
+
+        try {
+            $service = new CouponService($this->pdo);
+            $result = $service->validate($code, $customerId, $items);
+            Response::json($result);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
 }

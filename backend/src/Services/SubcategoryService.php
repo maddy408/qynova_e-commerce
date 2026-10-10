@@ -25,20 +25,37 @@ final class SubcategoryService
     }
 
     /** @return list<array<string, mixed>> */
-    public function list(): array
+    public function list(?int $categoryId = null, ?string $status = null): array
     {
-        $subcategories = $this->pdo->query(
+        $where = ['s.deleted_at IS NULL'];
+        $params = [];
+
+        if ($categoryId !== null) {
+            $where[] = 'EXISTS (SELECT 1 FROM category_subcategory cs WHERE cs.subcategory_id = s.id AND cs.category_id = :category_id)';
+            $params['category_id'] = $categoryId;
+        }
+
+        if ($status !== null && $status !== '') {
+            $where[] = 's.status = :status';
+            $params['status'] = strtoupper($status);
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $stmt = $this->pdo->prepare(
             "SELECT s.*,
                 (SELECT COUNT(*) FROM product_subcategories ps WHERE ps.subcategory_id = s.id) AS product_count
              FROM subcategories s
-             WHERE s.deleted_at IS NULL
+             WHERE {$whereSql}
              ORDER BY s.sort_order, s.name"
-        )->fetchAll();
+        );
+        $stmt->execute($params);
+        $subcategories = $stmt->fetchAll();
 
         foreach ($subcategories as &$subcategory) {
-            $stmt = $this->pdo->prepare('SELECT category_id FROM category_subcategory WHERE subcategory_id = :id');
-            $stmt->execute(['id' => $subcategory['id']]);
-            $subcategory['category_ids'] = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+            $stmtCat = $this->pdo->prepare('SELECT category_id FROM category_subcategory WHERE subcategory_id = :id');
+            $stmtCat->execute(['id' => $subcategory['id']]);
+            $subcategory['category_ids'] = array_map('intval', $stmtCat->fetchAll(PDO::FETCH_COLUMN));
         }
         unset($subcategory);
 

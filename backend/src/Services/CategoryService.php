@@ -22,9 +22,19 @@ final class CategoryService
     }
 
     /** @return list<array<string, mixed>> */
-    public function list(): array
+    public function list(?string $status = null): array
     {
-        return $this->pdo->query(
+        $where = ['c.deleted_at IS NULL'];
+        $params = [];
+
+        if ($status !== null && $status !== '') {
+            $where[] = 'c.status = :status';
+            $params['status'] = strtoupper($status);
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $stmt = $this->pdo->prepare(
             "SELECT c.*,
                 (SELECT COUNT(*) FROM category_subcategory cs WHERE cs.category_id = c.id) AS subcategory_count,
                 (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count,
@@ -36,9 +46,12 @@ final class CategoryService
                     WHERE pc.category_id = c.id
                 ), 0) AS total_units_sold
              FROM categories c
-             WHERE c.deleted_at IS NULL
+             WHERE {$whereSql}
              ORDER BY total_units_sold DESC, c.sort_order, c.name"
-        )->fetchAll();
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
     }
 
     /** @return array<string, mixed>|null */

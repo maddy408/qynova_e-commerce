@@ -7,6 +7,7 @@ import {
   setCustomerSession,
   fetchStoreSettings,
   fetchDeliverySettings,
+  resolveImageUrl,
 } from '../lib/api'
 import Navbar from '../components/Navbar'
 import HorizontalProductSection from '../components/HorizontalProductSection'
@@ -36,6 +37,7 @@ export default function ProductDetails() {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 })
 
   // Purchase & Actions State
+  const [selectedVariantId, setSelectedVariantId] = useState(null)
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -98,6 +100,7 @@ export default function ProductDetails() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
     setSelectedImageIndex(0)
+    setSelectedVariantId(null)
     setQuantity(1)
     setPincodeStatus(null)
   }, [id])
@@ -170,14 +173,19 @@ export default function ProductDetails() {
         if (res.data?.product) {
           const prod = res.data.product
           setProduct(prod)
+          const initialVar = prod.variants?.find((v) => v.is_default) || prod.variants?.[0]
+          if (initialVar?.id) {
+            setSelectedVariantId(initialVar.id)
+          }
 
           // Manage Recently Viewed in in-memory session (no localStorage)
           try {
             const filtered = inMemoryRecentlyViewed.filter((item) => Number(item.id) !== Number(prod.id))
             const defVar = prod.variants?.find((v) => v.is_default) || prod.variants?.[0]
-            const rPrice = Number(defVar?.retail_price || prod.min_price || prod.price) || 299
-            const rMrp = Number(defVar?.mrp) || Math.round(rPrice * 1.8)
-            const mainImg = prod.images?.[0]?.image_path || prod.primary_image || '/placeholder-product.svg'
+            const rPrice = Number(defVar?.retail_price ?? prod.min_price ?? prod.price) || 0
+            const rMrp = Number(defVar?.mrp ?? prod.mrp) || 0
+            const rawMainImg = prod.images?.[0]?.image_path || prod.primary_image || ''
+            const mainImg = resolveImageUrl(rawMainImg) || '/placeholder-product.svg'
 
             const currentEntry = {
               id: prod.id,
@@ -238,41 +246,66 @@ export default function ProductDetails() {
   }, [id])
 
   // Price & Inventory calculations from MySQL variants
-  const defaultVariant = useMemo(() => {
+  const activeVariant = useMemo(() => {
     if (!product?.variants || product.variants.length === 0) return null
+    if (selectedVariantId) {
+      const found = product.variants.find((v) => v.id === selectedVariantId)
+      if (found) return found
+    }
     return product.variants.find((v) => v.is_default) || product.variants[0]
-  }, [product])
+  }, [product, selectedVariantId])
 
-  const retailPrice = Number(defaultVariant?.retail_price) || Number(product?.min_price) || 299
-  const mrp = Number(defaultVariant?.mrp) || Math.round(retailPrice * 1.8)
-  const discountPercent = mrp > retailPrice ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
-  const savings = mrp > retailPrice ? mrp - retailPrice : 0
+  const defaultVariant = activeVariant
+
+  const hasVariants = Array.isArray(product?.variants) && product.variants.length > 0
+  const retailPrice = Number(activeVariant?.retail_price ?? product?.min_price ?? product?.price ?? 0)
+  const hasPrice = retailPrice > 0
+  const mrp = Number(activeVariant?.mrp ?? product?.mrp ?? retailPrice)
+  const showDiscount = product?.show_discount !== 0 && product?.show_discount !== false && product?.show_discount !== '0'
+  const discountPercent = hasPrice && mrp > retailPrice && showDiscount ? Math.round(((mrp - retailPrice) / mrp) * 100) : 0
+  const savings = hasPrice && mrp > retailPrice && showDiscount ? mrp - retailPrice : 0
 
   // Available stock calculation
   const stockAvailable = useMemo(() => {
-    if (!product) return 0
-    if (defaultVariant && defaultVariant.available !== null && defaultVariant.available !== undefined) {
-      return Number(defaultVariant.available)
+    if (!product || !hasVariants) return 0
+    if (activeVariant && activeVariant.available !== null && activeVariant.available !== undefined) {
+      return Number(activeVariant.available)
     }
-    if (defaultVariant && defaultVariant.on_hand !== null && defaultVariant.on_hand !== undefined) {
-      return Number(defaultVariant.on_hand)
+    if (activeVariant && activeVariant.on_hand !== null && activeVariant.on_hand !== undefined) {
+      return Number(activeVariant.on_hand)
     }
-    return product.is_active ? 20 : 0
-  }, [product, defaultVariant])
+    return 0
+  }, [product, activeVariant, hasVariants])
 
-  const isOutOfStock = stockAvailable <= 0
+  const isUnavailable = !hasVariants || !hasPrice
+  const isOutOfStock = isUnavailable || stockAvailable <= 0
 
-  // Image Gallery List (DB images as single source of truth)
+  // Image Gallery List (Variant images prioritized, then DB main images)
   const imageGallery = useMemo(() => {
     if (!product) return []
+    const urls = []
+
+    // If active variant has its own images, include them first
+    if (Array.isArray(activeVariant?.images) && activeVariant.images.length > 0) {
+      activeVariant.images.forEach((img) => {
+        const url = resolveImageUrl(img.image_path)
+        if (url && !urls.includes(url)) urls.push(url)
+      })
+    }
+
+    // Then include main product images
     if (Array.isArray(product.images) && product.images.length > 0) {
-      return product.images.map((img) => img.image_path)
+      product.images.forEach((img) => {
+        const url = resolveImageUrl(img.image_path)
+        if (url && !urls.includes(url)) urls.push(url)
+      })
+    } else if (product.primary_image) {
+      const url = resolveImageUrl(product.primary_image)
+      if (url && !urls.includes(url)) urls.push(url)
     }
-    if (product.primary_image) {
-      return [product.primary_image]
-    }
-    return ['/placeholder-product.svg']
-  }, [product])
+
+    return urls.length > 0 ? urls : ['/placeholder-product.svg']
+  }, [product, activeVariant])
 
   const activeImage = imageGallery[selectedImageIndex] || imageGallery[0] || ''
 
@@ -318,6 +351,7 @@ export default function ProductDetails() {
       await addToCart(
         {
           ...prodToAdd,
+          variant_id: activeVariant?.id,
           retail_price: retailPrice,
           mrp,
           primary_image: activeImage,
@@ -340,6 +374,7 @@ export default function ProductDetails() {
     await addToCart(
       {
         ...product,
+        variant_id: activeVariant?.id,
         retail_price: retailPrice,
         mrp,
         primary_image: activeImage,
@@ -357,6 +392,8 @@ export default function ProductDetails() {
       items: [
         {
           id: product.id,
+          product_id: product.id,
+          variant_id: activeVariant?.id,
           name: product.name,
           price: retailPrice,
           originalPrice: mrp,
@@ -442,11 +479,11 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFAFD] text-slate-800 font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAF8FF] text-[#27213A] font-sans selection:bg-purple-100 selection:text-purple-900 overflow-x-hidden">
       
       {/* TOAST FEEDBACK NOTIFICATION */}
       {toastMessage && (
-        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 bg-[#2E1065] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce border border-purple-500/30">
+        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 bg-[#27213A] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 animate-bounce border border-[#8B5CF6]/30">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -471,6 +508,17 @@ export default function ProductDetails() {
               className="text-purple-800 hover:text-purple-950 font-medium hover:underline"
             >
               {primaryCategory.name}
+            </Link>
+          </>
+        )}
+        {product?.subcategories?.[0] && (
+          <>
+            <span className="text-gray-300">/</span>
+            <Link
+              to={`/products?subcategory_id=${product.subcategories[0].id}`}
+              className="text-purple-800 hover:text-purple-950 font-medium hover:underline"
+            >
+              {product.subcategories[0].name}
             </Link>
           </>
         )}
@@ -514,7 +562,7 @@ export default function ProductDetails() {
             <p className="text-sm text-gray-600 mb-6">{error}</p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#6B21A8] hover:bg-[#581C87] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#8B5CF6] hover:bg-[#7042D2] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
             >
               ← Return to Catalog
             </Link>
@@ -542,7 +590,7 @@ export default function ProductDetails() {
                           onClick={() => setSelectedImageIndex(idx)}
                           className={`relative aspect-square w-16 sm:w-18 md:w-full rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-gray-50 shrink-0 ${
                             selectedImageIndex === idx
-                              ? 'border-[#6B21A8] shadow-md ring-2 ring-purple-200'
+                              ? 'border-[#8B5CF6] shadow-md ring-2 ring-purple-200'
                               : 'border-purple-100 hover:border-purple-300 opacity-80 hover:opacity-100'
                           }`}
                         >
@@ -582,8 +630,8 @@ export default function ProductDetails() {
 
                       {/* Top Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
-                        {discountPercent > 0 && (
-                          <span className="bg-[#6B21A8] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
+                        {discountPercent > 0 && showDiscount && (
+                          <span className="bg-[#8B5CF6] text-white text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-lg shadow-md uppercase tracking-wider">
                             {discountPercent}% OFF
                           </span>
                         )}
@@ -676,7 +724,7 @@ export default function ProductDetails() {
                   </div>
 
                   {/* Product Title */}
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#1E0B36] tracking-tight leading-snug mb-2.5">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#27213A] tracking-tight leading-snug mb-2.5">
                     {product.name}
                   </h1>
 
@@ -695,37 +743,53 @@ export default function ProductDetails() {
                   </div>
 
                   {/* PRICE SECTION (Actual Database Values) */}
-                  <div className="bg-[#FAF5FF]/70 border border-purple-100 rounded-2xl p-4 sm:p-5 mb-5">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <span className="text-3xl sm:text-4xl font-black text-[#581C87] tracking-tight">
-                        ₹{retailPrice}
-                      </span>
-                      {mrp > retailPrice && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm sm:text-base text-gray-400 line-through">
-                            MRP ₹{mrp}
+                  <div className="bg-[#F5F0FF]/80 border border-[#E8E0F5] rounded-2xl p-4 sm:p-5 mb-5">
+                    {isUnavailable ? (
+                      <div>
+                        <span className="text-2xl sm:text-3xl font-black text-gray-500 tracking-tight">
+                          Currently Unavailable
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">This product is currently not available for purchase.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-baseline gap-3 flex-wrap">
+                          <span className="text-3xl sm:text-4xl font-black text-[#8B5CF6] tracking-tight">
+                            ₹{retailPrice}
                           </span>
-                          <span className="text-xs sm:text-sm font-extrabold text-pink-600 bg-pink-50 border border-pink-200/60 px-2 py-0.5 rounded-md">
-                            {discountPercent}% OFF
-                          </span>
+                          {showDiscount && mrp > retailPrice && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm sm:text-base text-gray-400 line-through">
+                                MRP ₹{mrp}
+                              </span>
+                              <span className="text-xs sm:text-sm font-extrabold text-pink-600 bg-pink-50 border border-pink-200/60 px-2 py-0.5 rounded-md">
+                                {discountPercent}% OFF
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {savings > 0 && (
-                      <p className="text-xs font-bold text-emerald-700 mt-1">
-                        You save ₹{savings} on this product!
-                      </p>
+                        {savings > 0 && showDiscount && (
+                          <p className="text-xs font-bold text-emerald-700 mt-1">
+                            You save ₹{savings} on this product!
+                          </p>
+                        )}
+
+                        <div className="text-[11px] text-gray-500 font-medium mt-1">
+                          Inclusive of all applicable taxes
+                        </div>
+                      </>
                     )}
-
-                    <div className="text-[11px] text-gray-500 font-medium mt-1">
-                      Inclusive of all applicable taxes
-                    </div>
                   </div>
 
                   {/* STOCK STATUS */}
                   <div className="flex items-center gap-2 mb-5">
-                    {isOutOfStock ? (
+                    {isUnavailable ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl">
+                        <span className="w-2 h-2 rounded-full bg-gray-400" />
+                        Currently Unavailable
+                      </span>
+                    ) : isOutOfStock ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">
                         <span className="w-2 h-2 rounded-full bg-red-500" />
                         Currently Out of Stock
@@ -743,10 +807,82 @@ export default function ProductDetails() {
                     )}
                   </div>
 
+                  {/* VARIANT SELECTOR */}
+                  {Array.isArray(product?.variants) && product.variants.length > 1 && (
+                    <div className="mb-5 p-4 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black uppercase tracking-wider text-purple-950">
+                          Select Variant / Option:
+                        </label>
+                        {activeVariant?.sku && (
+                          <span className="text-[11px] font-mono font-semibold text-gray-500">
+                            SKU: {activeVariant.sku}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2.5">
+                        {product.variants.map((v) => {
+                          const isSelected = v.id === activeVariant?.id
+                          const vStock = Number(v.available ?? v.on_hand ?? 0)
+                          const vOutOfStock = vStock <= 0
+
+                          const label =
+                            Array.isArray(v.attribute_values) && v.attribute_values.length > 0
+                              ? v.attribute_values.map((av) => av.value).join(' / ')
+                              : v.variant_description || v.sku || `Option #${v.id}`
+
+                          const colorHex = v.attribute_values?.find((av) => av.color_hex)?.color_hex
+                          const vImg = v.images?.[0]?.image_path ? resolveImageUrl(v.images[0].image_path) : null
+
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedVariantId(v.id)
+                                setSelectedImageIndex(0)
+                              }}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                                isSelected
+                                  ? 'bg-[#8B5CF6] text-white border-[#8B5CF6] shadow-xs'
+                                  : vOutOfStock
+                                  ? 'bg-gray-100 text-gray-400 border-gray-200 opacity-60'
+                                  : 'bg-white text-gray-800 border-purple-200 hover:border-purple-400 hover:bg-purple-50/50'
+                              }`}
+                            >
+                              {vImg ? (
+                                <img src={vImg} alt={label} className="w-4 h-4 rounded-full object-cover border border-white/50 shrink-0" />
+                              ) : colorHex ? (
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
+                                  style={{ backgroundColor: colorHex }}
+                                />
+                              ) : null}
+                              <span>{label}</span>
+                              <span
+                                className={`text-[11px] font-semibold ${
+                                  isSelected ? 'text-purple-200' : 'text-gray-500'
+                                }`}
+                              >
+                                ₹{v.retail_price}
+                              </span>
+                              {vOutOfStock && (
+                                <span className="text-[9px] font-black uppercase text-red-500">
+                                  Sold Out
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* OFFERS SECTION (Dynamic Backend Data) */}
                   <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-5">
                     <div className="flex items-center justify-between mb-2.5">
-                      <h3 className="text-xs sm:text-sm font-extrabold text-[#1E0B36] uppercase tracking-wider flex items-center gap-1.5">
+                      <h3 className="text-xs sm:text-sm font-extrabold text-[#27213A] uppercase tracking-wider flex items-center gap-1.5">
                         <span>🏷️</span> Available Offers
                       </h3>
                       {availableCoupons.length > 0 && (
@@ -806,7 +942,7 @@ export default function ProductDetails() {
 
                   {/* DELIVERY / PINCODE CHECKER */}
                   <div className="border border-purple-100 rounded-2xl p-4 bg-white shadow-2xs mb-6">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-[#1E0B36] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <h3 className="text-xs sm:text-sm font-extrabold text-[#27213A] uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <span>🚚</span> Delivery Availability
                     </h3>
 
@@ -825,7 +961,7 @@ export default function ProductDetails() {
                       <button
                         type="submit"
                         disabled={isPincodeLoading || pincode.trim().length !== 6}
-                        className="px-4 py-2 bg-[#6B21A8] hover:bg-[#581C87] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="px-4 py-2 bg-[#8B5CF6] hover:bg-[#7042D2] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                       >
                         {isPincodeLoading ? 'Checking...' : 'Check'}
                       </button>
@@ -866,7 +1002,7 @@ export default function ProductDetails() {
                         >
                           −
                         </button>
-                        <span className="w-10 text-center font-extrabold text-sm text-[#1E0B36]">
+                        <span className="w-10 text-center font-extrabold text-sm text-[#27213A]">
                           {quantity}
                         </span>
                         <button
@@ -891,23 +1027,23 @@ export default function ProductDetails() {
                       <button
                         type="button"
                         onClick={() => handleAddToCart()}
-                        disabled={isOutOfStock || isAddingToCart}
-                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#6B21A8] text-[#6B21A8] hover:bg-purple-50 font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        disabled={isOutOfStock || isAddingToCart || isUnavailable}
+                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#F5F0FF] font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
-                        <span>{isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
+                        <span>{isUnavailable ? 'Unavailable' : isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
                       </button>
 
                       {/* Buy Now */}
                       <button
                         type="button"
                         onClick={handleBuyNow}
-                        disabled={isOutOfStock}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#6B21A8] to-[#9333EA] hover:from-[#581C87] hover:to-[#7E22CE] text-white font-black text-sm tracking-wide shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        disabled={isOutOfStock || isUnavailable}
+                        className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] hover:brightness-105 text-white font-black text-sm tracking-wide shadow-lg shadow-purple-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
-                        <span>⚡ Buy Now</span>
+                        <span>{isUnavailable ? 'Unavailable' : '⚡ Buy Now'}</span>
                       </button>
                     </div>
 
@@ -958,7 +1094,7 @@ export default function ProductDetails() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`pb-3 text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap border-b-2 ${
                     activeTab === tab.id
-                      ? 'border-[#6B21A8] text-[#6B21A8]'
+                      ? 'border-[#8B5CF6] text-[#8B5CF6]'
                       : 'border-transparent text-gray-500 hover:text-gray-900'
                   }`}
                 >
@@ -981,8 +1117,8 @@ export default function ProductDetails() {
                     {product.description}
                   </div>
                 ) : (
-                  <p className="text-gray-500">
-                    Handcrafted premium accessory designed for style, durability, and daily elegance. Sourced and verified for the best customer experience.
+                  <p className="text-gray-500 italic">
+                    No detailed description provided for this product.
                   </p>
                 )}
 
@@ -1003,69 +1139,83 @@ export default function ProductDetails() {
             {/* TAB 2: SPECIFICATIONS (From Database) */}
             {activeTab === 'specs' && (
               <div className="max-w-3xl">
-                <div className="divide-y divide-purple-50 text-xs sm:text-sm">
-                  {product.product_code && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Product Code</span>
-                      <span className="col-span-2 text-gray-900 font-mono">{product.product_code}</span>
-                    </div>
-                  )}
-                  {primaryCategory && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Category</span>
-                      <span className="col-span-2 text-gray-900">{primaryCategory.name}</span>
-                    </div>
-                  )}
-                  {product.brand_name && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Brand</span>
-                      <span className="col-span-2 text-gray-900">{product.brand_name}</span>
-                    </div>
-                  )}
-                  {product.material && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Material</span>
-                      <span className="col-span-2 text-gray-900">{product.material}</span>
-                    </div>
-                  )}
-                  {product.weight_grams && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Weight</span>
-                      <span className="col-span-2 text-gray-900">{product.weight_grams} g</span>
-                    </div>
-                  )}
-                  {product.length_cm && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Dimensions</span>
-                      <span className="col-span-2 text-gray-900">
-                        {product.length_cm} × {product.width_cm || 0} × {product.height_cm || 0} cm
-                      </span>
-                    </div>
-                  )}
-                  {product.country_of_origin && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Country of Origin</span>
-                      <span className="col-span-2 text-gray-900">{product.country_of_origin}</span>
-                    </div>
-                  )}
-                  {product.warranty_applicable === 1 && (
-                    <div className="grid grid-cols-3 py-2.5">
-                      <span className="font-bold text-gray-500">Warranty</span>
-                      <span className="col-span-2 text-gray-900">
-                        {product.warranty_period} {product.warranty_unit} {product.warranty_description && `(${product.warranty_description})`}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Custom specifications from product_specifications table */}
-                  {Array.isArray(product.specifications) &&
-                    product.specifications.map((spec) => (
-                      <div key={spec.id} className="grid grid-cols-3 py-2.5">
-                        <span className="font-bold text-gray-500">{spec.name}</span>
-                        <span className="col-span-2 text-gray-900">{spec.value}</span>
+                {!(
+                  product.product_code ||
+                  primaryCategory ||
+                  product.brand_name ||
+                  product.material ||
+                  product.weight_grams ||
+                  product.length_cm ||
+                  product.country_of_origin ||
+                  product.warranty_applicable === 1 ||
+                  (Array.isArray(product.specifications) && product.specifications.length > 0)
+                ) ? (
+                  <p className="text-gray-500 italic py-4">No additional specifications available for this product.</p>
+                ) : (
+                  <div className="divide-y divide-purple-50 text-xs sm:text-sm">
+                    {product.product_code && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Product Code</span>
+                        <span className="col-span-2 text-gray-900 font-mono">{product.product_code}</span>
                       </div>
-                    ))}
-                </div>
+                    )}
+                    {primaryCategory && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Category</span>
+                        <span className="col-span-2 text-gray-900">{primaryCategory.name}</span>
+                      </div>
+                    )}
+                    {product.brand_name && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Brand</span>
+                        <span className="col-span-2 text-gray-900">{product.brand_name}</span>
+                      </div>
+                    )}
+                    {product.material && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Material</span>
+                        <span className="col-span-2 text-gray-900">{product.material}</span>
+                      </div>
+                    )}
+                    {product.weight_grams && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Weight</span>
+                        <span className="col-span-2 text-gray-900">{product.weight_grams} g</span>
+                      </div>
+                    )}
+                    {product.length_cm && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Dimensions</span>
+                        <span className="col-span-2 text-gray-900">
+                          {product.length_cm} × {product.width_cm || 0} × {product.height_cm || 0} cm
+                        </span>
+                      </div>
+                    )}
+                    {product.country_of_origin && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Country of Origin</span>
+                        <span className="col-span-2 text-gray-900">{product.country_of_origin}</span>
+                      </div>
+                    )}
+                    {product.warranty_applicable === 1 && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Warranty</span>
+                        <span className="col-span-2 text-gray-900">
+                          {product.warranty_period} {product.warranty_unit} {product.warranty_description && `(${product.warranty_description})`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Custom specifications from product_specifications table */}
+                    {Array.isArray(product.specifications) &&
+                      product.specifications.map((spec) => (
+                        <div key={spec.id} className="grid grid-cols-3 py-2.5">
+                          <span className="font-bold text-gray-500">{spec.name}</span>
+                          <span className="col-span-2 text-gray-900">{spec.value}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1248,7 +1398,7 @@ export default function ProductDetails() {
                   {product.name}
                 </h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-base sm:text-lg font-black text-[#581C87]">
+                  <span className="text-base sm:text-lg font-black text-[#8B5CF6]">
                     ₹{retailPrice}
                   </span>
                   {mrp > retailPrice && (
@@ -1296,7 +1446,7 @@ export default function ProductDetails() {
                 type="button"
                 onClick={() => handleAddToCart()}
                 disabled={isOutOfStock || isAddingToCart}
-                className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[#6B21A8] text-[#6B21A8] hover:bg-purple-50 font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[#8B5CF6] text-[#8B5CF6] hover:bg-[#F5F0FF] font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
                 {isAddingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
@@ -1306,7 +1456,7 @@ export default function ProductDetails() {
                 type="button"
                 onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                className="py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-[#6B21A8] to-[#9333EA] hover:from-[#581C87] hover:to-[#7E22CE] text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
+                className="py-2.5 px-4 sm:px-6 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#7042D2] hover:brightness-105 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
                 ⚡ Buy Now
               </button>
@@ -1397,7 +1547,7 @@ export default function ProductDetails() {
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
-        onCheckout={(cartData) => {
+        onProceedToCheckout={(cartData) => {
           setIsCartOpen(false)
           setCheckoutCartData(cartData)
           setIsCheckoutOpen(true)
@@ -1412,7 +1562,7 @@ export default function ProductDetails() {
       />
 
       {/* FOOTER */}
-      <footer className="bg-[#1E0B36] text-white pt-12 pb-8 border-t border-purple-950 mt-16">
+      <footer className="bg-[#27213A] text-white pt-12 pb-8 border-t border-[#E8E0F5]/20 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-purple-900/60">
             <div>

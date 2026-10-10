@@ -88,9 +88,9 @@ export default function HorizontalProductSection({
                 onClick={() => handleScroll('left')}
                 disabled={!canScrollLeft}
                 aria-label={`Scroll ${title} left`}
-                className={`w-9 h-9 rounded-full border border-purple-200 flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[#E8E0F5] flex items-center justify-center transition-all ${
                   canScrollLeft
-                    ? 'bg-white hover:bg-purple-50 text-purple-900 shadow-sm cursor-pointer hover:border-purple-400 active:scale-95'
+                    ? 'bg-white hover:bg-[#F5F0FF] text-[#27213A] shadow-sm cursor-pointer hover:border-[#8B5CF6] active:scale-95'
                     : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed opacity-50'
                 }`}
               >
@@ -104,9 +104,9 @@ export default function HorizontalProductSection({
                 onClick={() => handleScroll('right')}
                 disabled={!canScrollRight}
                 aria-label={`Scroll ${title} right`}
-                className={`w-9 h-9 rounded-full border border-purple-200 flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[#E8E0F5] flex items-center justify-center transition-all ${
                   canScrollRight
-                    ? 'bg-white hover:bg-purple-50 text-purple-900 shadow-sm cursor-pointer hover:border-purple-400 active:scale-95'
+                    ? 'bg-white hover:bg-[#F5F0FF] text-[#27213A] shadow-sm cursor-pointer hover:border-[#8B5CF6] active:scale-95'
                     : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed opacity-50'
                 }`}
               >
@@ -121,7 +121,7 @@ export default function HorizontalProductSection({
           {viewAllLink && (hasProducts || isLoading) && (
             <Link
               to={viewAllLink}
-              className="inline-flex items-center gap-1 text-xs font-black text-[#6B21A8] hover:text-[#581C87] hover:underline px-3 py-1.5 rounded-full hover:bg-purple-50 transition-colors shrink-0"
+              className="inline-flex items-center gap-1 text-xs font-black text-[#8B5CF6] hover:text-[#7042D2] hover:underline px-3 py-1.5 rounded-full hover:bg-[#F5F0FF] transition-colors shrink-0"
             >
               <span>View All</span>
               <span className="text-sm">→</span>
