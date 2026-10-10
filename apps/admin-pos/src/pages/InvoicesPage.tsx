@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { PencilIcon, PrinterIcon, TrashIcon } from '../components/Icons'
+import { PAYMENT_METHODS } from '../constants/paymentMethods'
 import { api, apiErrorMessage } from '../lib/api'
 
 interface Invoice {
@@ -202,11 +203,11 @@ export function InvoicesPage() {
               value={editPaymentMethod}
               onChange={(e) => setEditPaymentMethod(e.target.value)}
             >
-              <option value="CASH">Cash</option>
-              <option value="UPI">UPI / GPay / PhonePe</option>
-              <option value="CARD">Credit / Debit Card</option>
-              <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
-              <option value="CREDIT">Credit / Due</option>
+              {PAYMENT_METHODS.map((pm) => (
+                <option key={pm.code} value={pm.code}>
+                  {pm.label}
+                </option>
+              ))}
             </Select>
 
             <TextField

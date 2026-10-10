@@ -3,6 +3,9 @@ import axios from 'axios'
 const TOKEN_KEY = 'admin_pos_token'
 
 export function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined' && localStorage.getItem('api_base_url')) {
+    return localStorage.getItem('api_base_url')!
+  }
   if (import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.trim() !== '') {
     return import.meta.env.VITE_API_BASE_URL
   }

@@ -89,6 +89,7 @@ $router->get('/api/reports/referrals', fn () => $referral->report());
 $categories = new CategoryController($pdo);
 $router->get('/api/categories', fn () => $categories->index());
 $router->put('/api/categories/reorder', fn () => $categories->reorder());
+$router->get('/api/pos/categories', fn () => $categories->posIndex());
 $router->get('/api/categories/{id}', fn ($id) => $categories->show($id));
 $router->post('/api/categories', fn () => $categories->store());
 $router->put('/api/categories/{id}', fn ($id) => $categories->update($id));

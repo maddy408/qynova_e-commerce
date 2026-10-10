@@ -40,8 +40,9 @@ final class InventoryController
         $search = isset($_GET['search']) ? (string) $_GET['search'] : null;
         $page = (int) ($_GET['page'] ?? 1);
         $limit = (int) ($_GET['limit'] ?? 50);
+        $sort = isset($_GET['sort']) ? (string) $_GET['sort'] : 'name';
 
-        Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit));
+        Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit, posOnly: false, categoryId: null, sort: $sort));
     }
 
     /**
@@ -57,10 +58,11 @@ final class InventoryController
 
         $search = isset($_GET['search']) ? (string) $_GET['search'] : null;
         $page = (int) ($_GET['page'] ?? 1);
-        $limit = (int) ($_GET['limit'] ?? 100);
-        $categoryId = isset($_GET['category_id']) ? (int) $_GET['category_id'] : null;
+        $limit = (int) ($_GET['limit'] ?? 50);
+        $categoryId = (isset($_GET['category_id']) && is_numeric($_GET['category_id'])) ? (int) $_GET['category_id'] : null;
+        $sort = isset($_GET['sort']) ? (string) $_GET['sort'] : 'sales';
 
-        Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit, posOnly: true, categoryId: $categoryId));
+        Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit, posOnly: true, categoryId: $categoryId, sort: $sort));
     }
 
     public function lowStock(): void

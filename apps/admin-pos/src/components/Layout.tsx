@@ -153,7 +153,7 @@ export function Layout() {
     <div className="min-h-screen bg-[#faf8fc] flex flex-col font-sans text-slate-900 antialiased">
       {/* Unique Floating Luxury Navbar */}
       <header className="no-print sticky top-3 z-50 px-3 sm:px-6 lg:px-8 mb-1">
-        <div className="mx-auto max-w-7xl bg-white/95 backdrop-blur-xl border border-[#E8CCD1] shadow-md shadow-[#804652]/8 rounded-full px-3.5 sm:px-5 py-2">
+        <div className="w-full bg-white/95 backdrop-blur-xl border border-[#E8CCD1] shadow-md shadow-[#804652]/8 rounded-full px-3.5 sm:px-5 py-2">
           <div className="flex items-center justify-between gap-3">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0 pl-1">
@@ -246,7 +246,7 @@ export function Layout() {
 
         {/* Mobile Dropdown Menu */}
         {mobileOpen && (
-          <div className="lg:hidden mx-auto max-w-7xl mt-2 rounded-2xl border border-[#E8CCD1] bg-white p-4 space-y-2 shadow-xl">
+          <div className="lg:hidden w-full mt-2 rounded-2xl border border-[#E8CCD1] bg-white p-4 space-y-2 shadow-xl">
             {visibleSections.map((sec) => {
               const isActive = isPathActive(location.pathname, sec)
               return (
