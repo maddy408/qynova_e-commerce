@@ -1553,16 +1553,27 @@ export function SalePage() {
                     </span>
                   </div>
                 </div>
-                {customer && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {customer && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomer(null)}
+                      className="text-slate-400 hover:text-red-600 text-xs font-bold px-1.5 py-0.5 rounded hover:bg-slate-200 cursor-pointer transition-colors"
+                      title="Switch to Walk-in Customer"
+                    >
+                      ✕
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setCustomer(null)}
-                    className="text-slate-400 hover:text-red-600 text-xs font-bold px-1.5 py-0.5 rounded cursor-pointer"
-                    title="Remove customer"
+                    onClick={() => setShowNewCustModal(true)}
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#7E1235] text-white hover:bg-[#680f2c] px-2.5 py-1 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                    title="Add New Customer"
                   >
-                    ✕
+                    <span>+</span>
+                    <span>Add Customer</span>
                   </button>
-                )}
+                </div>
               </div>
             </div>
 
