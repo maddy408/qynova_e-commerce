@@ -1,169 +1,162 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { clearCart, fetchCart } from '../lib/cart'
-import { api, getCustomerToken, fetchCustomerAddresses, fetchDeliverySettings, resolveImageUrl } from '../lib/api'
+import { api, getCustomerToken, fetchCustomerAddresses, resolveImageUrl } from '../lib/api'
+import { clearCart } from '../lib/cart'
 
-export default function CheckoutModal({ isOpen, onClose, cartData, customer, onOrderPlaced }) {
+export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
     email: '',
     streetAddress: '',
     city: '',
-    state: 'Rajasthan',
+    state: 'Karnataka',
     pincode: '',
-    paymentMethod: 'COD', // 'COD' | 'UPI' | 'CARD'
+    paymentMethod: 'COD',
   })
-
-  const [deliverySettings, setDeliverySettings] = useState(null)
-  const [internalCartData, setInternalCartData] = useState(null)
   const [errors, setErrors] = useState({})
-  const [submissionError, setSubmissionError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderConfirmed, setOrderConfirmed] = useState(false)
-  const [confirmedOrderId, setConfirmedOrderId] = useState('')
+  const [confirmedOrderId, setConfirmedOrderId] = useState(null)
+  const [submissionError, setSubmissionError] = useState('')
 
+  // Prefill authenticated customer details from MySQL
   useEffect(() => {
-    fetchDeliverySettings().then((d) => d && setDeliverySettings(d))
-  }, [])
-
-  useEffect(() => {
-    if (isOpen && (!cartData || !cartData.items || cartData.items.length === 0)) {
-      fetchCart().then((data) => {
-        if (data?.items?.length) {
-          setInternalCartData(data)
+    if (isOpen && getCustomerToken()) {
+      try {
+        const stored = localStorage.getItem('customer_data')
+        if (stored) {
+          const user = JSON.parse(stored)
+          setFormData((prev) => ({
+            ...prev,
+            fullName: user.name || prev.fullName,
+            phone: user.phone || prev.phone,
+            email: user.email || prev.email,
+          }))
         }
-      }).catch(() => {})
-    }
-  }, [isOpen, cartData])
+      } catch {
+        // ignore
+      }
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      setSubmissionError('')
-      // Pre-fill customer data if available
-      if (customer) {
-        setFormData((prev) => ({
-          ...prev,
-          fullName: customer.name || prev.fullName,
-          phone: customer.phone || prev.phone,
-          email: customer.email || prev.email,
-        }))
-        // Load default saved address from MySQL
-        fetchCustomerAddresses().then((res) => {
-          if (res?.addresses && res.addresses.length > 0) {
-            const def = res.addresses.find((a) => a.is_default) || res.addresses[0]
+      fetchCustomerAddresses()
+        .then((res) => {
+          const addresses = res.addresses || res.data || []
+          if (Array.isArray(addresses) && addresses.length > 0) {
+            const def = addresses.find((a) => a.is_default) || addresses[0]
             setFormData((prev) => ({
               ...prev,
-              streetAddress: def.line1 || def.address_line_1 || prev.streetAddress,
-              city: def.city_district || def.city || prev.city,
+              fullName: def.name || def.recipient_name || prev.fullName,
+              phone: def.phone || prev.phone,
+              streetAddress: def.street_address || def.address_line1 || prev.streetAddress,
+              city: def.city || prev.city,
               state: def.state || prev.state,
-              pincode: def.pincode || prev.pincode,
+              pincode: def.pincode || def.postal_code || prev.pincode,
             }))
           }
-        }).catch(() => {})
-      }
+        })
+        .catch(() => {})
+    }
+  }, [isOpen])
+
+  // Reset modal state on open
+  useEffect(() => {
+    if (isOpen) {
       setOrderConfirmed(false)
+      setConfirmedOrderId(null)
+      setSubmissionError('')
+      document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
     }
     return () => {
       document.body.style.overflow = ''
     }
-  }, [isOpen, customer])
+  }, [isOpen])
 
   if (!isOpen) return null
 
-  const activeCart = (cartData && cartData.items && cartData.items.length > 0) ? cartData : (internalCartData || cartData)
-  const items = activeCart?.items || []
-  const subtotal = activeCart?.subtotal || items.reduce((s, i) => s + ((i.price || i.unit_price || 0) * i.quantity), 0)
-  const discountAmount = activeCart?.discountAmount || 0
-  const freeThreshold = Number(deliverySettings?.free_delivery_threshold) || 499
-  const stdDeliveryFee = Number(deliverySettings?.standard_delivery_fee) || 49
-  const deliveryCharge = activeCart?.deliveryCharge !== undefined ? activeCart.deliveryCharge : (subtotal >= freeThreshold ? 0 : stdDeliveryFee)
-  const grandTotal = activeCart?.grandTotal || (subtotal - discountAmount + deliveryCharge)
+  const items = cartData?.items || []
+  const subtotal = Number(cartData?.subtotal) || 0
+  const discountAmount = Number(cartData?.discountAmount) || 0
+  const deliveryCharge = Number(cartData?.deliveryCharge) || 0
+  const grandTotal = Number(cartData?.grandTotal) || Math.max(0, subtotal - discountAmount + deliveryCharge)
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }))
-    }
-    if (submissionError) {
-      setSubmissionError('')
+      setErrors((prev) => ({ ...prev, [name]: '' }))
     }
   }
 
   const validate = () => {
     const errs = {}
     if (!formData.fullName.trim()) errs.fullName = 'Full Name is required'
-    const cleanPhone = formData.phone.trim().replace(/\D/g, '')
-    if (!cleanPhone || cleanPhone.length !== 10) errs.phone = 'Valid 10-digit phone number is required'
+    if (!formData.phone.trim()) {
+      errs.phone = 'Mobile number is required'
+    } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/[^0-9]/g, ''))) {
+      errs.phone = 'Please enter a valid 10-digit mobile number'
+    }
     if (!formData.streetAddress.trim()) errs.streetAddress = 'Delivery address is required'
     if (!formData.city.trim()) errs.city = 'City is required'
-    const cleanPin = formData.pincode.trim().replace(/\D/g, '')
-    if (!cleanPin || cleanPin.length !== 6) errs.pincode = 'Valid 6-digit pincode is required'
-    return errs
+    if (!formData.pincode.trim()) {
+      errs.pincode = 'Pincode is required'
+    } else if (!/^[0-9]{6}$/.test(formData.pincode.trim())) {
+      errs.pincode = 'Please enter a valid 6-digit pincode'
+    }
+    setErrors(errs)
+    return Object.keys(errs).length === 0
   }
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault()
-    setSubmissionError('')
-
-    const token = getCustomerToken()
-    if (!token) {
-      setSubmissionError('Please sign in to place your order.')
-      return
-    }
-
-    if (!items || items.length === 0) {
-      setSubmissionError('Your cart is empty. Add items to checkout.')
-      return
-    }
-
-    const validationErrors = validate()
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
-      return
-    }
+    if (!validate()) return
 
     setIsSubmitting(true)
+    setSubmissionError('')
 
     try {
+      // 1. Prepare production order payload
       const orderPayload = {
-        items: items.map((i) => ({
-          product_id: i.product_id || i.id,
-          variant_id: i.variant_id,
-          quantity: Number(i.quantity) || 1,
-          unit_price: Number(i.price || i.unit_price) || 0,
+        customer_name: formData.fullName,
+        customer_phone: formData.phone.replace(/[^0-9]/g, ''),
+        customer_email: formData.email || null,
+        shipping_address: `${formData.streetAddress}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
+        billing_address: `${formData.streetAddress}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        payment_method: formData.paymentMethod,
+        coupon_code: cartData?.appliedCoupon || null,
+        items: items.map((item) => ({
+          variant_id: item.variant_id || item.variantId || item.id,
+          product_id: item.product_id || item.productId || item.id,
+          quantity: Number(item.quantity) || 1,
+          price: Number(item.price) || 0,
         })),
-        address: {
-          name: formData.fullName,
-          phone: formData.phone,
-          line1: formData.streetAddress,
-          address_line_1: formData.streetAddress,
-          city_district: formData.city,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode,
-        },
-        coupon_code: activeCart?.appliedCoupon || null,
       }
 
-      const res = await api.post('/orders/checkout', orderPayload)
-      if (res?.data?.order) {
-        const order = res.data.order
-        const orderIdDisplay = order.order_no || ('KB-' + order.id)
-        setConfirmedOrderId(orderIdDisplay)
-        setOrderConfirmed(true)
-        await clearCart()
-        onOrderPlaced?.(orderIdDisplay)
-      } else {
-        throw new Error('Order creation failed on backend.')
-      }
+      // 2. Post order directly to MySQL via PHP REST API
+      const response = await api.post('/orders', orderPayload)
+      const orderId =
+        response.data?.order?.order_no ||
+        response.data?.order_no ||
+        response.data?.order?.id ||
+        `ORD-${Date.now().toString().slice(-6)}`
+
+      setConfirmedOrderId(orderId)
+      setOrderConfirmed(true)
+
+      // 3. Clear shopping cart in local storage and database
+      clearCart()
+      window.dispatchEvent(new CustomEvent('cart-updated'))
     } catch (err) {
-      const errMsg = err?.response?.data?.error || err?.message || 'Failed to place order. Please check details and try again.'
-      setSubmissionError(errMsg)
+      console.error('Failed to place order:', err)
+      const msg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        'Unable to process order. Please verify your stock availability and try again.'
+      setSubmissionError(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -173,22 +166,22 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 lg:p-6 animate-in fade-in duration-200">
       
       {/* Container */}
-      <div className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-purple-100 overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-[#E8E0E5] overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="px-5 sm:px-8 py-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 via-white to-pink-50/40 flex items-center justify-between shrink-0">
+        <div className="px-5 sm:px-8 py-4 border-b border-[#E8E0E5] bg-[#F8F3F6] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6B21A8] to-[#EC4899] text-white flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-[#601D49] text-white flex items-center justify-center shadow-xs">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <rect x="2" y="5" width="20" height="14" rx="2" />
                 <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-purple-950">
+              <h2 className="text-lg sm:text-xl font-black text-[#2D252B]">
                 {orderConfirmed ? 'Order Confirmed!' : !getCustomerToken() ? 'Sign In Required' : 'Secure Checkout'}
               </h2>
-              <p className="text-[11px] text-gray-500 font-medium">
+              <p className="text-[11px] text-[#6B5E68] font-medium">
                 {orderConfirmed ? 'Thank you for your purchase' : !getCustomerToken() ? 'Please authenticate to complete checkout' : '100% Secure & Encrypted Transaction'}
               </p>
             </div>
@@ -196,7 +189,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
 
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+            className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-[#E8E0E5] text-gray-600 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
             title="Close"
           >
             ✕
@@ -214,24 +207,24 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
               <span className="text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
                 Order Placed Successfully
               </span>
-              <h3 className="text-2xl font-black text-purple-950">
+              <h3 className="text-2xl font-black text-[#2D252B]">
                 Congratulations, {formData.fullName}!
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#6B5E68] max-w-md mx-auto leading-relaxed">
                 Your order has been received and is being prepared for dispatch. We will send updates to{' '}
-                <strong className="text-gray-900">+91 {formData.phone}</strong>.
+                <strong className="text-[#2D252B]">+91 {formData.phone}</strong>.
               </p>
             </div>
 
             {/* Order Card info */}
-            <div className="max-w-md mx-auto bg-purple-50/60 rounded-2xl p-4 sm:p-5 border border-purple-100 text-left space-y-2.5 text-xs">
-              <div className="flex justify-between items-center pb-2 border-b border-purple-200/60">
-                <span className="text-gray-500 font-semibold">Order ID:</span>
-                <span className="font-mono font-black text-purple-900 text-sm">{confirmedOrderId}</span>
+            <div className="max-w-md mx-auto bg-[#F8F3F6] rounded-2xl p-4 sm:p-5 border border-[#E8E0E5] text-left space-y-2.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-[#E8E0E5]">
+                <span className="text-[#6B5E68] font-semibold">Order ID:</span>
+                <span className="font-mono font-black text-[#2D252B] text-sm">{confirmedOrderId}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 font-semibold">Payment Mode:</span>
-                <span className="font-bold text-gray-900">
+                <span className="text-[#6B5E68] font-semibold">Payment Mode:</span>
+                <span className="font-bold text-[#2D252B]">
                   {formData.paymentMethod === 'COD'
                     ? 'Cash on Delivery (Pay at Doorstep)'
                     : formData.paymentMethod === 'UPI'
@@ -240,12 +233,12 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 font-semibold">Total Amount:</span>
-                <span className="font-black text-[#581C87] text-sm">₹{grandTotal}</span>
+                <span className="text-[#6B5E68] font-semibold">Total Amount:</span>
+                <span className="font-black text-[#601D49] text-sm">₹{grandTotal}</span>
               </div>
               <div className="flex justify-between items-start pt-1">
-                <span className="text-gray-500 font-semibold">Deliver to:</span>
-                <span className="font-medium text-gray-800 text-right max-w-[200px]">
+                <span className="text-[#6B5E68] font-semibold">Deliver to:</span>
+                <span className="font-medium text-[#2D252B] text-right max-w-[200px]">
                   {formData.streetAddress}, {formData.city}, {formData.state} - {formData.pincode}
                 </span>
               </div>
@@ -254,7 +247,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
             <div className="pt-3">
               <button
                 onClick={onClose}
-                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#6B21A8] hover:bg-[#581C87] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
+                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#601D49] hover:bg-[#4D153A] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
               >
                 Continue Shopping →
               </button>
@@ -262,17 +255,17 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
           </div>
         ) : !getCustomerToken() ? (
           <div className="p-8 sm:p-12 text-center space-y-6 overflow-y-auto">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-purple-100 text-purple-700 flex items-center justify-center text-3xl shadow-inner">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-[#F2DDE9] text-[#601D49] flex items-center justify-center text-3xl shadow-inner">
               🔒
             </div>
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-purple-800 bg-purple-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-black uppercase tracking-wider text-[#601D49] bg-[#F2DDE9] px-3 py-1 rounded-full">
                 Authentication Required
               </span>
-              <h3 className="text-2xl font-black text-purple-950">
+              <h3 className="text-2xl font-black text-[#2D252B]">
                 Please Sign In to Checkout
               </h3>
-              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#6B5E68] max-w-md mx-auto leading-relaxed">
                 Log in or create an account to complete your order, apply your discounts, and track delivery progress.
               </p>
             </div>
@@ -280,14 +273,14 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
               <Link
                 to="/login"
                 onClick={onClose}
-                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#6B21A8] to-[#EC4899] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
+                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-[#601D49] hover:bg-[#4D153A] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
               >
                 Sign In / Register →
               </Link>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-gray-300 text-gray-700 font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-[#E8E0E5] text-[#2D252B] font-bold text-xs uppercase tracking-wider hover:bg-[#F2DDE9] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -317,13 +310,13 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                 
                 {/* 1. Contact Info */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-purple-950 tracking-wider">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#2D252B] tracking-wider">
                     <span>1. Customer Information</span>
                   </div>
                   
                   {/* Full Name */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#2D252B] mb-1">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -332,8 +325,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                       value={formData.fullName}
                       onChange={handleInputChange}
                       placeholder="e.g. Priya Sharma"
-                      className={`w-full h-10 px-3.5 rounded-xl border text-xs text-gray-800 placeholder-gray-400 focus:outline-none transition-colors ${
-                        errors.fullName ? 'border-red-400 bg-red-50/20' : 'border-purple-200 focus:border-purple-600'
+                      className={`w-full h-10 px-3.5 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none transition-colors ${
+                        errors.fullName ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
                       }`}
                     />
                     {errors.fullName && <p className="text-[10px] text-red-500 mt-1">{errors.fullName}</p>}
@@ -342,11 +335,11 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                   {/* Phone & Email - Stack on mobile, side-by-side on tablet/desktop */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
                         Mobile Number <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex items-center border border-purple-200 rounded-xl overflow-hidden focus-within:border-purple-600">
-                        <span className="px-2.5 py-2 bg-gray-50 text-gray-500 font-semibold text-xs border-r border-purple-200">
+                      <div className="flex items-center border border-[#E8E0E5] rounded-xl overflow-hidden focus-within:border-[#601D49]">
+                        <span className="px-2.5 py-2 bg-[#F7F5F7] text-[#6B5E68] font-semibold text-xs border-r border-[#E8E0E5]">
                           +91
                         </span>
                         <input
@@ -356,15 +349,15 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                           value={formData.phone}
                           onChange={handleInputChange}
                           placeholder="10-digit mobile"
-                          className="flex-1 h-10 px-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none"
+                          className="flex-1 h-10 px-2.5 text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none"
                         />
                       </div>
                       {errors.phone && <p className="text-[10px] text-red-500 mt-1">{errors.phone}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Email Address <span className="text-gray-400 font-normal">(Optional)</span>
+                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                        Email Address <span className="text-[#6B5E68] font-normal">(Optional)</span>
                       </label>
                       <input
                         type="email"
@@ -372,20 +365,20 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="For order receipts"
-                        className="w-full h-10 px-3.5 rounded-xl border border-purple-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-600"
+                        className="w-full h-10 px-3.5 rounded-xl border border-[#E8E0E5] text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none focus:border-[#601D49]"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Delivery Address */}
-                <div className="space-y-3 pt-2 border-t border-purple-100">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-purple-950 tracking-wider">
+                <div className="space-y-3 pt-2 border-t border-[#E8E0E5]">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#2D252B] tracking-wider">
                     <span>2. Delivery Address</span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    <label className="block text-xs font-semibold text-[#2D252B] mb-1">
                       Street Address / House No. / Landmark <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -394,8 +387,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                       value={formData.streetAddress}
                       onChange={handleInputChange}
                       placeholder="Flat/House No., Building, Street Name, Area"
-                      className={`w-full p-3 rounded-xl border text-xs text-gray-800 placeholder-gray-400 focus:outline-none transition-colors ${
-                        errors.streetAddress ? 'border-red-400 bg-red-50/20' : 'border-purple-200 focus:border-purple-600'
+                      className={`w-full p-3 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none transition-colors ${
+                        errors.streetAddress ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
                       }`}
                     />
                     {errors.streetAddress && <p className="text-[10px] text-red-500 mt-0.5">{errors.streetAddress}</p>}
@@ -404,7 +397,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                   {/* City, State, Pincode: Stacked or comfortable grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
                         City <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -413,27 +406,27 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                         value={formData.city}
                         onChange={handleInputChange}
                         placeholder="e.g. Bengaluru"
-                        className={`w-full h-10 px-3 rounded-xl border text-xs text-gray-800 placeholder-gray-400 focus:outline-none ${
-                          errors.city ? 'border-red-400 bg-red-50/20' : 'border-purple-200 focus:border-purple-600'
+                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none ${
+                          errors.city ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
                         }`}
                       />
                       {errors.city && <p className="text-[10px] text-red-500 mt-1">{errors.city}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">State</label>
+                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">State</label>
                       <input
                         type="text"
                         name="state"
                         value={formData.state}
                         onChange={handleInputChange}
                         placeholder="State"
-                        className="w-full h-10 px-3 rounded-xl border border-purple-200 text-xs text-gray-800 focus:outline-none focus:border-purple-600"
+                        className="w-full h-10 px-3 rounded-xl border border-[#E8E0E5] text-xs text-[#2D252B] focus:outline-none focus:border-[#601D49]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
                         Pincode <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -443,8 +436,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                         value={formData.pincode}
                         onChange={handleInputChange}
                         placeholder="6-digit PIN"
-                        className={`w-full h-10 px-3 rounded-xl border text-xs text-gray-800 placeholder-gray-400 focus:outline-none ${
-                          errors.pincode ? 'border-red-400 bg-red-50/20' : 'border-purple-200 focus:border-purple-600'
+                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none ${
+                          errors.pincode ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
                         }`}
                       />
                       {errors.pincode && <p className="text-[10px] text-red-500 mt-1">{errors.pincode}</p>}
@@ -453,8 +446,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                 </div>
 
                 {/* 3. Payment Method: Big Touch Tiles */}
-                <div className="space-y-2.5 pt-2 border-t border-purple-100">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-purple-950 tracking-wider">
+                <div className="space-y-2.5 pt-2 border-t border-[#E8E0E5]">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#2D252B] tracking-wider">
                     <span>3. Payment Options</span>
                   </div>
 
@@ -463,8 +456,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                     <label
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === 'COD'
-                          ? 'border-[#6B21A8] bg-purple-50/70 shadow-xs'
-                          : 'border-gray-200 hover:border-purple-200'
+                          ? 'border-[#601D49] bg-[#F2DDE9]/40 shadow-xs'
+                          : 'border-[#E8E0E5] hover:border-[#601D49]/50'
                       }`}
                     >
                       <input
@@ -473,18 +466,18 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                         value="COD"
                         checked={formData.paymentMethod === 'COD'}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-purple-700 focus:ring-purple-600"
+                        className="w-4 h-4 text-[#601D49] focus:ring-[#601D49]"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-bold text-gray-900">
+                          <span className="text-xs sm:text-sm font-bold text-[#2D252B]">
                             💵 Cash on Delivery (COD)
                           </span>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-[#601D49] bg-[#F2DDE9] px-2 py-0.5 rounded">
                             Recommended
                           </span>
                         </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5">Pay in cash or UPI when your order arrives</p>
+                        <p className="text-[11px] text-[#6B5E68] mt-0.5">Pay in cash or UPI when your order arrives</p>
                       </div>
                     </label>
 
@@ -492,8 +485,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                     <label
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === 'UPI'
-                          ? 'border-[#6B21A8] bg-purple-50/70 shadow-xs'
-                          : 'border-gray-200 hover:border-purple-200'
+                          ? 'border-[#601D49] bg-[#F2DDE9]/40 shadow-xs'
+                          : 'border-[#E8E0E5] hover:border-[#601D49]/50'
                       }`}
                     >
                       <input
@@ -502,18 +495,18 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                         value="UPI"
                         checked={formData.paymentMethod === 'UPI'}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-purple-700 focus:ring-purple-600"
+                        className="w-4 h-4 text-[#601D49] focus:ring-[#601D49]"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-bold text-gray-900">
+                          <span className="text-xs sm:text-sm font-bold text-[#2D252B]">
                             📱 UPI (GPay / PhonePe / Paytm)
                           </span>
-                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-[#601D49] bg-[#F2DDE9] px-2 py-0.5 rounded">
                             Instant
                           </span>
                         </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5">Scan QR or enter UPI ID at delivery</p>
+                        <p className="text-[11px] text-[#6B5E68] mt-0.5">Scan QR or enter UPI ID at delivery</p>
                       </div>
                     </label>
 
@@ -521,8 +514,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                     <label
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === 'CARD'
-                          ? 'border-[#6B21A8] bg-purple-50/70 shadow-xs'
-                          : 'border-gray-200 hover:border-purple-200'
+                          ? 'border-[#601D49] bg-[#F2DDE9]/40 shadow-xs'
+                          : 'border-[#E8E0E5] hover:border-[#601D49]/50'
                       }`}
                     >
                       <input
@@ -531,13 +524,13 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                         value="CARD"
                         checked={formData.paymentMethod === 'CARD'}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-purple-700 focus:ring-purple-600"
+                        className="w-4 h-4 text-[#601D49] focus:ring-[#601D49]"
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs sm:text-sm font-bold text-gray-900">
+                        <span className="text-xs sm:text-sm font-bold text-[#2D252B]">
                           💳 Debit / Credit Card & Net Banking
                         </span>
-                        <p className="text-[11px] text-gray-500 mt-0.5">Visa, Mastercard, RuPay & All Major Banks</p>
+                        <p className="text-[11px] text-[#6B5E68] mt-0.5">Visa, Mastercard, RuPay & All Major Banks</p>
                       </div>
                     </label>
                   </div>
@@ -547,8 +540,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
 
               {/* RIGHT: Order Summary Card (12 cols mobile, 5 cols desktop) */}
               <div className="lg:col-span-5">
-                <div className="bg-purple-50/60 rounded-2xl p-4 sm:p-5 border border-purple-100 space-y-4 lg:sticky lg:top-4">
-                  <h3 className="text-xs font-black uppercase text-purple-950 tracking-wider">
+                <div className="bg-[#F8F3F6] rounded-2xl p-4 sm:p-5 border border-[#E8E0E5] space-y-4 lg:sticky lg:top-4">
+                  <h3 className="text-xs font-black uppercase text-[#2D252B] tracking-wider">
                     Order Summary ({items.length} items)
                   </h3>
 
@@ -563,14 +556,14 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder-product.svg'
                             }}
-                            className="w-9 h-9 rounded-lg object-cover border border-purple-100 shrink-0"
+                            className="w-9 h-9 rounded-lg object-cover border border-[#E8E0E5] shrink-0"
                           />
                           <div className="min-w-0">
-                            <p className="font-bold text-gray-900 truncate">{it.name}</p>
-                            <p className="text-[10px] text-gray-500">Qty: {it.quantity}</p>
+                            <p className="font-bold text-[#2D252B] truncate">{it.name}</p>
+                            <p className="text-[10px] text-[#6B5E68]">Qty: {it.quantity}</p>
                           </div>
                         </div>
-                        <span className="font-black text-purple-900 shrink-0">
+                        <span className="font-black text-[#2D252B] shrink-0">
                           ₹{(Number(it.price) || 0) * (Number(it.quantity) || 1)}
                         </span>
                       </div>
@@ -578,13 +571,13 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                   </div>
 
                   {/* Price Calculation */}
-                  <div className="space-y-1.5 text-xs text-gray-600 border-t border-purple-200/60 pt-3">
+                  <div className="space-y-1.5 text-xs text-[#6B5E68] border-t border-[#E8E0E5] pt-3">
                     <div className="flex justify-between">
                       <span>Item Subtotal</span>
-                      <span className="font-bold text-gray-900">₹{subtotal}</span>
+                      <span className="font-bold text-[#2D252B]">₹{subtotal}</span>
                     </div>
                     {discountAmount > 0 && (
-                      <div className="flex justify-between text-pink-700 font-semibold">
+                      <div className="flex justify-between text-[#601D49] font-semibold">
                         <span>Discount Savings</span>
                         <span>-₹{discountAmount}</span>
                       </div>
@@ -594,12 +587,12 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                       {deliveryCharge === 0 ? (
                         <span className="text-emerald-700 font-bold">FREE</span>
                       ) : (
-                        <span className="font-bold text-gray-900">₹{deliveryCharge}</span>
+                        <span className="font-bold text-[#2D252B]">₹{deliveryCharge}</span>
                       )}
                     </div>
-                    <div className="flex justify-between text-base font-black text-purple-950 border-t border-purple-200/60 pt-2">
+                    <div className="flex justify-between text-base font-black text-[#2D252B] border-t border-[#E8E0E5] pt-2">
                       <span>Final Payable</span>
-                      <span className="text-[#581C87]">₹{grandTotal}</span>
+                      <span className="text-[#601D49]">₹{grandTotal}</span>
                     </div>
                   </div>
 
@@ -607,7 +600,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-12 rounded-2xl bg-gradient-to-r from-[#6B21A8] via-[#7E22CE] to-[#EC4899] hover:brightness-105 active:scale-98 text-white font-extrabold text-sm shadow-xl shadow-purple-950/20 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-75"
+                    className="w-full h-12 rounded-2xl bg-[#601D49] hover:bg-[#4D153A] active:scale-98 text-white font-extrabold text-sm shadow-xl shadow-black/15 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-75"
                   >
                     {isSubmitting ? (
                       <span className="inline-flex items-center gap-2">
@@ -620,12 +613,12 @@ export default function CheckoutModal({ isOpen, onClose, cartData, customer, onO
                     ) : (
                       <>
                         <span>Place Order Now</span>
-                        <span className="text-amber-300 font-black">₹{grandTotal} →</span>
+                        <span className="text-white/90 font-black">₹{grandTotal} →</span>
                       </>
                     )}
                   </button>
 
-                  <p className="text-[10px] text-gray-500 text-center">
+                  <p className="text-[10px] text-[#6B5E68] text-center">
                     🔒 Guaranteed Safe & Secure Checkout • 7-Day Easy Returns
                   </p>
                 </div>
