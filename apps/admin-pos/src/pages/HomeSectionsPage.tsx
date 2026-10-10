@@ -24,6 +24,7 @@ export function HomeSectionsPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   // Image Upload States inside Modal
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -45,6 +46,7 @@ export function HomeSectionsPage() {
     setImagePreview(null)
     setImageRemoved(false)
     setError('')
+    setSuccessMessage('')
     setShowForm(true)
   }
 
@@ -57,6 +59,7 @@ export function HomeSectionsPage() {
     setImagePreview(null)
     setImageRemoved(false)
     setError('')
+    setSuccessMessage('')
   }
 
   function pickImage(file?: File) {
@@ -75,13 +78,16 @@ export function HomeSectionsPage() {
     try {
       let sectionId: number
       if (editingSection) {
-        await api.put(`/home-sections/${editingSection.id}`, { type, title: title || null, item_limit: Number(itemLimit) || 10 })
+        await api.put(`/home-sections/${editingSection.id}`, {
+          type,
+          title: title || null,
+          item_limit: Number(itemLimit) || 10,
+          image_path: imageRemoved ? null : (imageFile ? undefined : editingSection.image_path),
+        })
         sectionId = editingSection.id
-        setEditingSection(null)
       } else {
         const res = await api.post('/home-sections', { type, title: title || null, item_limit: Number(itemLimit) || 10 })
         sectionId = res.data.id
-        setShowForm(false)
       }
 
       // If user selected an image inside the creation/edit modal
@@ -91,14 +97,22 @@ export function HomeSectionsPage() {
         await api.post(`/home-sections/${sectionId}/image`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
+      } else if (imageRemoved && sectionId) {
+        await api.delete(`/home-sections/${sectionId}/image`)
       }
 
+      const isEdit = Boolean(editingSection)
+      const sectionName = title || (editingSection?.title ?? type.replace('_', ' '))
+
+      setShowForm(false)
+      setEditingSection(null)
       setType('FEATURED')
       setTitle('')
       setItemLimit('10')
       setImageFile(null)
       setImagePreview(null)
       setImageRemoved(false)
+      setSuccessMessage(isEdit ? `Home section "${sectionName}" saved successfully.` : `Home section "${sectionName}" created successfully.`)
       load()
     } catch (err) {
       setError(apiErrorMessage(err, editingSection ? 'Could not update section' : 'Could not create section'))
@@ -158,6 +172,12 @@ export function HomeSectionsPage() {
         description="Layout, ordering, and background overlay image configuration for storefront home page sections."
         actions={<Button onClick={openCreateModal}>+ New Section</Button>}
       />
+
+      {successMessage && (
+        <div className="mb-4">
+          <Alert tone="green">{successMessage}</Alert>
+        </div>
+      )}
 
       {sections === null ? (
         <Spinner />
@@ -319,7 +339,7 @@ export function HomeSectionsPage() {
                       onClick={() => fileInputRef.current?.click()}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#7B3F4A] text-white text-xs font-semibold hover:bg-[#68333D] transition-all shadow-2xs active:scale-98 cursor-pointer"
                     >
-                      📷 {imagePreview || (editingSection && !imageRemoved && editingSection.image_path) ? 'Change Image' : 'Upload Image'}
+                      📷 {editingSection ? 'Change Image' : (imagePreview ? 'Change Image' : 'Upload Image')}
                     </button>
 
                     {(imagePreview || (editingSection && !imageRemoved && editingSection.image_path)) && (
@@ -329,6 +349,9 @@ export function HomeSectionsPage() {
                           setImageFile(null)
                           setImagePreview(null)
                           setImageRemoved(true)
+                          if (editingSection) {
+                            setEditingSection((prev) => (prev ? { ...prev, image_path: null } : null))
+                          }
                           if (fileInputRef.current) fileInputRef.current.value = ''
                         }}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-medium transition-colors cursor-pointer"

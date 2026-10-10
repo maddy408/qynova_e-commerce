@@ -62,6 +62,19 @@ final class CouponController
         Response::json(['updated' => true]);
     }
 
+    public function destroy(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'coupons.manage');
+
+        try {
+            (new CouponService($this->pdo))->delete((int) $id);
+            Response::json(['deleted' => true]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
     /** "For You" — coupons visible to customers (both logged-in and guest). */
     public function availableForCustomer(): void
     {

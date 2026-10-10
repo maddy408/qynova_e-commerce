@@ -93,6 +93,19 @@ final class HomeSectionController
         }
     }
 
+    public function removeImage(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'banners.manage');
+
+        try {
+            $this->sections->removeImage((int) $id);
+            Response::json(['updated' => true]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 404);
+        }
+    }
+
     public function destroy(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();

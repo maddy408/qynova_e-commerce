@@ -46,6 +46,7 @@ export interface ProductListItem {
   primary_image: string | null
   min_price: string | null
   max_price: string | null
+  mrp?: string | null
   variant_count: number
   total_stock: string
   low_stock_variant_count: number
@@ -182,17 +183,26 @@ export interface BannerItem {
   product_name: string
   offer_text: string | null
   sort_order: number
+  min_price?: string | null
+  mrp?: string | null
 }
 
 export interface Banner {
   id: number
   title: string
+  subtitle?: string | null
+  description?: string | null
   image_desktop_path: string | null
   image_mobile_path: string | null
   position: BannerPosition
+  color_theme?: string | null
+  discount_text?: string | null
+  discount_percentage?: number
+  cta_text?: string | null
   target_type: BannerTargetType
   target_id: number | null
   target_url: string | null
+  target_link?: string
   starts_at: string | null
   ends_at: string | null
   sort_order: number

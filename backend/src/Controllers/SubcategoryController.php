@@ -93,6 +93,24 @@ final class SubcategoryController
         Response::json(['deleted' => true]);
     }
 
+    public function reorder(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $ids = array_map('intval', (array) (Request::json()['ordered_ids'] ?? []));
+        if ($ids === []) {
+            Response::error('ordered_ids is required', 422);
+        }
+
+        try {
+            $this->subcategories->reorder($ids);
+            Response::json(['updated' => true]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 500);
+        }
+    }
+
     public function uploadImage(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();

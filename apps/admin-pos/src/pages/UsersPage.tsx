@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { PencilIcon, PowerIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 
@@ -133,12 +134,30 @@ export function UsersPage() {
                     <Badge tone={u.status === 'ACTIVE' ? 'green' : 'slate'}>{u.status}</Badge>
                   </td>
                   <td className="px-5 py-3.5 text-right font-medium">
-                    <button type="button" onClick={() => openEdit(u)} className="mr-3 text-xs font-bold text-[#804652] hover:text-[#4A1821] hover:underline cursor-pointer">
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => toggleActive(u)} className="text-xs font-bold text-slate-700 hover:text-slate-950 hover:underline cursor-pointer">
-                      {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                    </button>
+                    <div className="inline-flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(u)}
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] transition-colors border border-transparent hover:border-[#EEDDE0] cursor-pointer"
+                        title="Edit User"
+                        aria-label={`Edit user ${u.name}`}
+                      >
+                        <PencilIcon className="h-4 w-4 stroke-[2]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleActive(u)}
+                        className={`p-1.5 rounded-lg transition-colors border border-transparent cursor-pointer ${
+                          u.status === 'ACTIVE'
+                            ? 'text-emerald-700 hover:bg-emerald-100/70 hover:border-emerald-200'
+                            : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700 hover:border-slate-300'
+                        }`}
+                        title={u.status === 'ACTIVE' ? 'Deactivate User' : 'Activate User'}
+                        aria-label={u.status === 'ACTIVE' ? `Deactivate user ${u.name}` : `Activate user ${u.name}`}
+                      >
+                        <PowerIcon className="h-4 w-4 stroke-[2]" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { EyeIcon, ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
-import { Alert, Modal, Spinner } from '../components/ui'
+import { Alert, Button, Modal, Spinner } from '../components/ui'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category, Subcategory } from '../lib/types'
 
@@ -22,6 +22,12 @@ export function SubcategoriesPage() {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL')
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
 
+  // Top 5 Sub-categories Management State (T14)
+  const [topSubcategoryIds, setTopSubcategoryIds] = useState<number[]>([])
+  const [savingTop, setSavingTop] = useState(false)
+  const [topSuccessMessage, setTopSuccessMessage] = useState('')
+  const [topErrorMessage, setTopErrorMessage] = useState('')
+
   const [name, setName] = useState('')
   const [categoryIds, setCategoryIds] = useState<number[]>([])
   const [error, setError] = useState('')
@@ -33,11 +39,75 @@ export function SubcategoriesPage() {
   const fileInput = useRef<HTMLInputElement>(null)
 
   function load() {
-    api.get('/subcategories').then((res) => setSubcategories(res.data.subcategories))
-    api.get('/categories').then((res) => setCategories(res.data.categories))
+    api.get('/subcategories').then((res) => {
+      const subs: Subcategory[] = res.data.subcategories ?? []
+      setSubcategories(subs)
+      const activeSubs = subs.filter((s) => s.status === 'ACTIVE')
+      const sorted = [...activeSubs].sort((a, b) => (Number(a.sort_order) || 999) - (Number(b.sort_order) || 999))
+      setTopSubcategoryIds(sorted.slice(0, 5).map((s) => s.id))
+    })
+    api.get('/categories').then((res) => setCategories(res.data.categories ?? []))
   }
 
   useEffect(load, [])
+
+  function moveTopSubcategory(index: number, direction: 'up' | 'down') {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= topSubcategoryIds.length) return
+    const next = [...topSubcategoryIds]
+    const temp = next[index]
+    next[index] = next[targetIndex]
+    next[targetIndex] = temp
+    setTopSubcategoryIds(next)
+    setTopSuccessMessage('')
+    setTopErrorMessage('')
+  }
+
+  function replaceTopSubcategory(index: number, newId: number) {
+    if (!newId) return
+    const next = [...topSubcategoryIds]
+    const existingIndex = next.indexOf(newId)
+    if (existingIndex !== -1) {
+      next[existingIndex] = next[index]
+    }
+    next[index] = newId
+    setTopSubcategoryIds(next)
+    setTopSuccessMessage('')
+    setTopErrorMessage('')
+  }
+
+  function removeTopSubcategory(index: number) {
+    setTopSubcategoryIds((prev) => prev.filter((_, i) => i !== index))
+    setTopSuccessMessage('')
+    setTopErrorMessage('')
+  }
+
+  function addTopSubcategory(newId: number) {
+    if (!newId || topSubcategoryIds.includes(newId) || topSubcategoryIds.length >= 5) return
+    setTopSubcategoryIds((prev) => [...prev, newId])
+    setTopSuccessMessage('')
+    setTopErrorMessage('')
+  }
+
+  async function saveTopSubcategories() {
+    if (!subcategories) return
+    setSavingTop(true)
+    setTopSuccessMessage('')
+    setTopErrorMessage('')
+    try {
+      const remainingIds = subcategories
+        .filter((s) => !topSubcategoryIds.includes(s.id))
+        .map((s) => s.id)
+      const ordered_ids = [...topSubcategoryIds, ...remainingIds]
+      await api.put('/subcategories/reorder', { ordered_ids })
+      setTopSuccessMessage('Top 5 sub-categories order saved successfully! The storefront homepage is updated.')
+      load()
+    } catch (err) {
+      setTopErrorMessage(apiErrorMessage(err, 'Failed to save Top 5 sub-categories ordering'))
+    } finally {
+      setSavingTop(false)
+    }
+  }
 
   function categoryNames(ids: number[] | undefined) {
     if (!ids || ids.length === 0) return []
@@ -157,45 +227,267 @@ export function SubcategoriesPage() {
     return matchesSearch && matchesStatus && matchesCategory
   })
 
+  const activeSubcategories = (subcategories ?? []).filter((s) => s.status === 'ACTIVE')
+  const availableToAddSubcategories = activeSubcategories.filter((s) => !topSubcategoryIds.includes(s.id))
+
   return (
     <div className="space-y-6 pb-12">
-      {/* ================= QUICK VIEW BY SUBCATEGORY ================= */}
-      {subcategories !== null && subcategories.length > 0 && (
-        <div className="rounded-3xl bg-white p-6 border border-[#F2E5E7] shadow-2xs">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="h-[1px] bg-[#EEDDE0] flex-1 max-w-[140px]"></div>
-            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#804652]">
-              QUICK VIEW BY SUBCATEGORY
-            </span>
-            <div className="h-[1px] bg-[#EEDDE0] flex-1 max-w-[140px]"></div>
+      {/* ================= TOP 5 SUB-CATEGORIES (HOME PAGE) MANAGEMENT SECTION ================= */}
+      {subcategories !== null && (
+        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+          {/* Card Header */}
+          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white via-[#FAF2F4]/40 to-white">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#804652] text-white text-xs font-bold shadow-xs">
+                  ★
+                </span>
+                <h3 className="text-xl font-bold text-slate-950">Top 5 Sub-categories (Home Page)</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#E8CCD1] text-xs font-bold">
+                  {topSubcategoryIds.length} / 5 Slots
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 font-medium max-w-2xl">
+                Configure the top sub-categories featured on the customer storefront homepage. Rank from #1 (primary / leftmost) to #5. Use Move Up/Down or slot dropdowns to reorder, then save your changes.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={saveTopSubcategories}
+                disabled={savingTop || topSubcategoryIds.length === 0}
+                className="bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full hover:opacity-95 shadow-md active:scale-98 disabled:opacity-50"
+              >
+                {savingTop ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner className="h-3.5 w-3.5 text-white" />
+                    <span>Saving Order…</span>
+                  </div>
+                ) : (
+                  <span>Save Top 5 Order</span>
+                )}
+              </Button>
+            </div>
           </div>
 
-          <div className="flex items-center justify-center gap-6 sm:gap-10 overflow-x-auto py-2 scrollbar-none">
-            {subcategories.map((sub) => (
+          {/* Feedback alerts */}
+          {topSuccessMessage && (
+            <div className="mx-5 sm:mx-6 mt-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">✓</span>
+                <span>{topSuccessMessage}</span>
+              </div>
               <button
-                key={sub.id}
                 type="button"
-                onClick={() => setViewingSubcategory(sub)}
-                className="group flex flex-col items-center gap-2.5 shrink-0 focus:outline-none"
+                onClick={() => setTopSuccessMessage('')}
+                className="text-emerald-600 hover:text-emerald-800 font-bold px-2 py-0.5 rounded"
               >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-[#EEDDE0] group-hover:border-[#7B3F4A] group-hover:scale-105 transition-all p-0.5 bg-white shadow-2xs">
-                  {imageUrl(sub.thumb_path ?? sub.image_path) ? (
-                    <img
-                      src={imageUrl(sub.thumb_path ?? sub.image_path)!}
-                      alt={sub.name}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-[#FAF2F4] flex items-center justify-center text-[#804652]">
-                      <span className="font-bold text-sm">{sub.name.slice(0, 2).toUpperCase()}</span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 group-hover:text-[#7B3F4A] transition-colors max-w-[105px] text-center truncate">
-                  {sub.name}
-                </span>
+                ✕
               </button>
-            ))}
+            </div>
+          )}
+
+          {topErrorMessage && (
+            <div className="mx-5 sm:mx-6 mt-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold">!</span>
+                <span>{topErrorMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTopErrorMessage('')}
+                className="text-rose-600 hover:text-rose-800 font-bold px-2 py-0.5 rounded"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Compact Rows List */}
+          <div>
+            {activeSubcategories.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-500 font-medium">
+                No active subcategories available. Please create or activate subcategories below first.
+              </div>
+            ) : (
+              <div className="divide-y divide-[#F2E5E7]">
+                {topSubcategoryIds.map((subId, index) => {
+                  const sub = subcategories?.find((s) => s.id === subId)
+                  const parentNames = categoryNames(sub?.category_ids)
+                  const isPrimary = index === 0
+
+                  return (
+                    <div
+                      key={subId}
+                      className={`px-5 py-3.5 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3.5 transition-colors ${
+                        isPrimary
+                          ? 'bg-gradient-to-r from-[#FAF2F4]/70 via-[#FAF2F4]/30 to-white'
+                          : 'hover:bg-[#FAF2F4]/30'
+                      }`}
+                    >
+                      {/* Left: Rank & Subcategory Info */}
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        {/* Rank indicator */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shadow-2xs ${
+                              isPrimary
+                                ? 'bg-[#804652] text-white ring-2 ring-[#804652]/20'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            }`}
+                          >
+                            #{index + 1}
+                          </span>
+                          {isPrimary ? (
+                            <span className="px-2 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#E8CCD1] text-[10px] font-black uppercase tracking-wider">
+                              Primary
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
+                              Rank {index + 1}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Thumbnail */}
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#E8CCD1] bg-[#FAF2F4] shrink-0 flex items-center justify-center shadow-2xs">
+                          {imageUrl(sub?.thumb_path ?? sub?.image_path ?? null) ? (
+                            <img
+                              src={imageUrl(sub?.thumb_path ?? sub?.image_path ?? null)!}
+                              alt={sub?.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-black text-[#804652]">
+                              {sub ? sub.name.slice(0, 2).toUpperCase() : 'SC'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Details */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-xs font-bold text-slate-900 truncate">
+                              {sub ? sub.name : `Subcategory #${subId}`}
+                            </h4>
+                            {parentNames.length > 0 && (
+                              <span className="inline-block text-[10px] font-bold text-[#804652] bg-[#FAF2F4] px-2 py-0.5 rounded-full border border-[#EEDDE0] truncate max-w-[140px]">
+                                {parentNames.join(', ')}
+                              </span>
+                            )}
+                            <span className="text-[11px] font-medium text-slate-500">
+                              • {sub?.product_count ?? 0} {sub?.product_count === 1 ? 'Product' : 'Products'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 font-mono truncate">
+                            /{sub?.slug ?? ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right: Swap Dropdown & Controls */}
+                      <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+                        {/* Swap Selector */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 hidden lg:inline">
+                            Replace:
+                          </span>
+                          <select
+                            value={subId}
+                            onChange={(e) => replaceTopSubcategory(index, Number(e.target.value))}
+                            aria-label={`Replace Subcategory Rank ${index + 1}`}
+                            className="w-48 sm:w-56 text-xs font-semibold rounded-xl border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#804652] transition-all cursor-pointer shadow-2xs hover:border-[#804652]"
+                          >
+                            {activeSubcategories.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} {topSubcategoryIds.includes(s.id) && s.id !== subId ? `(Rank #${topSubcategoryIds.indexOf(s.id) + 1})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Reorder Buttons */}
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveTopSubcategory(index, 'up')}
+                            title="Move subcategory up"
+                            aria-label={`Move subcategory ${sub?.name ?? ''} up`}
+                            className="w-7 h-7 rounded-lg border border-[#E8CCD1] bg-white text-slate-700 hover:bg-[#FAF2F4] hover:text-[#804652] disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === topSubcategoryIds.length - 1}
+                            onClick={() => moveTopSubcategory(index, 'down')}
+                            title="Move subcategory down"
+                            aria-label={`Move subcategory ${sub?.name ?? ''} down`}
+                            className="w-7 h-7 rounded-lg border border-[#E8CCD1] bg-white text-slate-700 hover:bg-[#FAF2F4] hover:text-[#804652] disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeTopSubcategory(index)}
+                            title="Remove from top 5"
+                            aria-label={`Remove subcategory ${sub?.name ?? ''} from top 5`}
+                            className="w-7 h-7 rounded-lg border border-transparent text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Add slot row if fewer than 5 active subcategories in top list and more active subcategories exist */}
+                {topSubcategoryIds.length < 5 && availableToAddSubcategories.length > 0 && (
+                  <div className="px-5 py-3.5 sm:px-6 bg-[#FAF2F4]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-dashed border-[#E8CCD1]">
+                    <div className="flex items-center gap-2.5">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-dashed border-[#804652]/40 bg-white text-[#804652] text-xs font-black">
+                        +{topSubcategoryIds.length + 1}
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">
+                          Add Next Slot (Rank #{topSubcategoryIds.length + 1})
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          {availableToAddSubcategories.length} active {availableToAddSubcategories.length === 1 ? 'subcategory' : 'subcategories'} available to add
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) addTopSubcategory(Number(e.target.value))
+                        }}
+                        aria-label="Add subcategory to next slot"
+                        className="w-full sm:w-64 text-xs font-semibold rounded-xl border border-[#E8CCD1] bg-white px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#804652] shadow-2xs cursor-pointer"
+                      >
+                        <option value="">Select a subcategory to add…</option>
+                        {availableToAddSubcategories.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.product_count ?? 0} products)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

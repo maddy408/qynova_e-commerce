@@ -55,7 +55,7 @@ final class HomeSectionService
     /** @param array<string, mixed> $data */
     public function update(int $id, array $data): void
     {
-        $fields = ['type', 'title', 'item_limit', 'sort_order', 'is_active'];
+        $fields = ['type', 'title', 'item_limit', 'sort_order', 'is_active', 'image_path'];
         $sets = [];
         $params = ['id' => $id];
 
@@ -66,6 +66,17 @@ final class HomeSectionService
 
             if ($field === 'type' && !in_array($data['type'], self::TYPES, true)) {
                 throw new RuntimeException('Invalid type');
+            }
+
+            if ($field === 'image_path') {
+                if ($data['image_path'] === null) {
+                    $section = $this->find($id);
+                    if ($section !== null && !empty($section['image_path'])) {
+                        $this->uploader->delete($section['image_path']);
+                    }
+                    $sets[] = 'image_path = NULL';
+                }
+                continue;
             }
 
             $sets[] = "{$field} = :{$field}";
@@ -101,6 +112,19 @@ final class HomeSectionService
             ->execute(['path' => $stored['path'], 'id' => $id]);
 
         return $stored['path'];
+    }
+
+    public function removeImage(int $id): void
+    {
+        $section = $this->find($id);
+        if ($section === null) {
+            throw new RuntimeException('Home section not found');
+        }
+
+        $this->pdo->prepare('UPDATE home_sections SET image_path = NULL WHERE id = :id')->execute(['id' => $id]);
+        if (!empty($section['image_path'])) {
+            $this->uploader->delete($section['image_path']);
+        }
     }
 
     public function delete(int $id): void

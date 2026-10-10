@@ -17,6 +17,14 @@ interface PopularProduct {
   revenue: string
 }
 
+interface MostViewedProduct {
+  id: number
+  name: string
+  view_count: number | string
+  primary_image?: string | null
+  min_price?: number | string | null
+}
+
 interface SaleItem {
   id: number
   invoice_no: string
@@ -35,6 +43,7 @@ function formatCurrency(value: string | number) {
 export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [popularItems, setPopularItems] = useState<PopularProduct[]>([])
+  const [mostViewedItems, setMostViewedItems] = useState<MostViewedProduct[]>([])
   const [latestSales, setLatestSales] = useState<SaleItem[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -55,6 +64,7 @@ export function DashboardPage() {
       .then(([sumRes, prodRes, actRes]) => {
         setSummary(sumRes.data)
         setPopularItems(prodRes.data.top_selling_products || [])
+        setMostViewedItems(prodRes.data.most_viewed_products || [])
         setLatestSales(actRes.data.recent_sales || [])
       })
       .finally(() => setLoading(false))
@@ -472,6 +482,75 @@ export function DashboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Most Viewed Products Section */}
+          <div className="space-y-4 pt-4 border-t border-[#F2E5E7]/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">
+                    Most Viewed Products
+                  </h2>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#FAF2F4] border border-[#EEDDE0] px-2.5 py-0.5 text-[10px] font-bold text-[#7B3F4A]">
+                    👁️ Customer Views
+                  </span>
+                </div>
+                <p className="text-xs text-[#804652] font-medium mt-0.5">
+                  Products attracting the highest interest and catalog detail views on the customer storefront
+                </p>
+              </div>
+            </div>
+
+            {mostViewedItems.length === 0 ? (
+              <Card className="rounded-3xl border border-[#F2E5E7] bg-white p-10 text-center shadow-2xs flex flex-col items-center justify-center space-y-2.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FAF2F4] to-[#F2E5E7] border border-[#EEDDE0] text-[#7B3F4A] text-xl shadow-xs">
+                  👁️
+                </div>
+                <div>
+                  <h3 className="font-serif text-base font-bold text-slate-900">
+                    No Product Views Recorded Yet
+                  </h3>
+                  <p className="text-xs text-[#804652] mt-1 max-w-md mx-auto leading-relaxed">
+                    As shoppers open and explore product detail pages on the storefront, view counts will aggregate and rank your most-viewed catalog items here.
+                  </p>
+                </div>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {mostViewedItems.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className="group relative flex flex-col justify-between rounded-2xl bg-white p-4 shadow-2xs border border-[#F2E5E7] transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-[#7B3F4A]/40"
+                  >
+                    <div className="flex items-start justify-between">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#FAF2F4] border border-[#EEDDE0] text-xs font-mono font-bold text-[#7B3F4A]">
+                        #{idx + 1}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#FAF2F4] border border-[#EEDDE0] px-2.5 py-0.5 text-[10px] font-bold text-[#7B3F4A]">
+                        <span>👁️</span>
+                        <span>{item.view_count} views</span>
+                      </span>
+                    </div>
+
+                    <div className="my-3">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 font-sans tracking-tight line-clamp-2 group-hover:text-[#7B3F4A] transition-colors">
+                        {item.name}
+                      </h3>
+                    </div>
+
+                    <div className="pt-2.5 border-t border-[#F2E5E7] flex items-center justify-between text-xs">
+                      <span className="text-[#804652] text-[11px] font-medium">Catalog Item</span>
+                      {item.min_price && (
+                        <span className="font-serif font-black text-[#7B3F4A] text-xs sm:text-sm">
+                          ₹{Number(item.min_price).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

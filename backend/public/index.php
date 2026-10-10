@@ -87,6 +87,7 @@ $router->get('/api/reports/referrals', fn () => $referral->report());
 // Catalog masters (docs/DOCUMENTATION.md section 7)
 $categories = new CategoryController($pdo);
 $router->get('/api/categories', fn () => $categories->index());
+$router->put('/api/categories/reorder', fn () => $categories->reorder());
 $router->get('/api/categories/{id}', fn ($id) => $categories->show($id));
 $router->post('/api/categories', fn () => $categories->store());
 $router->put('/api/categories/{id}', fn ($id) => $categories->update($id));
@@ -96,6 +97,7 @@ $router->delete('/api/categories/{id}/image', fn ($id) => $categories->removeIma
 
 $subcategories = new SubcategoryController($pdo);
 $router->get('/api/subcategories', fn () => $subcategories->index());
+$router->put('/api/subcategories/reorder', fn () => $subcategories->reorder());
 $router->get('/api/subcategories/{id}', fn ($id) => $subcategories->show($id));
 $router->post('/api/subcategories', fn () => $subcategories->store());
 $router->put('/api/subcategories/{id}', fn ($id) => $subcategories->update($id));
@@ -213,6 +215,7 @@ $router->get('/api/coupons/available', fn () => $coupons->availableForCustomer()
 $router->get('/api/coupons/{id}', fn ($id) => $coupons->show($id));
 $router->post('/api/coupons', fn () => $coupons->store());
 $router->put('/api/coupons/{id}', fn ($id) => $coupons->update($id));
+$router->delete('/api/coupons/{id}', fn ($id) => $coupons->destroy($id));
 
 // Wishlist (Database-driven customer & guest wishlist)
 $wishlist = new WishlistController($pdo);
@@ -332,6 +335,7 @@ $router->post('/api/home-sections', fn () => $homeSections->store());
 $router->put('/api/home-sections/reorder', fn () => $homeSections->reorder());
 $router->put('/api/home-sections/{id}', fn ($id) => $homeSections->update($id));
 $router->post('/api/home-sections/{id}/image', fn ($id) => $homeSections->uploadImage($id));
+$router->delete('/api/home-sections/{id}/image', fn ($id) => $homeSections->removeImage($id));
 $router->delete('/api/home-sections/{id}', fn ($id) => $homeSections->destroy($id));
 
 // Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)

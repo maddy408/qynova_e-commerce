@@ -390,4 +390,45 @@ final class CouponService
 
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
+
+    public function delete(int $id): void
+    {
+        $stmt = $this->pdo->prepare('SELECT id, code FROM coupons WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+        $coupon = $stmt->fetch();
+
+        if ($coupon === false) {
+            throw new RuntimeException('Coupon not found');
+        }
+
+        // Check if coupon has been used in orders / coupon_usages table
+        $usageCountStmt = $this->pdo->prepare('SELECT COUNT(*) FROM coupon_usages WHERE coupon_id = :id');
+        $usageCountStmt->execute(['id' => $id]);
+        $usageCount = (int) $usageCountStmt->fetchColumn();
+
+        // Check if coupon is referenced in orders table
+        $orderCountStmt = $this->pdo->prepare('SELECT COUNT(*) FROM orders WHERE coupon_id = :id');
+        $orderCountStmt->execute(['id' => $id]);
+        $orderCount = (int) $orderCountStmt->fetchColumn();
+
+        if ($usageCount > 0 || $orderCount > 0) {
+            throw new RuntimeException("Coupon '{$coupon['code']}' has existing order/usage history and cannot be deleted to preserve financial audit records. Please deactivate it instead.");
+        }
+
+        $this->pdo->beginTransaction();
+
+        try {
+            $this->pdo->prepare('DELETE FROM coupon_products WHERE coupon_id = :id')->execute(['id' => $id]);
+            $this->pdo->prepare('DELETE FROM coupon_categories WHERE coupon_id = :id')->execute(['id' => $id]);
+            $this->pdo->prepare('DELETE FROM coupon_brands WHERE coupon_id = :id')->execute(['id' => $id]);
+            $this->pdo->prepare('DELETE FROM coupon_customers WHERE coupon_id = :id')->execute(['id' => $id]);
+
+            $this->pdo->prepare('DELETE FROM coupons WHERE id = :id')->execute(['id' => $id]);
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
 }

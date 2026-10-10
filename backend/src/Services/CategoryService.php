@@ -22,8 +22,13 @@ final class CategoryService
     }
 
     /** @return list<array<string, mixed>> */
-    public function list(): array
+    public function list(?string $sort = null): array
     {
+        $sort = $sort ?? ($_GET['sort'] ?? null);
+        $orderClause = ($sort === 'sort_order' || $sort === 'order')
+            ? 'c.sort_order ASC, c.name ASC'
+            : 'total_units_sold DESC, c.sort_order ASC, c.name ASC';
+
         return $this->pdo->query(
             "SELECT c.*,
                 (SELECT COUNT(*) FROM category_subcategory cs WHERE cs.category_id = c.id) AS subcategory_count,
@@ -37,7 +42,7 @@ final class CategoryService
                 ), 0) AS total_units_sold
              FROM categories c
              WHERE c.deleted_at IS NULL
-             ORDER BY total_units_sold DESC, c.sort_order, c.name"
+             ORDER BY {$orderClause}"
         )->fetchAll();
     }
 
@@ -103,6 +108,33 @@ final class CategoryService
     public function delete(int $id): void
     {
         $this->pdo->prepare("UPDATE categories SET deleted_at = NOW(), status = 'INACTIVE' WHERE id = :id")->execute(['id' => $id]);
+    }
+
+    /**
+     * T13: Reorder categories within a database transaction.
+     * Sets sort_order = 1, 2, 3, ... based on ordered category IDs.
+     *
+     * @param list<int> $orderedIds
+     */
+    public function reorder(array $orderedIds): void
+    {
+        if ($orderedIds === []) {
+            return;
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $stmt = $this->pdo->prepare('UPDATE categories SET sort_order = :sort_order WHERE id = :id AND deleted_at IS NULL');
+            foreach ($orderedIds as $index => $id) {
+                $stmt->execute(['sort_order' => $index + 1, 'id' => (int) $id]);
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /**

@@ -270,7 +270,9 @@ final class BannerService
     private function itemsFor(int $bannerId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT bi.id, bi.product_id, bi.offer_text, bi.sort_order, p.name AS product_name
+            'SELECT bi.id, bi.product_id, bi.offer_text, bi.sort_order, p.name AS product_name,
+                    (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS min_price,
+                    (SELECT mrp FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL ORDER BY is_default DESC, id ASC LIMIT 1) AS mrp
              FROM banner_items bi JOIN products p ON p.id = bi.product_id
              WHERE bi.banner_id = :id ORDER BY bi.sort_order ASC, bi.id ASC'
         );

@@ -45,6 +45,32 @@ final class SubcategoryService
         return $subcategories;
     }
 
+    /**
+     * @param list<int> $orderedIds
+     */
+    public function reorder(array $orderedIds): void
+    {
+        if (empty($orderedIds)) {
+            return;
+        }
+
+        $this->pdo->beginTransaction();
+
+        try {
+            $stmt = $this->pdo->prepare('UPDATE subcategories SET sort_order = :order WHERE id = :id');
+            foreach ($orderedIds as $index => $id) {
+                $stmt->execute([
+                    'order' => $index + 1,
+                    'id' => (int) $id,
+                ]);
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
     /** @return array<string, mixed>|null */
     public function find(int $id): ?array
     {

@@ -24,6 +24,7 @@ export function ReferralSettingsPage() {
   const [settings, setSettings] = useState<ReferralSettings | null>(null)
   const [report, setReport] = useState<ReferralReport | null>(null)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [saving, setSaving] = useState(false)
 
   function load() {
@@ -38,9 +39,11 @@ export function ReferralSettingsPage() {
     if (!settings) return
     setSaving(true)
     setError('')
+    setSuccessMessage('')
     try {
       const res = await api.put('/referral-settings', settings)
       setSettings(res.data.settings)
+      setSuccessMessage('Referral settings saved successfully.')
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not save settings'))
     } finally {
@@ -64,6 +67,7 @@ export function ReferralSettingsPage() {
         <form onSubmit={handleSubmit} className="space-y-4 lg:col-span-2">
           <Card className="space-y-4 p-5">
             {error && <Alert>{error}</Alert>}
+            {successMessage && <Alert tone="green">{successMessage}</Alert>}
             <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
               <input
                 type="checkbox"

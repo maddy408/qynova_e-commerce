@@ -184,8 +184,23 @@ final class DashboardService
              WHERE v.purchase_price IS NOT NULL"
         )->fetch();
 
+        // Most viewed products from product_stats
+        $mostViewed = $this->pdo->prepare(
+            "SELECT p.id, p.name, ps.view_count,
+                    (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
+                    (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL) AS min_price
+             FROM product_stats ps
+             JOIN products p ON p.id = ps.product_id AND p.deleted_at IS NULL
+             WHERE ps.view_count > 0
+             ORDER BY ps.view_count DESC, p.name ASC
+             LIMIT :limit"
+        );
+        $mostViewed->bindValue('limit', $limit, PDO::PARAM_INT);
+        $mostViewed->execute();
+
         return [
             'top_selling_products' => $topProducts->fetchAll(),
+            'most_viewed_products' => $mostViewed->fetchAll(),
             'top_selling_categories' => $topCategories->fetchAll(),
             'top_selling_variants' => $topVariants->fetchAll(),
             'low_stock_products' => $lowStock,
