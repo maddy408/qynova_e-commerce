@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Card, PageHeader, Select, Spinner } from '../components/ui'
 import { api } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 interface OrderListItem {
   id: number
@@ -67,7 +68,7 @@ export function OrdersPage() {
             </thead>
             <tbody className="divide-y divide-[var(--color-extra-004)]">
               {orders.map((o) => (
-                <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer hover:bg-[var(--color-surface)]/80 transition-colors">
+                <tr key={o.id} onClick={() => navigate(ROUTES.ORDER_DETAIL(o.id))} className="cursor-pointer hover:bg-[var(--color-surface)]/80 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-950">{o.order_no}</td>
                   <td className="px-6 py-4 font-semibold text-slate-800">{o.customer_name}</td>
                   <td className="px-6 py-4">

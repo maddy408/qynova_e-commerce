@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, getCustomerToken, clearCustomerSession } from '../../lib/api'
+import { ROUTES } from '../../routes/routes'
 
 export default function Orders() {
   const navigate = useNavigate()
@@ -13,7 +14,7 @@ export default function Orders() {
     const token = getCustomerToken()
     if (!token) {
       clearCustomerSession()
-      navigate('/login')
+      navigate(ROUTES.LOGIN)
       return
     }
 
@@ -32,7 +33,7 @@ export default function Orders() {
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
           clearCustomerSession()
-          navigate('/login')
+          navigate(ROUTES.LOGIN)
         } else {
           setError(err.response?.data?.error || 'Failed to load order history from server')
         }
@@ -126,7 +127,7 @@ export default function Orders() {
       {/* Top Header */}
       <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+          <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <circle cx="8" cy="21" r="1" />
@@ -148,14 +149,14 @@ export default function Orders() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
-              to="/profile"
+              to={ROUTES.PROFILE}
               className="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] px-3 py-2 rounded-full hover:bg-[var(--color-bg-alt)] transition-colors flex items-center gap-1.5"
             >
               <span>👤</span>
               <span className="hidden sm:inline">My Profile</span>
             </Link>
             <Link
-              to="/shop"
+              to={ROUTES.SHOP}
               className="text-xs font-bold text-white bg-[var(--color-brand)] hover:bg-[var(--color-brand)] px-4 py-2 rounded-full transition-colors shadow-xs"
             >
               Shop More
@@ -170,9 +171,9 @@ export default function Orders() {
         {/* Breadcrumb & Title */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-text-muted)] mb-2">
-            <Link to="/" className="hover:text-[var(--color-brand)]">Home</Link>
+            <Link to={ROUTES.HOME} className="hover:text-[var(--color-brand)]">Home</Link>
             <span>/</span>
-            <Link to="/profile" className="hover:text-[var(--color-brand)]">Account</Link>
+            <Link to={ROUTES.PROFILE} className="hover:text-[var(--color-brand)]">Account</Link>
             <span>/</span>
             <span className="text-[var(--color-text-main)] font-bold">My Orders</span>
           </div>
@@ -251,7 +252,7 @@ export default function Orders() {
             </div>
             <div className="pt-2">
               <Link
-                to="/shop"
+                to={ROUTES.SHOP}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--color-brand)] text-white font-extrabold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
               >
                 <span>Start Shopping</span>
@@ -309,7 +310,7 @@ export default function Orders() {
 
                     <div className="flex items-center gap-2.5">
                       <Link
-                        to={`/orders/${order.id}`}
+                        to={ROUTES.ORDER_DETAIL(order.id)}
                         className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[var(--color-bg-alt)] hover:bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-xs font-black transition-colors"
                       >
                         <span>View Details</span>

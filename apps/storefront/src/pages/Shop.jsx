@@ -9,6 +9,7 @@ import CheckoutModal from '../components/CheckoutModal'
 import ReferralModal from '../components/ReferralModal'
 import { addToCart, getCartCount, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist, toggleWishlist } from '../lib/wishlist'
+import { ROUTES } from '../routes/routes'
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -399,7 +400,7 @@ export default function Shop() {
           
           {/* Breadcrumb Navigation */}
           <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] mb-3">
-            <Link to="/" className="text-[var(--color-brand)] hover:underline">
+            <Link to={ROUTES.HOME} className="text-[var(--color-brand)] hover:underline">
               Home
             </Link>
             <span>/</span>
@@ -531,7 +532,7 @@ export default function Shop() {
                   View All Products
                 </button>
                 <Link
-                  to="/"
+                  to={ROUTES.HOME}
                   className="px-5 py-2.5 bg-[var(--color-primary-tint)] hover:bg-[var(--color-primary-tint)] text-[var(--color-brand)] rounded-xl text-xs font-bold transition-colors"
                 >
                   Back to Home
@@ -547,7 +548,7 @@ export default function Shop() {
                   isWishlist={wishlistIds.includes(product.id)}
                   onToggleWishlist={handleToggleWishlist}
                   onAddToCart={handleAddToCart}
-                  onClick={() => navigate(`/product/${product.id}`)}
+                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product.id))}
                 />
               ))}
             </div>
@@ -632,18 +633,18 @@ export default function Shop() {
             <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
               <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Quick Links</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/" className="hover:text-[var(--color-brand)] transition-colors">Home Catalog</Link></li>
-                <li><Link to="/products?section=best_sellers" className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
-                <li><Link to="/products?section=new_arrivals" className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
+                <li><Link to={ROUTES.HOME} className="hover:text-[var(--color-brand)] transition-colors">Home Catalog</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')} className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')} className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
               </ul>
             </div>
             <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
               <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Customer Care</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/pages/shipping-policy" className="hover:text-[var(--color-brand)] transition-colors">Shipping Information</Link></li>
-                <li><Link to="/pages/return-exchange-policy" className="hover:text-[var(--color-brand)] transition-colors">Return & Refund Policy</Link></li>
-                <li><Link to="/pages/privacy-policy" className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/pages/terms-and-conditions" className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
+                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-[var(--color-brand)] transition-colors">Shipping Information</Link></li>
+                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-[var(--color-brand)] transition-colors">Return & Refund Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
               </ul>
             </div>
             <div className="space-y-2 text-xs text-[var(--color-text-muted)]">

@@ -8,6 +8,7 @@ import {
   fetchHomeSections,
   resolveImageUrl,
 } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 import { getCategoryPalette } from '../lib/catalogData'
 import Navbar from '../components/Navbar'
 import PromotionalBannerCarousel from '../components/PromotionalBannerCarousel'
@@ -205,12 +206,12 @@ export default function Home() {
     if (!banner) return
 
     if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(`/products?category_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       return
     }
 
     if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(`/product/${banner.target_id}`)
+      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
       return
     }
 
@@ -219,7 +220,7 @@ export default function Home() {
       return
     }
 
-    navigate('/products')
+    navigate(ROUTES.PRODUCTS)
   }
 
   // Wishlist Heart Toggle (Persisted in MySQL via PHP API)
@@ -426,20 +427,20 @@ export default function Home() {
             <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
               <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Collections</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/products?section=best_sellers" className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
-                <li><Link to="/products?section=new_arrivals" className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
-                <li><Link to="/products?section=featured" className="hover:text-[var(--color-brand)] transition-colors">Featured Selections</Link></li>
-                <li><Link to="/products?section=deals" className="hover:text-[var(--color-brand)] transition-colors">Flash Deals</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')} className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')} className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('featured')} className="hover:text-[var(--color-brand)] transition-colors">Featured Selections</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('deals')} className="hover:text-[var(--color-brand)] transition-colors">Flash Deals</Link></li>
               </ul>
             </div>
 
             <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
               <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Customer Care</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/pages/shipping-policy" className="hover:text-[var(--color-brand)] transition-colors">Shipping Policy</Link></li>
-                <li><Link to="/pages/return-exchange-policy" className="hover:text-[var(--color-brand)] transition-colors">Returns & Exchange</Link></li>
-                <li><Link to="/pages/privacy-policy" className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/pages/terms-and-conditions" className="hover:text-[var(--color-brand)] transition-colors">Terms of Service</Link></li>
+                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-[var(--color-brand)] transition-colors">Shipping Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-[var(--color-brand)] transition-colors">Returns & Exchange</Link></li>
+                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-[var(--color-brand)] transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
 

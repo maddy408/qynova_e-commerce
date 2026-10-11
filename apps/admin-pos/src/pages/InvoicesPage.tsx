@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
+import { ROUTES } from '../routes/routes'
 import { PencilIcon, PrinterIcon, TrashIcon } from '../components/Icons'
 import { PAYMENT_METHODS } from '../constants/paymentMethods'
 import { api, apiErrorMessage } from '../lib/api'
@@ -127,7 +128,7 @@ export function InvoicesPage() {
               {invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-[var(--color-surface)]/40 transition-colors">
                   <td
-                    onClick={() => navigate(`/invoices/${inv.id}`)}
+                    onClick={() => navigate(ROUTES.INVOICE_DETAIL(inv.id))}
                     className="px-5 py-3 font-mono font-bold text-[var(--color-primary)] cursor-pointer hover:underline"
                   >
                     {inv.invoice_no}
@@ -147,7 +148,7 @@ export function InvoicesPage() {
                     <div className="flex items-center justify-end gap-1.5">
                       {/* Print Button */}
                       <button
-                        onClick={() => navigate(`/invoices/${inv.id}`)}
+                        onClick={() => navigate(ROUTES.INVOICE_DETAIL(inv.id))}
                         className="p-1.5 text-slate-500 hover:text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-surface)] transition-colors"
                         title="Print Thermal / A4 Receipt"
                       >

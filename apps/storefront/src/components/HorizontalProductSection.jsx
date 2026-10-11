@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ProductCard from './ProductCard'
+import { ROUTES } from '../routes/routes'
 
 export default function HorizontalProductSection({
   title,
@@ -188,7 +189,7 @@ export default function HorizontalProductSection({
                 isWishlist={wishlistIds.includes(product.id)}
                 onToggleWishlist={onToggleWishlist}
                 onAddToCart={onAddToCart}
-                onClick={() => navigate(`/product/${product.id}`)}
+                onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product.id))}
               />
             </div>
           ))}

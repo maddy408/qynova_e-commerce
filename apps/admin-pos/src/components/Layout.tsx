@@ -1,117 +1,19 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { NAV_SECTIONS, ROUTES, type NavSection } from '../routes/routes'
 import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
-interface SubItem {
-  to: string
-  label: string
-  permission?: string
-}
+const SECTIONS = NAV_SECTIONS
 
-interface SectionConfig {
-  id: string
-  label: string
-  to: string
-  matchPrefixes: string[]
-  items: SubItem[]
-  permission?: string
-}
-
-const SECTIONS: SectionConfig[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    to: '/',
-    matchPrefixes: ['/'],
-    items: [],
-  },
-  {
-    id: 'pos-sale',
-    label: 'POS Sale',
-    to: '/sale',
-    matchPrefixes: ['/sale'],
-    items: [],
-    permission: 'pos.sell',
-  },
-  {
-    id: 'catalog',
-    label: 'Catalog',
-    to: '/categories',
-    matchPrefixes: ['/categories', '/subcategories', '/brands', '/products', '/price-adjustment', '/units', '/tax'],
-    items: [
-      { to: '/categories', label: 'Category', permission: 'catalog.manage' },
-      { to: '/subcategories', label: 'Subcategory', permission: 'catalog.manage' },
-      { to: '/brands', label: 'Brands & Mapping', permission: 'catalog.manage' },
-      { to: '/products', label: 'Products', permission: 'catalog.manage' },
-      { to: '/price-adjustment', label: 'Price Adjustment', permission: 'catalog.manage' },
-      { to: '/tax', label: 'Tax', permission: 'catalog.manage' },
-      { to: '/units', label: 'Unit', permission: 'catalog.manage' },
-    ],
-  },
-  {
-    id: 'sales-orders',
-    label: 'Sales & Orders',
-    to: '/orders',
-    matchPrefixes: ['/orders', '/invoices', '/collections', '/customers', '/deliveries', '/returns', '/finance', '/reports'],
-    items: [
-      { to: '/orders', label: 'Orders', permission: 'orders.manage' },
-      { to: '/invoices', label: 'Invoices', permission: 'orders.manage' },
-      { to: '/collections', label: 'Collections (Credit)' },
-      { to: '/customers', label: 'Customers' },
-      { to: '/deliveries', label: 'Delivery', permission: 'delivery.manage' },
-      { to: '/returns', label: 'Returns', permission: 'orders.manage' },
-      { to: '/finance', label: 'Expenses & Income', permission: 'reports.financial.view' },
-      { to: '/reports', label: 'Reports', permission: 'reports.financial.view' },
-    ],
-  },
-  {
-    id: 'inventory',
-    label: 'Inventory',
-    to: '/stock-adjustments',
-    matchPrefixes: ['/stock-adjustments', '/recent-adjustment-logs', '/suppliers', '/purchases'],
-    items: [
-      { to: '/stock-adjustments', label: 'Stock Adjustment', permission: 'inventory.view' },
-      { to: '/suppliers', label: 'Supplier', permission: 'suppliers.manage' },
-      { to: '/purchases', label: 'Purchase', permission: 'purchases.manage' },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    to: '/referral-settings',
-    matchPrefixes: ['/referral-settings', '/banners', '/home-sections'],
-    items: [
-      { to: '/referral-settings', label: 'Referral', permission: 'settings.manage' },
-      { to: '/banners', label: 'Banner', permission: 'banners.manage' },
-      { to: '/home-sections', label: 'Home Sections', permission: 'banners.manage' },
-    ],
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    to: '/settings/company',
-    matchPrefixes: ['/settings', '/coupons', '/payment-methods', '/users'],
-    items: [
-      { to: '/settings/company', label: 'Company Details', permission: 'settings.manage' },
-      { to: '/settings/prefix', label: 'Invoice Prefix', permission: 'settings.manage' },
-      { to: '/coupons', label: 'Coupons', permission: 'coupons.manage' },
-      { to: '/payment-methods', label: 'Payment Methods', permission: 'payment_methods.manage' },
-      { to: '/users', label: 'User Management', permission: 'users.manage' },
-      { to: '/settings/printer', label: 'Thermal Printer Setup', permission: 'settings.manage' },
-      { to: '/settings/scanner', label: 'WiFi Scanner Setup', permission: 'settings.manage' },
-    ],
-  },
-]
-
-function isPathActive(pathname: string, section: SectionConfig): boolean {
+function isPathActive(pathname: string, section: NavSection): boolean {
   if (section.id === 'dashboard') {
     return pathname === '/'
   }
   return section.matchPrefixes.some((prefix) => pathname.startsWith(prefix))
 }
 
-function getBreadcrumb(pathname: string, activeSection: SectionConfig | undefined): { sectionLabel: string; itemLabel: string } | null {
+function getBreadcrumb(pathname: string, activeSection: NavSection | undefined): { sectionLabel: string; itemLabel: string } | null {
   if (!activeSection || activeSection.id === 'dashboard') return null
 
   // Find sub-item matching pathname
@@ -156,7 +58,7 @@ export function Layout() {
         <div className="w-full bg-white/95 backdrop-blur-xl border border-[var(--color-extra-003)] shadow-md shadow-[var(--color-primary-strong)]/8 rounded-full px-3.5 sm:px-5 py-2">
           <div className="flex items-center justify-between gap-3">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group shrink-0 pl-1">
+            <Link to={ROUTES.DASHBOARD} className="flex items-center gap-2.5 group shrink-0 pl-1">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-strong)] via-[var(--color-primary-strong-hover)] to-[var(--color-extra-001)] text-white font-black text-sm shadow-sm group-hover:scale-105 transition-transform">
                 UP
               </div>

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 // Admin-managed banner theme presets — preserved untouched
 const THEME_MAP = {
@@ -73,17 +74,17 @@ export default function LowerPromotionalBanners({
     }
 
     if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(`/products?category_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       return
     }
 
     if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(`/product/${banner.target_id}`)
+      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
       return
     }
 
     if (banner.target_type === 'SUBCATEGORY' && banner.target_id) {
-      navigate(`/products?subcategory_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_SUBCATEGORY(banner.target_id))
       return
     }
 
@@ -92,7 +93,7 @@ export default function LowerPromotionalBanners({
       return
     }
 
-    navigate('/products')
+    navigate(ROUTES.PRODUCTS)
   }
 
   // Handle manual arrow nudge

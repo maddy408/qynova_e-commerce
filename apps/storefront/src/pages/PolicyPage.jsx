@@ -4,6 +4,7 @@ import { fetchPage, fetchStoreSettings } from '../lib/api'
 import Navbar from '../components/Navbar'
 import CartDrawer from '../components/CartDrawer'
 import CheckoutModal from '../components/CheckoutModal'
+import { ROUTES } from '../routes/routes'
 
 export default function PolicyPage() {
   const { slug } = useParams()
@@ -53,7 +54,7 @@ export default function PolicyPage() {
                 The policy or information page you are looking for is currently unavailable.
               </p>
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[var(--color-brand)] text-white font-bold text-xs shadow-md hover:bg-[var(--color-brand-hover)] transition-all"
               >
                 ← Return to Home

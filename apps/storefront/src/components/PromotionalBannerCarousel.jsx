@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 // Color theme definitions derived from database 'color_theme' values — preserved untouched for admin-managed banners
 const BANNER_THEMES = {
@@ -127,17 +128,17 @@ export default function PromotionalBannerCarousel({
     }
 
     if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(`/products?category_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       return
     }
 
     if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(`/product/${banner.target_id}`)
+      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
       return
     }
 
     if (banner.target_type === 'SUBCATEGORY' && banner.target_id) {
-      navigate(`/products?subcategory_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_SUBCATEGORY(banner.target_id))
       return
     }
 
@@ -146,7 +147,7 @@ export default function PromotionalBannerCarousel({
       return
     }
 
-    navigate('/products')
+    navigate(ROUTES.PRODUCTS)
   }
 
   // Loading skeleton state (storefront UI)
@@ -244,7 +245,7 @@ export default function PromotionalBannerCarousel({
                 </button>
 
                 <Link
-                  to="/products"
+                  to={ROUTES.PRODUCTS}
                   className="min-h-[42px] px-4 sm:px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md border border-white/20 transition-all flex items-center justify-center cursor-pointer"
                 >
                   Explore All

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Select, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 interface OrderItem {
   id: number
@@ -75,7 +76,7 @@ export function OrderDetailPage() {
     setError('')
     try {
       const res = await api.post(`/orders/${id}/delivery`, {})
-      navigate(`/deliveries/${res.data.delivery.id}`)
+      navigate(ROUTES.DELIVERY_DETAIL(res.data.delivery.id))
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not create delivery'))
     } finally {
@@ -120,7 +121,7 @@ export function OrderDetailPage() {
 
   return (
     <div>
-      <button onClick={() => navigate('/orders')} className="mb-2 text-xs font-medium text-slate-400 hover:text-slate-700">
+      <button onClick={() => navigate(ROUTES.ORDERS)} className="mb-2 text-xs font-medium text-slate-400 hover:text-slate-700">
         ← Orders
       </button>
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -237,7 +238,7 @@ export function OrderDetailPage() {
             <Card className="space-y-2 p-5">
               <h2 className="text-sm font-semibold text-slate-900">Delivery</h2>
               {deliveryId ? (
-                <Button size="sm" variant="secondary" onClick={() => navigate(`/deliveries/${deliveryId}`)}>
+                <Button size="sm" variant="secondary" onClick={() => navigate(ROUTES.DELIVERY_DETAIL(deliveryId))}>
                   View Delivery
                 </Button>
               ) : order.payment_status === 'PAID' ? (

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 const THEME_MAP = {
   blue: {
@@ -62,7 +63,7 @@ export default function CategoryBanner({ banner, onScrollToProducts }) {
       if (
         typeof window !== 'undefined' &&
         (banner.target_link === window.location.pathname + window.location.search ||
-          banner.target_link === `/products?category_id=${banner.target_id}`)
+          banner.target_link === ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       ) {
         if (onScrollToProducts) {
           onScrollToProducts()

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
+import { ROUTES } from '../../routes/routes'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -64,7 +65,7 @@ export default function Login() {
       setSuccessMessage(`Welcome back, ${res.data.customer?.name || 'Customer'}!`)
 
       setTimeout(() => {
-        navigate('/', { replace: true })
+        navigate(ROUTES.HOME, { replace: true })
       }, 700)
     } catch (err) {
       setIsGoogleLoading(false)
@@ -219,7 +220,7 @@ export default function Login() {
       setSuccessMessage(`Welcome back, ${response.data.customer?.name || 'Customer'}!`)
 
       setTimeout(() => {
-        navigate('/')
+        navigate(ROUTES.HOME)
       }, 1200)
     } catch (err) {
       setIsVerifyingOtp(false)
@@ -497,7 +498,7 @@ export default function Login() {
                 <div className="text-center pt-2 border-t border-gray-100">
                   <p className="text-xs sm:text-sm text-[var(--color-text-muted)] font-medium">
                     Don't have an account?{' '}
-                    <Link to="/register" className="text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] font-bold hover:underline">
+                    <Link to={ROUTES.REGISTER} className="text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] font-bold hover:underline">
                       Register
                     </Link>
                   </p>
@@ -507,7 +508,7 @@ export default function Login() {
                 <div className="text-center pt-1">
                   <p className="text-[10px] text-[var(--color-text-muted)]">
                     By logging in, you agree to our{' '}
-                    <Link to="/policy/terms" className="underline hover:text-[var(--color-text-main)]">
+                    <Link to={ROUTES.POLICY_TERMS} className="underline hover:text-[var(--color-text-main)]">
                       Terms & Privacy Policy
                     </Link>
                     .

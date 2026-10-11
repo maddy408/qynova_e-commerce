@@ -8,30 +8,30 @@ import Login from './pages/customer/Login'
 import Profile from './pages/customer/Profile'
 import Orders from './pages/customer/Orders'
 import OrderDetail from './pages/customer/OrderDetail'
-
 import PolicyPage from './pages/PolicyPage'
+import { ROUTES, ROUTE_PATTERNS } from './routes/routes'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products" element={<Shop />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/catalog" element={<Shop />} />
-        <Route path="/wishlist" element={<Shop />} />
-        <Route path="/cart" element={<Shop />} />
-        <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/pages/:slug" element={<PolicyPage />} />
-        <Route path="/policy/:slug" element={<PolicyPage />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/customer/profile" element={<Profile />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/orders/:id" element={<OrderDetail />} />
-        <Route path="/customer/orders" element={<Orders />} />
-        <Route path="/customer/orders/:id" element={<OrderDetail />} />
+        <Route path={ROUTES.HOME} element={<Home />} />
+        <Route path={ROUTES.PRODUCTS} element={<Shop />} />
+        <Route path={ROUTES.SHOP} element={<Shop />} />
+        <Route path={ROUTES.CATALOG} element={<Shop />} />
+        <Route path={ROUTES.WISHLIST} element={<Shop />} />
+        <Route path={ROUTES.CART} element={<Shop />} />
+        <Route path={ROUTE_PATTERNS.PRODUCT_DETAIL} element={<ProductDetails />} />
+        <Route path={ROUTE_PATTERNS.POLICY_PAGE} element={<PolicyPage />} />
+        <Route path={ROUTE_PATTERNS.POLICY_TERMS} element={<PolicyPage />} />
+        <Route path={ROUTES.REGISTER} element={<Register />} />
+        <Route path={ROUTES.LOGIN} element={<Login />} />
+        <Route path={ROUTES.PROFILE} element={<Profile />} />
+        <Route path={ROUTE_PATTERNS.CUSTOMER_PROFILE_ALIAS} element={<Profile />} />
+        <Route path={ROUTES.ORDERS} element={<Orders />} />
+        <Route path={ROUTE_PATTERNS.ORDER_DETAIL} element={<OrderDetail />} />
+        <Route path={ROUTE_PATTERNS.CUSTOMER_ORDERS_ALIAS} element={<Orders />} />
+        <Route path={ROUTE_PATTERNS.CUSTOMER_ORDER_DETAIL_ALIAS} element={<OrderDetail />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

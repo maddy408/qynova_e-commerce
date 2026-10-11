@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Alert, Button, Card, Select, TextArea, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Brand, Category, GstRate, HsnCode, Subcategory, Unit, VariantAttribute } from '../lib/types'
+import { ROUTES } from '../routes/routes'
 
 interface StagedImage {
   file: File
@@ -549,7 +550,7 @@ export function ProductCreatePage() {
         await api.put(`/products/${productId}/specifications`, { specifications: validSpecs })
       }
 
-      navigate(`/products/${productId}`)
+      navigate(ROUTES.PRODUCT_DETAIL(productId))
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not create product'))
       setSubmitStep('')
@@ -565,7 +566,7 @@ export function ProductCreatePage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate('/products')}
+            onClick={() => navigate(ROUTES.PRODUCTS)}
             className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
           >
             ‹ Products
@@ -578,7 +579,7 @@ export function ProductCreatePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button type="button" variant="secondary" onClick={() => navigate('/products')} className="text-xs font-bold px-4 py-1.5">
+          <Button type="button" variant="secondary" onClick={() => navigate(ROUTES.PRODUCTS)} className="text-xs font-bold px-4 py-1.5">
             Discard
           </Button>
           <Button

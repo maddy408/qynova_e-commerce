@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
+import { ROUTES } from '../../routes/routes'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -194,7 +195,7 @@ export default function Register() {
         setSuccessMessage(`Account created successfully! Welcome, ${signupRes.data.customer?.name || formData.fullName}!`)
         // Redirect to home after 1.5 seconds
         setTimeout(() => {
-          navigate('/')
+          navigate(ROUTES.HOME)
         }, 1500)
       }
     } catch (err) {
@@ -614,7 +615,7 @@ export default function Register() {
                 <div className="text-center pt-0.5">
                   <p className="text-xs text-[var(--color-text-muted)] font-medium">
                     Already have an account?{' '}
-                    <Link to="/login" className="text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] font-bold hover:underline">
+                    <Link to={ROUTES.LOGIN} className="text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] font-bold hover:underline">
                       Login
                     </Link>
                   </p>
@@ -624,7 +625,7 @@ export default function Register() {
                 <div className="text-center pt-0">
                   <p className="text-[10px] text-[var(--color-text-muted)]">
                     By creating an account, you agree to our{' '}
-                    <Link to="/policy/terms" className="underline hover:text-[var(--color-text-main)]">
+                    <Link to={ROUTES.POLICY_TERMS} className="underline hover:text-[var(--color-text-main)]">
                       Terms & Privacy Policy
                     </Link>
                     .
@@ -781,7 +782,7 @@ export default function Register() {
             </div>
 
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(ROUTES.HOME)}
               className="w-full py-3.5 rounded-full bg-[var(--color-brand)] hover:brightness-110 active:scale-98 text-white font-black text-sm tracking-wide shadow-lg shadow-black/10 cursor-pointer transition-all"
             >
               Continue Shopping

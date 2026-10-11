@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Alert, Badge, Button, Modal } from '../components/ui'
 import { CameraIcon, WifiIcon, BluetoothIcon, CheckIcon, LayoutGridIcon, ListIcon } from '../components/Icons'
+import { ROUTES } from '../routes/routes'
 import { PaymentMethodButtons } from '../components/PaymentMethodButtons'
 import { type PaymentMethodCode } from '../constants/paymentMethods'
 import { calculateCartTotals, type DiscountType } from '../lib/cartTotals'
@@ -979,7 +980,7 @@ export function SalePage() {
       const invoiceId = res.data?.invoice?.id || res.data?.data?.invoice_id || res.data?.id
       setShowPayment(false)
       clearCart()
-      navigate(`/invoices/${invoiceId}`)
+      navigate(ROUTES.INVOICE_DETAIL(invoiceId))
     } catch (err: any) {
       setError(apiErrorMessage(err, 'Failed to complete sale'))
       playBeepSound('error')
