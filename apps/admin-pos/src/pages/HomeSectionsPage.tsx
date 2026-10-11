@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
-import { api, apiErrorMessage } from '../lib/api'
+import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { HomeSection, HomeSectionType } from '../lib/types'
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 function imageUrl(path: string | null) {
   if (!path) return ''
-  return `${API_ORIGIN}/${path}`
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${getApiOrigin()}/${path}`
 }
 
 const TYPES: HomeSectionType[] = ['BANNER', 'CATEGORIES', 'BEST_SELLERS', 'NEW_ARRIVALS', 'FEATURED', 'COMBOS', 'DEALS', 'CUSTOM']

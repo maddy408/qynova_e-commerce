@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
-import { api, apiErrorMessage } from '../lib/api'
+import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
 import { ROUTES } from '../routes/routes'
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 function imageUrl(path: string | null) {
-  return path ? `${API_ORIGIN}/${path}` : null
+  if (!path) return null
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${getApiOrigin()}/${path}`
 }
 
 export function ProductsPage() {

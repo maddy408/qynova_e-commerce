@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Spinner, TextField } from '../components/ui'
-import { api, apiErrorMessage } from '../lib/api'
+import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
 import type { ProductDetail, ProductVariant, VariantAttribute } from '../lib/types'
 import { ROUTES } from '../routes/routes'
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
-
 function imageUrl(path: string) {
-  return `${API_ORIGIN}/${path}`
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${getApiOrigin()}/${path}`
 }
 
 function skuAbbr(value: string) {

@@ -4,6 +4,7 @@ import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
 import { ROUTES } from '../../routes/routes'
+import { env } from '../../config/env'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -16,7 +17,7 @@ export default function Login() {
   // Google Authentication State
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const googleBtnRef = useRef(null)
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+  const googleClientId = env.GOOGLE_CLIENT_ID
 
   // Clear previous session on mount so no stale customer data lingers
   useEffect(() => {
