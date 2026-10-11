@@ -25,7 +25,7 @@ final class FinanceController
         $type = $_GET['type'] ?? null;
         $category = $_GET['category'] ?? null;
 
-        $query = "SELECT ft.*, u.name as created_by_name FROM finance_transactions ft LEFT JOIN users u ON u.id = ft.created_by WHERE 1=1";
+        $query = "SELECT ft.*, u.name as created_by_name FROM finance_transactions ft LEFT JOIN users u ON u.id = ft.created_by WHERE ft.deleted_at IS NULL";
         $params = [];
 
         if ($type && in_array(strtoupper($type), ['INCOME', 'EXPENSE'], true)) {
@@ -45,10 +45,10 @@ final class FinanceController
         $transactions = $stmt->fetchAll();
 
         // Calculate summaries
-        $incomeStmt = $this->pdo->query("SELECT COALESCE(SUM(amount), 0) FROM finance_transactions WHERE type = 'INCOME'");
+        $incomeStmt = $this->pdo->query("SELECT COALESCE(SUM(amount), 0) FROM finance_transactions WHERE type = 'INCOME' AND deleted_at IS NULL");
         $totalIncome = (float) $incomeStmt->fetchColumn();
 
-        $expenseStmt = $this->pdo->query("SELECT COALESCE(SUM(amount), 0) FROM finance_transactions WHERE type = 'EXPENSE'");
+        $expenseStmt = $this->pdo->query("SELECT COALESCE(SUM(amount), 0) FROM finance_transactions WHERE type = 'EXPENSE' AND deleted_at IS NULL");
         $totalExpense = (float) $expenseStmt->fetchColumn();
 
         $netProfit = $totalIncome - $totalExpense;
@@ -113,8 +113,14 @@ final class FinanceController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'reports.financial.view');
 
-        $stmt = $this->pdo->prepare("DELETE FROM finance_transactions WHERE id = :id");
-        $stmt->execute(['id' => (int) $id]);
+        $stmt = $this->pdo->prepare(
+            "UPDATE finance_transactions SET deleted_at = NOW(), deleted_by = :deleted_by WHERE id = :id AND deleted_at IS NULL"
+        );
+        $stmt->execute(['id' => (int) $id, 'deleted_by' => $claims['sub']]);
+
+        if ($stmt->rowCount() === 0) {
+            Response::error('Transaction not found', 404);
+        }
 
         Response::json(['message' => 'Transaction deleted']);
     }

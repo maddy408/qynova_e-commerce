@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
-import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { api, getApiOrigin } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
 import { ROUTES } from '../routes/routes'
 
@@ -17,21 +18,24 @@ export function ProductsPage() {
   const [products, setProducts] = useState<ProductListItem[] | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
 
+  const [deletingProduct, setDeletingProduct] = useState<ProductListItem | null>(null)
+
   function load() {
     api.get('/products', { params: { limit: 100 } }).then((res) => setProducts(res.data.items))
   }
 
   useEffect(load, [])
 
-  async function handleDelete(p: ProductListItem, e: React.MouseEvent) {
+  function handleDelete(p: ProductListItem, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm(`Are you sure you want to soft delete "${p.name}"?`)) return
-    try {
-      await api.delete(`/products/${p.id}`)
-      load()
-    } catch (err) {
-      alert(apiErrorMessage(err, 'Could not delete product'))
-    }
+    setDeletingProduct(p)
+  }
+
+  async function confirmDelete() {
+    if (!deletingProduct) return
+    await api.delete(`/products/${deletingProduct.id}`)
+    setDeletingProduct(null)
+    load()
   }
 
   return (
@@ -266,6 +270,15 @@ export function ProductsPage() {
           </table>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={deletingProduct !== null}
+        title="Delete Product"
+        message={<>Are you sure you want to soft delete <strong className="text-slate-900">"{deletingProduct?.name}"</strong>?</>}
+        confirmLabel="Delete Product"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingProduct(null)}
+      />
     </div>
   )
 }

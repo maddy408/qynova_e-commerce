@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Brand, Category } from '../lib/types'
 
@@ -51,6 +52,7 @@ export function CouponsPage() {
   const [togglingId, setTogglingId] = useState<number | null>(null)
   const [fetchingEditId, setFetchingEditId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null)
 
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
@@ -236,11 +238,9 @@ export function CouponsPage() {
     }
   }
 
-  async function handleDelete(coupon: Coupon) {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete coupon "${coupon.code}" (${coupon.name})? This action cannot be undone.`
-    )
-    if (!confirmed) return
+  async function handleDelete() {
+    if (!deletingCoupon) return
+    const coupon = deletingCoupon
 
     setPageError('')
     setSuccessMessage('')
@@ -248,9 +248,8 @@ export function CouponsPage() {
     try {
       await api.delete(`/coupons/${coupon.id}`)
       setSuccessMessage(`Coupon "${coupon.code}" was deleted successfully.`)
+      setDeletingCoupon(null)
       load()
-    } catch (err) {
-      setPageError(apiErrorMessage(err, 'Failed to delete coupon'))
     } finally {
       setDeletingId(null)
     }
@@ -365,7 +364,7 @@ export function CouponsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(c)}
+                        onClick={() => setDeletingCoupon(c)}
                         disabled={deletingId === c.id || togglingId === c.id}
                         className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-colors border border-transparent disabled:opacity-50 cursor-pointer"
                         title="Delete Coupon"
@@ -638,6 +637,15 @@ export function CouponsPage() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingCoupon !== null}
+        title="Delete Coupon"
+        message={<>Are you sure you want to delete coupon <strong className="text-slate-900">"{deletingCoupon?.code}" ({deletingCoupon?.name})</strong>? This action cannot be undone.</>}
+        confirmLabel="Delete Coupon"
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingCoupon(null)}
+      />
     </div>
   )
 }

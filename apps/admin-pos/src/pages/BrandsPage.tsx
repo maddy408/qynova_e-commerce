@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PencilIcon, TrashIcon } from '../components/Icons'
 import { Alert, Modal, Spinner } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Brand, Category } from '../lib/types'
 
@@ -11,6 +12,7 @@ export function BrandsPage() {
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
+  const [deletingBrand, setDeletingBrand] = useState<Brand | null>(null)
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -90,14 +92,11 @@ export function BrandsPage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm('Are you sure you want to delete this brand?')) return
-    try {
-      await api.delete(`/brands/${id}`)
-      load()
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to delete brand'))
-    }
+  async function handleDelete() {
+    if (!deletingBrand) return
+    await api.delete(`/brands/${deletingBrand.id}`)
+    setDeletingBrand(null)
+    load()
   }
 
   // Filtered brands
@@ -236,7 +235,7 @@ export function BrandsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(b.id)}
+                          onClick={() => setDeletingBrand(b)}
                           className="p-2 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-800 transition-colors"
                           title="Delete Brand"
                         >
@@ -347,6 +346,15 @@ export function BrandsPage() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingBrand !== null}
+        title="Delete Brand"
+        message={<>Are you sure you want to delete brand <strong className="text-slate-900">{deletingBrand?.name}</strong>?</>}
+        confirmLabel="Delete Brand"
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingBrand(null)}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ImageIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Button, Modal, PageHeader, Select, Spinner, TextArea, TextField } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Banner, BannerItem, BannerPosition, BannerTargetType, Category, ProductListItem, Subcategory } from '../lib/types'
 
@@ -269,6 +270,7 @@ export function BannersPage() {
   // Modals
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<Banner | null>(null)
+  const [deletingBanner, setDeletingBanner] = useState<Banner | null>(null)
   const [reordering, setReordering] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -291,9 +293,10 @@ export function BannersPage() {
     load()
   }
 
-  async function removeBanner(id: number) {
-    if (!window.confirm('Delete this banner? This cannot be undone.')) return
-    await api.delete(`/banners/${id}`)
+  async function removeBanner() {
+    if (!deletingBanner) return
+    await api.delete(`/banners/${deletingBanner.id}`)
+    setDeletingBanner(null)
     load()
   }
 
@@ -811,7 +814,7 @@ export function BannersPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => removeBanner(b.id)}
+                          onClick={() => setDeletingBanner(b)}
                           className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                           title="Delete Banner"
                         >
@@ -865,6 +868,15 @@ export function BannersPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingBanner !== null}
+        title="Delete Banner"
+        message={<>Are you sure you want to delete banner <strong className="text-slate-900">"{deletingBanner?.title}"</strong>? This cannot be undone.</>}
+        confirmLabel="Delete Banner"
+        onConfirm={removeBanner}
+        onCancel={() => setDeletingBanner(null)}
+      />
     </div>
   )
 }
