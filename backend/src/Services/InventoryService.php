@@ -345,6 +345,7 @@ final class InventoryService
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN inventory i ON i.variant_id = v.id
+             LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
              LEFT JOIN (
                  SELECT b1.*
                  FROM inventory_batches b1
