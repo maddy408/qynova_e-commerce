@@ -785,7 +785,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
               {lData.scope_title || `Purchases List (${listItems.length} records)`}
             </span>
             {lData.page_info && (
-              <span className="ml-2 font-bold text-[#804652] bg-[#FAF2F4] px-2 py-0.5 rounded border border-[#EEDDE0]">
+              <span className="ml-2 font-bold text-[var(--color-primary-strong)] bg-[var(--color-surface)] px-2 py-0.5 rounded border border-[var(--color-border)]">
                 Page {lData.page_info.current_page} of {lData.page_info.total_pages} (Showing {listItems.length} of {lData.page_info.total_records} total)
               </span>
             )}
@@ -907,7 +907,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
                   type="button"
                   onClick={() => setFormat('a4')}
                   className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    format === 'a4' ? 'bg-[#804652] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    format === 'a4' ? 'bg-[var(--color-primary-strong)] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   📄 {listData ? 'A4 Landscape' : 'A4 Bill'}
@@ -916,7 +916,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
                   type="button"
                   onClick={() => setFormat('80mm')}
                   className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    format === '80mm' ? 'bg-[#804652] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    format === '80mm' ? 'bg-[var(--color-primary-strong)] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   🧾 80mm Thermal
@@ -925,7 +925,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
                   type="button"
                   onClick={() => setFormat('58mm')}
                   className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    format === '58mm' ? 'bg-[#804652] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    format === '58mm' ? 'bg-[var(--color-primary-strong)] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   🧾 58mm Thermal
@@ -938,7 +938,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
                 type="button"
                 onClick={handlePrint}
                 disabled={isPrinting}
-                className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-[#804652] to-[#6E3642] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1.5 px-5 py-2 bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
               >
                 🖨️ Print Now
               </button>
@@ -986,7 +986,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
                 position: static !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                background: #ffffff !important;
+                background: var(--color-background) !important;
                 width: 100% !important;
               }
 
@@ -1002,16 +1002,16 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
               }
 
               html, body {
-                background: #ffffff !important;
+                background: var(--color-background) !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                color: #000000 !important;
+                color: var(--color-ink) !important;
               }
 
               .purchase-print-sheet {
                 box-shadow: none !important;
                 border: none !important;
-                background: #ffffff !important;
+                background: var(--color-background) !important;
                 page-break-after: auto;
               }
 
@@ -1033,7 +1033,7 @@ export function PurchasePrintModal({ data, paymentData, listData, onClose }: Pro
                 width: ${format === '58mm' ? '50mm' : '74mm'} !important;
                 max-width: ${format === '58mm' ? '50mm' : '74mm'} !important;
                 overflow: hidden !important;
-                color: #000000 !important;
+                color: var(--color-ink) !important;
               }
 
               table {

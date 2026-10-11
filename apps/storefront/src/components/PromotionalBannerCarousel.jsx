@@ -1,47 +1,48 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 // Color theme definitions derived from database 'color_theme' values — preserved untouched for admin-managed banners
 const BANNER_THEMES = {
   purple: {
-    bgGradient: 'from-[#8B5CF6] via-[#7C4DE8] to-[#7042D2]',
-    accentButton: 'from-white to-[#EDE5FF] text-[#7042D2] font-black shadow-md',
+    bgGradient: 'from-[var(--color-referral-alt)] via-[var(--color-extra-008)] to-[var(--color-referral)]',
+    accentButton: 'from-white to-[var(--color-referral-tint)] text-[var(--color-referral)] font-black shadow-md',
     badge: 'bg-white/20 text-white border-white/30',
-    subtitleText: 'text-[#EDE5FF]',
-    blobColor: 'bg-[#D8C8FF]/20',
+    subtitleText: 'text-[var(--color-referral-tint)]',
+    blobColor: 'bg-[var(--color-extra-030)]/20',
   },
   blue: {
-    bgGradient: 'from-[#0A192F] via-[#1E3A8A] to-[#0284C7]',
-    accentButton: 'from-[#06B6D4] to-[#38BDF8] shadow-cyan-900/40 text-slate-950 font-black',
+    bgGradient: 'from-[var(--color-extra-009)] via-[var(--color-extra-010)] to-[var(--color-extra-001)]',
+    accentButton: 'from-[var(--color-extra-011)] to-[var(--color-extra-012)] shadow-cyan-900/40 text-slate-950 font-black',
     badge: 'bg-cyan-500/25 text-cyan-200 border-cyan-400/30',
     subtitleText: 'text-cyan-200',
     blobColor: 'bg-cyan-400/20',
   },
   orange: {
-    bgGradient: 'from-[#431407] via-[#9A3412] to-[#EA580C]',
-    accentButton: 'from-[#F59E0B] to-[#F97316] shadow-orange-950/40 text-white',
+    bgGradient: 'from-[var(--color-extra-013)] via-[var(--color-extra-014)] to-[var(--color-warning)]',
+    accentButton: 'from-[var(--color-extra-015)] to-[var(--color-extra-003)] shadow-orange-950/40 text-white',
     badge: 'bg-amber-500/25 text-amber-200 border-amber-400/30',
     subtitleText: 'text-amber-200',
     blobColor: 'bg-amber-400/20',
   },
   lavender: {
-    bgGradient: 'from-[#7042D2] via-[#8B5CF6] to-[#A78BFA]',
-    accentButton: 'from-white to-[#EDE5FF] text-[#7042D2] font-black shadow-md',
+    bgGradient: 'from-[var(--color-referral)] via-[var(--color-referral-alt)] to-[var(--color-extra-023)]',
+    accentButton: 'from-white to-[var(--color-referral-tint)] text-[var(--color-referral)] font-black shadow-md',
     badge: 'bg-white/25 text-white border-white/35',
-    subtitleText: 'text-[#EDE5FF]',
-    blobColor: 'bg-[#EDE5FF]/20',
+    subtitleText: 'text-[var(--color-referral-tint)]',
+    blobColor: 'bg-[var(--color-referral-tint)]/20',
   },
   pink: {
-    bgGradient: 'from-[#4C0519] via-[#831843] to-[#BE185D]',
-    accentButton: 'from-[#F43F5E] to-[#FB7185] shadow-rose-950/40 text-white',
+    bgGradient: 'from-[var(--color-extra-016)] via-[var(--color-extra-017)] to-[var(--color-extra-018)]',
+    accentButton: 'from-[var(--color-error)] to-[var(--color-extra-019)] shadow-rose-950/40 text-white',
     badge: 'bg-rose-400/25 text-rose-200 border-rose-300/30',
     subtitleText: 'text-rose-200',
     blobColor: 'bg-rose-400/20',
   },
   teal: {
-    bgGradient: 'from-[#042F2E] via-[#115E59] to-[#0D9488]',
-    accentButton: 'from-[#14B8A6] to-[#2DD4BF] shadow-teal-950/40 text-slate-950 font-black',
+    bgGradient: 'from-[var(--color-extra-020)] via-[var(--color-extra-021)] to-[var(--color-extra-002)]',
+    accentButton: 'from-[var(--color-info)] to-[var(--color-extra-022)] shadow-teal-950/40 text-slate-950 font-black',
     badge: 'bg-teal-400/25 text-teal-200 border-teal-300/30',
     subtitleText: 'text-teal-200',
     blobColor: 'bg-teal-400/20',
@@ -127,17 +128,17 @@ export default function PromotionalBannerCarousel({
     }
 
     if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(`/products?category_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       return
     }
 
     if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(`/product/${banner.target_id}`)
+      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
       return
     }
 
     if (banner.target_type === 'SUBCATEGORY' && banner.target_id) {
-      navigate(`/products?subcategory_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_SUBCATEGORY(banner.target_id))
       return
     }
 
@@ -146,17 +147,17 @@ export default function PromotionalBannerCarousel({
       return
     }
 
-    navigate('/products')
+    navigate(ROUTES.PRODUCTS)
   }
 
   // Loading skeleton state (storefront UI)
   if (isLoading) {
     return (
       <section className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-3 sm:py-5">
-        <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px] rounded-2xl sm:rounded-3xl bg-[#F2DDE9]/40 animate-pulse border border-[#E8E0E5] flex items-center justify-center">
+        <div className="w-full h-[240px] sm:h-[300px] lg:h-[350px] rounded-2xl sm:rounded-3xl bg-[var(--color-primary-tint)]/40 animate-pulse border border-[var(--color-border-subtle)] flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-full border-3 border-[#601D49] border-t-transparent animate-spin" />
-            <span className="text-xs sm:text-sm font-bold text-[#601D49]">
+            <div className="w-8 h-8 rounded-full border-3 border-[var(--color-brand)] border-t-transparent animate-spin" />
+            <span className="text-xs sm:text-sm font-bold text-[var(--color-brand)]">
               Loading promotions...
             </span>
           </div>
@@ -190,7 +191,7 @@ export default function PromotionalBannerCarousel({
       onTouchEnd={handleTouchEnd}
       aria-label="Promotional Offers"
     >
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl shadow-black/10 border border-[#E8E0E5]/60">
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl shadow-black/10 border border-[var(--color-border-subtle)]/60">
         {/* Main Banner Slide Container (Admin-managed banner gradients and styling preserved) */}
         <div
           className={`w-full min-h-[240px] sm:min-h-[290px] lg:h-[350px] bg-gradient-to-r ${theme.bgGradient} text-white flex items-center relative overflow-hidden transition-colors duration-700`}
@@ -244,7 +245,7 @@ export default function PromotionalBannerCarousel({
                 </button>
 
                 <Link
-                  to="/products"
+                  to={ROUTES.PRODUCTS}
                   className="min-h-[42px] px-4 sm:px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md border border-white/20 transition-all flex items-center justify-center cursor-pointer"
                 >
                   Explore All

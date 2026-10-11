@@ -169,10 +169,10 @@ export function ReportsPage() {
 
       {/* Clean KPI Cards Summary Row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Card className="p-4 border-[#EEDDE0] bg-white shadow-2xs">
+        <Card className="p-4 border-[var(--color-border)] bg-white shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#804652] uppercase tracking-wider">Total Sales</span>
-            <span className="text-[#7B3F4A] font-bold">₹</span>
+            <span className="text-xs font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">Total Sales</span>
+            <span className="text-[var(--color-primary)] font-bold">₹</span>
           </div>
           <div className="mt-2 text-2xl font-serif font-black text-slate-900">{money(totalSalesSum)}</div>
           <span className="text-[10px] text-slate-400 font-medium">Aggregated sales total</span>
@@ -201,7 +201,7 @@ export function ReportsPage() {
         <Card className="p-4 border-rose-200 bg-white shadow-2xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Customers</span>
-            <span className="text-[#804652] font-bold">👥</span>
+            <span className="text-[var(--color-primary-strong)] font-bold">👥</span>
           </div>
           <div className="mt-2 text-2xl font-serif font-black text-slate-900">
             {customers ? customers.one_time_customers + customers.returning_customers : 0}
@@ -211,11 +211,11 @@ export function ReportsPage() {
       </div>
 
       {/* Filter Options Bar with Presets */}
-      <Card className="p-4 bg-[#FAF2F4]/60 border-[#EEDDE0] shadow-2xs">
+      <Card className="p-4 bg-[var(--color-surface)]/60 border-[var(--color-border)] shadow-2xs">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-xs font-bold text-[#804652]">
-              <FilterIcon className="h-4 w-4 text-[#7B3F4A]" />
+            <div className="flex items-center space-x-2 text-xs font-bold text-[var(--color-primary-strong)]">
+              <FilterIcon className="h-4 w-4 text-[var(--color-primary)]" />
               <span>Report Presets &amp; Filters</span>
             </div>
 
@@ -225,7 +225,7 @@ export function ReportsPage() {
                 type="button"
                 onClick={() => applyPreset('today')}
                 className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
-                  preset === 'today' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'bg-white border border-[#EEDDE0] text-slate-700 hover:bg-[#FAF2F4]'
+                  preset === 'today' ? 'bg-[var(--color-primary)] text-white shadow-xs' : 'bg-white border border-[var(--color-border)] text-slate-700 hover:bg-[var(--color-surface)]'
                 }`}
               >
                 Today
@@ -234,7 +234,7 @@ export function ReportsPage() {
                 type="button"
                 onClick={() => applyPreset('yesterday')}
                 className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
-                  preset === 'yesterday' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'bg-white border border-[#EEDDE0] text-slate-700 hover:bg-[#FAF2F4]'
+                  preset === 'yesterday' ? 'bg-[var(--color-primary)] text-white shadow-xs' : 'bg-white border border-[var(--color-border)] text-slate-700 hover:bg-[var(--color-surface)]'
                 }`}
               >
                 Yesterday
@@ -243,7 +243,7 @@ export function ReportsPage() {
                 type="button"
                 onClick={() => applyPreset('7days')}
                 className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
-                  preset === '7days' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'bg-white border border-[#EEDDE0] text-slate-700 hover:bg-[#FAF2F4]'
+                  preset === '7days' ? 'bg-[var(--color-primary)] text-white shadow-xs' : 'bg-white border border-[var(--color-border)] text-slate-700 hover:bg-[var(--color-surface)]'
                 }`}
               >
                 Last 7 Days
@@ -252,7 +252,7 @@ export function ReportsPage() {
                 type="button"
                 onClick={() => applyPreset('month')}
                 className={`px-3 py-1 text-xs font-bold rounded-full transition-colors ${
-                  preset === 'month' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'bg-white border border-[#EEDDE0] text-slate-700 hover:bg-[#FAF2F4]'
+                  preset === 'month' ? 'bg-[var(--color-primary)] text-white shadow-xs' : 'bg-white border border-[var(--color-border)] text-slate-700 hover:bg-[var(--color-surface)]'
                 }`}
               >
                 This Month
@@ -351,7 +351,7 @@ export function ReportsPage() {
                     {money(point.sales_amount)}
                   </div>
                   <div
-                    className="w-full rounded-t bg-gradient-to-t from-[#7B3F4A] to-[#A35C69] group-hover:from-[#68343E] group-hover:to-[#7B3F4A] transition-colors"
+                    className="w-full rounded-t bg-gradient-to-t from-[var(--color-primary)] to-[var(--color-extra-043)] group-hover:from-[var(--color-extra-009)] group-hover:to-[var(--color-primary)] transition-colors"
                     style={{ height: maxSales > 0 ? `${Math.max(6, (Number(point.sales_amount) / maxSales) * 130)}px` : '6px' }}
                   />
                   <span className="truncate text-[10px] font-medium text-slate-400">{point.period}</span>
@@ -442,7 +442,7 @@ export function ReportsPage() {
           <Card className="p-4 space-y-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">Active Batches</h3>
-              <span className="text-[11px] font-bold text-[#7B3F4A]">{batches.length} Batches</span>
+              <span className="text-[11px] font-bold text-[var(--color-primary)]">{batches.length} Batches</span>
             </div>
             <div className="overflow-x-auto max-h-72 border border-slate-200 rounded-lg">
               <table className="w-full text-left text-xs">

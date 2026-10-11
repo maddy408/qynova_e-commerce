@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
+import { ROUTES } from '../routes/routes'
 import { PencilIcon, PrinterIcon, TrashIcon } from '../components/Icons'
 import { PAYMENT_METHODS } from '../constants/paymentMethods'
 import { api, apiErrorMessage } from '../lib/api'
@@ -108,9 +109,9 @@ export function InvoicesPage() {
       {invoices === null ? (
         <Spinner />
       ) : (
-        <Card className="border border-[#F2E5E7] rounded-3xl overflow-hidden shadow-2xs">
+        <Card className="border border-[var(--color-border-muted)] rounded-3xl overflow-hidden shadow-2xs">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-[#F2E5E7] text-[10px] font-bold uppercase tracking-wider text-[#804652] bg-[#FAF2F4]/80">
+            <thead className="border-b border-[var(--color-border-muted)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] bg-[var(--color-surface)]/80">
               <tr>
                 <th className="px-5 py-3">Invoice No</th>
                 <th className="px-5 py-3">Channel</th>
@@ -123,12 +124,12 @@ export function InvoicesPage() {
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2E5E7]">
+            <tbody className="divide-y divide-[var(--color-border-muted)]">
               {invoices.map((inv) => (
-                <tr key={inv.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
+                <tr key={inv.id} className="hover:bg-[var(--color-surface)]/40 transition-colors">
                   <td
-                    onClick={() => navigate(`/invoices/${inv.id}`)}
-                    className="px-5 py-3 font-mono font-bold text-[#7B3F4A] cursor-pointer hover:underline"
+                    onClick={() => navigate(ROUTES.INVOICE_DETAIL(inv.id))}
+                    className="px-5 py-3 font-mono font-bold text-[var(--color-primary)] cursor-pointer hover:underline"
                   >
                     {inv.invoice_no}
                   </td>
@@ -147,8 +148,8 @@ export function InvoicesPage() {
                     <div className="flex items-center justify-end gap-1.5">
                       {/* Print Button */}
                       <button
-                        onClick={() => navigate(`/invoices/${inv.id}`)}
-                        className="p-1.5 text-slate-500 hover:text-[#7B3F4A] rounded-lg hover:bg-[#FAF2F4] transition-colors"
+                        onClick={() => navigate(ROUTES.INVOICE_DETAIL(inv.id))}
+                        className="p-1.5 text-slate-500 hover:text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-surface)] transition-colors"
                         title="Print Thermal / A4 Receipt"
                       >
                         <PrinterIcon className="w-4 h-4" />

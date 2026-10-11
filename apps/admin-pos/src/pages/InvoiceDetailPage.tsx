@@ -157,7 +157,7 @@ export function InvoiceDetailPage() {
   if (invoice === null) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Spinner className="w-8 h-8 text-[#7B3F4A]" />
+        <Spinner className="w-8 h-8 text-[var(--color-primary)]" />
       </div>
     )
   }
@@ -208,7 +208,7 @@ export function InvoiceDetailPage() {
             margin: 5mm;
           }
           html, body {
-            background: #ffffff !important;
+            background: var(--color-background) !important;
             margin: 0 !important;
             padding: 0 !important;
           }
@@ -229,7 +229,7 @@ export function InvoiceDetailPage() {
             padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
-            background: #ffffff !important;
+            background: var(--color-background) !important;
             page-break-after: avoid;
             page-break-inside: avoid;
           }
@@ -244,7 +244,7 @@ export function InvoiceDetailPage() {
             type="button"
             onClick={() => setFormat('a4')}
             className={`rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
-              format === 'a4' ? 'bg-[#7B3F4A] text-white shadow-2xs' : 'bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F2E5E7]'
+              format === 'a4' ? 'bg-[var(--color-primary)] text-white shadow-2xs' : 'bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-border-muted)]'
             }`}
           >
             📄 A4 Tax Invoice
@@ -253,7 +253,7 @@ export function InvoiceDetailPage() {
             type="button"
             onClick={() => setFormat('thermal')}
             className={`rounded-md px-4 py-1.5 text-xs font-bold transition-all ${
-              format === 'thermal' ? 'bg-[#7B3F4A] text-white shadow-2xs' : 'bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F2E5E7]'
+              format === 'thermal' ? 'bg-[var(--color-primary)] text-white shadow-2xs' : 'bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-border-muted)]'
             }`}
           >
             🖨️ Thermal Receipt (80mm)
@@ -281,7 +281,7 @@ export function InvoiceDetailPage() {
       {/* Main Printable Document Area */}
       <div
         className={`print-area mx-auto w-full bg-white text-slate-900 shadow-md ${
-          format === 'a4' ? 'max-w-[850px] p-6 sm:p-10 border border-slate-300 rounded-sm' : 'max-w-[340px] p-4 border border-slate-200 bg-[#faf8f0]'
+          format === 'a4' ? 'max-w-[850px] p-6 sm:p-10 border border-slate-300 rounded-sm' : 'max-w-[340px] p-4 border border-slate-200 bg-[var(--color-extra-035)]'
         }`}
       >
         {format === 'a4' ? (
@@ -296,9 +296,9 @@ export function InvoiceDetailPage() {
                 <p className="text-[11px] font-semibold text-slate-800">GSTIN: {companyDetails.gstin}</p>
               </div>
               <div className="text-right">
-                <h2 className="text-lg font-black tracking-widest text-[#7B3F4A] uppercase">TAX INVOICE</h2>
+                <h2 className="text-lg font-black tracking-widest text-[var(--color-primary)] uppercase">TAX INVOICE</h2>
                 <p className="mt-1 text-xs font-bold text-slate-900">
-                  BILL NO: <span className="text-[#7B3F4A]">{invoice.invoice_no}</span>
+                  BILL NO: <span className="text-[var(--color-primary)]">{invoice.invoice_no}</span>
                 </p>
                 <p className="text-xs text-slate-600">
                   DATE: {formatDate(invoice.created_at)}
@@ -444,7 +444,7 @@ export function InvoiceDetailPage() {
                   <span className="uppercase font-semibold">ROUND OFF</span>
                   <span className="font-mono">{roundOff}</span>
                 </div>
-                <div className="flex justify-between text-sm font-extrabold text-[#7B3F4A] pt-1">
+                <div className="flex justify-between text-sm font-extrabold text-[var(--color-primary)] pt-1">
                   <span>NET TOTAL</span>
                   <span className="text-base">{money(grandTotal)}</span>
                 </div>

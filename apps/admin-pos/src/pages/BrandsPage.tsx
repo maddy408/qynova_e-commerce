@@ -119,9 +119,9 @@ export function BrandsPage() {
           <Spinner />
         </div>
       ) : (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
           {/* Card Header with Filters, Search and New Brand Button */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+          <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
               <h3 className="text-xl font-bold text-slate-950">All Brands</h3>
               <p className="text-xs text-slate-600 mt-0.5 font-medium">
@@ -134,7 +134,7 @@ export function BrandsPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-full border border-[#E5D5D8] bg-[#FAF2F4] px-3.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all shadow-2xs cursor-pointer"
+                className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-surface)] px-3.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all shadow-2xs cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((c) => (
@@ -165,7 +165,7 @@ export function BrandsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search brands…"
-                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-44 sm:w-52"
+                  className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all w-44 sm:w-52"
                 />
               </div>
 
@@ -173,7 +173,7 @@ export function BrandsPage() {
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
               >
                 + New Brand
               </button>
@@ -183,7 +183,7 @@ export function BrandsPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Brand</th>
                   <th className="px-6 py-4">Mapped Categories</th>
@@ -191,12 +191,12 @@ export function BrandsPage() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
+              <tbody className="divide-y divide-[var(--color-extra-013)]">
                 {filteredBrands.map((b) => (
-                  <tr key={b.id} className="hover:bg-[#FAF5F6] transition-colors">
+                  <tr key={b.id} className="hover:bg-[var(--color-surface-alt)] transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3.5">
-                        <div className="h-10 w-10 shrink-0 rounded-full bg-[#F3E1E4] border border-[#DCBAC1] flex items-center justify-center font-bold text-[#4A1821] text-xs shadow-2xs">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-[var(--color-extra-006)] border border-[var(--color-extra-007)] flex items-center justify-center font-bold text-[var(--color-extra-001)] text-xs shadow-2xs">
                           {b.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -211,7 +211,7 @@ export function BrandsPage() {
                           b.categories.map((c) => (
                             <span
                               key={c.id}
-                              className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-3 py-0.5 rounded-full text-xs font-bold inline-block shadow-2xs"
+                              className="bg-[var(--color-extra-006)] text-[var(--color-extra-001)] border border-[var(--color-extra-007)] px-3 py-0.5 rounded-full text-xs font-bold inline-block shadow-2xs"
                             >
                               {c.name}
                             </span>
@@ -229,7 +229,7 @@ export function BrandsPage() {
                         <button
                           type="button"
                           onClick={() => openEditModal(b)}
-                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
+                          className="p-2 rounded-lg text-slate-700 hover:bg-[var(--color-extra-006)] hover:text-[var(--color-extra-001)] transition-colors"
                           title="Edit Brand"
                         >
                           <PencilIcon className="h-4 w-4 stroke-[2]" />
@@ -279,7 +279,7 @@ export function BrandsPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Nike, Apple, L'Oreal…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -292,7 +292,7 @@ export function BrandsPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write a brief note about this brand…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs resize-none"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs resize-none"
               />
             </div>
 
@@ -303,7 +303,7 @@ export function BrandsPage() {
               <p className="text-[11px] text-slate-500 mb-2">
                 Selecting categories enables smart brand suggestions when creating products.
               </p>
-              <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-[#E5D5D8] bg-[#FDFBFB] p-3 text-xs">
+              <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] p-3 text-xs">
                 {categories.map((c) => {
                   const checked = selectedCategoryIds.includes(c.id)
                   return (
@@ -311,7 +311,7 @@ export function BrandsPage() {
                       key={c.id}
                       className={`flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
                         checked
-                          ? 'bg-[#FAF0F2] border-[#EEDDE0] text-[#7B3F4A] font-bold shadow-2xs'
+                          ? 'bg-[var(--color-extra-010)] border-[var(--color-border)] text-[var(--color-primary)] font-bold shadow-2xs'
                           : 'border-transparent text-slate-700 hover:bg-slate-100 font-medium'
                       }`}
                     >
@@ -319,7 +319,7 @@ export function BrandsPage() {
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleCategory(c.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                        className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                       />
                       <span className="truncate">{c.name}</span>
                     </label>
@@ -328,7 +328,7 @@ export function BrandsPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
@@ -339,7 +339,7 @@ export function BrandsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
                 {submitting ? 'Saving…' : editingBrand ? 'Save Changes' : 'Create Brand'}
               </button>

@@ -15,6 +15,7 @@ import {
   fetchCustomerAddresses,
   resolveImageUrl,
 } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 import { getCartCount, getCartSubtotal, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist } from '../lib/wishlist'
 import BottomCartBar from './BottomCartBar'
@@ -347,7 +348,7 @@ export default function Navbar({
     if (onSearchChange) {
       onSearchChange(q)
     }
-    navigate(`/products?search=${encodeURIComponent(q)}`)
+    navigate(ROUTES.PRODUCTS_SEARCH(q))
   }
 
   const handleLogout = () => {
@@ -355,7 +356,7 @@ export default function Navbar({
     setCustomer(null)
     setCustomerAddress(null)
     setIsAccountDropdownOpen(false)
-    navigate('/')
+    navigate(ROUTES.HOME)
   }
 
   const handleCartClick = () => {
@@ -393,35 +394,35 @@ export default function Navbar({
   return (
     <div className="sticky top-0 z-40 w-full shadow-xs bg-white">
       {/* 1. TOP PROMOTIONAL STRIP (Burgundy Theme) */}
-      <div className="bg-[#F2DDE9] text-[#2D252B] text-[11px] sm:text-xs py-1.5 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-[#E8E0E5]">
+      <div className="bg-[var(--color-primary-tint)] text-[var(--color-text-main)] text-[11px] sm:text-xs py-1.5 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-[var(--color-border-subtle)]">
         <div className="w-full flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-2.5 truncate">
             {promoOffer ? (
               <>
-                <span className="bg-[#601D49] text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-xs">
+                <span className="bg-[var(--color-brand)] text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-xs">
                   {promoOffer.badge_text || 'Offer'}
                 </span>
-                <span className="font-medium text-[#2D252B] truncate text-[10px] sm:text-xs">
+                <span className="font-medium text-[var(--color-text-main)] truncate text-[10px] sm:text-xs">
                   {promoOffer.title}{' '}
                   {promoOffer.code ? (
                     <>
-                      Code: <strong className="text-[#601D49] font-black tracking-wide">{promoOffer.code}</strong>
+                      Code: <strong className="text-[var(--color-brand)] font-black tracking-wide">{promoOffer.code}</strong>
                     </>
                   ) : null}
                 </span>
               </>
             ) : freeThreshold !== null && freeThreshold > 0 ? (
-              <span className="font-medium text-[#2D252B] truncate text-[10px] sm:text-xs">
+              <span className="font-medium text-[var(--color-text-main)] truncate text-[10px] sm:text-xs">
                 ✨ Free Express Shipping on orders above{' '}
-                <strong className="text-[#601D49] font-black">₹{freeThreshold}</strong>
+                <strong className="text-[var(--color-brand)] font-black">₹{freeThreshold}</strong>
               </span>
             ) : (
-              <span className="font-medium text-[#2D252B] truncate text-[10px] sm:text-xs">
-                🚚 Express Delivery: <strong className="text-[#601D49] font-black">{estDeliveryText}</strong>
+              <span className="font-medium text-[var(--color-text-main)] truncate text-[10px] sm:text-xs">
+                🚚 Express Delivery: <strong className="text-[var(--color-brand)] font-black">{estDeliveryText}</strong>
               </span>
             )}
           </div>
-          <div className="hidden md:flex items-center gap-4 lg:gap-6 text-[#6B5E68] text-xs shrink-0 font-medium">
+          <div className="hidden md:flex items-center gap-4 lg:gap-6 text-[var(--color-text-muted)] text-xs shrink-0 font-medium">
             {freeThreshold !== null && freeThreshold > 0 && (
               <span className="flex items-center gap-1.5">
                 <span>🚚 Free Delivery on ₹{freeThreshold}+</span>
@@ -430,7 +431,7 @@ export default function Navbar({
             {helplineText && (
               <>
                 {freeThreshold !== null && freeThreshold > 0 && <span>•</span>}
-                <span className="flex items-center gap-1.5 font-bold text-[#2D252B]">
+                <span className="flex items-center gap-1.5 font-bold text-[var(--color-text-main)]">
                   <span>{helplineText}</span>
                 </span>
               </>
@@ -440,12 +441,12 @@ export default function Navbar({
       </div>
 
       {/* 2. FIRST ROW: JIOMART-INSPIRED MAIN NAVBAR */}
-      <header className="bg-white border-b border-[#E8E0E5]">
+      <header className="bg-white border-b border-[var(--color-border-subtle)]">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-6">
           {/* LEFT: Logo + Location Selection */}
           <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             {/* Brand Logo & Name */}
-            <Link to="/" className="flex items-center gap-2 sm:gap-2.5 group select-none">
+            <Link to={ROUTES.HOME} className="flex items-center gap-2 sm:gap-2.5 group select-none">
               {storeLogo ? (
                 <img
                   src={storeLogo}
@@ -453,7 +454,7 @@ export default function Navbar({
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl object-cover shadow-xs group-hover:scale-105 transition-transform"
                 />
               ) : (
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#601D49] to-[#601D49] flex items-center justify-center text-white shadow-md shadow-black/15 group-hover:scale-105 transition-transform">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand)] flex items-center justify-center text-white shadow-md shadow-black/15 group-hover:scale-105 transition-transform">
                   <svg
                     className="w-5 h-5 sm:w-6 sm:h-6"
                     viewBox="0 0 24 24"
@@ -466,18 +467,18 @@ export default function Navbar({
                     <circle cx="8" cy="21" r="1" />
                     <circle cx="19" cy="21" r="1" />
                     <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                    <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="#F2DDE9" stroke="none" />
+                    <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="var(--color-primary-tint)" stroke="none" />
                   </svg>
                 </div>
               )}
               <div>
                 <div className="flex items-baseline leading-none">
-                  <span className="text-lg sm:text-2xl font-black tracking-tight text-[#601D49]">
+                  <span className="text-lg sm:text-2xl font-black tracking-tight text-[var(--color-brand)]">
                     {storeName}
                   </span>
                 </div>
                 {storeTagline && (
-                  <p className="text-[8px] sm:text-[10px] font-bold tracking-wider text-[#6B5E68] uppercase mt-0.5 truncate max-w-[140px] sm:max-w-[200px]">
+                  <p className="text-[8px] sm:text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase mt-0.5 truncate max-w-[140px] sm:max-w-[200px]">
                     {storeTagline}
                   </p>
                 )}
@@ -489,24 +490,24 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={() => setIsLocationModalOpen((prev) => !prev)}
-                className="hidden sm:flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-[#F8F3F6] border border-transparent hover:border-[#E8E0E5] transition-all cursor-pointer text-left select-none group"
+                className="hidden sm:flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-[var(--color-bg-main)] border border-transparent hover:border-[var(--color-border-subtle)] transition-all cursor-pointer text-left select-none group"
                 title="Delivery Location & Estimates"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#F2DDE9] text-[#601D49] flex items-center justify-center shrink-0 group-hover:bg-[#601D49] group-hover:text-white transition-colors">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center shrink-0 group-hover:bg-[var(--color-brand)] group-hover:text-white transition-colors">
                   <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
                 </div>
                 <div className="leading-tight">
-                  <span className="block text-[9px] sm:text-[10px] font-bold text-[#6B5E68] uppercase tracking-wider">
+                  <span className="block text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                     Deliver to
                   </span>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs sm:text-[13px] font-extrabold text-[#2D252B] truncate max-w-[120px] lg:max-w-[160px]">
+                    <span className="text-xs sm:text-[13px] font-extrabold text-[var(--color-text-main)] truncate max-w-[120px] lg:max-w-[160px]">
                       {deliveryLocationDisplay}
                     </span>
-                    <span className="text-[9px] text-[#601D49] transition-transform duration-200">
+                    <span className="text-[9px] text-[var(--color-brand)] transition-transform duration-200">
                       ▼
                     </span>
                   </div>
@@ -515,13 +516,13 @@ export default function Navbar({
 
               {/* Location Details Popover */}
               {isLocationModalOpen && (
-                <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#E8E0E5] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-[#2D252B]">
-                  <div className="flex items-start justify-between pb-2 border-b border-[#E8E0E5]">
+                <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-[var(--color-text-main)]">
+                  <div className="flex items-start justify-between pb-2 border-b border-[var(--color-border-subtle)]">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">📍</span>
                       <div>
-                        <h4 className="text-xs font-black text-[#2D252B]">Delivery Location</h4>
-                        <p className="text-[11px] font-semibold text-[#601D49]">{deliveryLocationDisplay}</p>
+                        <h4 className="text-xs font-black text-[var(--color-text-main)]">Delivery Location</h4>
+                        <p className="text-[11px] font-semibold text-[var(--color-brand)]">{deliveryLocationDisplay}</p>
                       </div>
                     </div>
                     <button
@@ -533,40 +534,40 @@ export default function Navbar({
                     </button>
                   </div>
 
-                  <div className="mt-3 space-y-2 text-xs text-[#6B5E68]">
-                    <div className="flex items-center gap-2 p-2 rounded-xl bg-[#F8F3F6] border border-[#E8E0E5]">
+                  <div className="mt-3 space-y-2 text-xs text-[var(--color-text-muted)]">
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)]">
                       <span className="text-base">🚚</span>
                       <div>
-                        <p className="font-bold text-[#2D252B] text-[11px]">Estimated Timeline</p>
-                        <p className="text-[10px] text-[#6B5E68]">{estDeliveryText}</p>
+                        <p className="font-bold text-[var(--color-text-main)] text-[11px]">Estimated Timeline</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)]">{estDeliveryText}</p>
                       </div>
                     </div>
 
                     {freeThreshold !== null && freeThreshold > 0 && (
-                      <div className="flex items-center gap-2 p-2 rounded-xl bg-[#F8F3F6] border border-[#E8E0E5]">
+                      <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)]">
                         <span className="text-base">✨</span>
                         <div>
-                          <p className="font-bold text-[#2D252B] text-[11px]">Free Shipping</p>
-                          <p className="text-[10px] text-[#6B5E68]">Eligible on orders above ₹{freeThreshold}</p>
+                          <p className="font-bold text-[var(--color-text-main)] text-[11px]">Free Shipping</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">Eligible on orders above ₹{freeThreshold}</p>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-3 pt-2 border-t border-[#E8E0E5]">
+                  <div className="mt-3 pt-2 border-t border-[var(--color-border-subtle)]">
                     {customer ? (
                       <Link
-                        to="/profile"
+                        to={ROUTES.PROFILE}
                         onClick={() => setIsLocationModalOpen(false)}
-                        className="block w-full py-1.5 px-3 rounded-xl bg-[#F2DDE9] text-[#601D49] text-[11px] font-bold text-center hover:bg-[#F2DDE9] transition-colors"
+                        className="block w-full py-1.5 px-3 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-[11px] font-bold text-center hover:bg-[var(--color-primary-tint)] transition-colors"
                       >
                         Manage Addresses in Profile →
                       </Link>
                     ) : (
                       <Link
-                        to="/login"
+                        to={ROUTES.LOGIN}
                         onClick={() => setIsLocationModalOpen(false)}
-                        className="block w-full py-1.5 px-3 rounded-xl bg-[#F2DDE9] text-[#601D49] text-[11px] font-bold text-center hover:bg-[#F2DDE9] transition-colors"
+                        className="block w-full py-1.5 px-3 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-[11px] font-bold text-center hover:bg-[var(--color-primary-tint)] transition-colors"
                       >
                         Sign In to Save Delivery Address →
                       </Link>
@@ -583,7 +584,7 @@ export default function Navbar({
               <div className="relative flex items-center">
                 <button
                   type="submit"
-                  className="absolute left-3.5 text-[#6B5E68] hover:text-[#601D49] transition-colors cursor-pointer"
+                  className="absolute left-3.5 text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors cursor-pointer"
                   title="Search"
                   aria-label="Search"
                 >
@@ -602,7 +603,7 @@ export default function Navbar({
                     if (onSearchChange) onSearchChange(e.target.value)
                   }}
                   placeholder="Search products, jewellery, accessories, gifts, toys..."
-                  className="w-full h-10.5 pl-11 pr-10 rounded-full bg-[#F8F3F6] hover:bg-[#F7F5F7]/40 border border-[#E8E0E5] text-xs sm:text-sm text-[#2D252B] placeholder-[#6B5E68] focus:outline-none focus:border-[#601D49] focus:bg-white focus:ring-2 focus:ring-[#601D49]/15 transition-all shadow-2xs"
+                  className="w-full h-10.5 pl-11 pr-10 rounded-full bg-[var(--color-bg-main)] hover:bg-[var(--color-bg-alt)]/40 border border-[var(--color-border-subtle)] text-xs sm:text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand)] focus:bg-white focus:ring-2 focus:ring-[var(--color-brand)]/15 transition-all shadow-2xs"
                 />
 
                 {localSearch && (
@@ -622,15 +623,15 @@ export default function Navbar({
 
               {/* Instant Search Suggestions Dropdown */}
               {isSearchFocused && searchSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-[#E8E0E5] overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <div className="p-2 border-b border-gray-100 flex items-center justify-between bg-[#F8F3F6]">
-                    <span className="text-[10px] font-black uppercase text-[#601D49] tracking-wider px-2">
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="p-2 border-b border-gray-100 flex items-center justify-between bg-[var(--color-bg-main)]">
+                    <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider px-2">
                       Matching Products
                     </span>
                     <button
                       type="button"
                       onClick={handleSearchSubmit}
-                      className="text-[11px] font-bold text-[#601D49] hover:underline px-2 cursor-pointer"
+                      className="text-[11px] font-bold text-[var(--color-brand)] hover:underline px-2 cursor-pointer"
                     >
                       View all results →
                     </button>
@@ -639,9 +640,9 @@ export default function Navbar({
                     {searchSuggestions.map((prod) => (
                       <Link
                         key={prod.id}
-                        to={`/product/${prod.id}`}
+                        to={ROUTES.PRODUCT_DETAIL(prod.id)}
                         onClick={() => setIsSearchFocused(false)}
-                        className="flex items-center gap-3 p-2.5 hover:bg-[#F7F5F7] transition-colors"
+                        className="flex items-center gap-3 p-2.5 hover:bg-[var(--color-bg-alt)] transition-colors"
                       >
                         <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                           {prod.primary_image ? (
@@ -657,13 +658,13 @@ export default function Navbar({
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-[#2D252B] truncate">{prod.name}</p>
+                          <p className="text-xs font-bold text-[var(--color-text-main)] truncate">{prod.name}</p>
                           <p className="text-[10px] text-gray-400 truncate">
                             {prod.brand_name || 'In Stock'}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-[#601D49]">
+                          <span className="text-xs font-black text-[var(--color-brand)]">
                             ₹{prod.min_price || prod.mrp || '—'}
                           </span>
                         </div>
@@ -682,7 +683,7 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={onOpenReferral}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D252B] hover:text-[#601D49] transition-colors cursor-pointer"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer"
                 title={`Offers & Rewards (${referralPercentText})`}
                 aria-label="Offers and Rewards"
               >
@@ -694,8 +695,8 @@ export default function Navbar({
 
             {/* 2. Standalone Wishlist Icon with Live Count Badge */}
             <Link
-              to="/products?wishlist=1"
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D252B] hover:text-[#601D49] transition-colors cursor-pointer group"
+              to={ROUTES.PRODUCTS_WISHLIST}
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer group"
               title="Saved Wishlist"
               aria-label="Saved Wishlist"
             >
@@ -711,7 +712,7 @@ export default function Navbar({
                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
               </svg>
               {wishlistCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[#601D49] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
+                <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[var(--color-brand)] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
                   {wishlistCount}
                 </span>
               )}
@@ -721,7 +722,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={handleCartClick}
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D252B] hover:text-[#601D49] transition-colors cursor-pointer group select-none"
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer group select-none"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
@@ -739,7 +740,7 @@ export default function Navbar({
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
               {cartCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[#601D49] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
+                <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[var(--color-brand)] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
                   {cartCount}
                 </span>
               )}
@@ -751,7 +752,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsAccountDropdownOpen((prev) => !prev)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D252B] hover:text-[#601D49] transition-colors cursor-pointer select-none"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer select-none"
                   title={`Account (${customer.name || 'Customer'})`}
                   aria-label="Customer Account Menu"
                 >
@@ -760,7 +761,7 @@ export default function Navbar({
                       src={customer.profile_photo_path}
                       alt={customer.name || 'Customer'}
                       referrerPolicy="no-referrer"
-                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[#E8E0E5]"
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[var(--color-border-subtle)]"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
                         if (e.currentTarget.nextElementSibling) {
@@ -770,7 +771,7 @@ export default function Navbar({
                     />
                   ) : null}
                   <div
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#601D49] text-white font-black text-xs uppercase shadow-xs items-center justify-center ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--color-brand)] text-white font-black text-xs uppercase shadow-xs items-center justify-center ${
                       customer.profile_photo_path ? 'hidden' : 'flex'
                     }`}
                   >
@@ -780,41 +781,41 @@ export default function Navbar({
 
                 {/* Account Dropdown Menu */}
                 {isAccountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-[#E8E0E5] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute right-0 mt-2 w-60 max-w-[calc(100vw-24px)] bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
                     <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-3">
                       {customer.profile_photo_path ? (
                         <img
                           src={customer.profile_photo_path}
                           alt={customer.name}
                           referrerPolicy="no-referrer"
-                          className="w-10 h-10 rounded-full object-cover border border-[#E8E0E5] shadow-xs"
+                          className="w-10 h-10 rounded-full object-cover border border-[var(--color-border-subtle)] shadow-xs"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#601D49] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs">
+                        <div className="w-10 h-10 rounded-full bg-[var(--color-brand)] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs">
                           {customer.name?.trim().charAt(0) || 'C'}
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-black text-[#2D252B] truncate">{customer.name}</p>
-                        <p className="text-[11px] text-[#6B5E68] truncate">
+                        <p className="text-xs font-black text-[var(--color-text-main)] truncate">{customer.name}</p>
+                        <p className="text-[11px] text-[var(--color-text-muted)] truncate">
                           {customer.email || (customer.phone ? `+91 ${customer.phone}` : 'Store Customer')}
                         </p>
                       </div>
                     </div>
 
                     <Link
-                      to="/profile"
+                      to={ROUTES.PROFILE}
                       onClick={() => setIsAccountDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[#2D252B] hover:bg-[#F7F5F7] hover:text-[#601D49] transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)] hover:text-[var(--color-brand)] transition-colors"
                     >
                       <span>👤</span>
                       <span>My Profile</span>
                     </Link>
 
                     <Link
-                      to="/orders"
+                      to={ROUTES.ORDERS}
                       onClick={() => setIsAccountDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[#2D252B] hover:bg-[#F7F5F7] hover:text-[#601D49] transition-colors"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)] hover:text-[var(--color-brand)] transition-colors"
                     >
                       <span>📦</span>
                       <span>My Orders</span>
@@ -849,8 +850,8 @@ export default function Navbar({
               </div>
             ) : (
               <Link
-                to="/login"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[#2D252B] hover:text-[#601D49] transition-colors cursor-pointer select-none"
+                to={ROUTES.LOGIN}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer select-none"
                 title="Customer Sign In"
                 aria-label="Customer Sign In"
               >
@@ -865,7 +866,7 @@ export default function Navbar({
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="md:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-[#2D252B] border border-[#E8E0E5] flex items-center justify-center transition-colors cursor-pointer active:scale-95"
+              className="md:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-[var(--color-text-main)] border border-[var(--color-border-subtle)] flex items-center justify-center transition-colors cursor-pointer active:scale-95"
               title="Toggle Menu"
               aria-label="Navigation menu"
             >
@@ -893,11 +894,11 @@ export default function Navbar({
                 if (onSearchChange) onSearchChange(e.target.value)
               }}
               placeholder="Search products, jewellery, gifts..."
-              className="w-full h-10 pl-10 pr-9 rounded-full bg-[#F8F3F6] border border-[#E8E0E5] text-xs text-[#2D252B] placeholder-[#6B5E68] focus:outline-none focus:border-[#601D49] focus:bg-white focus:ring-1 focus:ring-[#601D49]/20 transition-all"
+              className="w-full h-10 pl-10 pr-9 rounded-full bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand)] focus:bg-white focus:ring-1 focus:ring-[var(--color-brand)]/20 transition-all"
             />
             <button
               type="submit"
-              className="absolute left-3.5 top-3 text-[#6B5E68] hover:text-[#601D49] cursor-pointer"
+              className="absolute left-3.5 top-3 text-[var(--color-text-muted)] hover:text-[var(--color-brand)] cursor-pointer"
               aria-label="Search"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -921,17 +922,17 @@ export default function Navbar({
         </div>
 
         {/* 3. SECOND ROW: JIOMART HORIZONTAL NAVIGATION ROW (Navigation on left, All Categories on far right) */}
-        <nav className="hidden md:block bg-white text-[#2D252B] border-t border-[#E8E0E5] shadow-xs relative z-30">
+        <nav className="hidden md:block bg-white text-[var(--color-text-main)] border-t border-[var(--color-border-subtle)] shadow-xs relative z-30">
           <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between py-1.5 sm:py-2">
             {/* LEFT: Horizontal Navigation Links */}
             <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm font-bold flex-wrap">
               {/* Home */}
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   location.pathname === '/' && activeNav === 'home'
-                    ? 'bg-[#F2DDE9] text-[#601D49] shadow-xs font-extrabold'
-                    : 'text-[#2D252B] hover:text-[#601D49] hover:bg-[#F8F3F6]'
+                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
+                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
                 }`}
               >
                 <span>🏠 Home</span>
@@ -939,11 +940,11 @@ export default function Navbar({
 
               {/* All Products */}
               <Link
-                to="/products"
+                to={ROUTES.PRODUCTS}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   location.pathname === '/products' && !location.search
-                    ? 'bg-[#F2DDE9] text-[#601D49] shadow-xs font-extrabold'
-                    : 'text-[#2D252B] hover:text-[#601D49] hover:bg-[#F8F3F6]'
+                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
+                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
                 }`}
               >
                 <span>🛍️ All Products</span>
@@ -951,11 +952,11 @@ export default function Navbar({
 
               {/* Best Sellers */}
               <Link
-                to="/products?section=best_sellers"
+                to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   location.search.includes('best_sellers')
-                    ? 'bg-[#F2DDE9] text-[#601D49] shadow-xs font-extrabold'
-                    : 'text-[#2D252B] hover:text-[#601D49] hover:bg-[#F8F3F6]'
+                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
+                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
                 }`}
               >
                 ⭐ Best Sellers
@@ -963,11 +964,11 @@ export default function Navbar({
 
               {/* New Arrivals */}
               <Link
-                to="/products?section=new_arrivals"
+                to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   location.search.includes('new_arrivals')
-                    ? 'bg-[#F2DDE9] text-[#601D49] shadow-xs font-extrabold'
-                    : 'text-[#2D252B] hover:text-[#601D49] hover:bg-[#F8F3F6]'
+                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
+                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
                 }`}
               >
                 ✨ New Arrivals
@@ -975,11 +976,11 @@ export default function Navbar({
 
               {/* Featured Products */}
               <Link
-                to="/products?section=featured"
+                to={ROUTES.PRODUCTS_BY_SECTION('featured')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   location.search.includes('featured')
-                    ? 'bg-[#F2DDE9] text-[#601D49] shadow-xs font-extrabold'
-                    : 'text-[#2D252B] hover:text-[#601D49] hover:bg-[#F8F3F6]'
+                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
+                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
                 }`}
               >
                 💎 Featured Products
@@ -987,11 +988,11 @@ export default function Navbar({
 
               {/* Offers & Deals */}
               <Link
-                to="/products?section=deals"
+                to={ROUTES.PRODUCTS_BY_SECTION('deals')}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
                   location.search.includes('deals')
-                    ? 'bg-[#F2DDE9] text-[#601D49] shadow-xs font-extrabold'
-                    : 'text-[#2D252B] hover:text-[#601D49] hover:bg-[#F8F3F6]'
+                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
+                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
                 }`}
               >
                 <span>🔥 Offers & Deals</span>
@@ -1002,7 +1003,7 @@ export default function Navbar({
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-xl text-[#6B5E68] hover:text-[#25D366] transition-colors text-xs flex items-center gap-1 font-semibold"
+                className="px-3 py-1.5 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-whatsapp)] transition-colors text-xs flex items-center gap-1 font-semibold"
               >
                 <span>💬 WhatsApp Support</span>
               </a>
@@ -1016,8 +1017,8 @@ export default function Navbar({
                 onClick={() => setIsMegaMenuOpen((prev) => !prev)}
                 className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer font-black shadow-xs select-none text-xs sm:text-sm ${
                   isMegaMenuOpen
-                    ? 'bg-[#601D49] text-white shadow-md'
-                    : 'bg-[#F2DDE9] hover:bg-[#F2DDE9] text-[#601D49] hover:shadow-xs'
+                    ? 'bg-[var(--color-brand)] text-white shadow-md'
+                    : 'bg-[var(--color-primary-tint)] hover:bg-[var(--color-primary-tint)] text-[var(--color-brand)] hover:shadow-xs'
                 }`}
                 aria-haspopup="true"
                 aria-expanded={isMegaMenuOpen}
@@ -1063,20 +1064,20 @@ export default function Navbar({
               role="region"
               aria-label="Category mega menu"
             >
-              <div className="w-full mx-auto bg-white rounded-3xl shadow-2xl border border-[#E8E0E5] overflow-hidden flex flex-col md:flex-row min-h-[460px] max-h-[580px] animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="w-full mx-auto bg-white rounded-3xl shadow-2xl border border-[var(--color-border-subtle)] overflow-hidden flex flex-col md:flex-row min-h-[460px] max-h-[580px] animate-in fade-in slide-in-from-top-2 duration-150">
                 {/* LEFT SIDE: Vertical list of categories (JioMart vertical tabs) */}
-                <div className="w-full md:w-36 lg:w-44 bg-[#F8F3F6] border-r border-[#E8E0E5] flex flex-col shrink-0">
-                  <div className="px-3 py-2.5 border-b border-[#E8E0E5] flex items-center justify-between bg-[#F7F5F7]/60">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#601D49]">
+                <div className="w-full md:w-36 lg:w-44 bg-[var(--color-bg-main)] border-r border-[var(--color-border-subtle)] flex flex-col shrink-0">
+                  <div className="px-3 py-2.5 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-[var(--color-bg-alt)]/60">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--color-brand)]">
                       Departments
                     </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#F2DDE9] text-[#601D49]">
+                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
                       {categoryList.length}
                     </span>
                   </div>
 
                   {/* Vertical scrollable list of categories */}
-                  <div className="overflow-y-auto flex-1 divide-y divide-[#E8E0E5]/40 py-1">
+                  <div className="overflow-y-auto flex-1 divide-y divide-[var(--color-border-subtle)]/40 py-1">
                     {categoryList.map((cat) => {
                       const isSelected = String(cat.id) === String(selectedCategoryId)
                       return (
@@ -1087,18 +1088,18 @@ export default function Navbar({
                           onMouseEnter={() => setSelectedCategoryId(cat.id)}
                           className={`w-full px-2 py-3.5 flex flex-col items-center justify-center text-center cursor-pointer transition-all relative group select-none ${
                             isSelected
-                              ? 'bg-white text-[#601D49] font-black shadow-xs'
-                              : 'text-[#6B5E68] hover:text-[#2D252B] hover:bg-white/60 font-semibold'
+                              ? 'bg-white text-[var(--color-brand)] font-black shadow-xs'
+                              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-white/60 font-semibold'
                           }`}
                         >
                           {isSelected && (
-                            <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[#601D49] rounded-r-full" />
+                            <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[var(--color-brand)] rounded-r-full" />
                           )}
                           <div
                             className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl overflow-hidden mb-1.5 transition-transform group-hover:scale-105 ${
                               isSelected
-                                ? 'bg-[#F2DDE9] text-[#601D49]'
-                                : 'bg-white text-gray-600 border border-[#E8E0E5]'
+                                ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
+                                : 'bg-white text-gray-600 border border-[var(--color-border-subtle)]'
                             }`}
                           >
                             {cat.image_path ? (
@@ -1119,11 +1120,11 @@ export default function Navbar({
                     })}
                   </div>
 
-                  <div className="p-2 border-t border-[#E8E0E5] bg-white text-center">
+                  <div className="p-2 border-t border-[var(--color-border-subtle)] bg-white text-center">
                     <Link
-                      to="/products"
+                      to={ROUTES.PRODUCTS}
                       onClick={() => setIsMegaMenuOpen(false)}
-                      className="text-[10px] font-black text-[#601D49] hover:text-[#601D49] hover:underline"
+                      className="text-[10px] font-black text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
                     >
                       All Catalog →
                     </Link>
@@ -1135,14 +1136,14 @@ export default function Navbar({
                   {activeCategoryObj ? (
                     <>
                       {/* Category Header */}
-                      <div className="p-4 sm:p-5 border-b border-[#E8E0E5] bg-gradient-to-r from-white to-[#F8F3F6] flex items-center justify-between gap-3">
+                      <div className="p-4 sm:p-5 border-b border-[var(--color-border-subtle)] bg-gradient-to-r from-white to-[var(--color-bg-main)] flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-base sm:text-lg font-black text-[#2D252B] truncate">
+                            <h3 className="text-base sm:text-lg font-black text-[var(--color-text-main)] truncate">
                               {activeCategoryObj.name}
                             </h3>
                             {activeCategoryObj.product_count !== undefined && (
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#F2DDE9] text-[#601D49] border border-[#601D49]/20 shrink-0">
+                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 shrink-0">
                                 {activeCategoryObj.product_count} Items
                               </span>
                             )}
@@ -1154,9 +1155,9 @@ export default function Navbar({
                         </div>
 
                         <Link
-                          to={`/products?category_id=${activeCategoryObj.id}`}
+                          to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
                           onClick={() => setIsMegaMenuOpen(false)}
-                          className="shrink-0 px-4 py-2 rounded-full bg-[#601D49] hover:bg-[#601D49] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
+                          className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                         >
                           <span>View All in {activeCategoryObj.name}</span>
                           <span>→</span>
@@ -1168,7 +1169,7 @@ export default function Navbar({
                         {selectedCategorySubcategories.length > 0 ? (
                           <div>
                             <div className="flex items-center justify-between mb-3.5">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-[#601D49]">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)]">
                                 Subcategories ({selectedCategorySubcategories.length})
                               </span>
                               <span className="text-xs text-gray-400">
@@ -1180,9 +1181,9 @@ export default function Navbar({
                               {selectedCategorySubcategories.map((subcat) => (
                                 <Link
                                   key={subcat.id}
-                                  to={`/products?category_id=${activeCategoryObj.id}&subcategory_id=${subcat.id}`}
+                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(activeCategoryObj.id, subcat.id)}
                                   onClick={() => setIsMegaMenuOpen(false)}
-                                  className="group p-3 rounded-2xl border border-[#E8E0E5] hover:border-[#601D49] bg-white hover:bg-[#F8F3F6] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                                  className="group p-3 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
                                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-2 group-hover:scale-105 transition-transform border border-gray-100">
                                     {subcat.image_path ? (
@@ -1192,12 +1193,12 @@ export default function Navbar({
                                         className="w-full h-full object-cover"
                                       />
                                     ) : (
-                                      <div className="w-full h-full flex flex-col items-center justify-center bg-[#F2DDE9] text-[#601D49]">
+                                      <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
                                         <span className="text-2xl font-black">{getCategoryIcon(activeCategoryObj)}</span>
                                       </div>
                                     )}
                                   </div>
-                                  <h4 className="text-xs font-bold text-[#2D252B] group-hover:text-[#601D49] line-clamp-2">
+                                  <h4 className="text-xs font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand)] line-clamp-2">
                                     {subcat.name}
                                   </h4>
                                   {subcat.product_count !== undefined && (
@@ -1212,13 +1213,13 @@ export default function Navbar({
                         ) : activeCategoryProducts.length > 0 ? (
                           <div>
                             <div className="flex items-center justify-between mb-3.5">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-[#601D49]">
+                              <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)]">
                                 Popular in {activeCategoryObj.name}
                               </span>
                               <Link
-                                to={`/products?category_id=${activeCategoryObj.id}`}
+                                to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
                                 onClick={() => setIsMegaMenuOpen(false)}
-                                className="text-xs font-extrabold text-[#601D49] hover:text-[#601D49] hover:underline"
+                                className="text-xs font-extrabold text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
                               >
                                 Browse All Products →
                               </Link>
@@ -1228,9 +1229,9 @@ export default function Navbar({
                               {activeCategoryProducts.map((prod) => (
                                 <Link
                                   key={prod.id}
-                                  to={`/product/${prod.id}`}
+                                  to={ROUTES.PRODUCT_DETAIL(prod.id)}
                                   onClick={() => setIsMegaMenuOpen(false)}
-                                  className="group p-2.5 rounded-2xl border border-[#E8E0E5] hover:border-[#601D49] bg-white hover:bg-[#F8F3F6] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                                  className="group p-2.5 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
                                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-2 group-hover:scale-105 transition-transform border border-gray-100">
                                     {prod.primary_image ? (
@@ -1243,10 +1244,10 @@ export default function Navbar({
                                       <span className="text-2xl">{getCategoryIcon(activeCategoryObj)}</span>
                                     )}
                                   </div>
-                                  <h4 className="text-[11px] font-bold text-[#2D252B] group-hover:text-[#601D49] line-clamp-2">
+                                  <h4 className="text-[11px] font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand)] line-clamp-2">
                                     {prod.name}
                                   </h4>
-                                  <span className="text-xs font-black text-[#601D49] mt-1">
+                                  <span className="text-xs font-black text-[var(--color-brand)] mt-1">
                                     ₹{prod.min_price || prod.mrp || '—'}
                                   </span>
                                 </Link>
@@ -1255,19 +1256,19 @@ export default function Navbar({
                           </div>
                         ) : (
                           <div className="h-full flex flex-col items-center justify-center py-10 px-4 text-center">
-                            <div className="w-16 h-16 rounded-2xl bg-[#F2DDE9] text-[#601D49] flex items-center justify-center text-3xl font-black mb-3 shadow-xs">
+                            <div className="w-16 h-16 rounded-2xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-3xl font-black mb-3 shadow-xs">
                               {getCategoryIcon(activeCategoryObj)}
                             </div>
-                            <h4 className="text-base font-black text-[#2D252B]">
+                            <h4 className="text-base font-black text-[var(--color-text-main)]">
                               Explore {activeCategoryObj.name}
                             </h4>
                             <p className="text-xs text-gray-500 max-w-md mt-1 mb-5">
                               Browse all available products in this category from our store catalog.
                             </p>
                             <Link
-                              to={`/products?category_id=${activeCategoryObj.id}`}
+                              to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
                               onClick={() => setIsMegaMenuOpen(false)}
-                              className="px-6 py-2.5 rounded-full bg-[#601D49] hover:bg-[#601D49] text-white text-xs font-black shadow-xs transition-all flex items-center gap-2"
+                              className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black shadow-xs transition-all flex items-center gap-2"
                             >
                               <span>Browse All {activeCategoryObj.name} Products</span>
                               <span>→</span>
@@ -1300,20 +1301,20 @@ export default function Navbar({
           {/* Drawer Body */}
           <div className="fixed inset-y-0 left-0 w-[84%] max-w-[340px] bg-white shadow-2xl flex flex-col justify-between z-10 animate-in slide-in-from-left duration-250">
             {/* Drawer Header */}
-            <div className="p-4 border-b border-[#E8E0E5] flex items-center justify-between bg-gradient-to-r from-[#F8F3F6] to-[#F2DDE9]">
+            <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-gradient-to-r from-[var(--color-bg-main)] to-[var(--color-primary-tint)]">
               <div className="flex items-center gap-2.5">
                 {storeLogo ? (
                   <img src={storeLogo} alt={storeName} className="w-8 h-8 rounded-xl object-cover shadow-xs" />
                 ) : (
-                  <div className="w-8 h-8 rounded-xl bg-[#601D49] text-white flex items-center justify-center font-black text-sm shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--color-brand)] text-white flex items-center justify-center font-black text-sm shadow-xs">
                     {storeName ? storeName.charAt(0) : 'Q'}
                   </div>
                 )}
                 <div>
-                  <h3 className="font-black text-sm text-[#2D252B] truncate max-w-[180px]">
+                  <h3 className="font-black text-sm text-[var(--color-text-main)] truncate max-w-[180px]">
                     {storeName}
                   </h3>
-                  <p className="text-[10px] text-[#601D49] font-semibold">{deliveryLocationDisplay}</p>
+                  <p className="text-[10px] text-[var(--color-brand)] font-semibold">{deliveryLocationDisplay}</p>
                 </div>
               </div>
               <button
@@ -1329,36 +1330,36 @@ export default function Navbar({
             <div className="flex-1 overflow-y-auto p-3 space-y-1 text-xs font-bold text-gray-700">
               {/* Customer Greeting / Auth */}
               {customer ? (
-                <div className="p-3 mb-2 rounded-2xl bg-[#F7F5F7] border border-[#E8E0E5] flex items-center gap-3">
+                <div className="p-3 mb-2 rounded-2xl bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] flex items-center gap-3">
                   {customer.profile_photo_path ? (
                     <img
                       src={customer.profile_photo_path}
                       alt={customer.name}
                       referrerPolicy="no-referrer"
-                      className="w-10 h-10 rounded-full object-cover border border-[#E8E0E5] shadow-xs shrink-0"
+                      className="w-10 h-10 rounded-full object-cover border border-[var(--color-border-subtle)] shadow-xs shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#601D49] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[var(--color-brand)] text-white flex items-center justify-center font-black text-sm uppercase shadow-xs shrink-0">
                       {customer.name?.trim().charAt(0) || 'C'}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-[#2D252B] truncate">
+                    <p className="text-xs font-black text-[var(--color-text-main)] truncate">
                       Hello, {customer.name?.split(' ')[0]} 👋
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Link
-                        to="/profile"
+                        to={ROUTES.PROFILE}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-[11px] text-[#601D49] hover:underline"
+                        className="text-[11px] text-[var(--color-brand)] hover:underline"
                       >
                         Profile
                       </Link>
                       <span className="text-gray-300">•</span>
                       <Link
-                        to="/orders"
+                        to={ROUTES.ORDERS}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-[11px] text-[#601D49] font-bold hover:underline"
+                        className="text-[11px] text-[var(--color-brand)] font-bold hover:underline"
                       >
                         My Orders →
                       </Link>
@@ -1366,15 +1367,15 @@ export default function Navbar({
                   </div>
                 </div>
               ) : (
-                <div className="p-3 mb-2 rounded-2xl bg-[#F7F5F7] border border-[#E8E0E5] flex items-center justify-between">
+                <div className="p-3 mb-2 rounded-2xl bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] flex items-center justify-between">
                   <div>
-                    <p className="font-extrabold text-[#2D252B]">Welcome, Guest</p>
-                    <p className="text-[10px] text-[#6B5E68]">Sign in to track orders & rewards</p>
+                    <p className="font-extrabold text-[var(--color-text-main)]">Welcome, Guest</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">Sign in to track orders & rewards</p>
                   </div>
                   <Link
-                    to="/login"
+                    to={ROUTES.LOGIN}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="px-3 py-1.5 rounded-full bg-[#601D49] hover:bg-[#601D49] text-white text-[11px] font-black shadow-xs"
+                    className="px-3 py-1.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-[11px] font-black shadow-xs"
                   >
                     Login
                   </Link>
@@ -1383,54 +1384,54 @@ export default function Navbar({
 
               {/* Navigation Links */}
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F2DDE9] transition-colors"
+                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
                 <span>🏠</span>
                 <span>Home Catalog</span>
               </Link>
 
               <Link
-                to="/products"
+                to={ROUTES.PRODUCTS}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F2DDE9] transition-colors"
+                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
                 <span>🛍️</span>
                 <span>All Products</span>
               </Link>
 
               <Link
-                to="/products?section=best_sellers"
+                to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F2DDE9] transition-colors"
+                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
                 <span>⭐</span>
                 <span>Best Sellers</span>
               </Link>
 
               <Link
-                to="/products?section=new_arrivals"
+                to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F2DDE9] transition-colors"
+                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
                 <span>✨</span>
                 <span>New Arrivals</span>
               </Link>
 
               <Link
-                to="/products?section=featured"
+                to={ROUTES.PRODUCTS_BY_SECTION('featured')}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F2DDE9] transition-colors"
+                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
                 <span>💎</span>
                 <span>Featured Selections</span>
               </Link>
 
               <Link
-                to="/products?section=deals"
+                to={ROUTES.PRODUCTS_BY_SECTION('deals')}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[#F2DDE9] transition-colors text-pink-700"
+                className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors text-pink-700"
               >
                 <span>🔥</span>
                 <span>Flash Deals & Offers</span>
@@ -1438,12 +1439,12 @@ export default function Navbar({
 
               {/* Expandable Mobile Category Menu */}
               {categoryList.length > 0 && (
-                <div className="pt-2 border-t border-[#E8E0E5]">
+                <div className="pt-2 border-t border-[var(--color-border-subtle)]">
                   <div className="flex items-center justify-between px-3.5 mb-1.5">
-                    <span className="text-[10px] font-black uppercase text-[#601D49] tracking-wider">
+                    <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider">
                       Shop by Category
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F2DDE9] text-[#601D49]">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
                       {categoryList.length}
                     </span>
                   </div>
@@ -1453,14 +1454,14 @@ export default function Navbar({
                       const catSubs = subcategoryList.filter((s) => s.category_ids?.includes(Number(cat.id)))
                       const isExpanded = expandedMobileCatId === cat.id
                       return (
-                        <div key={cat.id} className="rounded-xl border border-[#E8E0E5]/80 overflow-hidden bg-white">
+                        <div key={cat.id} className="rounded-xl border border-[var(--color-border-subtle)]/80 overflow-hidden bg-white">
                           <div className="flex items-center justify-between p-2.5">
                             <Link
-                              to={`/products?category_id=${cat.id}`}
+                              to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
                               onClick={() => setIsMobileMenuOpen(false)}
                               className="flex items-center gap-2.5 flex-1 min-w-0"
                             >
-                              <div className="w-7 h-7 rounded-lg bg-[#F2DDE9] text-[#601D49] flex items-center justify-center shrink-0 overflow-hidden text-xs">
+                              <div className="w-7 h-7 rounded-lg bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center shrink-0 overflow-hidden text-xs">
                                 {cat.image_path ? (
                                   <img
                                     src={resolveImageUrl(cat.image_path)}
@@ -1471,7 +1472,7 @@ export default function Navbar({
                                   <span>{cat.icon || '✨'}</span>
                                 )}
                               </div>
-                              <span className="text-xs font-bold text-[#2D252B] truncate">
+                              <span className="text-xs font-bold text-[var(--color-text-main)] truncate">
                                 {cat.name}
                               </span>
                             </Link>
@@ -1483,12 +1484,12 @@ export default function Navbar({
                                   e.stopPropagation()
                                   setExpandedMobileCatId(isExpanded ? null : cat.id)
                                 }}
-                                className="p-1 rounded-lg text-gray-400 hover:text-[#601D49] hover:bg-[#F8F3F6] transition-colors"
+                                className="p-1 rounded-lg text-gray-400 hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)] transition-colors"
                                 aria-label={`Toggle ${cat.name} subcategories`}
                               >
                                 <svg
                                   className={`w-4 h-4 transition-transform ${
-                                    isExpanded ? 'rotate-180 text-[#601D49]' : ''
+                                    isExpanded ? 'rotate-180 text-[var(--color-brand)]' : ''
                                   }`}
                                   fill="none"
                                   viewBox="0 0 24 24"
@@ -1503,20 +1504,20 @@ export default function Navbar({
 
                           {/* Subcategories list when expanded */}
                           {catSubs.length > 0 && isExpanded && (
-                            <div className="bg-[#F8F3F6] px-3 py-2 border-t border-[#E8E0E5] space-y-1">
+                            <div className="bg-[var(--color-bg-main)] px-3 py-2 border-t border-[var(--color-border-subtle)] space-y-1">
                               <Link
-                                to={`/products?category_id=${cat.id}`}
+                                to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
                                 onClick={() => setIsMobileMenuOpen(false)}
-                                className="block py-1 px-2 text-[11px] font-extrabold text-[#601D49] hover:underline"
+                                className="block py-1 px-2 text-[11px] font-extrabold text-[var(--color-brand)] hover:underline"
                               >
                                 View All in {cat.name} →
                               </Link>
                               {catSubs.map((subcat) => (
                                 <Link
                                   key={subcat.id}
-                                  to={`/products?category_id=${cat.id}&subcategory_id=${subcat.id}`}
+                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(cat.id, subcat.id)}
                                   onClick={() => setIsMobileMenuOpen(false)}
-                                  className="flex items-center justify-between py-1 px-2 rounded-lg text-[11px] font-semibold text-gray-700 hover:bg-[#F2DDE9] hover:text-[#601D49] transition-colors"
+                                  className="flex items-center justify-between py-1 px-2 rounded-lg text-[11px] font-semibold text-gray-700 hover:bg-[var(--color-primary-tint)] hover:text-[var(--color-brand)] transition-colors"
                                 >
                                   <span>• {subcat.name}</span>
                                   {subcat.product_count !== undefined && (
@@ -1542,7 +1543,7 @@ export default function Navbar({
                       setIsMobileMenuOpen(false)
                       onOpenReferral()
                     }}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-pink-50 text-[#DB2777] font-bold"
+                    className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-pink-50 text-[var(--color-extra-029)] font-bold"
                   >
                     <span>🎁</span>
                     <span>Refer & Earn ({referralPercentText})</span>
@@ -1550,9 +1551,9 @@ export default function Navbar({
                 )}
 
                 <Link
-                  to="/products?wishlist=1"
+                  to={ROUTES.PRODUCTS_WISHLIST}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[#F2DDE9] font-bold"
+                  className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[var(--color-primary-tint)] font-bold"
                 >
                   <span className="flex items-center gap-3">
                     <span>❤️</span>
@@ -1569,13 +1570,13 @@ export default function Navbar({
                     setIsMobileMenuOpen(false)
                     handleCartClick()
                   }}
-                  className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[#F2DDE9] font-bold text-[#2D252B]"
+                  className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[var(--color-primary-tint)] font-bold text-[var(--color-text-main)]"
                 >
                   <span className="flex items-center gap-3">
                     <span>🛍️</span>
                     <span>Shopping Cart</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-full bg-[#F2DDE9] text-[#601D49] text-xs font-black">
+                  <span className="px-2 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-xs font-black">
                     {cartCount} items
                   </span>
                 </button>
@@ -1583,16 +1584,16 @@ export default function Navbar({
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-4 border-t border-[#E8E0E5] bg-[#F8F3F6] text-xs text-gray-500 space-y-2">
+            <div className="p-4 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-main)] text-xs text-gray-500 space-y-2">
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 rounded-xl bg-[#25D366] text-white font-extrabold flex items-center justify-center gap-2 shadow-xs"
+                className="w-full py-2.5 rounded-xl bg-[var(--color-whatsapp)] text-white font-extrabold flex items-center justify-center gap-2 shadow-xs"
               >
                 <span>💬 WhatsApp Support</span>
               </a>
-              <div className="flex items-center justify-between text-[11px] pt-1 text-[#601D49] font-semibold">
+              <div className="flex items-center justify-between text-[11px] pt-1 text-[var(--color-brand)] font-semibold">
                 <span>🛡️ 100% Quality</span>
                 <span>•</span>
                 <span>📦 7-Day Return</span>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Select, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 interface StatusHistoryRow {
   id: number
@@ -72,7 +73,7 @@ export function DeliveryDetailPage() {
 
   return (
     <div>
-      <button onClick={() => navigate('/deliveries')} className="mb-2 text-xs font-medium text-slate-400 hover:text-slate-700">
+      <button onClick={() => navigate(ROUTES.DELIVERIES)} className="mb-2 text-xs font-medium text-slate-400 hover:text-slate-700">
         ← Deliveries
       </button>
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -133,7 +134,7 @@ export function DeliveryDetailPage() {
             <p className="text-slate-600">Courier: {delivery.courier ?? '—'}</p>
             <p className="text-slate-600">AWB: {delivery.awb ?? '—'}</p>
             {delivery.tracking_url && (
-              <a href={delivery.tracking_url} target="_blank" rel="noreferrer" className="text-[#7B3F4A] hover:underline font-semibold">
+              <a href={delivery.tracking_url} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline font-semibold">
                 Tracking Link
               </a>
             )}

@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
-import { api, apiErrorMessage } from '../lib/api'
+import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
+import { ROUTES } from '../routes/routes'
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 function imageUrl(path: string | null) {
-  return path ? `${API_ORIGIN}/${path}` : null
+  if (!path) return null
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${getApiOrigin()}/${path}`
 }
 
 export function ProductsPage() {
@@ -40,12 +42,12 @@ export function ProductsPage() {
         actions={
           <div className="flex items-center gap-3">
             {/* View Mode Toggle */}
-            <div className="flex items-center rounded-full border border-[#EEDDE0] bg-[#FAF2F4] p-1 text-xs font-semibold">
+            <div className="flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={`px-3 py-1 rounded-full transition-all ${
-                  viewMode === 'grid' ? 'bg-[#7B3F4A] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  viewMode === 'grid' ? 'bg-[var(--color-primary)] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Grid View
@@ -54,14 +56,14 @@ export function ProductsPage() {
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`px-3 py-1 rounded-full transition-all ${
-                  viewMode === 'table' ? 'bg-[#7B3F4A] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  viewMode === 'table' ? 'bg-[var(--color-primary)] text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Table View
               </button>
             </div>
 
-            <Link to="/products/new">
+            <Link to={ROUTES.PRODUCT_NEW}>
               <Button>+ New Product</Button>
             </Link>
           </div>
@@ -89,8 +91,8 @@ export function ProductsPage() {
             return (
               <div
                 key={p.id}
-                onClick={() => navigate(`/products/${p.id}`)}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#F2E5E7] bg-white p-3 shadow-2xs hover:shadow-md hover:border-[#7B3F4A] transition-all cursor-pointer"
+                onClick={() => navigate(ROUTES.PRODUCT_DETAIL(p.id))}
+                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--color-border-muted)] bg-white p-3 shadow-2xs hover:shadow-md hover:border-[var(--color-primary)] transition-all cursor-pointer"
               >
                 <div>
                   {/* Thumbnail Image */}
@@ -113,13 +115,13 @@ export function ProductsPage() {
 
                   {/* Content */}
                   <div className="mt-2.5 space-y-1">
-                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight group-hover:text-[#7B3F4A]">
+                    <h3 className="text-xs font-bold text-slate-900 truncate leading-tight group-hover:text-[var(--color-primary)]">
                       {p.name}
                     </h3>
                     <p className="text-[11px] text-slate-500 truncate">{p.brand_name ?? 'No Brand'}</p>
 
                     <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-xs font-extrabold text-[#7B3F4A]">{priceStr}</span>
+                      <span className="text-xs font-extrabold text-[var(--color-primary)]">{priceStr}</span>
                       <span className="text-[10px] text-slate-500 font-medium">{p.variant_count} var</span>
                     </div>
 
@@ -140,9 +142,9 @@ export function ProductsPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/products/${p.id}`)
+                      navigate(ROUTES.PRODUCT_DETAIL(p.id))
                     }}
-                    className="text-[11px] font-semibold text-[#7B3F4A] hover:text-[#68343E]"
+                    className="text-[11px] font-semibold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]"
                   >
                     View Details →
                   </button>
@@ -151,9 +153,9 @@ export function ProductsPage() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/products/${p.id}`)
+                        navigate(ROUTES.PRODUCT_DETAIL(p.id))
                       }}
-                      className="p-1 rounded-lg text-slate-400 hover:bg-[#FAF2F4] hover:text-[#7B3F4A]"
+                      className="p-1 rounded-lg text-slate-400 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)]"
                       title="Edit"
                     >
                       <PencilIcon />
@@ -174,9 +176,9 @@ export function ProductsPage() {
         </div>
       ) : (
         /* Table View */
-        <Card className="border border-[#F2E5E7] shadow-2xs rounded-3xl overflow-hidden">
+        <Card className="border border-[var(--color-border-muted)] shadow-2xs rounded-3xl overflow-hidden">
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#F2E5E7] uppercase font-bold text-[10px] tracking-wider text-[#804652] bg-[#FAF2F4]/80">
+            <thead className="border-b border-[var(--color-border-muted)] uppercase font-bold text-[10px] tracking-wider text-[var(--color-primary-strong)] bg-[var(--color-surface)]/80">
               <tr>
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Brand</th>
@@ -187,15 +189,15 @@ export function ProductsPage() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2E5E7]">
+            <tbody className="divide-y divide-[var(--color-border-muted)]">
               {products.map((p) => (
                 <tr
                   key={p.id}
-                  onClick={() => navigate(`/products/${p.id}`)}
-                  className="cursor-pointer hover:bg-[#FAF2F4]/40 transition-colors"
+                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(p.id))}
+                  className="cursor-pointer hover:bg-[var(--color-surface)]/40 transition-colors"
                 >
                   <td className="px-4 py-2.5 flex items-center gap-3">
-                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-[#EEDDE0] flex items-center justify-center">
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-slate-100 border border-[var(--color-border)] flex items-center justify-center">
                       {imageUrl(p.primary_image) ? (
                         <img src={imageUrl(p.primary_image)!} alt={p.name} className="h-full w-full object-cover" />
                       ) : (
@@ -208,7 +210,7 @@ export function ProductsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-slate-600 font-medium">{p.brand_name ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-[#7B3F4A] font-bold">
+                  <td className="px-4 py-2.5 text-[var(--color-primary)] font-bold">
                     {p.min_price === null
                       ? '—'
                       : p.min_price === p.max_price
@@ -233,9 +235,9 @@ export function ProductsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/products/${p.id}`)
+                        navigate(ROUTES.PRODUCT_DETAIL(p.id))
                       }}
-                      className="p-1 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
+                      className="p-1 rounded-lg text-slate-500 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)] transition-colors"
                       title="View Details"
                     >
                       <EyeIcon />
@@ -243,9 +245,9 @@ export function ProductsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/products/${p.id}`)
+                        navigate(ROUTES.PRODUCT_DETAIL(p.id))
                       }}
-                      className="p-1 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#7B3F4A] transition-colors"
+                      className="p-1 rounded-lg text-slate-500 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)] transition-colors"
                       title="Edit Product"
                     >
                       <PencilIcon />

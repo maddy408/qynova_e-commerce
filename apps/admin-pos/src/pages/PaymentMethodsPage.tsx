@@ -52,7 +52,7 @@ export function PaymentMethodsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
               <tr>
                 <th className="px-6 py-4 font-black">Code</th>
                 <th className="px-6 py-4 font-black">Name</th>
@@ -60,10 +60,10 @@ export function PaymentMethodsPage() {
                 <th className="px-6 py-4 font-black text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[var(--color-extra-004)]">
               {methods.map((m) => (
-                <tr key={m.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
-                  <td className="px-6 py-4 font-mono font-bold text-[#804652]">{m.code}</td>
+                <tr key={m.id} className="hover:bg-[var(--color-surface)]/80 transition-colors">
+                  <td className="px-6 py-4 font-mono font-bold text-[var(--color-primary-strong)]">{m.code}</td>
                   <td className="px-6 py-4 font-bold text-slate-950">{m.name}</td>
                   <td className="px-6 py-4">
                     <Badge tone={m.is_active ? 'green' : 'slate'}>{m.is_active ? 'Active' : 'Inactive'}</Badge>
@@ -72,7 +72,7 @@ export function PaymentMethodsPage() {
                     <button
                       type="button"
                       onClick={() => toggleActive(m)}
-                      className="text-xs font-bold text-[#804652] hover:text-[#5a2c36] transition-colors cursor-pointer"
+                      className="text-xs font-bold text-[var(--color-primary-strong)] hover:text-[var(--color-extra-041)] transition-colors cursor-pointer"
                     >
                       {m.is_active ? 'Deactivate' : 'Activate'}
                     </button>

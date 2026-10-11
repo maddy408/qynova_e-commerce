@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Alert, Badge, Button, Modal } from '../components/ui'
 import { CameraIcon, WifiIcon, BluetoothIcon, CheckIcon, LayoutGridIcon, ListIcon } from '../components/Icons'
+import { ROUTES } from '../routes/routes'
 import { PaymentMethodButtons } from '../components/PaymentMethodButtons'
 import { type PaymentMethodCode } from '../constants/paymentMethods'
 import { calculateCartTotals, type DiscountType } from '../lib/cartTotals'
@@ -186,7 +187,7 @@ function QuantityStepper({ line, onQuantityChange, onCommitFocusSearch }: Quanti
         className={`h-6 w-10 text-center rounded border px-1 text-xs font-bold transition-colors ${
           isMaxReached
             ? 'border-amber-400 bg-amber-50 text-amber-900 focus:border-amber-500'
-            : 'border-slate-300 bg-white text-slate-900 focus:border-[#7E1235]'
+            : 'border-slate-300 bg-white text-slate-900 focus:border-[var(--color-sale-accent)]'
         } focus:outline-hidden`}
         title={isMaxReached ? `Max available stock (${maxStock}) reached` : 'Edit quantity'}
       />
@@ -979,7 +980,7 @@ export function SalePage() {
       const invoiceId = res.data?.invoice?.id || res.data?.data?.invoice_id || res.data?.id
       setShowPayment(false)
       clearCart()
-      navigate(`/invoices/${invoiceId}`)
+      navigate(ROUTES.INVOICE_DETAIL(invoiceId))
     } catch (err: any) {
       setError(apiErrorMessage(err, 'Failed to complete sale'))
       playBeepSound('error')
@@ -1061,7 +1062,7 @@ export function SalePage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               {/* Customer Type Selector Pills: Normal | Retail | Wholesale | Customer-Wise */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-extrabold uppercase text-[#7E1235] tracking-wider mr-1">
+                <span className="text-[11px] font-extrabold uppercase text-[var(--color-sale-accent)] tracking-wider mr-1">
                   CUSTOMER TYPE:
                 </span>
                 {(['NORMAL', 'RETAIL', 'WHOLESALE', 'CUSTOMER_WISE'] as const).map((t) => (
@@ -1071,7 +1072,7 @@ export function SalePage() {
                     onClick={() => setPriceType(t)}
                     className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                       priceType === t
-                        ? 'bg-[#7E1235] text-white shadow-xs'
+                        ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
                   >
@@ -1116,7 +1117,7 @@ export function SalePage() {
                     }}
                     onFocus={() => setShowCustomerDropdown(true)}
                     placeholder="Search customer name / phone..."
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-[#7E1235] focus:bg-white focus:outline-hidden"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-[var(--color-sale-accent)] focus:bg-white focus:outline-hidden"
                   />
                   {customer && (
                     <button
@@ -1165,7 +1166,7 @@ export function SalePage() {
                         setShowCustomerDropdown(false)
                         setShowNewCustModal(true)
                       }}
-                      className="bg-slate-50 px-3 py-2 text-center text-xs font-bold text-[#7E1235] hover:bg-slate-100 cursor-pointer"
+                      className="bg-slate-50 px-3 py-2 text-center text-xs font-bold text-[var(--color-sale-accent)] hover:bg-slate-100 cursor-pointer"
                     >
                       + Add New Customer
                     </div>
@@ -1188,7 +1189,7 @@ export function SalePage() {
                       }
                     }}
                     placeholder="Search product by name, SKU or barcode (Press Enter)..."
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-[#7E1235] focus:bg-white focus:outline-hidden"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-[var(--color-sale-accent)] focus:bg-white focus:outline-hidden"
                   />
                   {search && (
                     <button
@@ -1206,7 +1207,7 @@ export function SalePage() {
                   type="button"
                   onClick={() => setShowImageScannerModal(true)}
                   title="Snap photo with camera or upload image to scan & add products"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:border-[#7E1235] hover:text-[#7E1235] transition-all cursor-pointer shadow-2xs"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:border-[var(--color-sale-accent)] hover:text-[var(--color-sale-accent)] transition-all cursor-pointer shadow-2xs"
                 >
                   <CameraIcon className="h-4 w-4" />
                 </button>
@@ -1219,7 +1220,7 @@ export function SalePage() {
                     setShowDeviceModal(true)
                   }}
                   title={printerConnected ? "WiFi Printer (Ready)" : "WiFi Printer & Network"}
-                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:border-[#7E1235] hover:text-[#7E1235] transition-all cursor-pointer shadow-2xs"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:border-[var(--color-sale-accent)] hover:text-[var(--color-sale-accent)] transition-all cursor-pointer shadow-2xs"
                 >
                   <WifiIcon className="h-4 w-4" />
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500" />
@@ -1236,7 +1237,7 @@ export function SalePage() {
                   className={`relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all cursor-pointer shadow-2xs ${
                     bluetoothConnected
                       ? 'border-blue-400 bg-blue-50 text-blue-700 font-bold'
-                      : 'border-slate-300 bg-white text-slate-700 hover:border-[#7E1235] hover:text-[#7E1235]'
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-[var(--color-sale-accent)] hover:text-[var(--color-sale-accent)]'
                   }`}
                 >
                   <BluetoothIcon className="h-4 w-4" />
@@ -1259,7 +1260,7 @@ export function SalePage() {
                   }}
                   className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                     activeCategory === ALL_ITEMS
-                      ? 'bg-[#7E1235] text-white shadow-xs'
+                      ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
@@ -1275,7 +1276,7 @@ export function SalePage() {
                   }}
                   className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                     activeCategory === TOP_SELLING
-                      ? 'bg-[#7E1235] text-white shadow-xs'
+                      ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
@@ -1288,7 +1289,7 @@ export function SalePage() {
                   onClick={() => setShowCategoriesDropdown((prev) => !prev)}
                   className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                     typeof activeCategory === 'number' || showCategoriesDropdown
-                      ? 'bg-[#7E1235] text-white shadow-xs'
+                      ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
@@ -1315,7 +1316,7 @@ export function SalePage() {
                   type="button"
                   onClick={() => setViewMode('grid')}
                   className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-white text-[#7E1235] shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    viewMode === 'grid' ? 'bg-white text-[var(--color-sale-accent)] shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <LayoutGridIcon className="h-3.5 w-3.5" />
@@ -1327,7 +1328,7 @@ export function SalePage() {
             {/* Expanded Categories Chips Tray */}
             {showCategoriesDropdown && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 flex flex-wrap gap-1.5 transition-all">
-                <span className="text-[10px] font-extrabold uppercase text-[#7E1235] w-full block mb-1">
+                <span className="text-[10px] font-extrabold uppercase text-[var(--color-sale-accent)] w-full block mb-1">
                   SELECT CATEGORY:
                 </span>
                 {categories.map((cat) => (
@@ -1340,7 +1341,7 @@ export function SalePage() {
                     }}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
                       activeCategory === cat.id
-                        ? 'bg-[#7E1235] text-white font-bold shadow-xs'
+                        ? 'bg-[var(--color-sale-accent)] text-white font-bold shadow-xs'
                         : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
@@ -1368,7 +1369,7 @@ export function SalePage() {
                 return (
                   <div
                     key={p.variant_id}
-                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs hover:border-[#7E1235] transition-all group"
+                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs hover:border-[var(--color-sale-accent)] transition-all group"
                   >
                     <div>
                       {/* Product Thumbnail / Placeholder */}
@@ -1432,7 +1433,7 @@ export function SalePage() {
                         type="button"
                         disabled={outOfStock}
                         onClick={() => addToCart(p)}
-                        className="mt-2.5 flex w-full items-center justify-center gap-1 rounded-xl bg-[#7E1235] text-white py-2 text-xs font-bold hover:bg-[#650e2a] transition-all shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        className="mt-2.5 flex w-full items-center justify-center gap-1 rounded-xl bg-[var(--color-sale-accent)] text-white py-2 text-xs font-bold hover:bg-[var(--color-extra-012)] transition-all shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       >
                         + Add to Cart
                       </button>
@@ -1506,7 +1507,7 @@ export function SalePage() {
                             type="button"
                             disabled={outOfStock}
                             onClick={() => addToCart(p)}
-                            className="rounded-lg bg-[#7E1235] px-3 py-1 text-xs font-bold text-white hover:bg-[#650e2a] transition-colors disabled:opacity-40 cursor-pointer"
+                            className="rounded-lg bg-[var(--color-sale-accent)] px-3 py-1 text-xs font-bold text-white hover:bg-[var(--color-extra-012)] transition-colors disabled:opacity-40 cursor-pointer"
                           >
                             + Add
                           </button>
@@ -1531,7 +1532,7 @@ export function SalePage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="text-base font-extrabold text-slate-900">Current Bill</span>
-                  <span className="rounded bg-[#7E1235] px-2 py-0.5 text-[9px] font-extrabold uppercase text-white tracking-wider">
+                  <span className="rounded bg-[var(--color-sale-accent)] px-2 py-0.5 text-[9px] font-extrabold uppercase text-white tracking-wider">
                     {priceType} PRICING
                   </span>
                 </div>
@@ -1567,7 +1568,7 @@ export function SalePage() {
                   <button
                     type="button"
                     onClick={() => setShowNewCustModal(true)}
-                    className="inline-flex items-center gap-1 rounded-lg bg-[#7E1235] text-white hover:bg-[#680f2c] px-2.5 py-1 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-sale-accent)] text-white hover:bg-[var(--color-extra-044)] px-2.5 py-1 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
                     title="Add New Customer"
                   >
                     <span>+</span>
@@ -1634,7 +1635,7 @@ export function SalePage() {
                     type="button"
                     onClick={() => setDiscountType('PERCENT')}
                     className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
-                      discountType === 'PERCENT' ? 'bg-[#7E1235] text-white shadow-2xs' : 'text-slate-600'
+                      discountType === 'PERCENT' ? 'bg-[var(--color-sale-accent)] text-white shadow-2xs' : 'text-slate-600'
                     }`}
                   >
                     %
@@ -1643,7 +1644,7 @@ export function SalePage() {
                     type="button"
                     onClick={() => setDiscountType('AMOUNT')}
                     className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
-                      discountType === 'AMOUNT' ? 'bg-[#7E1235] text-white shadow-2xs' : 'text-slate-600'
+                      discountType === 'AMOUNT' ? 'bg-[var(--color-sale-accent)] text-white shadow-2xs' : 'text-slate-600'
                     }`}
                   >
                     ₹
@@ -1656,7 +1657,7 @@ export function SalePage() {
                   placeholder={discountType === 'PERCENT' ? 'Bill Discount % (e.g. 10)' : 'Bill Discount ₹'}
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-[#7E1235] focus:bg-white focus:outline-hidden"
+                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-[var(--color-sale-accent)] focus:bg-white focus:outline-hidden"
                 />
               </div>
 
@@ -1696,7 +1697,7 @@ export function SalePage() {
                   setAmountPaid(totals.grandTotal.toFixed(2))
                   setShowPayment(true)
                 }}
-                className="w-full rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white font-extrabold text-sm py-2.5 px-4 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full rounded-xl bg-[var(--color-extra-024)] hover:bg-[var(--color-extra-025)] text-white font-extrabold text-sm py-2.5 px-4 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Proceed to Payment</span>
                 <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">Ctrl+S</span>
@@ -1745,7 +1746,7 @@ export function SalePage() {
                 onClick={() => setScannerTab('camera')}
                 className={`flex-1 py-2 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
                   scannerTab === 'camera'
-                    ? 'border-[#7E1235] text-[#7E1235]'
+                    ? 'border-[var(--color-sale-accent)] text-[var(--color-sale-accent)]'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -1756,7 +1757,7 @@ export function SalePage() {
                 onClick={() => setScannerTab('upload')}
                 className={`flex-1 py-2 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
                   scannerTab === 'upload'
-                    ? 'border-[#7E1235] text-[#7E1235]'
+                    ? 'border-[var(--color-sale-accent)] text-[var(--color-sale-accent)]'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -1767,7 +1768,7 @@ export function SalePage() {
                 onClick={() => setScannerTab('text')}
                 className={`flex-1 py-2 text-xs font-bold border-b-2 cursor-pointer transition-colors ${
                   scannerTab === 'text'
-                    ? 'border-[#7E1235] text-[#7E1235]'
+                    ? 'border-[var(--color-sale-accent)] text-[var(--color-sale-accent)]'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -1783,8 +1784,8 @@ export function SalePage() {
                 ) : (
                   <div className="relative overflow-hidden rounded-xl bg-black border border-slate-300">
                     <video ref={videoRef} className="h-64 w-full object-cover" autoPlay playsInline />
-                    <div className="absolute inset-0 border-2 border-dashed border-[#7E1235]/70 pointer-events-none rounded-xl flex items-center justify-center">
-                      <span className="text-white text-xs bg-black/70 px-3 py-1 rounded-full animate-pulse border border-[#7E1235]/50">
+                    <div className="absolute inset-0 border-2 border-dashed border-[var(--color-sale-accent)]/70 pointer-events-none rounded-xl flex items-center justify-center">
+                      <span className="text-white text-xs bg-black/70 px-3 py-1 rounded-full animate-pulse border border-[var(--color-sale-accent)]/50">
                         Align Product, Barcode, or List in Frame
                       </span>
                     </div>
@@ -1796,7 +1797,7 @@ export function SalePage() {
                     type="button"
                     onClick={handleCaptureCameraPhoto}
                     disabled={!cameraStreamActive || processingImage}
-                    className="flex items-center gap-2 rounded-xl bg-[#7E1235] hover:bg-[#650e2a] text-white px-5 py-2 text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-[var(--color-sale-accent)] hover:bg-[var(--color-extra-012)] text-white px-5 py-2 text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
                   >
                     <span>📸</span>
                     <span>{processingImage ? 'Analyzing...' : 'Take Photo & Scan Products'}</span>
@@ -1839,13 +1840,13 @@ export function SalePage() {
                   value={manualTextList}
                   onChange={(e) => setManualTextList(e.target.value)}
                   placeholder="e.g.&#10;2x Velvet Scrunchie Set&#10;1x Pearl Floral Hair Clip"
-                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
                 />
                 <button
                   type="button"
                   onClick={handleParseTextList}
                   disabled={processingImage || !manualTextList.trim()}
-                  className="rounded-xl bg-[#7E1235] hover:bg-[#650e2a] text-white px-4 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
+                  className="rounded-xl bg-[var(--color-sale-accent)] hover:bg-[var(--color-extra-012)] text-white px-4 py-2 text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   {processingImage ? 'Scanning List...' : 'Scan & Match Products in List'}
                 </button>
@@ -1862,7 +1863,7 @@ export function SalePage() {
             {recognizedItems.length > 0 && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold text-[#7E1235]">
+                  <span className="text-xs font-extrabold text-[var(--color-sale-accent)]">
                     ✨ Recognized Products ({recognizedItems.length}):
                   </span>
                   <span className="text-[10px] text-slate-500 font-medium">
@@ -1886,7 +1887,7 @@ export function SalePage() {
                               prev.map((it, i) => (i === idx ? { ...it, selected: checked } : it))
                             )
                           }}
-                          className="h-4 w-4 rounded text-[#7E1235] cursor-pointer"
+                          className="h-4 w-4 rounded text-[var(--color-sale-accent)] cursor-pointer"
                         />
                         <div className="truncate">
                           <span className="font-extrabold text-slate-900 block truncate">
@@ -1922,7 +1923,7 @@ export function SalePage() {
                   <button
                     type="button"
                     onClick={addRecognizedItemsToCart}
-                    className="rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white px-4 py-2 text-xs font-extrabold shadow-md cursor-pointer flex items-center gap-1.5"
+                    className="rounded-xl bg-[var(--color-extra-024)] hover:bg-[var(--color-extra-025)] text-white px-4 py-2 text-xs font-extrabold shadow-md cursor-pointer flex items-center gap-1.5"
                   >
                     <span>🛒</span>
                     <span>
@@ -2131,7 +2132,7 @@ export function SalePage() {
                           playBeepSound('success')
                           showDeduplicatedToast('Test receipt sent to thermal printer!')
                         }}
-                        className="rounded-lg bg-[#7E1235] text-white px-3 py-1.5 font-bold hover:bg-[#650e2a] cursor-pointer text-xs shadow-xs"
+                        className="rounded-lg bg-[var(--color-sale-accent)] text-white px-3 py-1.5 font-bold hover:bg-[var(--color-extra-012)] cursor-pointer text-xs shadow-xs"
                       >
                         Test Print
                       </button>
@@ -2170,7 +2171,7 @@ export function SalePage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-lg font-black text-[#7E1235]">{scaleWeight} kg</span>
+                      <span className="text-lg font-black text-[var(--color-sale-accent)]">{scaleWeight} kg</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -2237,7 +2238,7 @@ export function SalePage() {
                 value={amountPaid}
                 onChange={(e) => setAmountPaid(e.target.value)}
                 placeholder={totals.grandTotal.toFixed(2)}
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:border-[#7E1235] focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:border-[var(--color-sale-accent)] focus:outline-hidden"
               />
             </div>
 
@@ -2272,7 +2273,7 @@ export function SalePage() {
                 value={newCustName}
                 onChange={(e) => setNewCustName(e.target.value)}
                 placeholder="e.g. Rahul Sharma"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
               />
             </div>
 
@@ -2284,7 +2285,7 @@ export function SalePage() {
                 value={newCustPhone}
                 onChange={(e) => setNewCustPhone(e.target.value)}
                 placeholder="e.g. 9876543210"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
               />
             </div>
 
@@ -2295,7 +2296,7 @@ export function SalePage() {
                 value={newCustEmail}
                 onChange={(e) => setNewCustEmail(e.target.value)}
                 placeholder="e.g. rahul@example.com"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
               />
             </div>
 
@@ -2304,7 +2305,7 @@ export function SalePage() {
               <select
                 value={newCustType}
                 onChange={(e) => setNewCustType(e.target.value as any)}
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
               >
                 <option value="NORMAL">Normal</option>
                 <option value="RETAIL">Retail</option>
@@ -2343,7 +2344,7 @@ export function SalePage() {
                 value={quickItemName}
                 onChange={(e) => setQuickItemName(e.target.value)}
                 placeholder="e.g. Loose Accessory / Custom Service"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
               />
             </div>
 
@@ -2358,7 +2359,7 @@ export function SalePage() {
                   value={quickRate}
                   onChange={(e) => setQuickRate(e.target.value)}
                   placeholder="0.00"
-                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
                 />
               </div>
 
@@ -2370,7 +2371,7 @@ export function SalePage() {
                   required
                   value={quickQty}
                   onChange={(e) => setQuickQty(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
                 />
               </div>
             </div>
@@ -2414,7 +2415,7 @@ export function SalePage() {
                     <button
                       type="button"
                       onClick={() => retrieveHoldBill(hb)}
-                      className="rounded-lg bg-[#7E1235] text-white px-3 py-1 text-xs font-bold hover:bg-[#650e2a] cursor-pointer"
+                      className="rounded-lg bg-[var(--color-sale-accent)] text-white px-3 py-1 text-xs font-bold hover:bg-[var(--color-extra-012)] cursor-pointer"
                     >
                       Retrieve
                     </button>
@@ -2451,7 +2452,7 @@ export function SalePage() {
               value={holdNote}
               onChange={(e) => setHoldNote(e.target.value)}
               placeholder="e.g. Customer will return in 5 mins"
-              className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[#7E1235] focus:outline-hidden"
+              className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
             />
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <Button variant="secondary" onClick={() => setHoldNoteModal(false)}>

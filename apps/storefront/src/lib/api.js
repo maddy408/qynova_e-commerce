@@ -1,13 +1,10 @@
-import axios from 'axios'
+import { api } from '../api/axiosInstance'
+import { ENDPOINTS } from '../api/endpoints'
+import { env } from '../config/env'
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
-
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+export { api, getErrorMessage } from '../api/axiosInstance'
+/** @deprecated import `env` from '../config/env' instead. */
+export const API_BASE_URL = env.API_BASE_URL
 
 // Guest session ID management (ensures MySQL carts and wishlists persist without storing business data in localStorage)
 let memorySessionId = null
@@ -105,24 +102,13 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Centralized error message extractor
-export function getErrorMessage(err, fallback = 'Something went wrong') {
-  if (axios.isAxiosError(err)) {
-    return err.response?.data?.message || err.response?.data?.error || fallback
-  }
-  if (err instanceof Error) {
-    return err.message
-  }
-  return fallback
-}
-
 // --- DATABASE DATA PROVIDERS ---
 
 let cachedStoreSettings = null
 export async function fetchStoreSettings(forceRefresh = false) {
   if (cachedStoreSettings && !forceRefresh) return cachedStoreSettings
   try {
-    const res = await api.get('/settings/store')
+    const res = await api.get(ENDPOINTS.SETTINGS.STORE)
     cachedStoreSettings = res.data?.settings || null
     return cachedStoreSettings
   } catch {
@@ -134,7 +120,7 @@ let cachedDeliverySettings = null
 export async function fetchDeliverySettings(forceRefresh = false) {
   if (cachedDeliverySettings && !forceRefresh) return cachedDeliverySettings
   try {
-    const res = await api.get('/settings/delivery')
+    const res = await api.get(ENDPOINTS.SETTINGS.DELIVERY)
     cachedDeliverySettings = res.data?.delivery_settings || null
     return cachedDeliverySettings
   } catch {
@@ -147,14 +133,12 @@ export function resolveImageUrl(path) {
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
     return path
   }
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
-  const origin = apiBase.replace(/\/api\/?$/, '')
-  return `${origin}/${path.replace(/^\//, '')}`
+  return `${env.API_ORIGIN}/${path.replace(/^\//, '')}`
 }
 
 export async function fetchBanners(position = 'HOME_HERO') {
   try {
-    const res = await api.get(`/banners?position=${encodeURIComponent(position)}&is_active=1`)
+    const res = await api.get(ENDPOINTS.BANNERS.BY_POSITION(position))
     return res.data?.banners || []
   } catch {
     return []
@@ -163,7 +147,7 @@ export async function fetchBanners(position = 'HOME_HERO') {
 
 export async function fetchActiveOffers() {
   try {
-    const res = await api.get('/offers')
+    const res = await api.get(ENDPOINTS.OFFERS.LIST)
     return res.data?.offers || []
   } catch {
     return []
@@ -172,7 +156,7 @@ export async function fetchActiveOffers() {
 
 export async function fetchFlashDeal() {
   try {
-    const res = await api.get('/offers/flash-deal')
+    const res = await api.get(ENDPOINTS.OFFERS.FLASH_DEAL)
     return res.data?.flash_deal || null
   } catch {
     return null
@@ -181,7 +165,7 @@ export async function fetchFlashDeal() {
 
 export async function fetchReferralSettings() {
   try {
-    const res = await api.get('/referral-settings')
+    const res = await api.get(ENDPOINTS.REFERRAL.SETTINGS)
     return res.data?.settings || null
   } catch {
     return null
@@ -190,7 +174,7 @@ export async function fetchReferralSettings() {
 
 export async function fetchHomeSections() {
   try {
-    const res = await api.get('/home-sections')
+    const res = await api.get(ENDPOINTS.HOME_SECTIONS)
     return res.data?.sections || []
   } catch {
     return []
@@ -199,7 +183,7 @@ export async function fetchHomeSections() {
 
 export async function fetchPages() {
   try {
-    const res = await api.get('/pages')
+    const res = await api.get(ENDPOINTS.PAGES.LIST)
     return res.data?.pages || []
   } catch {
     return []
@@ -208,7 +192,7 @@ export async function fetchPages() {
 
 export async function fetchPage(slug) {
   try {
-    const res = await api.get(`/pages/${slug}`)
+    const res = await api.get(ENDPOINTS.PAGES.BY_SLUG(slug))
     return res.data?.page || null
   } catch {
     return null
@@ -217,7 +201,7 @@ export async function fetchPage(slug) {
 
 export async function fetchCustomerAddresses() {
   try {
-    const res = await api.get('/customer/addresses')
+    const res = await api.get(ENDPOINTS.CUSTOMER.ADDRESSES)
     return res.data?.addresses || []
   } catch {
     return []
@@ -225,12 +209,12 @@ export async function fetchCustomerAddresses() {
 }
 
 export async function saveCustomerAddress(data) {
-  const res = await api.post('/customer/addresses', data)
+  const res = await api.post(ENDPOINTS.CUSTOMER.ADDRESSES, data)
   return res.data
 }
 
 export async function deleteCustomerAddress(id) {
-  const res = await api.delete(`/customer/addresses/${id}`)
+  const res = await api.delete(ENDPOINTS.CUSTOMER.ADDRESS_BY_ID(id))
   return res.data
 }
 
@@ -238,7 +222,7 @@ let cachedCategories = null
 export async function fetchCategories(forceRefresh = false) {
   if (cachedCategories && !forceRefresh) return cachedCategories
   try {
-    const res = await api.get('/categories')
+    const res = await api.get(ENDPOINTS.CATEGORIES)
     cachedCategories = res.data?.categories || []
     return cachedCategories
   } catch {
@@ -250,7 +234,7 @@ let cachedSubcategories = null
 export async function fetchSubcategories(forceRefresh = false) {
   if (cachedSubcategories && !forceRefresh) return cachedSubcategories
   try {
-    const res = await api.get('/subcategories')
+    const res = await api.get(ENDPOINTS.SUBCATEGORIES)
     cachedSubcategories = res.data?.subcategories || []
     return cachedSubcategories
   } catch {
@@ -262,7 +246,7 @@ let cachedBrands = null
 export async function fetchBrands(forceRefresh = false) {
   if (cachedBrands && !forceRefresh) return cachedBrands
   try {
-    const res = await api.get('/brands')
+    const res = await api.get(ENDPOINTS.BRANDS)
     cachedBrands = res.data?.brands || []
     return cachedBrands
   } catch {
@@ -272,7 +256,7 @@ export async function fetchBrands(forceRefresh = false) {
 
 export async function fetchAvailableCoupons() {
   try {
-    const res = await api.get('/coupons/available')
+    const res = await api.get(ENDPOINTS.COUPONS.AVAILABLE)
     return res.data?.coupons || []
   } catch {
     return []
@@ -314,4 +298,3 @@ if (typeof window !== 'undefined') {
     }
   })
 }
-
