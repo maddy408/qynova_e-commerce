@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { Spinner } from './components/ui'
-import { useAuth } from './lib/auth'
+import { useAuth } from './context/auth'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ROUTE_TABLE, ROUTES, SECTION_REDIRECTS } from './routes/routes'
 import { RequireAccess } from './routes/RequireAccess'
