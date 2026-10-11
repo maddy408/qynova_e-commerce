@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
 import { getCategoryPalette } from '../lib/catalogData'
+import { ROUTES } from '../routes/routes'
 
 export default function CategoriesSection({
   title = 'Shop by Category',
@@ -154,7 +155,7 @@ export default function CategoriesSection({
             return (
               <div
                 key={cat.id}
-                onClick={() => navigate(`/products?category_id=${cat.id}`)}
+                onClick={() => navigate(ROUTES.PRODUCTS_BY_CATEGORY(cat.id))}
                 className="w-32 sm:w-36 shrink-0 rounded-2xl p-3 sm:p-4 border border-[var(--color-border-subtle)] transition-all duration-300 cursor-pointer flex flex-col items-center text-center group bg-white hover:shadow-md hover:border-[var(--color-brand)]"
               >
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[var(--color-bg-alt)] border-2 border-[var(--color-border-subtle)] group-hover:border-[var(--color-brand)] transition-colors flex items-center justify-center mb-2.5 shadow-xs">

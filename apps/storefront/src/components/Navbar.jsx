@@ -15,6 +15,7 @@ import {
   fetchCustomerAddresses,
   resolveImageUrl,
 } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 import { getCartCount, getCartSubtotal, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist } from '../lib/wishlist'
 import BottomCartBar from './BottomCartBar'
@@ -347,7 +348,7 @@ export default function Navbar({
     if (onSearchChange) {
       onSearchChange(q)
     }
-    navigate(`/products?search=${encodeURIComponent(q)}`)
+    navigate(ROUTES.PRODUCTS_SEARCH(q))
   }
 
   const handleLogout = () => {
@@ -355,7 +356,7 @@ export default function Navbar({
     setCustomer(null)
     setCustomerAddress(null)
     setIsAccountDropdownOpen(false)
-    navigate('/')
+    navigate(ROUTES.HOME)
   }
 
   const handleCartClick = () => {
@@ -445,7 +446,7 @@ export default function Navbar({
           {/* LEFT: Logo + Location Selection */}
           <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             {/* Brand Logo & Name */}
-            <Link to="/" className="flex items-center gap-2 sm:gap-2.5 group select-none">
+            <Link to={ROUTES.HOME} className="flex items-center gap-2 sm:gap-2.5 group select-none">
               {storeLogo ? (
                 <img
                   src={storeLogo}
@@ -556,7 +557,7 @@ export default function Navbar({
                   <div className="mt-3 pt-2 border-t border-[var(--color-border-subtle)]">
                     {customer ? (
                       <Link
-                        to="/profile"
+                        to={ROUTES.PROFILE}
                         onClick={() => setIsLocationModalOpen(false)}
                         className="block w-full py-1.5 px-3 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-[11px] font-bold text-center hover:bg-[var(--color-primary-tint)] transition-colors"
                       >
@@ -564,7 +565,7 @@ export default function Navbar({
                       </Link>
                     ) : (
                       <Link
-                        to="/login"
+                        to={ROUTES.LOGIN}
                         onClick={() => setIsLocationModalOpen(false)}
                         className="block w-full py-1.5 px-3 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-[11px] font-bold text-center hover:bg-[var(--color-primary-tint)] transition-colors"
                       >
@@ -639,7 +640,7 @@ export default function Navbar({
                     {searchSuggestions.map((prod) => (
                       <Link
                         key={prod.id}
-                        to={`/product/${prod.id}`}
+                        to={ROUTES.PRODUCT_DETAIL(prod.id)}
                         onClick={() => setIsSearchFocused(false)}
                         className="flex items-center gap-3 p-2.5 hover:bg-[var(--color-bg-alt)] transition-colors"
                       >
@@ -694,7 +695,7 @@ export default function Navbar({
 
             {/* 2. Standalone Wishlist Icon with Live Count Badge */}
             <Link
-              to="/products?wishlist=1"
+              to={ROUTES.PRODUCTS_WISHLIST}
               className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer group"
               title="Saved Wishlist"
               aria-label="Saved Wishlist"
@@ -803,7 +804,7 @@ export default function Navbar({
                     </div>
 
                     <Link
-                      to="/profile"
+                      to={ROUTES.PROFILE}
                       onClick={() => setIsAccountDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)] hover:text-[var(--color-brand)] transition-colors"
                     >
@@ -812,7 +813,7 @@ export default function Navbar({
                     </Link>
 
                     <Link
-                      to="/orders"
+                      to={ROUTES.ORDERS}
                       onClick={() => setIsAccountDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)] hover:text-[var(--color-brand)] transition-colors"
                     >
@@ -849,7 +850,7 @@ export default function Navbar({
               </div>
             ) : (
               <Link
-                to="/login"
+                to={ROUTES.LOGIN}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer select-none"
                 title="Customer Sign In"
                 aria-label="Customer Sign In"
@@ -927,7 +928,7 @@ export default function Navbar({
             <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm font-bold flex-wrap">
               {/* Home */}
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   location.pathname === '/' && activeNav === 'home'
                     ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
@@ -939,7 +940,7 @@ export default function Navbar({
 
               {/* All Products */}
               <Link
-                to="/products"
+                to={ROUTES.PRODUCTS}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
                   location.pathname === '/products' && !location.search
                     ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
@@ -951,7 +952,7 @@ export default function Navbar({
 
               {/* Best Sellers */}
               <Link
-                to="/products?section=best_sellers"
+                to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   location.search.includes('best_sellers')
                     ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
@@ -963,7 +964,7 @@ export default function Navbar({
 
               {/* New Arrivals */}
               <Link
-                to="/products?section=new_arrivals"
+                to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   location.search.includes('new_arrivals')
                     ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
@@ -975,7 +976,7 @@ export default function Navbar({
 
               {/* Featured Products */}
               <Link
-                to="/products?section=featured"
+                to={ROUTES.PRODUCTS_BY_SECTION('featured')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   location.search.includes('featured')
                     ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
@@ -987,7 +988,7 @@ export default function Navbar({
 
               {/* Offers & Deals */}
               <Link
-                to="/products?section=deals"
+                to={ROUTES.PRODUCTS_BY_SECTION('deals')}
                 className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
                   location.search.includes('deals')
                     ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
@@ -1121,7 +1122,7 @@ export default function Navbar({
 
                   <div className="p-2 border-t border-[var(--color-border-subtle)] bg-white text-center">
                     <Link
-                      to="/products"
+                      to={ROUTES.PRODUCTS}
                       onClick={() => setIsMegaMenuOpen(false)}
                       className="text-[10px] font-black text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
                     >
@@ -1154,7 +1155,7 @@ export default function Navbar({
                         </div>
 
                         <Link
-                          to={`/products?category_id=${activeCategoryObj.id}`}
+                          to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
                           onClick={() => setIsMegaMenuOpen(false)}
                           className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                         >
@@ -1180,7 +1181,7 @@ export default function Navbar({
                               {selectedCategorySubcategories.map((subcat) => (
                                 <Link
                                   key={subcat.id}
-                                  to={`/products?category_id=${activeCategoryObj.id}&subcategory_id=${subcat.id}`}
+                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(activeCategoryObj.id, subcat.id)}
                                   onClick={() => setIsMegaMenuOpen(false)}
                                   className="group p-3 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
@@ -1216,7 +1217,7 @@ export default function Navbar({
                                 Popular in {activeCategoryObj.name}
                               </span>
                               <Link
-                                to={`/products?category_id=${activeCategoryObj.id}`}
+                                to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
                                 onClick={() => setIsMegaMenuOpen(false)}
                                 className="text-xs font-extrabold text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
                               >
@@ -1228,7 +1229,7 @@ export default function Navbar({
                               {activeCategoryProducts.map((prod) => (
                                 <Link
                                   key={prod.id}
-                                  to={`/product/${prod.id}`}
+                                  to={ROUTES.PRODUCT_DETAIL(prod.id)}
                                   onClick={() => setIsMegaMenuOpen(false)}
                                   className="group p-2.5 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
@@ -1265,7 +1266,7 @@ export default function Navbar({
                               Browse all available products in this category from our store catalog.
                             </p>
                             <Link
-                              to={`/products?category_id=${activeCategoryObj.id}`}
+                              to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
                               onClick={() => setIsMegaMenuOpen(false)}
                               className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black shadow-xs transition-all flex items-center gap-2"
                             >
@@ -1348,7 +1349,7 @@ export default function Navbar({
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Link
-                        to="/profile"
+                        to={ROUTES.PROFILE}
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="text-[11px] text-[var(--color-brand)] hover:underline"
                       >
@@ -1356,7 +1357,7 @@ export default function Navbar({
                       </Link>
                       <span className="text-gray-300">•</span>
                       <Link
-                        to="/orders"
+                        to={ROUTES.ORDERS}
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="text-[11px] text-[var(--color-brand)] font-bold hover:underline"
                       >
@@ -1372,7 +1373,7 @@ export default function Navbar({
                     <p className="text-[10px] text-[var(--color-text-muted)]">Sign in to track orders & rewards</p>
                   </div>
                   <Link
-                    to="/login"
+                    to={ROUTES.LOGIN}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="px-3 py-1.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-[11px] font-black shadow-xs"
                   >
@@ -1383,7 +1384,7 @@ export default function Navbar({
 
               {/* Navigation Links */}
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
@@ -1392,7 +1393,7 @@ export default function Navbar({
               </Link>
 
               <Link
-                to="/products"
+                to={ROUTES.PRODUCTS}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
@@ -1401,7 +1402,7 @@ export default function Navbar({
               </Link>
 
               <Link
-                to="/products?section=best_sellers"
+                to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
@@ -1410,7 +1411,7 @@ export default function Navbar({
               </Link>
 
               <Link
-                to="/products?section=new_arrivals"
+                to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
@@ -1419,7 +1420,7 @@ export default function Navbar({
               </Link>
 
               <Link
-                to="/products?section=featured"
+                to={ROUTES.PRODUCTS_BY_SECTION('featured')}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
@@ -1428,7 +1429,7 @@ export default function Navbar({
               </Link>
 
               <Link
-                to="/products?section=deals"
+                to={ROUTES.PRODUCTS_BY_SECTION('deals')}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors text-pink-700"
               >
@@ -1456,7 +1457,7 @@ export default function Navbar({
                         <div key={cat.id} className="rounded-xl border border-[var(--color-border-subtle)]/80 overflow-hidden bg-white">
                           <div className="flex items-center justify-between p-2.5">
                             <Link
-                              to={`/products?category_id=${cat.id}`}
+                              to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
                               onClick={() => setIsMobileMenuOpen(false)}
                               className="flex items-center gap-2.5 flex-1 min-w-0"
                             >
@@ -1505,7 +1506,7 @@ export default function Navbar({
                           {catSubs.length > 0 && isExpanded && (
                             <div className="bg-[var(--color-bg-main)] px-3 py-2 border-t border-[var(--color-border-subtle)] space-y-1">
                               <Link
-                                to={`/products?category_id=${cat.id}`}
+                                to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="block py-1 px-2 text-[11px] font-extrabold text-[var(--color-brand)] hover:underline"
                               >
@@ -1514,7 +1515,7 @@ export default function Navbar({
                               {catSubs.map((subcat) => (
                                 <Link
                                   key={subcat.id}
-                                  to={`/products?category_id=${cat.id}&subcategory_id=${subcat.id}`}
+                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(cat.id, subcat.id)}
                                   onClick={() => setIsMobileMenuOpen(false)}
                                   className="flex items-center justify-between py-1 px-2 rounded-lg text-[11px] font-semibold text-gray-700 hover:bg-[var(--color-primary-tint)] hover:text-[var(--color-brand)] transition-colors"
                                 >
@@ -1550,7 +1551,7 @@ export default function Navbar({
                 )}
 
                 <Link
-                  to="/products?wishlist=1"
+                  to={ROUTES.PRODUCTS_WISHLIST}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[var(--color-primary-tint)] font-bold"
                 >

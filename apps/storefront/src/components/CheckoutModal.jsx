@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api, getCustomerToken, fetchCustomerAddresses, resolveImageUrl } from '../lib/api'
 import { clearCart } from '../lib/cart'
+import { ROUTES } from '../routes/routes'
 
 export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [formData, setFormData] = useState({
@@ -271,7 +272,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
             </div>
             <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center items-center max-w-sm mx-auto">
               <Link
-                to="/login"
+                to={ROUTES.LOGIN}
                 onClick={onClose}
                 className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
               >

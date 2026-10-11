@@ -4,6 +4,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
+import { ROUTES } from '../routes/routes'
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 function imageUrl(path: string | null) {
@@ -61,7 +62,7 @@ export function ProductsPage() {
               </button>
             </div>
 
-            <Link to="/products/new">
+            <Link to={ROUTES.PRODUCT_NEW}>
               <Button>+ New Product</Button>
             </Link>
           </div>
@@ -89,7 +90,7 @@ export function ProductsPage() {
             return (
               <div
                 key={p.id}
-                onClick={() => navigate(`/products/${p.id}`)}
+                onClick={() => navigate(ROUTES.PRODUCT_DETAIL(p.id))}
                 className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--color-border-muted)] bg-white p-3 shadow-2xs hover:shadow-md hover:border-[var(--color-primary)] transition-all cursor-pointer"
               >
                 <div>
@@ -140,7 +141,7 @@ export function ProductsPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate(`/products/${p.id}`)
+                      navigate(ROUTES.PRODUCT_DETAIL(p.id))
                     }}
                     className="text-[11px] font-semibold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]"
                   >
@@ -151,7 +152,7 @@ export function ProductsPage() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/products/${p.id}`)
+                        navigate(ROUTES.PRODUCT_DETAIL(p.id))
                       }}
                       className="p-1 rounded-lg text-slate-400 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)]"
                       title="Edit"
@@ -191,7 +192,7 @@ export function ProductsPage() {
               {products.map((p) => (
                 <tr
                   key={p.id}
-                  onClick={() => navigate(`/products/${p.id}`)}
+                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(p.id))}
                   className="cursor-pointer hover:bg-[var(--color-surface)]/40 transition-colors"
                 >
                   <td className="px-4 py-2.5 flex items-center gap-3">
@@ -233,7 +234,7 @@ export function ProductsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/products/${p.id}`)
+                        navigate(ROUTES.PRODUCT_DETAIL(p.id))
                       }}
                       className="p-1 rounded-lg text-slate-500 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)] transition-colors"
                       title="View Details"
@@ -243,7 +244,7 @@ export function ProductsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        navigate(`/products/${p.id}`)
+                        navigate(ROUTES.PRODUCT_DETAIL(p.id))
                       }}
                       className="p-1 rounded-lg text-slate-500 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary)] transition-colors"
                       title="Edit Product"

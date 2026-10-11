@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Card, PageHeader, Select, Spinner } from '../components/ui'
+import { ROUTES } from '../routes/routes'
 import { api } from '../lib/api'
 
 interface Delivery {
@@ -72,7 +73,7 @@ export function DeliveriesPage() {
             </thead>
             <tbody className="divide-y divide-[var(--color-extra-004)]">
               {deliveries.map((d) => (
-                <tr key={d.id} onClick={() => navigate(`/deliveries/${d.id}`)} className="cursor-pointer hover:bg-[var(--color-surface)]/80 transition-colors">
+                <tr key={d.id} onClick={() => navigate(ROUTES.DELIVERY_DETAIL(d.id))} className="cursor-pointer hover:bg-[var(--color-surface)]/80 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-950">{d.order_no}</td>
                   <td className="px-6 py-4 font-semibold text-slate-800">
                     {d.customer_name} <span className="text-xs text-slate-600 font-medium">({d.customer_phone})</span>

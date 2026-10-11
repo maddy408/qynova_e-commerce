@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, getCustomerToken, clearCustomerToken, clearCustomerSession, setCustomerSession, fetchStoreSettings, resolveImageUrl } from '../../lib/api'
+import { ROUTES } from '../../routes/routes'
 
 export default function Profile() {
   const navigate = useNavigate()
@@ -15,7 +16,7 @@ export default function Profile() {
     const token = getCustomerToken()
     if (!token) {
       clearCustomerSession()
-      navigate('/login')
+      navigate(ROUTES.LOGIN)
       return
     }
 
@@ -38,7 +39,7 @@ export default function Profile() {
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
           clearCustomerSession()
-          navigate('/login')
+          navigate(ROUTES.LOGIN)
         } else {
           setError('Unable to load profile from server')
         }
@@ -48,7 +49,7 @@ export default function Profile() {
 
   const handleLogout = () => {
     clearCustomerSession()
-    navigate('/')
+    navigate(ROUTES.HOME)
   }
 
   const formatDate = (dateStr) => {
@@ -70,7 +71,7 @@ export default function Profile() {
       {/* Top Navigation Bar */}
       <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 min-h-14 py-2 sm:py-0 flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-2 group shrink-0">
+          <Link to={ROUTES.HOME} className="flex items-center gap-2 group shrink-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <circle cx="8" cy="21" r="1" />
@@ -93,7 +94,7 @@ export default function Profile() {
 
           <div className="flex items-center gap-1.5 sm:gap-3">
             <Link
-              to="/"
+              to={ROUTES.HOME}
               className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-text-main)] flex items-center gap-1 px-2.5 sm:px-3.5 py-2 rounded-full hover:bg-[var(--color-bg-alt)] transition-colors"
             >
               <span>← Store</span>
@@ -113,7 +114,7 @@ export default function Profile() {
         
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] mb-4 sm:mb-6">
-          <Link to="/" className="text-[var(--color-brand)] hover:underline">Home</Link>
+          <Link to={ROUTES.HOME} className="text-[var(--color-brand)] hover:underline">Home</Link>
           <span>/</span>
           <span className="text-[var(--color-text-main)]">My Profile</span>
         </div>
@@ -131,7 +132,7 @@ export default function Profile() {
           <div className="bg-white rounded-3xl p-8 text-center border border-red-200 shadow-sm space-y-3">
             <p className="text-sm font-bold text-red-600">{error}</p>
             <Link
-              to="/"
+              to={ROUTES.HOME}
               className="inline-block px-5 py-2.5 bg-[var(--color-brand)] text-white font-bold text-xs rounded-full hover:bg-[var(--color-brand-hover)] min-h-[44px]"
             >
               Back to Home
@@ -215,7 +216,7 @@ export default function Profile() {
             {/* Quick Access Tiles: Orders, Wishlist, Addresses */}
             <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
               <Link
-                to="/orders"
+                to={ROUTES.ORDERS}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-10 h-10 rounded-xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">
@@ -226,7 +227,7 @@ export default function Profile() {
               </Link>
 
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">
@@ -237,7 +238,7 @@ export default function Profile() {
               </Link>
 
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">
@@ -347,7 +348,7 @@ export default function Profile() {
             {/* Quick Navigation Footer */}
             <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <Link
-                to="/"
+                to={ROUTES.HOME}
                 className="min-h-[44px] flex items-center justify-center px-6 py-3 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-black/10 active:scale-98"
               >
                 Continue Shopping

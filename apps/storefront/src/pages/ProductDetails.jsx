@@ -10,6 +10,7 @@ import {
   fetchCategories,
   resolveImageUrl,
 } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 import Navbar from '../components/Navbar'
 import HorizontalProductSection from '../components/HorizontalProductSection'
 import CartDrawer from '../components/CartDrawer'
@@ -535,18 +536,18 @@ export default function ProductDetails() {
 
       {/* BREADCRUMB NAVIGATION */}
       <nav aria-label="Breadcrumb" className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-3.5 text-xs font-medium text-gray-500 flex items-center gap-2 flex-wrap">
-        <Link to="/" className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-bold hover:underline">
+        <Link to={ROUTES.HOME} className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-bold hover:underline">
           Home
         </Link>
         <span className="text-gray-300">/</span>
-        <Link to="/products" className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline">
+        <Link to={ROUTES.PRODUCTS} className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline">
           Shop
         </Link>
         {primaryCategory && (
           <>
             <span className="text-gray-300">/</span>
             <Link
-              to={`/products?category_id=${primaryCategory.id}`}
+              to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id)}
               className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline"
             >
               {primaryCategory.name}
@@ -557,7 +558,7 @@ export default function ProductDetails() {
           <>
             <span className="text-gray-300">/</span>
             <Link
-              to={`/products?subcategory_id=${product.subcategories[0].id}`}
+              to={ROUTES.PRODUCTS_BY_SUBCATEGORY(product.subcategories[0].id)}
               className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline"
             >
               {product.subcategories[0].name}
@@ -603,7 +604,7 @@ export default function ProductDetails() {
             <h2 className="text-xl font-bold text-gray-900 mb-2">Product Not Found</h2>
             <p className="text-sm text-gray-600 mb-6">{error}</p>
             <Link
-              to="/products"
+              to={ROUTES.PRODUCTS}
               className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white rounded-xl font-bold text-sm shadow-md transition-colors"
             >
               ← Return to Catalog
@@ -747,7 +748,7 @@ export default function ProductDetails() {
                   <div className="flex items-center gap-2 flex-wrap mb-2">
                     {primaryCategory && (
                       <Link
-                        to={`/products?category_id=${primaryCategory.id}`}
+                        to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id)}
                         className="text-xs font-bold text-[var(--color-brand)] uppercase tracking-wider bg-[var(--color-bg-main)] px-2.5 py-1 rounded-md hover:bg-[var(--color-primary-tint)] transition-colors"
                       >
                         {primaryCategory.name}
@@ -1392,7 +1393,7 @@ export default function ProductDetails() {
             title="You May Also Like"
             subtitle="Curated matching accessories and essentials"
             products={relatedProducts}
-            viewAllLink={primaryCategory ? `/products?category_id=${primaryCategory.id}` : '/products'}
+            viewAllLink={primaryCategory ? ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id) : '/products'}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
@@ -1631,13 +1632,13 @@ export default function ProductDetails() {
                 {categories.length > 0 ? (
                   categories.slice(0, 6).map((c) => (
                     <li key={c.id}>
-                      <Link to={`/products?category_id=${c.id}`} className="hover:text-[var(--color-brand-hover)] transition-colors">
+                      <Link to={ROUTES.PRODUCTS_BY_CATEGORY(c.id)} className="hover:text-[var(--color-brand-hover)] transition-colors">
                         {c.name}
                       </Link>
                     </li>
                   ))
                 ) : (
-                  <li><Link to="/products" className="hover:text-[var(--color-brand)] transition-colors">All Products</Link></li>
+                  <li><Link to={ROUTES.PRODUCTS} className="hover:text-[var(--color-brand)] transition-colors">All Products</Link></li>
                 )}
               </ul>
             </div>
@@ -1645,10 +1646,10 @@ export default function ProductDetails() {
             <div>
               <h4 className="text-xs font-black text-[var(--color-text-main)] uppercase tracking-wider mb-3">Customer Service</h4>
               <ul className="space-y-2 text-xs text-[var(--color-text-muted)]">
-                <li><Link to="/pages/shipping-policy" className="hover:text-[var(--color-brand)] transition-colors">Shipping & Delivery Policy</Link></li>
-                <li><Link to="/pages/return-exchange-policy" className="hover:text-[var(--color-brand)] transition-colors">Returns & Refunds</Link></li>
-                <li><Link to="/pages/privacy-policy" className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/pages/terms-and-conditions" className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
+                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-[var(--color-brand)] transition-colors">Shipping & Delivery Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-[var(--color-brand)] transition-colors">Returns & Refunds</Link></li>
+                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
               </ul>
             </div>
 

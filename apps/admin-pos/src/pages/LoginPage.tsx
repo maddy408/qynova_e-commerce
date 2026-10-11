@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiErrorMessage } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { ROUTES } from '../routes/routes'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -19,7 +20,7 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       await login(email, password)
-      navigate('/', { replace: true })
+      navigate(ROUTES.DASHBOARD, { replace: true })
     } catch (err) {
       setError(apiErrorMessage(err, 'Invalid credentials. Please check and try again.'))
     } finally {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { api, getCustomerToken, clearCustomerSession } from '../../lib/api'
+import { ROUTES } from '../../routes/routes'
 
 export default function OrderDetail() {
   const { id } = useParams()
@@ -20,7 +21,7 @@ export default function OrderDetail() {
     const token = getCustomerToken()
     if (!token) {
       clearCustomerSession()
-      navigate('/login')
+      navigate(ROUTES.LOGIN)
       return
     }
 
@@ -28,7 +29,7 @@ export default function OrderDetail() {
     setError(null)
 
     api
-      .get(`/orders/${id}`)
+      .get(ROUTES.ORDER_DETAIL(id))
       .then((res) => {
         if (res.data?.order) {
           setOrder(res.data.order)
@@ -48,7 +49,7 @@ export default function OrderDetail() {
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
           clearCustomerSession()
-          navigate('/login')
+          navigate(ROUTES.LOGIN)
         } else {
           setError(err.response?.data?.error || 'Order not found')
         }
@@ -157,7 +158,7 @@ export default function OrderDetail() {
       {/* Top Header */}
       <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+          <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
               <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <circle cx="8" cy="21" r="1" />
@@ -179,7 +180,7 @@ export default function OrderDetail() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
-              to="/orders"
+              to={ROUTES.ORDERS}
               className="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] px-3 py-2 rounded-full hover:bg-[var(--color-bg-alt)] transition-colors flex items-center gap-1.5"
             >
               <span>←</span>
@@ -194,9 +195,9 @@ export default function OrderDetail() {
         
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-text-muted)] mb-4">
-          <Link to="/" className="hover:text-[var(--color-brand)]">Home</Link>
+          <Link to={ROUTES.HOME} className="hover:text-[var(--color-brand)]">Home</Link>
           <span>/</span>
-          <Link to="/orders" className="hover:text-[var(--color-brand)]">My Orders</Link>
+          <Link to={ROUTES.ORDERS} className="hover:text-[var(--color-brand)]">My Orders</Link>
           <span>/</span>
           <span className="text-[var(--color-text-main)] font-bold">{order?.order_no || `Order #${id}`}</span>
         </div>
@@ -216,7 +217,7 @@ export default function OrderDetail() {
             <h3 className="text-lg font-black text-red-950">Could Not Load Order</h3>
             <p className="text-xs font-medium text-red-700">{error}</p>
             <Link
-              to="/orders"
+              to={ROUTES.ORDERS}
               className="inline-block px-6 py-2.5 rounded-full bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors"
             >
               Back to My Orders
@@ -257,7 +258,7 @@ export default function OrderDetail() {
                     </button>
                   )}
                   <Link
-                    to="/shop"
+                    to={ROUTES.SHOP}
                     className="px-5 py-2 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] hover:bg-[var(--color-primary-tint)] text-xs font-bold transition-colors"
                   >
                     Buy Again

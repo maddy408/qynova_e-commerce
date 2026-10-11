@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 export default function PopupBannerModal({ banner }) {
   const navigate = useNavigate()
@@ -44,18 +45,18 @@ export default function PopupBannerModal({ banner }) {
       return
     }
     if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(`/products?category_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       return
     }
     if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(`/product/${banner.target_id}`)
+      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
       return
     }
     if (banner.target_type === 'EXTERNAL_URL' && banner.target_url) {
       window.open(banner.target_url, '_blank', 'noopener,noreferrer')
       return
     }
-    navigate('/products')
+    navigate(ROUTES.PRODUCTS)
   }
 
   const image = resolveImageUrl(banner.image_desktop_path || banner.image_mobile_path)

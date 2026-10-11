@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card, Modal, Spinner, TextField } from '../compon
 import { api, apiErrorMessage } from '../lib/api'
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
 import type { ProductDetail, ProductVariant, VariantAttribute } from '../lib/types'
+import { ROUTES } from '../routes/routes'
 
 const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 
@@ -57,7 +58,7 @@ export function ProductDetailPage() {
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <button onClick={() => navigate('/products')} className="text-xs font-medium text-slate-400 hover:text-slate-700">
+          <button onClick={() => navigate(ROUTES.PRODUCTS)} className="text-xs font-medium text-slate-400 hover:text-slate-700">
             ← Products
           </button>
           <h1 className="mt-1 text-xl font-semibold text-slate-900">{product.name}</h1>
