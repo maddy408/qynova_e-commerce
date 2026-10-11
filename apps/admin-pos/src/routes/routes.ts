@@ -29,12 +29,13 @@ import { InvoicesPage } from '../pages/InvoicesPage'
 import { LoginPage } from '../pages/LoginPage'
 import { OrderDetailPage } from '../pages/OrderDetailPage'
 import { OrdersPage } from '../pages/OrdersPage'
+import { CustomerPriceAdjustmentPage } from '../pages/CustomerPriceAdjustmentPage'
 import { PaymentMethodsPage } from '../pages/PaymentMethodsPage'
-import { PriceAdjustmentPage } from '../pages/PriceAdjustmentPage'
 import { ProductCreatePage } from '../pages/ProductCreatePage'
 import { ProductDetailPage } from '../pages/ProductDetailPage'
 import { ProductsPage } from '../pages/ProductsPage'
 import { PurchasesPage } from '../pages/PurchasesPage'
+import { RetailPriceAdjustmentPage } from '../pages/RetailPriceAdjustmentPage'
 import { ReferralSettingsPage } from '../pages/ReferralSettingsPage'
 import { ReportsPage } from '../pages/ReportsPage'
 import { ReturnsPage } from '../pages/ReturnsPage'
@@ -46,6 +47,7 @@ import { SuppliersPage } from '../pages/SuppliersPage'
 import { TaxPage } from '../pages/TaxPage'
 import { UnitsPage } from '../pages/UnitsPage'
 import { UsersPage } from '../pages/UsersPage'
+import { WholesalePriceAdjustmentPage } from '../pages/WholesalePriceAdjustmentPage'
 
 export const ROUTES = {
   LOGIN: '/login',
@@ -58,7 +60,9 @@ export const ROUTES = {
   PRODUCTS: '/products',
   PRODUCT_NEW: '/products/new',
   PRODUCT_DETAIL: (id: string | number = ':id') => `/products/${id}`,
-  PRICE_ADJUSTMENT: '/price-adjustment',
+  PRICE_ADJUSTMENT_RETAIL: '/price-adjustment/retail',
+  PRICE_ADJUSTMENT_WHOLESALE: '/price-adjustment/wholesale',
+  PRICE_ADJUSTMENT_CUSTOMER: '/price-adjustment/customer',
   UNITS: '/units',
   TAX: '/tax',
 
@@ -120,7 +124,9 @@ export const ROUTE_TABLE: RouteDef[] = [
   { path: ROUTES.PRODUCTS, component: ProductsPage, access: 'catalog.manage' },
   { path: ROUTES.PRODUCT_NEW, component: ProductCreatePage, access: 'catalog.manage' },
   { path: ROUTES.PRODUCT_DETAIL(':id'), component: ProductDetailPage, access: 'catalog.manage' },
-  { path: ROUTES.PRICE_ADJUSTMENT, component: PriceAdjustmentPage, access: 'catalog.manage' },
+  { path: ROUTES.PRICE_ADJUSTMENT_RETAIL, component: RetailPriceAdjustmentPage, access: 'catalog.manage' },
+  { path: ROUTES.PRICE_ADJUSTMENT_WHOLESALE, component: WholesalePriceAdjustmentPage, access: 'catalog.manage' },
+  { path: ROUTES.PRICE_ADJUSTMENT_CUSTOMER, component: CustomerPriceAdjustmentPage, access: 'catalog.manage' },
   { path: ROUTES.UNITS, component: UnitsPage, access: 'catalog.manage' },
   { path: ROUTES.TAX, component: TaxPage, access: 'catalog.manage' },
 
@@ -188,13 +194,25 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'catalog',
     label: 'Catalog',
     to: ROUTES.CATEGORIES,
-    matchPrefixes: [ROUTES.CATEGORIES, ROUTES.SUBCATEGORIES, ROUTES.BRANDS, ROUTES.PRODUCTS, ROUTES.PRICE_ADJUSTMENT, ROUTES.UNITS, ROUTES.TAX],
+    matchPrefixes: [
+      ROUTES.CATEGORIES,
+      ROUTES.SUBCATEGORIES,
+      ROUTES.BRANDS,
+      ROUTES.PRODUCTS,
+      ROUTES.PRICE_ADJUSTMENT_RETAIL,
+      ROUTES.PRICE_ADJUSTMENT_WHOLESALE,
+      ROUTES.PRICE_ADJUSTMENT_CUSTOMER,
+      ROUTES.UNITS,
+      ROUTES.TAX,
+    ],
     items: [
       { to: ROUTES.CATEGORIES, label: 'Category', permission: 'catalog.manage' },
       { to: ROUTES.SUBCATEGORIES, label: 'Subcategory', permission: 'catalog.manage' },
       { to: ROUTES.BRANDS, label: 'Brands & Mapping', permission: 'catalog.manage' },
       { to: ROUTES.PRODUCTS, label: 'Products', permission: 'catalog.manage' },
-      { to: ROUTES.PRICE_ADJUSTMENT, label: 'Price Adjustment', permission: 'catalog.manage' },
+      { to: ROUTES.PRICE_ADJUSTMENT_RETAIL, label: 'Retail Price Adjustment', permission: 'catalog.manage' },
+      { to: ROUTES.PRICE_ADJUSTMENT_WHOLESALE, label: 'Wholesale Price Adjustment', permission: 'catalog.manage' },
+      { to: ROUTES.PRICE_ADJUSTMENT_CUSTOMER, label: 'Customer-Wise Price Adjustment', permission: 'catalog.manage' },
       { to: ROUTES.TAX, label: 'Tax', permission: 'catalog.manage' },
       { to: ROUTES.UNITS, label: 'Unit', permission: 'catalog.manage' },
     ],

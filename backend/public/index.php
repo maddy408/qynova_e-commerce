@@ -188,6 +188,7 @@ $router->post('/api/variant-attributes/{id}/values', fn ($id) => $variants->stor
 $router->post('/api/products/{id}/variants', fn ($id) => $variants->store($id));
 $router->post('/api/products/{id}/variants/generate', fn ($id) => $variants->generateCombinations($id));
 $router->put('/api/variants/{id}', fn ($id) => $variants->update($id));
+$router->put('/api/variants/{id}/price', fn ($id) => $products->updateVariantPrice($id));
 $router->get('/api/variants/lookup', fn () => $variants->lookup());
 
 // Variant images — each variant's own gallery, never mixed with another
