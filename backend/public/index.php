@@ -77,6 +77,8 @@ $router->post('/api/referrals/validate', fn () => $customerAuth->validateReferra
 // Staff auth (docs/DOCUMENTATION.md section 5)
 $auth = new AuthController($pdo);
 $router->post('/api/auth/login', fn () => $auth->login());
+$router->post('/api/auth/refresh', fn () => $auth->refresh());
+$router->post('/api/auth/logout', fn () => $auth->logout());
 $router->get('/api/auth/me', fn () => $auth->me());
 
 // Referral settings & report (ECOMMERCE_POS_ADMIN_SPEC.md sections 3-4)

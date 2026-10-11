@@ -37,6 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    // Revoke the refresh token server-side so the cookie can't silently
+    // mint new access tokens after this — but clear local state
+    // immediately either way, since the user should appear logged out
+    // even if this network call fails.
+    api.post('/auth/logout').catch(() => {})
     clearToken()
     setUser(null)
   }
