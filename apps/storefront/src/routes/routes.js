@@ -37,6 +37,11 @@ export const ROUTES = {
   PROFILE: '/profile',
   ORDERS: '/orders',
   ORDER_DETAIL: (id) => `/orders/${id}`,
+
+  // TODO: Razorpay implementation — these paths are reserved but not yet
+  // registered in App.jsx's <Routes> (see src/pages/payment/).
+  PAYMENT_SUCCESS: '/payment/success',
+  PAYMENT_FAILED: '/payment/failed',
 }
 
 /** <Route path> patterns (react-router's own ":param" syntax) — used only
