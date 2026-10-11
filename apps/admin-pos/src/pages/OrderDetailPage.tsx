@@ -146,10 +146,10 @@ export function OrderDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Card className="p-6 border border-[#F2E5E7]">
+          <Card className="p-6 border border-[var(--color-border-muted)]">
             <h2 className="mb-4 text-base font-bold text-slate-950">Items</h2>
             <table className="w-full text-left text-sm">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Product</th>
                   <th className="px-4 py-3">Qty</th>
@@ -157,9 +157,9 @@ export function OrderDetailPage() {
                   <th className="px-4 py-3">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0E0E3]">
+              <tbody className="divide-y divide-[var(--color-extra-004)]">
                 {order.items.map((item) => (
-                  <tr key={item.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                  <tr key={item.id} className="hover:bg-[var(--color-surface)]/80 transition-colors">
                     <td className="px-4 py-3.5">
                       <p className="font-bold text-slate-950">{item.product_name_snapshot}</p>
                       <p className="text-xs font-semibold text-slate-600">

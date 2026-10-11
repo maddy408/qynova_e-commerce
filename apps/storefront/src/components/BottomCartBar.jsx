@@ -48,14 +48,14 @@ export default function BottomCartBar({ onOpenCart }) {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E8E0E5] shadow-[0_-4px_20px_rgba(96,29,73,0.10)] transition-all animate-in slide-in-from-bottom-2 duration-200"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[var(--color-border-subtle)] shadow-[var(--shadow-cart-bar)] transition-all animate-in slide-in-from-bottom-2 duration-200"
       role="region"
       aria-label="Cart summary"
     >
       <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-2.5 sm:py-3 flex items-center justify-between gap-3">
         {/* Left: Cart items info & live totals */}
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F2DDE9] text-[#601D49] flex items-center justify-center shrink-0 border border-[#E8E0E5] shadow-xs">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center shrink-0 border border-[var(--color-border-subtle)] shadow-xs">
             <svg
               className="w-5 h-5 sm:w-5.5 sm:h-5.5"
               viewBox="0 0 24 24"
@@ -73,11 +73,11 @@ export default function BottomCartBar({ onOpenCart }) {
 
           <div className="min-w-0 flex flex-col">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs sm:text-sm font-black text-[#2D252B]">
+              <span className="text-xs sm:text-sm font-black text-[var(--color-text-main)]">
                 {count} {count === 1 ? 'item' : 'items'}
               </span>
               <span className="text-gray-300 hidden xs:inline">•</span>
-              <span className="text-xs sm:text-sm font-black text-[#601D49]">
+              <span className="text-xs sm:text-sm font-black text-[var(--color-brand)]">
                 ₹{numericSubtotal.toFixed(2)}
               </span>
               {actualSavings > 0 && (
@@ -86,7 +86,7 @@ export default function BottomCartBar({ onOpenCart }) {
                 </span>
               )}
             </div>
-            <p className="text-[10px] sm:text-[11px] text-[#6B5E68] truncate hidden sm:block">
+            <p className="text-[10px] sm:text-[11px] text-[var(--color-text-muted)] truncate hidden sm:block">
               Free delivery and coupons calculated at checkout
             </p>
           </div>
@@ -97,7 +97,7 @@ export default function BottomCartBar({ onOpenCart }) {
           <button
             type="button"
             onClick={onOpenCart}
-            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-[#601D49] hover:bg-[#4D153A] text-white text-xs sm:text-sm font-black shadow-md shadow-black/10 active:scale-95 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white text-xs sm:text-sm font-black shadow-md shadow-black/10 active:scale-95 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
           >
             <span>View Cart</span>
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>

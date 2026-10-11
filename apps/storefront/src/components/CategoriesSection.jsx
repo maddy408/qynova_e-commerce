@@ -60,16 +60,16 @@ export default function CategoriesSection({
         <div>
           {badgeText && (
             <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#F2DDE9] text-[#601D49]">
+              <span className="px-2.5 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
                 {badgeText}
               </span>
             </div>
           )}
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2D252B] tracking-tight">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-xs sm:text-sm text-[#6B5E68] mt-0.5">
+            <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5">
               {subtitle}
             </p>
           )}
@@ -84,10 +84,10 @@ export default function CategoriesSection({
                 onClick={() => handleScroll('left')}
                 disabled={!canScrollLeft}
                 aria-label={`Scroll ${title} left`}
-                className={`w-9 h-9 rounded-full border border-[#E8E0E5] flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[var(--color-border-subtle)] flex items-center justify-center transition-all ${
                   canScrollLeft
-                    ? 'bg-white hover:bg-[#F2DDE9] text-[#2D252B] shadow-sm cursor-pointer hover:border-[#601D49] active:scale-95'
-                    : 'bg-[#F8F3F6] text-[#6B5E68]/40 border-[#E8E0E5] cursor-not-allowed opacity-50'
+                    ? 'bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] shadow-sm cursor-pointer hover:border-[var(--color-brand)] active:scale-95'
+                    : 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/40 border-[var(--color-border-subtle)] cursor-not-allowed opacity-50'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -100,10 +100,10 @@ export default function CategoriesSection({
                 onClick={() => handleScroll('right')}
                 disabled={!canScrollRight}
                 aria-label={`Scroll ${title} right`}
-                className={`w-9 h-9 rounded-full border border-[#E8E0E5] flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[var(--color-border-subtle)] flex items-center justify-center transition-all ${
                   canScrollRight
-                    ? 'bg-white hover:bg-[#F2DDE9] text-[#2D252B] shadow-sm cursor-pointer hover:border-[#601D49] active:scale-95'
-                    : 'bg-[#F8F3F6] text-[#6B5E68]/40 border-[#E8E0E5] cursor-not-allowed opacity-50'
+                    ? 'bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] shadow-sm cursor-pointer hover:border-[var(--color-brand)] active:scale-95'
+                    : 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/40 border-[var(--color-border-subtle)] cursor-not-allowed opacity-50'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -116,7 +116,7 @@ export default function CategoriesSection({
           {viewAllLink && (
             <Link
               to={viewAllLink}
-              className="inline-flex items-center gap-1 text-xs font-black text-[#601D49] hover:text-[#4D153A] hover:underline px-3 py-1.5 rounded-full hover:bg-[#F2DDE9] transition-colors shrink-0"
+              className="inline-flex items-center gap-1 text-xs font-black text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] hover:underline px-3 py-1.5 rounded-full hover:bg-[var(--color-primary-tint)] transition-colors shrink-0"
             >
               <span>View All</span>
               <span className="text-sm">→</span>
@@ -131,10 +131,10 @@ export default function CategoriesSection({
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div
               key={idx}
-              className="w-32 sm:w-36 shrink-0 bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse space-y-2.5 flex flex-col items-center text-center"
+              className="w-32 sm:w-36 shrink-0 bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse space-y-2.5 flex flex-col items-center text-center"
             >
-              <div className="w-16 h-16 rounded-full bg-[#F2DDE9]/60" />
-              <div className="h-3 bg-[#F2DDE9]/70 rounded w-20" />
+              <div className="w-16 h-16 rounded-full bg-[var(--color-primary-tint)]/60" />
+              <div className="h-3 bg-[var(--color-primary-tint)]/70 rounded w-20" />
             </div>
           ))}
         </div>
@@ -155,9 +155,9 @@ export default function CategoriesSection({
               <div
                 key={cat.id}
                 onClick={() => navigate(`/products?category_id=${cat.id}`)}
-                className="w-32 sm:w-36 shrink-0 rounded-2xl p-3 sm:p-4 border border-[#E8E0E5] transition-all duration-300 cursor-pointer flex flex-col items-center text-center group bg-white hover:shadow-md hover:border-[#601D49]"
+                className="w-32 sm:w-36 shrink-0 rounded-2xl p-3 sm:p-4 border border-[var(--color-border-subtle)] transition-all duration-300 cursor-pointer flex flex-col items-center text-center group bg-white hover:shadow-md hover:border-[var(--color-brand)]"
               >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[#F7F5F7] border-2 border-[#E8E0E5] group-hover:border-[#601D49] transition-colors flex items-center justify-center mb-2.5 shadow-xs">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[var(--color-bg-alt)] border-2 border-[var(--color-border-subtle)] group-hover:border-[var(--color-brand)] transition-colors flex items-center justify-center mb-2.5 shadow-xs">
                   {img ? (
                     <img
                       src={img}
@@ -166,17 +166,17 @@ export default function CategoriesSection({
                       loading="lazy"
                     />
                   ) : (
-                    <span className="text-xl sm:text-2xl font-black text-[#601D49]">
+                    <span className="text-xl sm:text-2xl font-black text-[var(--color-brand)]">
                       {cat.name.charAt(0)}
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-xs sm:text-sm font-bold text-[#2D252B] group-hover:text-[#601D49] transition-colors line-clamp-1">
+                <h3 className="text-xs sm:text-sm font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand)] transition-colors line-clamp-1">
                   {cat.name}
                 </h3>
                 {cat.product_count !== undefined && (
-                  <span className="text-[10px] text-[#6B5E68] mt-0.5 font-medium">
+                  <span className="text-[10px] text-[var(--color-text-muted)] mt-0.5 font-medium">
                     {cat.product_count} {cat.product_count === 1 ? 'item' : 'items'}
                   </span>
                 )}

@@ -4,39 +4,39 @@ import { resolveImageUrl } from '../lib/api'
 
 const THEME_MAP = {
   blue: {
-    gradient: 'from-[#0369A1] via-[#0284C7] to-[#0EA5E9]',
+    gradient: 'from-[var(--color-extra-004)] via-[var(--color-extra-001)] to-[var(--color-extra-024)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#0369A1]',
+    buttonColor: 'text-[var(--color-extra-004)]',
   },
   teal: {
-    gradient: 'from-[#0F766E] via-[#0D9488] to-[#14B8A6]',
+    gradient: 'from-[var(--color-extra-005)] via-[var(--color-extra-002)] to-[var(--color-info)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#0F766E]',
+    buttonColor: 'text-[var(--color-extra-005)]',
   },
   orange: {
-    gradient: 'from-[#C2410C] via-[#EA580C] to-[#F97316]',
+    gradient: 'from-[var(--color-extra-006)] via-[var(--color-warning)] to-[var(--color-extra-003)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#C2410C]',
+    buttonColor: 'text-[var(--color-extra-006)]',
   },
   pink: {
-    gradient: 'from-[#BE123C] via-[#E11D48] to-[#F43F5E]',
+    gradient: 'from-[var(--color-extra-007)] via-[var(--color-extra-025)] to-[var(--color-error)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#BE123C]',
+    buttonColor: 'text-[var(--color-extra-007)]',
   },
   green: {
-    gradient: 'from-[#15803D] via-[#16A34A] to-[#22C55E]',
+    gradient: 'from-[var(--color-success)] via-[var(--color-extra-026)] to-[var(--color-extra-027)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#15803D]',
+    buttonColor: 'text-[var(--color-success)]',
   },
   lavender: {
-    gradient: 'from-[#6B21A8] via-[#7C3AED] to-[#8B5CF6]',
+    gradient: 'from-[var(--color-referral-dark)] via-[var(--color-referral-strong)] to-[var(--color-referral-alt)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#7C3AED]',
+    buttonColor: 'text-[var(--color-referral-strong)]',
   },
   purple: {
-    gradient: 'from-[#5B21B6] via-[#7C3AED] to-[#8B5CF6]',
+    gradient: 'from-[var(--color-extra-028)] via-[var(--color-referral-strong)] to-[var(--color-referral-alt)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonColor: 'text-[#7C3AED]',
+    buttonColor: 'text-[var(--color-referral-strong)]',
   },
 }
 

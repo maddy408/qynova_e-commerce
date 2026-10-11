@@ -1,14 +1,102 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 @import 'tailwindcss';
 
+/*
+ * Theme tokens — single source of truth for color in this app.
+ * Mirrors src/theme/appColors.ts (keep both in sync when re-theming).
+ * Each --color-* here becomes a Tailwind utility: bg-primary,
+ * text-text-muted, border-border, etc.
+ */
+@theme {
+  --color-primary: #7B3F4A;
+  --color-primary-strong: #804652;
+  --color-primary-strong-hover: #6E3642;
+  --color-sale-accent: #7E1235;
+
+  --color-surface: #FAF2F4;
+  --color-surface-alt: #FAF5F6;
+  --color-surface-muted: #E5D5D8;
+
+  --color-border: #EEDDE0;
+  --color-border-muted: #F2E5E7;
+
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #be123c;
+  --color-info: #0d9488;
+  --color-background: #ffffff;
+  --color-ink: #000000;
+
+  /*
+   * "Extra" tokens: every other distinct color this app used before this
+   * refactor (chart accents, gradient stops, status-pill tints, etc.)
+   * that doesn't map to one of the semantic names above. Auto-extracted
+   * so the app renders pixel-identical to before — these are pass-through
+   * values, not meaningful design tokens, and are good candidates for a
+   * future consolidation pass once someone reviews what each is actually
+   * used for.
+   */
+  --color-extra-001: #4a1821;
+  --color-extra-002: #fdfbfb;
+  --color-extra-003: #e8ccd1;
+  --color-extra-004: #f0e0e3;
+  --color-extra-005: #f8eaed;
+  --color-extra-006: #f3e1e4;
+  --color-extra-007: #dcbac1;
+  --color-extra-008: #b91c1c;
+  --color-extra-009: #68343e;
+  --color-extra-010: #faf0f2;
+  --color-extra-011: #0e7a36;
+  --color-extra-012: #650e2a;
+  --color-extra-013: #f6edee;
+  --color-extra-014: #fde8ec;
+  --color-extra-015: #f9b6c2;
+  --color-extra-016: #e3f8e9;
+  --color-extra-017: #b7edc4;
+  --color-extra-018: #7a4550;
+  --color-extra-019: #f2dfe2;
+  --color-extra-020: #f9f3f4;
+  --color-extra-021: #68333d;
+  --color-extra-022: #6e3743;
+  --color-extra-023: #8b5cf6;
+  --color-extra-024: #22c55e;
+  --color-extra-025: #16a34a;
+  --color-extra-026: #6a3340;
+  --color-extra-027: #f5e6e9;
+  --color-extra-028: #faf8fc;
+  --color-extra-029: #3b82f6;
+  --color-extra-030: #f97316;
+  --color-extra-031: #a78bfa;
+  --color-extra-032: #ec4899;
+  --color-extra-033: #14b8a6;
+  --color-extra-034: #e2cbd0;
+  --color-extra-035: #faf8f0;
+  --color-extra-036: #faf6f3;
+  --color-extra-037: #fbf8f6;
+  --color-extra-038: #f7f0eb;
+  --color-extra-039: #ece0d6;
+  --color-extra-040: #8b4856;
+  --color-extra-041: #5a2c36;
+  --color-extra-042: #f3e5e8;
+  --color-extra-043: #a35c69;
+  --color-extra-044: #680f2c;
+
+  /* Shadow tokens (alpha-blended colors — kept as full box-shadow values
+     since Tailwind's arbitrary shadow syntax takes the whole value) */
+  --shadow-login-card: 0 20px 50px -15px rgba(74, 24, 33, 0.18);
+}
+
 :root {
   color-scheme: light;
-  accent-color: #7B3F4A;
+  accent-color: var(--color-primary);
 }
 
 input[type="checkbox"],
 input[type="radio"] {
-  accent-color: #7B3F4A !important;
+  accent-color: var(--color-primary) !important;
 }
 
 html,
@@ -26,11 +114,11 @@ body {
 
 /* Paper receipt serrated edge utility */
 .receipt-paper {
-  background-color: #FAF5F6;
+  background-color: var(--color-surface-alt);
   position: relative;
   box-shadow: 0 10px 30px -5px rgba(123, 63, 74, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  border-left: 1px solid #EEDDE0;
-  border-right: 1px solid #EEDDE0;
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
 }
 
 .receipt-paper::before,
@@ -47,12 +135,12 @@ body {
 
 .receipt-paper::before {
   top: -10px;
-  background-image: radial-gradient(circle at 8px -4px, transparent 8px, #FAF5F6 9px);
+  background-image: radial-gradient(circle at 8px -4px, transparent 8px, var(--color-surface-alt) 9px);
 }
 
 .receipt-paper::after {
   bottom: -10px;
-  background-image: radial-gradient(circle at 8px 14px, transparent 8px, #FAF5F6 9px);
+  background-image: radial-gradient(circle at 8px 14px, transparent 8px, var(--color-surface-alt) 9px);
 }
 
 @media print {

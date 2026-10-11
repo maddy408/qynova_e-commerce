@@ -86,9 +86,9 @@ export function UnitsPage() {
           <Spinner />
         </div>
       ) : (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
           {/* Card Header with Search and New Unit Button */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+          <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
               <h3 className="text-xl font-bold text-slate-950">All Measurement Units</h3>
               <p className="text-xs text-slate-600 mt-0.5 font-medium">
@@ -117,7 +117,7 @@ export function UnitsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search units, symbols…"
-                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-48 sm:w-56"
+                  className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all w-48 sm:w-56"
                 />
               </div>
 
@@ -125,7 +125,7 @@ export function UnitsPage() {
               <button
                 type="button"
                 onClick={handleOpenCreate}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
               >
                 + New Unit
               </button>
@@ -135,19 +135,19 @@ export function UnitsPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Unit Name</th>
                   <th className="px-6 py-4">Short Code / Symbol</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
+              <tbody className="divide-y divide-[var(--color-extra-013)]">
                 {filteredUnits.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#FAF5F6] transition-colors">
+                  <tr key={u.id} className="hover:bg-[var(--color-surface-alt)] transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900 text-sm">{u.name}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-3.5 py-1 rounded-full text-xs font-mono font-bold inline-block shadow-2xs">
+                      <span className="bg-[var(--color-extra-006)] text-[var(--color-extra-001)] border border-[var(--color-extra-007)] px-3.5 py-1 rounded-full text-xs font-mono font-bold inline-block shadow-2xs">
                         {u.short_code}
                       </span>
                     </td>
@@ -156,7 +156,7 @@ export function UnitsPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(u)}
-                          className="p-1.5 text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] rounded-lg transition-colors border border-transparent hover:border-[#EEDDE0]"
+                          className="p-1.5 text-slate-600 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface)] rounded-lg transition-colors border border-transparent hover:border-[var(--color-border)]"
                           title="Edit Unit"
                         >
                           <PencilIcon className="h-4 w-4" />
@@ -203,7 +203,7 @@ export function UnitsPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Kilogram, Pieces, Box, Meters"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -217,11 +217,11 @@ export function UnitsPage() {
                 value={shortCode}
                 onChange={(e) => setShortCode(e.target.value)}
                 placeholder="e.g. KG, PCS, BOX, MTR"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs uppercase font-mono"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs uppercase font-mono"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
@@ -232,7 +232,7 @@ export function UnitsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
                 {submitting ? 'Saving…' : editingUnit ? 'Save Changes' : 'Add Unit'}
               </button>

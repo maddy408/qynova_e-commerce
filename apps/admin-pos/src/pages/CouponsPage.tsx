@@ -309,7 +309,7 @@ export function CouponsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b border-[#F2E5E7] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[10px] font-bold tracking-wider">
+            <thead className="border-b border-[var(--color-border-muted)] uppercase text-[var(--color-primary-strong)] bg-[var(--color-surface)]/80 text-[10px] font-bold tracking-wider">
               <tr>
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Name</th>
@@ -320,10 +320,10 @@ export function CouponsPage() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2E5E7]">
+            <tbody className="divide-y divide-[var(--color-border-muted)]">
               {coupons.map((c) => (
-                <tr key={c.id} className="hover:bg-[#FAF2F4]/40 transition-colors">
-                  <td className="px-4 py-2.5 font-mono font-bold text-[#7B3F4A] bg-[#FAF2F4] border border-[#EEDDE0] rounded">{c.code}</td>
+                <tr key={c.id} className="hover:bg-[var(--color-surface)]/40 transition-colors">
+                  <td className="px-4 py-2.5 font-mono font-bold text-[var(--color-primary)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded">{c.code}</td>
                   <td className="px-4 py-2.5 font-semibold text-slate-900">{c.name}</td>
                   <td className="px-4 py-2.5 text-slate-900 font-bold">
                     {c.discount_type === 'PERCENTAGE' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`}
@@ -343,7 +343,7 @@ export function CouponsPage() {
                         type="button"
                         onClick={() => handleOpenEdit(c.id)}
                         disabled={fetchingEditId === c.id || deletingId === c.id}
-                        className="p-1.5 rounded-lg text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] transition-colors border border-transparent hover:border-[#EEDDE0] disabled:opacity-50 cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface)] transition-colors border border-transparent hover:border-[var(--color-border)] disabled:opacity-50 cursor-pointer"
                         title="Edit Coupon"
                         aria-label={`Edit coupon ${c.code}`}
                       >
@@ -454,14 +454,14 @@ export function CouponsPage() {
                   <button
                     type="button"
                     onClick={() => setTargetType('ALL')}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'ALL' ? 'bg-[#7B3F4A] text-white' : 'bg-white text-slate-700 border border-[#EEDDE0]'}`}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'ALL' ? 'bg-[var(--color-primary)] text-white' : 'bg-white text-slate-700 border border-[var(--color-border)]'}`}
                   >
                     All Customers
                   </button>
                   <button
                     type="button"
                     onClick={() => setTargetType('SPECIFIC')}
-                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'SPECIFIC' ? 'bg-[#7B3F4A] text-white' : 'bg-white text-slate-700 border border-[#EEDDE0]'}`}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold ${targetType === 'SPECIFIC' ? 'bg-[var(--color-primary)] text-white' : 'bg-white text-slate-700 border border-[var(--color-border)]'}`}
                   >
                     Specific Customers ({selectedCustomerIds.length})
                   </button>
@@ -475,14 +475,14 @@ export function CouponsPage() {
                     placeholder="Search recent customers by name or phone..."
                     value={customerSearch}
                     onChange={(e) => setCustomerSearch(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 px-3 py-1 text-xs focus:ring-1 focus:ring-[#7B3F4A] focus:border-[#7B3F4A]"
+                    className="w-full rounded-md border border-slate-300 px-3 py-1 text-xs focus:ring-1 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
                   />
                   <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto bg-white p-2 rounded-lg border border-slate-200">
                     {filteredCustomers.map((cust) => (
                       <label
                         key={cust.id}
                         className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${
-                          selectedCustomerIds.includes(cust.id) ? 'border-[#7B3F4A] bg-[#FAF2F4]/80' : 'border-slate-200 hover:bg-slate-50'
+                          selectedCustomerIds.includes(cust.id) ? 'border-[var(--color-primary)] bg-[var(--color-surface)]/80' : 'border-slate-200 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -490,7 +490,7 @@ export function CouponsPage() {
                             type="checkbox"
                             checked={selectedCustomerIds.includes(cust.id)}
                             onChange={() => toggleCustomer(cust.id)}
-                            className="h-3.5 w-3.5 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                            className="h-3.5 w-3.5 rounded border-slate-300 accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                           />
                           <div>
                             <p className="font-semibold text-slate-900">{cust.name}</p>
@@ -520,7 +520,7 @@ export function CouponsPage() {
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-slate-700">Applies Only to Specific Products</span>
                 {productIds.length > 0 && (
-                  <span className="text-[10px] text-[#7B3F4A] font-semibold">{productIds.length} selected</span>
+                  <span className="text-[10px] text-[var(--color-primary)] font-semibold">{productIds.length} selected</span>
                 )}
               </div>
               {products.length > 6 && (
@@ -529,7 +529,7 @@ export function CouponsPage() {
                   placeholder="Filter products by name or code..."
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
-                  className="w-full mb-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-xs focus:ring-1 focus:ring-[#7B3F4A] focus:border-[#7B3F4A]"
+                  className="w-full mb-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-xs focus:ring-1 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
                 />
               )}
               <div className="grid max-h-36 grid-cols-2 sm:grid-cols-3 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5">
@@ -539,7 +539,7 @@ export function CouponsPage() {
                       type="checkbox"
                       checked={productIds.includes(p.id)}
                       onChange={() => toggleProduct(p.id)}
-                      className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                      className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                     />
                     <span className="truncate">{p.name}</span>
                   </label>
@@ -554,7 +554,7 @@ export function CouponsPage() {
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-slate-700">Applies Only to Categories</span>
                 {categoryIds.length > 0 && (
-                  <span className="text-[10px] text-[#7B3F4A] font-semibold">{categoryIds.length} selected</span>
+                  <span className="text-[10px] text-[var(--color-primary)] font-semibold">{categoryIds.length} selected</span>
                 )}
               </div>
               <div className="grid max-h-36 grid-cols-3 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5">
@@ -564,7 +564,7 @@ export function CouponsPage() {
                       type="checkbox"
                       checked={categoryIds.includes(c.id)}
                       onChange={() => toggleCategory(c.id)}
-                      className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                      className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                     />
                     <span className="truncate">{c.name}</span>
                   </label>
@@ -579,7 +579,7 @@ export function CouponsPage() {
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold text-slate-700">Applies Only to Brands</span>
                 {brandIds.length > 0 && (
-                  <span className="text-[10px] text-[#7B3F4A] font-semibold">{brandIds.length} selected</span>
+                  <span className="text-[10px] text-[var(--color-primary)] font-semibold">{brandIds.length} selected</span>
                 )}
               </div>
               <div className="grid max-h-36 grid-cols-3 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5">
@@ -589,7 +589,7 @@ export function CouponsPage() {
                       type="checkbox"
                       checked={brandIds.includes(b.id)}
                       onChange={() => toggleBrand(b.id)}
-                      className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                      className="h-3.5 w-3.5 shrink-0 rounded border-slate-300 accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                     />
                     <span className="truncate">{b.name}</span>
                   </label>
@@ -606,7 +606,7 @@ export function CouponsPage() {
                   type="checkbox"
                   checked={firstOrderOnly}
                   onChange={(e) => setFirstOrderOnly(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                  className="h-4 w-4 rounded border-slate-300 accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 First Order Only
               </label>
@@ -615,7 +615,7 @@ export function CouponsPage() {
                   type="checkbox"
                   checked={canCombineWithReferral}
                   onChange={(e) => setCanCombineWithReferral(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                  className="h-4 w-4 rounded border-slate-300 accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                 />
                 Combine with Referral Reward
               </label>

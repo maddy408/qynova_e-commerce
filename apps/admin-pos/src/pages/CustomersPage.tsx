@@ -108,7 +108,7 @@ export function CustomersPage() {
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#EEDDE0] uppercase text-[#804652] bg-[#FAF2F4]/80 text-[11px]">
+              <thead className="border-b border-[var(--color-border)] uppercase text-[var(--color-primary-strong)] bg-[var(--color-surface)]/80 text-[11px]">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Customer Name</th>
                   <th className="px-4 py-3 font-semibold">Mobile Phone</th>
@@ -135,7 +135,7 @@ export function CustomersPage() {
                         <Badge tone={c.customer_type === 'WHOLESALE' ? 'amber' : 'green'}>
                           {c.customer_type === 'WHOLESALE' ? 'WHOLESALE PRICE' : 'RETAIL PRICE'}
                         </Badge>
-                        <span className="text-[10px] text-slate-400 hover:text-[#7B3F4A] font-medium">(Switch)</span>
+                        <span className="text-[10px] text-slate-400 hover:text-[var(--color-primary)] font-medium">(Switch)</span>
                       </button>
                     </td>
                     <td className="px-4 py-3 text-center font-medium text-slate-700">{c.order_count}</td>
@@ -170,7 +170,7 @@ export function CustomersPage() {
             <TextField label="Customer Name" required value={editName} onChange={(e) => setEditName(e.target.value)} />
             <TextField label="Email Address" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Optional" />
 
-            <div className="rounded-xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-3 space-y-2">
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-3 space-y-2">
               <label className="block font-bold text-slate-800">Price Type Mapping</label>
               <Select value={editType} onChange={(e: any) => setEditType(e.target.value)}>
                 <option value="RETAIL">RETAIL PRICE — Standard retail catalog pricing</option>

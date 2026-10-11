@@ -175,18 +175,18 @@ export function PaymentMethodButtons({
                 }
               }}
               title={isDisabled ? creditDisabledReason : method.description || method.label}
-              className={`relative flex items-center justify-between min-h-[48px] px-3.5 py-2.5 rounded-xl text-left transition-all cursor-pointer select-none border focus-visible:ring-2 focus-visible:ring-[#7E1235] focus-visible:outline-hidden ${
+              className={`relative flex items-center justify-between min-h-[48px] px-3.5 py-2.5 rounded-xl text-left transition-all cursor-pointer select-none border focus-visible:ring-2 focus-visible:ring-[var(--color-sale-accent)] focus-visible:outline-hidden ${
                 isDisabled
                   ? 'opacity-40 bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                   : isSelected
-                  ? 'border-[#7E1235] bg-[#7E1235]/8 text-[#7E1235] ring-1.5 ring-[#7E1235] shadow-xs'
+                  ? 'border-[var(--color-sale-accent)] bg-[var(--color-sale-accent)]/8 text-[var(--color-sale-accent)] ring-1.5 ring-[var(--color-sale-accent)] shadow-xs'
                   : 'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50'
               }`}
             >
               <div className="flex items-center space-x-2.5 min-w-0 pr-1">
                 <span
                   className={`shrink-0 transition-colors ${
-                    isDisabled ? 'text-slate-400' : isSelected ? 'text-[#7E1235]' : 'text-slate-600'
+                    isDisabled ? 'text-slate-400' : isSelected ? 'text-[var(--color-sale-accent)]' : 'text-slate-600'
                   }`}
                 >
                   {getMethodIcon(method.code, 'w-5 h-5')}
@@ -198,7 +198,7 @@ export function PaymentMethodButtons({
 
               {/* Selected indicator: Checkmark icon with ring border */}
               {isSelected ? (
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#7E1235] text-white shadow-2xs">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-sale-accent)] text-white shadow-2xs">
                   <CheckIcon className="h-3.5 w-3.5 stroke-[3]" />
                 </span>
               ) : (

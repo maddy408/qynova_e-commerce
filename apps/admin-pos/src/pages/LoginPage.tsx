@@ -28,20 +28,20 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative h-screen max-h-screen w-full flex flex-col justify-between overflow-hidden bg-[#FAF6F3]">
+    <div className="relative h-screen max-h-screen w-full flex flex-col justify-between overflow-hidden bg-[var(--color-extra-036)]">
       {/* ================= BACKGROUND IMAGE & AMBIENT GLOW ================= */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 scale-100 pointer-events-none"
         style={{ backgroundImage: "url('/login-bg.jpg')" }}
       >
         {/* Soft frosted warm overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FBF8F6]/40 via-[#F7F0EB]/30 to-[#ECE0D6]/60 backdrop-blur-[1.5px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-extra-037)]/40 via-[var(--color-extra-038)]/30 to-[var(--color-extra-039)]/60 backdrop-blur-[1.5px]" />
       </div>
 
       {/* ================= TOP NAVIGATION BRAND HEADER ================= */}
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-3 sm:px-10 sm:py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white/70 backdrop-blur-md border border-white/80 shadow-sm flex items-center justify-center text-[#804652]">
+          <div className="w-8 h-8 rounded-xl bg-white/70 backdrop-blur-md border border-white/80 shadow-sm flex items-center justify-center text-[var(--color-primary-strong)]">
             <svg
               className="w-4 h-4"
               viewBox="0 0 24 24"
@@ -55,29 +55,29 @@ export function LoginPage() {
             </svg>
           </div>
           <div>
-            <span className="text-base font-extrabold tracking-widest text-[#4A1821] uppercase">
+            <span className="text-base font-extrabold tracking-widest text-[var(--color-extra-001)] uppercase">
               QYNOVA
             </span>
-            <p className="text-[8px] font-bold tracking-[0.2em] text-[#804652]/90 uppercase">
+            <p className="text-[8px] font-bold tracking-[0.2em] text-[var(--color-primary-strong)]/90 uppercase">
               Unified Commerce &amp; POS
             </p>
           </div>
         </div>
 
         <div className="hidden sm:flex items-center gap-3">
-          <span className="text-xs font-semibold text-[#7A4550]">
+          <span className="text-xs font-semibold text-[var(--color-extra-018)]">
             Craft Your Store Experience
           </span>
-          <div className="w-6 h-[1px] bg-[#804652]/40" />
+          <div className="w-6 h-[1px] bg-[var(--color-primary-strong)]/40" />
         </div>
       </header>
 
       {/* ================= CENTER FROSTED LOGIN CARD ================= */}
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-2 min-h-0">
-        <div className="w-full max-w-[390px] rounded-[28px] bg-white/65 backdrop-blur-xl border border-white/80 p-6 sm:p-7 shadow-[0_20px_50px_-15px_rgba(74,24,33,0.18)] text-center transition-all my-auto">
+        <div className="w-full max-w-[390px] rounded-[28px] bg-white/65 backdrop-blur-xl border border-white/80 p-6 sm:p-7 shadow-[var(--shadow-login-card)] text-center transition-all my-auto">
           
           {/* Top Lotus Emblem Icon */}
-          <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[#FAF0F2] border border-[#F2DFE2] flex items-center justify-center text-[#804652] shadow-2xs">
+          <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[var(--color-extra-010)] border border-[var(--color-extra-019)] flex items-center justify-center text-[var(--color-primary-strong)] shadow-2xs">
             <svg
               className="w-5 h-5"
               viewBox="0 0 24 24"
@@ -88,16 +88,16 @@ export function LoginPage() {
           </div>
 
           {/* Heading & Subtitle */}
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#4A1821] tracking-tight mb-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--color-extra-001)] tracking-tight mb-1">
             Welcome
           </h1>
-          <p className="text-xs text-[#7A4550] font-medium leading-relaxed mb-4">
+          <p className="text-xs text-[var(--color-extra-018)] font-medium leading-relaxed mb-4">
             Log in to manage your unified store &amp; POS
           </p>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-3.5 p-2.5 rounded-xl bg-[#FDE8EC]/90 border border-[#F9B6C2] text-[#B91C1C] text-xs font-semibold flex items-center gap-2 text-left shadow-2xs">
+            <div className="mb-3.5 p-2.5 rounded-xl bg-[var(--color-extra-014)]/90 border border-[var(--color-extra-015)] text-[var(--color-extra-008)] text-xs font-semibold flex items-center gap-2 text-left shadow-2xs">
               <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -109,7 +109,7 @@ export function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-3 text-left">
             {/* Email Field */}
             <div className="relative">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#804652]/70 pointer-events-none">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary-strong)]/70 pointer-events-none">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
@@ -121,13 +121,13 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email Address"
-                className="w-full rounded-xl bg-white/80 border border-white focus:bg-white pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-[#804652]/50 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#804652]/25 focus:border-[#804652] transition-all font-medium"
+                className="w-full rounded-xl bg-white/80 border border-white focus:bg-white pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-[var(--color-primary-strong)]/50 shadow-inner focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/25 focus:border-[var(--color-primary-strong)] transition-all font-medium"
               />
             </div>
 
             {/* Password Field */}
             <div className="relative">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#804652]/70 pointer-events-none">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary-strong)]/70 pointer-events-none">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
@@ -138,12 +138,12 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full rounded-xl bg-white/80 border border-white focus:bg-white pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-[#804652]/50 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#804652]/25 focus:border-[#804652] transition-all font-medium"
+                className="w-full rounded-xl bg-white/80 border border-white focus:bg-white pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-[var(--color-primary-strong)]/50 shadow-inner focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/25 focus:border-[var(--color-primary-strong)] transition-all font-medium"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#804652]/60 hover:text-[#804652] transition-colors focus:outline-none"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-primary-strong)]/60 hover:text-[var(--color-primary-strong)] transition-colors focus:outline-none"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
@@ -160,20 +160,20 @@ export function LoginPage() {
             </div>
 
             {/* Remember Me & Forgot Password Row */}
-            <div className="flex items-center justify-between text-[11px] text-[#7A4550] pt-0.5">
+            <div className="flex items-center justify-between text-[11px] text-[var(--color-extra-018)] pt-0.5">
               <label className="flex items-center gap-1.5 cursor-pointer font-medium select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-[#DCBAC1] text-[#804652] focus:ring-[#804652] w-3 h-3 accent-[#804652]"
+                  className="rounded border-[var(--color-extra-007)] text-[var(--color-primary-strong)] focus:ring-[var(--color-primary-strong)] w-3 h-3 accent-[var(--color-primary-strong)]"
                 />
                 <span>Remember Me</span>
               </label>
               <button
                 type="button"
                 onClick={() => alert('Please contact store administrator to reset your password.')}
-                className="hover:text-[#4A1821] hover:underline font-medium"
+                className="hover:text-[var(--color-extra-001)] hover:underline font-medium"
               >
                 Forgot Password?
               </button>
@@ -183,7 +183,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 px-5 rounded-xl bg-gradient-to-r from-[#8B4856] via-[#804652] to-[#6E3642] text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-[#804652]/20 hover:shadow-lg hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+              className="w-full py-3 px-5 rounded-xl bg-gradient-to-r from-[var(--color-extra-040)] via-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-[var(--color-primary-strong)]/20 hover:shadow-lg hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
               <span>{submitting ? 'Authenticating…' : 'Log In'}</span>
               {!submitting && <span className="text-sm font-normal">→</span>}
@@ -193,7 +193,7 @@ export function LoginPage() {
       </main>
 
       {/* ================= FOOTER ================= */}
-      <footer className="relative z-10 w-full py-2 text-center text-[10px] text-[#7A4550]/80 shrink-0">
+      <footer className="relative z-10 w-full py-2 text-center text-[10px] text-[var(--color-extra-018)]/80 shrink-0">
         <p>© 2026 Qynova Luxury Retail POS Platform • All rights reserved</p>
       </footer>
     </div>

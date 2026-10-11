@@ -111,7 +111,7 @@ export function UsersPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-sm">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
               <tr>
                 <th className="px-5 py-3.5">Name</th>
                 <th className="px-5 py-3.5">Email</th>
@@ -121,9 +121,9 @@ export function UsersPage() {
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[var(--color-extra-004)]">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                <tr key={u.id} className="hover:bg-[var(--color-surface)]/80 transition-colors">
                   <td className="px-5 py-3.5 font-bold text-slate-950">{u.name}</td>
                   <td className="px-5 py-3.5 font-semibold text-slate-800">{u.email ?? '—'}</td>
                   <td className="px-5 py-3.5 font-semibold text-slate-800">{u.phone ?? '—'}</td>
@@ -138,7 +138,7 @@ export function UsersPage() {
                       <button
                         type="button"
                         onClick={() => openEdit(u)}
-                        className="p-1.5 rounded-lg text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] transition-colors border border-transparent hover:border-[#EEDDE0] cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-600 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface)] transition-colors border border-transparent hover:border-[var(--color-border)] cursor-pointer"
                         title="Edit User"
                         aria-label={`Edit user ${u.name}`}
                       >

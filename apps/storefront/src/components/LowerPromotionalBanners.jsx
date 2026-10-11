@@ -5,40 +5,40 @@ import { resolveImageUrl } from '../lib/api'
 // Admin-managed banner theme presets — preserved untouched
 const THEME_MAP = {
   purple: {
-    gradient: 'from-[#8B5CF6] via-[#7C4DE8] to-[#7042D2]',
+    gradient: 'from-[var(--color-referral-alt)] via-[var(--color-extra-008)] to-[var(--color-referral)]',
     badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonBg: 'from-white to-[#EDE5FF] text-[#7042D2] font-black',
-    subtitleColor: 'text-[#EDE5FF]',
+    buttonBg: 'from-white to-[var(--color-referral-tint)] text-[var(--color-referral)] font-black',
+    subtitleColor: 'text-[var(--color-referral-tint)]',
   },
   blue: {
-    gradient: 'from-[#0A192F] via-[#1E3A8A] to-[#0284C7]',
+    gradient: 'from-[var(--color-extra-009)] via-[var(--color-extra-010)] to-[var(--color-extra-001)]',
     badgeBg: 'bg-cyan-500/25 text-cyan-200 border-cyan-400/40',
-    buttonBg: 'from-[#06B6D4] to-[#38BDF8] text-slate-950 font-black',
+    buttonBg: 'from-[var(--color-extra-011)] to-[var(--color-extra-012)] text-slate-950 font-black',
     subtitleColor: 'text-cyan-200',
   },
   orange: {
-    gradient: 'from-[#431407] via-[#9A3412] to-[#EA580C]',
+    gradient: 'from-[var(--color-extra-013)] via-[var(--color-extra-014)] to-[var(--color-warning)]',
     badgeBg: 'bg-amber-500/25 text-amber-200 border-amber-400/40',
-    buttonBg: 'from-[#F59E0B] to-[#F97316] text-white',
+    buttonBg: 'from-[var(--color-extra-015)] to-[var(--color-extra-003)] text-white',
     subtitleColor: 'text-amber-200',
   },
   pink: {
-    gradient: 'from-[#4C0519] via-[#831843] to-[#BE185D]',
+    gradient: 'from-[var(--color-extra-016)] via-[var(--color-extra-017)] to-[var(--color-extra-018)]',
     badgeBg: 'bg-rose-400/25 text-rose-200 border-rose-300/40',
-    buttonBg: 'from-[#FB7185] to-[#F43F5E] text-white',
+    buttonBg: 'from-[var(--color-extra-019)] to-[var(--color-error)] text-white',
     subtitleColor: 'text-rose-200',
   },
   teal: {
-    gradient: 'from-[#042F2E] via-[#115E59] to-[#0D9488]',
+    gradient: 'from-[var(--color-extra-020)] via-[var(--color-extra-021)] to-[var(--color-extra-002)]',
     badgeBg: 'bg-teal-400/25 text-teal-200 border-teal-300/40',
-    buttonBg: 'from-[#14B8A6] to-[#2DD4BF] text-slate-950 font-black',
+    buttonBg: 'from-[var(--color-info)] to-[var(--color-extra-022)] text-slate-950 font-black',
     subtitleColor: 'text-teal-200',
   },
   lavender: {
-    gradient: 'from-[#7042D2] via-[#8B5CF6] to-[#A78BFA]',
+    gradient: 'from-[var(--color-referral)] via-[var(--color-referral-alt)] to-[var(--color-extra-023)]',
     badgeBg: 'bg-white/25 text-white border-white/35',
-    buttonBg: 'from-white to-[#EDE5FF] text-[#7042D2] font-black',
-    subtitleColor: 'text-[#EDE5FF]',
+    buttonBg: 'from-white to-[var(--color-referral-tint)] text-[var(--color-referral)] font-black',
+    subtitleColor: 'text-[var(--color-referral-tint)]',
   },
 }
 
@@ -106,8 +106,8 @@ export default function LowerPromotionalBanners({
   if (isLoading) {
     return (
       <section className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6">
-        <div className="w-full h-44 rounded-3xl bg-[#F2DDE9]/40 animate-pulse flex items-center justify-center border border-[#E8E0E5]">
-          <span className="text-xs sm:text-sm font-bold text-[#601D49]">
+        <div className="w-full h-44 rounded-3xl bg-[var(--color-primary-tint)]/40 animate-pulse flex items-center justify-center border border-[var(--color-border-subtle)]">
+          <span className="text-xs sm:text-sm font-bold text-[var(--color-brand)]">
             Loading promotional offers...
           </span>
         </div>
@@ -130,17 +130,17 @@ export default function LowerPromotionalBanners({
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
           <div>
             {badgeText && (
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#601D49] bg-[#F2DDE9] px-3 py-1 rounded-full mb-1">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full mb-1">
                 <span>{badgeText}</span>
               </div>
             )}
             {title && (
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2D252B] tracking-tight">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
                 {title}
               </h2>
             )}
             {subtitle && (
-              <p className="text-xs sm:text-sm text-[#6B5E68] mt-0.5">
+              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5">
                 {subtitle}
               </p>
             )}
@@ -151,7 +151,7 @@ export default function LowerPromotionalBanners({
             <button
               type="button"
               onClick={() => handleScroll('left')}
-              className="w-9 h-9 rounded-full border border-[#E8E0E5] bg-white hover:bg-[#F2DDE9] text-[#2D252B] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+              className="w-9 h-9 rounded-full border border-[var(--color-border-subtle)] bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
               aria-label="Scroll promotional banners left"
             >
               ‹
@@ -159,7 +159,7 @@ export default function LowerPromotionalBanners({
             <button
               type="button"
               onClick={() => handleScroll('right')}
-              className="w-9 h-9 rounded-full border border-[#E8E0E5] bg-white hover:bg-[#F2DDE9] text-[#2D252B] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
+              className="w-9 h-9 rounded-full border border-[var(--color-border-subtle)] bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
               aria-label="Scroll promotional banners right"
             >
               ›

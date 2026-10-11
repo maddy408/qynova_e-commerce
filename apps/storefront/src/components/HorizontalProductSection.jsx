@@ -6,7 +6,7 @@ export default function HorizontalProductSection({
   title,
   subtitle,
   badgeText,
-  badgeBg = 'bg-[#F2DDE9] text-[#601D49]',
+  badgeBg = 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]',
   products = [],
   viewAllLink,
   isLoading = false,
@@ -66,7 +66,7 @@ export default function HorizontalProductSection({
       id={id}
       className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 overflow-hidden relative"
       style={backgroundImage ? {
-        backgroundImage: `linear-gradient(rgba(248, 243, 246, 0.92), rgba(248, 243, 246, 0.96)), url(${backgroundImage})`,
+        backgroundImage: `linear-gradient(var(--gradient-surface-scrim)), url(${backgroundImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       } : undefined}
@@ -82,11 +82,11 @@ export default function HorizontalProductSection({
               </span>
             </div>
           )}
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#2D252B] tracking-tight">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-xs sm:text-sm text-[#6B5E68] mt-0.5">
+            <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5">
               {subtitle}
             </p>
           )}
@@ -102,10 +102,10 @@ export default function HorizontalProductSection({
                 onClick={() => handleScroll('left')}
                 disabled={!canScrollLeft}
                 aria-label={`Scroll ${title} left`}
-                className={`w-9 h-9 rounded-full border border-[#E8E0E5] flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[var(--color-border-subtle)] flex items-center justify-center transition-all ${
                   canScrollLeft
-                    ? 'bg-white hover:bg-[#F2DDE9] text-[#2D252B] shadow-sm cursor-pointer hover:border-[#601D49] active:scale-95'
-                    : 'bg-[#F8F3F6] text-[#6B5E68]/40 border-[#E8E0E5] cursor-not-allowed opacity-50'
+                    ? 'bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] shadow-sm cursor-pointer hover:border-[var(--color-brand)] active:scale-95'
+                    : 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/40 border-[var(--color-border-subtle)] cursor-not-allowed opacity-50'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -118,10 +118,10 @@ export default function HorizontalProductSection({
                 onClick={() => handleScroll('right')}
                 disabled={!canScrollRight}
                 aria-label={`Scroll ${title} right`}
-                className={`w-9 h-9 rounded-full border border-[#E8E0E5] flex items-center justify-center transition-all ${
+                className={`w-9 h-9 rounded-full border border-[var(--color-border-subtle)] flex items-center justify-center transition-all ${
                   canScrollRight
-                    ? 'bg-white hover:bg-[#F2DDE9] text-[#2D252B] shadow-sm cursor-pointer hover:border-[#601D49] active:scale-95'
-                    : 'bg-[#F8F3F6] text-[#6B5E68]/40 border-[#E8E0E5] cursor-not-allowed opacity-50'
+                    ? 'bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] shadow-sm cursor-pointer hover:border-[var(--color-brand)] active:scale-95'
+                    : 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/40 border-[var(--color-border-subtle)] cursor-not-allowed opacity-50'
                 }`}
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -135,7 +135,7 @@ export default function HorizontalProductSection({
           {viewAllLink && (hasProducts || isLoading) && (
             <Link
               to={viewAllLink}
-              className="inline-flex items-center gap-1 text-xs font-black text-[#601D49] hover:text-[#4D153A] hover:underline px-3 py-1.5 rounded-full hover:bg-[#F2DDE9] transition-colors shrink-0"
+              className="inline-flex items-center gap-1 text-xs font-black text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] hover:underline px-3 py-1.5 rounded-full hover:bg-[var(--color-primary-tint)] transition-colors shrink-0"
             >
               <span>View All</span>
               <span className="text-sm">→</span>
@@ -151,19 +151,19 @@ export default function HorizontalProductSection({
           {[1, 2, 3, 4, 5, 6].map((idx) => (
             <div
               key={idx}
-              className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse space-y-3"
+              className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse space-y-3"
             >
-              <div className="bg-[#F2DDE9]/60 aspect-square rounded-xl w-full" />
-              <div className="h-3 bg-[#F2DDE9]/70 rounded w-2/3" />
-              <div className="h-4 bg-[#F2DDE9]/70 rounded w-full" />
-              <div className="h-4 bg-[#F2DDE9]/70 rounded w-1/2" />
+              <div className="bg-[var(--color-primary-tint)]/60 aspect-square rounded-xl w-full" />
+              <div className="h-3 bg-[var(--color-primary-tint)]/70 rounded w-2/3" />
+              <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-full" />
+              <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-1/2" />
             </div>
           ))}
         </div>
       ) : !hasProducts ? (
         /* Empty State */
-        <div className="py-8 text-center bg-[#F8F3F6] rounded-2xl border border-[#E8E0E5] p-6 space-y-2">
-          <p className="text-sm font-bold text-[#6B5E68]">
+        <div className="py-8 text-center bg-[var(--color-bg-main)] rounded-2xl border border-[var(--color-border-subtle)] p-6 space-y-2">
+          <p className="text-sm font-bold text-[var(--color-text-muted)]">
             {emptyMessage}
           </p>
         </div>

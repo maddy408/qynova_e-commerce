@@ -234,16 +234,16 @@ export function SubcategoriesPage() {
     <div className="space-y-6 pb-12">
       {/* ================= TOP 5 SUB-CATEGORIES (HOME PAGE) MANAGEMENT SECTION ================= */}
       {subcategories !== null && (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
           {/* Card Header */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white via-[#FAF2F4]/40 to-white">
+          <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white via-[var(--color-surface)]/40 to-white">
             <div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#804652] text-white text-xs font-bold shadow-xs">
+                <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--color-primary-strong)] text-white text-xs font-bold shadow-xs">
                   ★
                 </span>
                 <h3 className="text-xl font-bold text-slate-950">Top 5 Sub-categories (Home Page)</h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#E8CCD1] text-xs font-bold">
+                <span className="px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-extra-003)] text-xs font-bold">
                   {topSubcategoryIds.length} / 5 Slots
                 </span>
               </div>
@@ -257,7 +257,7 @@ export function SubcategoriesPage() {
                 type="button"
                 onClick={saveTopSubcategories}
                 disabled={savingTop || topSubcategoryIds.length === 0}
-                className="bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full hover:opacity-95 shadow-md active:scale-98 disabled:opacity-50"
+                className="bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-full hover:opacity-95 shadow-md active:scale-98 disabled:opacity-50"
               >
                 {savingTop ? (
                   <div className="flex items-center gap-2">
@@ -311,7 +311,7 @@ export function SubcategoriesPage() {
                 No active subcategories available. Please create or activate subcategories below first.
               </div>
             ) : (
-              <div className="divide-y divide-[#F2E5E7]">
+              <div className="divide-y divide-[var(--color-border-muted)]">
                 {topSubcategoryIds.map((subId, index) => {
                   const sub = subcategories?.find((s) => s.id === subId)
                   const parentNames = categoryNames(sub?.category_ids)
@@ -322,8 +322,8 @@ export function SubcategoriesPage() {
                       key={subId}
                       className={`px-5 py-3.5 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-3.5 transition-colors ${
                         isPrimary
-                          ? 'bg-gradient-to-r from-[#FAF2F4]/70 via-[#FAF2F4]/30 to-white'
-                          : 'hover:bg-[#FAF2F4]/30'
+                          ? 'bg-gradient-to-r from-[var(--color-surface)]/70 via-[var(--color-surface)]/30 to-white'
+                          : 'hover:bg-[var(--color-surface)]/30'
                       }`}
                     >
                       {/* Left: Rank & Subcategory Info */}
@@ -333,14 +333,14 @@ export function SubcategoriesPage() {
                           <span
                             className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-black shadow-2xs ${
                               isPrimary
-                                ? 'bg-[#804652] text-white ring-2 ring-[#804652]/20'
+                                ? 'bg-[var(--color-primary-strong)] text-white ring-2 ring-[var(--color-primary-strong)]/20'
                                 : 'bg-slate-100 text-slate-700 border border-slate-200'
                             }`}
                           >
                             #{index + 1}
                           </span>
                           {isPrimary ? (
-                            <span className="px-2 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#E8CCD1] text-[10px] font-black uppercase tracking-wider">
+                            <span className="px-2 py-0.5 rounded-full bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-extra-003)] text-[10px] font-black uppercase tracking-wider">
                               Primary
                             </span>
                           ) : (
@@ -351,7 +351,7 @@ export function SubcategoriesPage() {
                         </div>
 
                         {/* Thumbnail */}
-                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[#E8CCD1] bg-[#FAF2F4] shrink-0 flex items-center justify-center shadow-2xs">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border border-[var(--color-extra-003)] bg-[var(--color-surface)] shrink-0 flex items-center justify-center shadow-2xs">
                           {imageUrl(sub?.thumb_path ?? sub?.image_path ?? null) ? (
                             <img
                               src={imageUrl(sub?.thumb_path ?? sub?.image_path ?? null)!}
@@ -359,7 +359,7 @@ export function SubcategoriesPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span className="text-xs font-black text-[#804652]">
+                            <span className="text-xs font-black text-[var(--color-primary-strong)]">
                               {sub ? sub.name.slice(0, 2).toUpperCase() : 'SC'}
                             </span>
                           )}
@@ -372,7 +372,7 @@ export function SubcategoriesPage() {
                               {sub ? sub.name : `Subcategory #${subId}`}
                             </h4>
                             {parentNames.length > 0 && (
-                              <span className="inline-block text-[10px] font-bold text-[#804652] bg-[#FAF2F4] px-2 py-0.5 rounded-full border border-[#EEDDE0] truncate max-w-[140px]">
+                              <span className="inline-block text-[10px] font-bold text-[var(--color-primary-strong)] bg-[var(--color-surface)] px-2 py-0.5 rounded-full border border-[var(--color-border)] truncate max-w-[140px]">
                                 {parentNames.join(', ')}
                               </span>
                             )}
@@ -397,7 +397,7 @@ export function SubcategoriesPage() {
                             value={subId}
                             onChange={(e) => replaceTopSubcategory(index, Number(e.target.value))}
                             aria-label={`Replace Subcategory Rank ${index + 1}`}
-                            className="w-48 sm:w-56 text-xs font-semibold rounded-xl border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#804652] transition-all cursor-pointer shadow-2xs hover:border-[#804652]"
+                            className="w-48 sm:w-56 text-xs font-semibold rounded-xl border border-[var(--color-surface-muted)] bg-white px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] transition-all cursor-pointer shadow-2xs hover:border-[var(--color-primary-strong)]"
                           >
                             {activeSubcategories.map((s) => (
                               <option key={s.id} value={s.id}>
@@ -415,7 +415,7 @@ export function SubcategoriesPage() {
                             onClick={() => moveTopSubcategory(index, 'up')}
                             title="Move subcategory up"
                             aria-label={`Move subcategory ${sub?.name ?? ''} up`}
-                            className="w-7 h-7 rounded-lg border border-[#E8CCD1] bg-white text-slate-700 hover:bg-[#FAF2F4] hover:text-[#804652] disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
+                            className="w-7 h-7 rounded-lg border border-[var(--color-extra-003)] bg-white text-slate-700 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
@@ -427,7 +427,7 @@ export function SubcategoriesPage() {
                             onClick={() => moveTopSubcategory(index, 'down')}
                             title="Move subcategory down"
                             aria-label={`Move subcategory ${sub?.name ?? ''} down`}
-                            className="w-7 h-7 rounded-lg border border-[#E8CCD1] bg-white text-slate-700 hover:bg-[#FAF2F4] hover:text-[#804652] disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
+                            className="w-7 h-7 rounded-lg border border-[var(--color-extra-003)] bg-white text-slate-700 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -452,9 +452,9 @@ export function SubcategoriesPage() {
 
                 {/* Add slot row if fewer than 5 active subcategories in top list and more active subcategories exist */}
                 {topSubcategoryIds.length < 5 && availableToAddSubcategories.length > 0 && (
-                  <div className="px-5 py-3.5 sm:px-6 bg-[#FAF2F4]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-dashed border-[#E8CCD1]">
+                  <div className="px-5 py-3.5 sm:px-6 bg-[var(--color-surface)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-dashed border-[var(--color-extra-003)]">
                     <div className="flex items-center gap-2.5">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-dashed border-[#804652]/40 bg-white text-[#804652] text-xs font-black">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-dashed border-[var(--color-primary-strong)]/40 bg-white text-[var(--color-primary-strong)] text-xs font-black">
                         +{topSubcategoryIds.length + 1}
                       </span>
                       <div>
@@ -474,7 +474,7 @@ export function SubcategoriesPage() {
                           if (e.target.value) addTopSubcategory(Number(e.target.value))
                         }}
                         aria-label="Add subcategory to next slot"
-                        className="w-full sm:w-64 text-xs font-semibold rounded-xl border border-[#E8CCD1] bg-white px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#804652] shadow-2xs cursor-pointer"
+                        className="w-full sm:w-64 text-xs font-semibold rounded-xl border border-[var(--color-extra-003)] bg-white px-3 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] shadow-2xs cursor-pointer"
                       >
                         <option value="">Select a subcategory to add…</option>
                         {availableToAddSubcategories.map((s) => (
@@ -498,9 +498,9 @@ export function SubcategoriesPage() {
           <Spinner />
         </div>
       ) : (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
           {/* Card Header with Filters, Search and New Subcategory Button */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+          <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
               <h3 className="text-xl font-bold text-slate-950">All Subcategories</h3>
               <p className="text-xs text-slate-600 mt-0.5 font-medium">
@@ -513,7 +513,7 @@ export function SubcategoriesPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-full border border-[#E5D5D8] bg-[#FAF2F4] px-3.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all shadow-2xs cursor-pointer"
+                className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-surface)] px-3.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all shadow-2xs cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
                 {categories.map((c) => (
@@ -524,7 +524,7 @@ export function SubcategoriesPage() {
               </select>
 
               {/* Filter Pills (All / Active / Inactive) */}
-              <div className="inline-flex items-center gap-1 bg-[#FAF2F4] p-1 rounded-full border border-[#EEDDE0] text-xs shadow-2xs">
+              <div className="inline-flex items-center gap-1 bg-[var(--color-surface)] p-1 rounded-full border border-[var(--color-border)] text-xs shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setStatusFilter('ALL')}
@@ -581,7 +581,7 @@ export function SubcategoriesPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search subcategories…"
-                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-44 sm:w-52"
+                  className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all w-44 sm:w-52"
                 />
               </div>
 
@@ -590,7 +590,7 @@ export function SubcategoriesPage() {
                 type="button"
                 onClick={openCreateModal}
                 disabled={categories.length === 0}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 disabled:opacity-50"
               >
                 + New Subcategory
               </button>
@@ -600,7 +600,7 @@ export function SubcategoriesPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Subcategory</th>
                   <th className="px-6 py-4">Parent Categories</th>
@@ -609,14 +609,14 @@ export function SubcategoriesPage() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
+              <tbody className="divide-y divide-[var(--color-extra-013)]">
                 {filteredSubcategories.map((s) => {
                   const pNames = categoryNames(s.category_ids)
                   return (
-                    <tr key={s.id} className="hover:bg-[#FAF5F6] transition-colors">
+                    <tr key={s.id} className="hover:bg-[var(--color-surface-alt)] transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3.5">
-                          <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[#DCBAC1] bg-[#F3E1E4] shadow-2xs">
+                          <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-[var(--color-extra-007)] bg-[var(--color-extra-006)] shadow-2xs">
                             {imageUrl(s.thumb_path ?? s.image_path) ? (
                               <img
                                 src={imageUrl(s.thumb_path ?? s.image_path)!}
@@ -624,7 +624,7 @@ export function SubcategoriesPage() {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[#4A1821]">
+                              <div className="flex h-full w-full items-center justify-center text-[var(--color-extra-001)]">
                                 <ImageIcon className="h-4 w-4" />
                               </div>
                             )}
@@ -641,7 +641,7 @@ export function SubcategoriesPage() {
                             pNames.map((pName, pIdx) => (
                               <span
                                 key={pIdx}
-                                className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-3 py-0.5 rounded-full text-xs font-bold inline-block shadow-2xs"
+                                className="bg-[var(--color-extra-006)] text-[var(--color-extra-001)] border border-[var(--color-extra-007)] px-3 py-0.5 rounded-full text-xs font-bold inline-block shadow-2xs"
                               >
                                 {pName}
                               </span>
@@ -656,13 +656,13 @@ export function SubcategoriesPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         {s.status === 'ACTIVE' ? (
-                          <span className="bg-[#E3F8E9] text-[#0E7A36] border border-[#B7EDC4] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                            <span className="h-2 w-2 rounded-full bg-[#0E7A36]"></span>
+                          <span className="bg-[var(--color-extra-016)] text-[var(--color-extra-011)] border border-[var(--color-extra-017)] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                            <span className="h-2 w-2 rounded-full bg-[var(--color-extra-011)]"></span>
                             ACTIVE
                           </span>
                         ) : (
-                          <span className="bg-[#FDE8EC] text-[#B91C1C] border border-[#F9B6C2] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                            <span className="h-2 w-2 rounded-full bg-[#B91C1C]"></span>
+                          <span className="bg-[var(--color-extra-014)] text-[var(--color-extra-008)] border border-[var(--color-extra-015)] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                            <span className="h-2 w-2 rounded-full bg-[var(--color-extra-008)]"></span>
                             INACTIVE
                           </span>
                         )}
@@ -672,7 +672,7 @@ export function SubcategoriesPage() {
                           <button
                             type="button"
                             onClick={() => setViewingSubcategory(s)}
-                            className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
+                            className="p-2 rounded-lg text-slate-700 hover:bg-[var(--color-extra-006)] hover:text-[var(--color-extra-001)] transition-colors"
                             title="View Details"
                           >
                             <EyeIcon className="h-4 w-4 stroke-[2]" />
@@ -680,7 +680,7 @@ export function SubcategoriesPage() {
                           <button
                             type="button"
                             onClick={() => openEditModal(s)}
-                            className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
+                            className="p-2 rounded-lg text-slate-700 hover:bg-[var(--color-extra-006)] hover:text-[var(--color-extra-001)] transition-colors"
                             title="Edit Subcategory"
                           >
                             <PencilIcon className="h-4 w-4 stroke-[2]" />
@@ -744,7 +744,7 @@ export function SubcategoriesPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Kids, Hair Clips, Keychains…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -753,7 +753,7 @@ export function SubcategoriesPage() {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Parent Categories <span className="text-rose-500">*</span>
               </label>
-              <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-[#E5D5D8] bg-[#FDFBFB] p-3 text-xs">
+              <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] p-3 text-xs">
                 {categories.map((c) => {
                   const checked = categoryIds.includes(c.id)
                   return (
@@ -761,7 +761,7 @@ export function SubcategoriesPage() {
                       key={c.id}
                       className={`flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
                         checked
-                          ? 'bg-[#FAF0F2] border-[#EEDDE0] text-[#7B3F4A] font-bold shadow-2xs'
+                          ? 'bg-[var(--color-extra-010)] border-[var(--color-border)] text-[var(--color-primary)] font-bold shadow-2xs'
                           : 'border-transparent text-slate-700 hover:bg-slate-100 font-medium'
                       }`}
                     >
@@ -769,7 +769,7 @@ export function SubcategoriesPage() {
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleCategory(c.id)}
-                        className="h-4 w-4 rounded border-slate-300 text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                        className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                       />
                       <span className="truncate">{c.name}</span>
                     </label>
@@ -779,12 +779,12 @@ export function SubcategoriesPage() {
             </div>
 
             {/* Image Uploader Card */}
-            <div className="rounded-2xl border-2 border-dashed border-[#EEDDE0] bg-[#FAF5F6]/70 p-4 transition-colors">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#804652] mb-2.5">
+            <div className="rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]/70 p-4 transition-colors">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary-strong)] mb-2.5">
                 Subcategory Image &amp; Thumbnail
               </label>
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[#EEDDE0] bg-white shadow-2xs flex items-center justify-center">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[var(--color-border)] bg-white shadow-2xs flex items-center justify-center">
                   {imagePreview || (editingSubcategory && !imageRemoved && imageUrl(editingSubcategory.image_path)) ? (
                     <img
                       src={imagePreview ?? imageUrl(editingSubcategory!.image_path)!}
@@ -792,7 +792,7 @@ export function SubcategoriesPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[#804652]/60">
+                    <div className="flex h-full w-full items-center justify-center text-[var(--color-primary-strong)]/60">
                       <ImageIcon className="h-6 w-6" />
                     </div>
                   )}
@@ -803,7 +803,7 @@ export function SubcategoriesPage() {
                     <button
                       type="button"
                       onClick={() => fileInput.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#7B3F4A] text-white text-xs font-semibold hover:bg-[#68333D] transition-all shadow-2xs active:scale-98"
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[var(--color-extra-021)] transition-all shadow-2xs active:scale-98"
                     >
                       <ImageIcon className="h-3.5 w-3.5" />
                       {imagePreview || (editingSubcategory && !imageRemoved && editingSubcategory.image_path)
@@ -843,7 +843,7 @@ export function SubcategoriesPage() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={closeModals}
@@ -854,7 +854,7 @@ export function SubcategoriesPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
                 {submitting ? 'Saving…' : editingSubcategory ? 'Save Changes' : 'Create Subcategory'}
               </button>
@@ -890,7 +890,7 @@ export function SubcategoriesPage() {
               <span className="font-semibold text-slate-500 block uppercase tracking-wider text-[10px]">
                 Slug
               </span>
-              <p className="font-mono text-[#804652] bg-[#FAF0F2] px-2.5 py-1 rounded-full inline-block mt-0.5 font-semibold">
+              <p className="font-mono text-[var(--color-primary-strong)] bg-[var(--color-extra-010)] px-2.5 py-1 rounded-full inline-block mt-0.5 font-semibold">
                 {viewingSubcategory.slug}
               </p>
             </div>
@@ -902,7 +902,7 @@ export function SubcategoriesPage() {
                 {categoryNames(viewingSubcategory.category_ids).map((cName, cIdx) => (
                   <span
                     key={cIdx}
-                    className="bg-[#FAF0F2] text-[#804652] border border-[#F2DFE2] px-2.5 py-0.5 rounded-full font-semibold"
+                    className="bg-[var(--color-extra-010)] text-[var(--color-primary-strong)] border border-[var(--color-extra-019)] px-2.5 py-0.5 rounded-full font-semibold"
                   >
                     {cName}
                   </span>
@@ -910,11 +910,11 @@ export function SubcategoriesPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-center">
-              <div className="bg-[#FAF5F6] p-2.5 rounded-xl border border-[#F2E5E7]">
+              <div className="bg-[var(--color-surface-alt)] p-2.5 rounded-xl border border-[var(--color-border-muted)]">
                 <span className="text-slate-500 text-[10px] uppercase font-semibold">Products</span>
                 <p className="text-base font-bold text-slate-900">{viewingSubcategory.product_count ?? 0}</p>
               </div>
-              <div className="bg-[#FAF5F6] p-2.5 rounded-xl border border-[#F2E5E7]">
+              <div className="bg-[var(--color-surface-alt)] p-2.5 rounded-xl border border-[var(--color-border-muted)]">
                 <span className="text-slate-500 text-[10px] uppercase font-semibold">Status</span>
                 <div className="mt-1">
                   {viewingSubcategory.status === 'ACTIVE' ? (
