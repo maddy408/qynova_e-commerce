@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { EyeIcon, ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Button, Modal, Spinner } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category } from '../lib/types'
 
@@ -15,6 +16,7 @@ export function CategoriesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null)
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('')
@@ -181,14 +183,11 @@ export function CategoriesPage() {
     }
   }
 
-  async function handleDelete(category: Category) {
-    if (!confirm(`Are you sure you want to delete category "${category.name}"? It will be soft-deleted.`)) return
-    try {
-      await api.delete(`/categories/${category.id}`)
-      load()
-    } catch (err) {
-      alert(apiErrorMessage(err, 'Could not delete category'))
-    }
+  async function handleDelete() {
+    if (!deletingCategory) return
+    await api.delete(`/categories/${deletingCategory.id}`)
+    setDeletingCategory(null)
+    load()
   }
 
   async function toggleStatus(category: Category) {
@@ -647,7 +646,7 @@ export function CategoriesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(c)}
+                            onClick={() => setDeletingCategory(c)}
                             className="p-2 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-800 transition-colors"
                             title="Soft Delete"
                           >
@@ -862,6 +861,15 @@ export function CategoriesPage() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingCategory !== null}
+        title="Delete Category"
+        message={<>Are you sure you want to delete category <strong className="text-slate-900">"{deletingCategory?.name}"</strong>? It will be soft-deleted.</>}
+        confirmLabel="Delete Category"
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingCategory(null)}
+      />
     </div>
   )
 }
