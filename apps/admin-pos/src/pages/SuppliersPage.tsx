@@ -125,9 +125,9 @@ export function SuppliersPage() {
           <Spinner />
         </div>
       ) : (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
           {/* Card Header with Filters, Search and New Supplier Button */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+          <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
             <div>
               <h3 className="text-xl font-serif font-bold text-slate-900">All Suppliers</h3>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -137,7 +137,7 @@ export function SuppliersPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Status Filter Pills */}
-              <div className="inline-flex items-center gap-1 bg-[#FAF2F4] p-1 rounded-full border border-[#EEDDE0] text-xs shadow-2xs">
+              <div className="inline-flex items-center gap-1 bg-[var(--color-surface)] p-1 rounded-full border border-[var(--color-border)] text-xs shadow-2xs">
                 {(['', 'ACTIVE', 'INACTIVE'] as const).map((val) => (
                   <button
                     key={val}
@@ -175,7 +175,7 @@ export function SuppliersPage() {
                   placeholder="Search suppliers…"
                   value={search}
                   onChange={(e) => { setPage(1); setSearch(e.target.value) }}
-                  className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7B3F4A] transition-all w-44 sm:w-56"
+                  className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all w-44 sm:w-56"
                 />
               </div>
 
@@ -183,7 +183,7 @@ export function SuppliersPage() {
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98"
               >
                 + New Supplier
               </button>
@@ -193,7 +193,7 @@ export function SuppliersPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Name</th>
                   <th className="px-6 py-4">Contact Person</th>
@@ -203,12 +203,12 @@ export function SuppliersPage() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0E0E3]">
+              <tbody className="divide-y divide-[var(--color-extra-004)]">
                 {suppliers.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                  <tr key={s.id} className="hover:bg-[var(--color-surface)]/80 transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-950 text-sm">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 shrink-0 rounded-full bg-[#FAF2F4] border border-[#EEDDE0] flex items-center justify-center text-[#804652] font-bold text-xs shadow-2xs">
+                        <div className="h-9 w-9 shrink-0 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-primary-strong)] font-bold text-xs shadow-2xs">
                           {s.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -221,7 +221,7 @@ export function SuppliersPage() {
                     <td className="px-6 py-4 text-slate-700 font-mono font-medium">{s.phone ?? '—'}</td>
                     <td className="px-6 py-4">
                       {s.gstin ? (
-                        <span className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold inline-block shadow-2xs">
+                        <span className="bg-[var(--color-extra-006)] text-[var(--color-extra-001)] border border-[var(--color-extra-007)] px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold inline-block shadow-2xs">
                           {s.gstin}
                         </span>
                       ) : (
@@ -230,13 +230,13 @@ export function SuppliersPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       {s.status === 'ACTIVE' ? (
-                        <span className="bg-[#E3F8E9] text-[#0E7A36] border border-[#B7EDC4] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-[#0E7A36]"></span>
+                        <span className="bg-[var(--color-extra-016)] text-[var(--color-extra-011)] border border-[var(--color-extra-017)] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-[var(--color-extra-011)]"></span>
                           ACTIVE
                         </span>
                       ) : (
-                        <span className="bg-[#FDE8EC] text-[#B91C1C] border border-[#F9B6C2] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-[#B91C1C]"></span>
+                        <span className="bg-[var(--color-extra-014)] text-[var(--color-extra-008)] border border-[var(--color-extra-015)] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-[var(--color-extra-008)]"></span>
                           INACTIVE
                         </span>
                       )}
@@ -246,7 +246,7 @@ export function SuppliersPage() {
                         <button
                           type="button"
                           onClick={() => setViewingSupplier(s)}
-                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
+                          className="p-2 rounded-lg text-slate-700 hover:bg-[var(--color-extra-006)] hover:text-[var(--color-extra-001)] transition-colors"
                           title="View Details"
                         >
                           <EyeIcon className="h-4 w-4 stroke-[2]" />
@@ -254,7 +254,7 @@ export function SuppliersPage() {
                         <button
                           type="button"
                           onClick={() => openEditModal(s)}
-                          className="p-2 rounded-lg text-slate-700 hover:bg-[#F3E1E4] hover:text-[#4A1821] transition-colors"
+                          className="p-2 rounded-lg text-slate-700 hover:bg-[var(--color-extra-006)] hover:text-[var(--color-extra-001)] transition-colors"
                           title="Edit Supplier"
                         >
                           <PencilIcon className="h-4 w-4 stroke-[2]" />
@@ -296,7 +296,7 @@ export function SuppliersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-4 text-xs font-semibold text-slate-700 bg-[#FAF2F4]/30">
+            <div className="flex items-center justify-between border-t border-[var(--color-border-muted)] px-6 py-4 text-xs font-semibold text-slate-700 bg-[var(--color-surface)]/30">
               <span>
                 Page <span className="font-extrabold text-slate-950">{page}</span> of <span className="font-extrabold text-slate-950">{totalPages}</span> ({total} suppliers)
               </span>
@@ -305,7 +305,7 @@ export function SuppliersPage() {
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs"
+                  className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs"
                 >
                   ← Previous
                 </button>
@@ -316,7 +316,7 @@ export function SuppliersPage() {
                   type="button"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs"
+                  className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs"
                 >
                   Next →
                 </button>
@@ -347,7 +347,7 @@ export function SuppliersPage() {
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. Acme Supplies, Wholesale Traders…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -361,7 +361,7 @@ export function SuppliersPage() {
                 value={form.contact_person}
                 onChange={(e) => setForm((f) => ({ ...f, contact_person: e.target.value }))}
                 placeholder="e.g. Rajesh Kumar, John Doe…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -376,7 +376,7 @@ export function SuppliersPage() {
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                   placeholder="e.g. +91 9876543210"
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
                 />
               </div>
               <div>
@@ -388,7 +388,7 @@ export function SuppliersPage() {
                   value={form.email}
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   placeholder="supplier@example.com"
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
                 />
               </div>
             </div>
@@ -403,7 +403,7 @@ export function SuppliersPage() {
                 value={form.address}
                 onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
                 placeholder="Street address, City, State, PIN code…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs resize-none"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs resize-none"
               />
             </div>
 
@@ -417,12 +417,12 @@ export function SuppliersPage() {
                 value={form.gstin}
                 onChange={(e) => setForm((f) => ({ ...f, gstin: e.target.value }))}
                 placeholder="e.g. 22AAAAA0000A1Z5"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={closeModals}
@@ -433,7 +433,7 @@ export function SuppliersPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
                 {submitting ? 'Saving…' : editingSupplier ? 'Save Changes' : 'Create Supplier'}
               </button>
@@ -456,24 +456,24 @@ export function SuppliersPage() {
                 ['GSTIN', viewingSupplier.gstin ?? '—'],
               ] as const
             ).map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-[#FAF2F4] px-4 py-2.5 border border-[#EEDDE0]">
-                <span className="block text-[10px] font-bold uppercase tracking-wider text-[#804652]">{label}</span>
+              <div key={label} className="rounded-xl bg-[var(--color-surface)] px-4 py-2.5 border border-[var(--color-border)]">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">{label}</span>
                 <p className="mt-0.5 text-slate-800 font-medium">{value}</p>
               </div>
             ))}
-            <div className="grid grid-cols-2 gap-2 border-t border-[#F2E5E7] pt-3">
-              <div className="rounded-xl border border-[#EEDDE0] bg-[#FAF2F4] p-2.5">
-                <span className="text-[10px] font-bold uppercase text-[#804652]">Status</span>
+            <div className="grid grid-cols-2 gap-2 border-t border-[var(--color-border-muted)] pt-3">
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5">
+                <span className="text-[10px] font-bold uppercase text-[var(--color-primary-strong)]">Status</span>
                 <div className="mt-1">
                   <Badge tone={viewingSupplier.status === 'ACTIVE' ? 'green' : 'slate'}>{viewingSupplier.status}</Badge>
                 </div>
               </div>
-              <div className="rounded-xl border border-[#EEDDE0] bg-[#FAF2F4] p-2.5">
-                <span className="text-[10px] font-bold uppercase text-[#804652]">Created</span>
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5">
+                <span className="text-[10px] font-bold uppercase text-[var(--color-primary-strong)]">Created</span>
                 <p className="mt-0.5 font-medium text-slate-800">{new Date(viewingSupplier.created_at).toLocaleDateString()}</p>
               </div>
             </div>
-            <div className="flex justify-end pt-3 border-t border-[#F2E5E7]">
+            <div className="flex justify-end pt-3 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setViewingSupplier(null)}
@@ -494,7 +494,7 @@ export function SuppliersPage() {
               Are you sure you want to delete supplier <strong className="text-slate-900">{deletingSupplier.name}</strong>? It will be
               soft-deleted — existing purchases and GRNs that reference it are kept intact.
             </p>
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[#F2E5E7]">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setDeletingSupplier(null)}

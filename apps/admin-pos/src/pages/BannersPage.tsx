@@ -76,7 +76,7 @@ interface BannerPricePreviewCardProps {
 
 /**
  * T11: Reusable Banner Item Price Preview Component.
- * Conforms to Qynova wine (#804652 / #7B3F4A) and rose-cream (#FAF2F4 / #F2E5E7) theme.
+ * Conforms to Qynova wine (var(--color-primary-strong) / var(--color-primary)) and rose-cream (var(--color-surface) / var(--color-border-muted)) theme.
  * Displays:
  *   1. Product name
  *   2. Original price (with strikethrough)
@@ -99,11 +99,11 @@ export function BannerPricePreviewCard({
 
   if (layout === 'table-row') {
     return (
-      <div className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#FAF2F4]/30 transition-colors">
+      <div className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[var(--color-surface)]/30 transition-colors">
         <div className="space-y-0.5">
           <p className="font-bold text-slate-900 text-xs">{productName}</p>
           {badgeText && (
-            <span className="inline-block px-2 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0] text-[10px] font-bold">
+            <span className="inline-block px-2 py-0.5 rounded-full bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)] text-[10px] font-bold">
               {badgeText}
             </span>
           )}
@@ -122,9 +122,9 @@ export function BannerPricePreviewCard({
             <span className="text-[10px] font-bold uppercase text-emerald-700 block sm:text-right">Discount Amt</span>
             <span className="font-bold text-emerald-700">-₹{discountAmount.toLocaleString('en-IN')}</span>
           </div>
-          <div className="bg-[#FAF2F4] px-2.5 py-1 rounded-xl border border-[#EEDDE0]">
-            <span className="text-[10px] font-bold uppercase text-[#804652] block sm:text-right">Final Price</span>
-            <span className="font-black text-[#804652] text-sm">₹{finalDiscountedPrice.toLocaleString('en-IN')}</span>
+          <div className="bg-[var(--color-surface)] px-2.5 py-1 rounded-xl border border-[var(--color-border)]">
+            <span className="text-[10px] font-bold uppercase text-[var(--color-primary-strong)] block sm:text-right">Final Price</span>
+            <span className="font-black text-[var(--color-primary-strong)] text-sm">₹{finalDiscountedPrice.toLocaleString('en-IN')}</span>
           </div>
           {onRemove && (
             <button
@@ -143,14 +143,14 @@ export function BannerPricePreviewCard({
 
   if (layout === 'compact') {
     return (
-      <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/50 p-2.5 sm:p-3 text-xs space-y-2">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 p-2.5 sm:p-3 text-xs space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className="font-bold text-slate-900 line-clamp-1">{productName}</p>
-          <span className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-[#804652] text-white">
+          <span className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full bg-[var(--color-primary-strong)] text-white">
             {pct}% OFF
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-[#EEDDE0]/70 text-[11px] bg-white/70 p-2 rounded-xl">
+        <div className="grid grid-cols-4 gap-1.5 pt-1.5 border-t border-[var(--color-border)]/70 text-[11px] bg-white/70 p-2 rounded-xl">
           <div>
             <span className="text-[9px] uppercase font-bold text-slate-400 block">Original</span>
             <span className="text-slate-500 line-through font-semibold">₹{orig.toLocaleString('en-IN')}</span>
@@ -164,8 +164,8 @@ export function BannerPricePreviewCard({
             <span className="font-bold text-emerald-700">-₹{discountAmount.toLocaleString('en-IN')}</span>
           </div>
           <div>
-            <span className="text-[9px] uppercase font-bold text-[#804652] block">Final Price</span>
-            <span className="font-black text-[#804652] text-xs">₹{finalDiscountedPrice.toLocaleString('en-IN')}</span>
+            <span className="text-[9px] uppercase font-bold text-[var(--color-primary-strong)] block">Final Price</span>
+            <span className="font-black text-[var(--color-primary-strong)] text-xs">₹{finalDiscountedPrice.toLocaleString('en-IN')}</span>
           </div>
         </div>
       </div>
@@ -173,27 +173,27 @@ export function BannerPricePreviewCard({
   }
 
   return (
-    <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/40 p-4 space-y-3">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-4 space-y-3">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[#804652] block">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] block">
             Banner Item Price Preview
           </span>
           <h5 className="text-sm font-extrabold text-slate-950 line-clamp-1">{productName}</h5>
         </div>
         <div className="flex items-center gap-2">
           {badgeText && (
-            <span className="px-2.5 py-0.5 rounded-full bg-white text-[#804652] border border-[#EEDDE0] text-[11px] font-bold shadow-2xs">
+            <span className="px-2.5 py-0.5 rounded-full bg-white text-[var(--color-primary-strong)] border border-[var(--color-border)] text-[11px] font-bold shadow-2xs">
               {badgeText}
             </span>
           )}
-          <span className="px-3 py-1 rounded-full bg-[#804652] text-white text-xs font-black shadow-2xs">
+          <span className="px-3 py-1 rounded-full bg-[var(--color-primary-strong)] text-white text-xs font-black shadow-2xs">
             {pct}% Banner Discount
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-3.5 rounded-xl border border-[#EEDDE0] shadow-2xs">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-3.5 rounded-xl border border-[var(--color-border)] shadow-2xs">
         <div>
           <span className="text-[10px] font-bold uppercase text-slate-400 block">Original Price</span>
           <span className="text-sm font-bold text-slate-500 line-through">₹{orig.toLocaleString('en-IN')}</span>
@@ -207,8 +207,8 @@ export function BannerPricePreviewCard({
           <span className="text-sm font-black text-emerald-700">-₹{discountAmount.toLocaleString('en-IN')}</span>
         </div>
         <div>
-          <span className="text-[10px] font-bold uppercase text-[#804652] block">Final Discounted Price</span>
-          <span className="text-base font-black text-[#804652]">₹{finalDiscountedPrice.toLocaleString('en-IN')}</span>
+          <span className="text-[10px] font-bold uppercase text-[var(--color-primary-strong)] block">Final Discounted Price</span>
+          <span className="text-base font-black text-[var(--color-primary-strong)]">₹{finalDiscountedPrice.toLocaleString('en-IN')}</span>
         </div>
       </div>
     </div>
@@ -235,12 +235,12 @@ const TARGET_TYPES: { value: BannerTargetType; label: string }[] = [
 ]
 
 const COLOR_THEMES = [
-  { value: 'purple', label: 'Purple (Royal)', color: '#8B5CF6', bg: 'from-purple-900 to-indigo-900' },
-  { value: 'blue', label: 'Blue (Ocean)', color: '#3B82F6', bg: 'from-blue-900 to-sky-900' },
-  { value: 'orange', label: 'Orange (Sunset)', color: '#F97316', bg: 'from-amber-800 to-orange-900' },
-  { value: 'lavender', label: 'Lavender (Pastel)', color: '#A78BFA', bg: 'from-violet-900 to-purple-800' },
-  { value: 'pink', label: 'Pink (Rose)', color: '#EC4899', bg: 'from-rose-900 to-pink-900' },
-  { value: 'teal', label: 'Teal (Emerald)', color: '#14B8A6', bg: 'from-teal-900 to-emerald-900' },
+  { value: 'purple', label: 'Purple (Royal)', color: 'var(--color-extra-023)', bg: 'from-purple-900 to-indigo-900' },
+  { value: 'blue', label: 'Blue (Ocean)', color: 'var(--color-extra-029)', bg: 'from-blue-900 to-sky-900' },
+  { value: 'orange', label: 'Orange (Sunset)', color: 'var(--color-extra-030)', bg: 'from-amber-800 to-orange-900' },
+  { value: 'lavender', label: 'Lavender (Pastel)', color: 'var(--color-extra-031)', bg: 'from-violet-900 to-purple-800' },
+  { value: 'pink', label: 'Pink (Rose)', color: 'var(--color-extra-032)', bg: 'from-rose-900 to-pink-900' },
+  { value: 'teal', label: 'Teal (Emerald)', color: 'var(--color-extra-033)', bg: 'from-teal-900 to-emerald-900' },
 ]
 
 interface Brand {
@@ -366,19 +366,19 @@ export function BannersPage() {
       {/* ================= SUMMARY STATS CARDS ================= */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Total Banners */}
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] p-5 shadow-2xs hover:border-[#804652]/40 transition-all flex items-center justify-between">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] p-5 shadow-2xs hover:border-[var(--color-primary-strong)]/40 transition-all flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Banners</p>
             <p className="mt-1 text-2xl font-black text-slate-900">{totalBanners}</p>
             <p className="mt-0.5 text-[11px] font-medium text-slate-400">All configured</p>
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)]">
             <ImageIcon className="h-5 w-5" />
           </div>
         </div>
 
         {/* Active Banners */}
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] p-5 shadow-2xs hover:border-emerald-300 transition-all flex items-center justify-between">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] p-5 shadow-2xs hover:border-emerald-300 transition-all flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Active Banners</p>
             <p className="mt-1 text-2xl font-black text-emerald-600">{activeBanners}</p>
@@ -390,7 +390,7 @@ export function BannersPage() {
         </div>
 
         {/* Hero Banners */}
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] p-5 shadow-2xs hover:border-purple-300 transition-all flex items-center justify-between">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] p-5 shadow-2xs hover:border-purple-300 transition-all flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Hero Carousel</p>
             <p className="mt-1 text-2xl font-black text-purple-700">{heroBanners}</p>
@@ -402,7 +402,7 @@ export function BannersPage() {
         </div>
 
         {/* Middle Banners */}
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] p-5 shadow-2xs hover:border-amber-300 transition-all flex items-center justify-between">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] p-5 shadow-2xs hover:border-amber-300 transition-all flex items-center justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Middle Marquee</p>
             <p className="mt-1 text-2xl font-black text-amber-700">{middleBanners}</p>
@@ -415,20 +415,20 @@ export function BannersPage() {
       </div>
 
       {/* ================= MAIN CONTENT CARD ================= */}
-      <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+      <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
         {/* Header Toolbar: Filters & Search */}
-        <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white">
+        <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white">
           <div>
             <h3 className="text-xl font-bold text-slate-950">All Banners</h3>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
               Showing {filteredBanners.length} of {totalBanners} banners
-              {reordering && <span className="ml-2 text-[#804652] font-semibold animate-pulse">(Updating order…)</span>}
+              {reordering && <span className="ml-2 text-[var(--color-primary-strong)] font-semibold animate-pulse">(Updating order…)</span>}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Position Filter Tabs */}
-            <div className="inline-flex items-center gap-1 bg-[#FAF2F4] p-1 rounded-full border border-[#EEDDE0] text-xs shadow-2xs">
+            <div className="inline-flex items-center gap-1 bg-[var(--color-surface)] p-1 rounded-full border border-[var(--color-border)] text-xs shadow-2xs">
               <button
                 type="button"
                 onClick={() => setPositionFilter('ALL')}
@@ -487,7 +487,7 @@ export function BannersPage() {
             </div>
 
             {/* Status Filter Pills */}
-            <div className="inline-flex items-center gap-1 bg-[#FAF2F4] p-1 rounded-full border border-[#EEDDE0] text-xs shadow-2xs">
+            <div className="inline-flex items-center gap-1 bg-[var(--color-surface)] p-1 rounded-full border border-[var(--color-border)] text-xs shadow-2xs">
               <button
                 type="button"
                 onClick={() => setStatusFilter('ALL')}
@@ -540,7 +540,7 @@ export function BannersPage() {
                 placeholder="Search banners…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-full border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652] transition-all w-44 sm:w-56"
+                className="rounded-full border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] pl-9 pr-4 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] transition-all w-44 sm:w-56"
               />
             </div>
           </div>
@@ -553,8 +553,8 @@ export function BannersPage() {
               <Spinner />
             </div>
           ) : filteredBanners.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[#F0E0E3] bg-[#FAF2F4]/40 p-12 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white border border-[#EEDDE0] text-[#804652] shadow-2xs">
+            <div className="rounded-2xl border border-dashed border-[var(--color-extra-004)] bg-[var(--color-surface)]/40 p-12 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white border border-[var(--color-border)] text-[var(--color-primary-strong)] shadow-2xs">
                 <ImageIcon className="h-6 w-6" />
               </div>
               <h4 className="mt-3 text-sm font-bold text-slate-900">No banners found</h4>
@@ -590,11 +590,11 @@ export function BannersPage() {
                 return (
                   <div
                     key={b.id}
-                    className="rounded-3xl border border-[#F2E5E7] bg-white shadow-2xs hover:shadow-md hover:border-[#804652]/30 transition-all overflow-hidden flex flex-col justify-between"
+                    className="rounded-3xl border border-[var(--color-border-muted)] bg-white shadow-2xs hover:shadow-md hover:border-[var(--color-primary-strong)]/30 transition-all overflow-hidden flex flex-col justify-between"
                   >
                     <div>
                       {/* Image Preview & Badges Header */}
-                      <div className="relative h-44 w-full bg-[#FAF2F4] overflow-hidden flex items-center justify-center">
+                      <div className="relative h-44 w-full bg-[var(--color-surface)] overflow-hidden flex items-center justify-center">
                         {desktopImg ? (
                           <img
                             src={desktopImg}
@@ -603,7 +603,7 @@ export function BannersPage() {
                           />
                         ) : (
                           <div className="flex flex-col items-center justify-center text-slate-400 gap-1.5 p-4 text-center">
-                            <ImageIcon className="h-8 w-8 text-[#804652]/40" />
+                            <ImageIcon className="h-8 w-8 text-[var(--color-primary-strong)]/40" />
                             <span className="text-xs font-semibold text-slate-500">No desktop image uploaded</span>
                           </div>
                         )}
@@ -636,7 +636,7 @@ export function BannersPage() {
                         {/* Discount badge if present */}
                         <div className="flex items-center gap-2 flex-wrap">
                           {b.discount_text ? (
-                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0] text-[11px] font-black tracking-wide">
+                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)] text-[11px] font-black tracking-wide">
                               <span>🔥</span>
                               <span>{b.discount_text}</span>
                             </div>
@@ -653,7 +653,7 @@ export function BannersPage() {
 
                         <div>
                           <h4 className="font-extrabold text-slate-900 text-base leading-snug line-clamp-1">{b.title}</h4>
-                          {b.subtitle && <p className="text-xs font-semibold text-[#804652] mt-0.5 line-clamp-1">{b.subtitle}</p>}
+                          {b.subtitle && <p className="text-xs font-semibold text-[var(--color-primary-strong)] mt-0.5 line-clamp-1">{b.subtitle}</p>}
                           {b.description && (
                             <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-relaxed font-medium">
                               {b.description}
@@ -675,7 +675,7 @@ export function BannersPage() {
                         {b.items.length > 0 && (
                           <div className="space-y-1.5 pt-0.5">
                             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                              <span className="text-[#804652] uppercase tracking-wider text-[10px]">
+                              <span className="text-[var(--color-primary-strong)] uppercase tracking-wider text-[10px]">
                                 Linked Landing Products ({b.items.length})
                               </span>
                               <span className="text-[10px] text-slate-400 font-medium">{bannerDiscountPct}% discount applied</span>
@@ -699,7 +699,7 @@ export function BannersPage() {
                                 <button
                                   type="button"
                                   onClick={() => setEditing(b)}
-                                  className="w-full text-center py-1 text-[11px] font-bold text-[#804652] hover:bg-[#FAF2F4] rounded-lg transition-colors cursor-pointer border border-[#EEDDE0]/60 bg-[#FAF2F4]/30"
+                                  className="w-full text-center py-1 text-[11px] font-bold text-[var(--color-primary-strong)] hover:bg-[var(--color-surface)] rounded-lg transition-colors cursor-pointer border border-[var(--color-border)]/60 bg-[var(--color-surface)]/30"
                                 >
                                   +{b.items.length - 2} more linked products • Click to manage
                                 </button>
@@ -710,7 +710,7 @@ export function BannersPage() {
 
                         {linkedCategory && (
                           <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-2 text-xs flex items-center justify-between text-purple-950 font-medium">
-                            <span>Category: <strong className="font-bold text-[#804652]">{linkedCategory.name}</strong></span>
+                            <span>Category: <strong className="font-bold text-[var(--color-primary-strong)]">{linkedCategory.name}</strong></span>
                             <span className="font-bold text-xs text-purple-800">All items get {bannerDiscountPct}% OFF</span>
                           </div>
                         )}
@@ -722,14 +722,14 @@ export function BannersPage() {
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700 font-semibold">
                               <span
                                 className="h-2 w-2 rounded-full inline-block"
-                                style={{ backgroundColor: themeInfo?.color ?? '#8B5CF6' }}
+                                style={{ backgroundColor: themeInfo?.color ?? 'var(--color-extra-023)' }}
                               />
                               <span>{b.color_theme}</span>
                             </span>
                           )}
 
                           {/* Target Pill */}
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0] font-semibold">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)] font-semibold">
                             {b.target_type === 'NONE'
                               ? 'No Target'
                               : b.target_type === 'EXTERNAL_URL'
@@ -760,14 +760,14 @@ export function BannersPage() {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="flex items-center justify-between p-3 sm:px-4 border-t border-[#F0E0E3] bg-[#FDFBFB]">
+                    <div className="flex items-center justify-between p-3 sm:px-4 border-t border-[var(--color-extra-004)] bg-[var(--color-extra-002)]">
                       {/* Reordering Controls */}
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => moveBanner(b.id, 'up')}
                           disabled={idx === 0 || reordering}
-                          className="p-1 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#804652] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors cursor-pointer"
+                          className="p-1 rounded-lg text-slate-500 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors cursor-pointer"
                           title="Move Up"
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -778,7 +778,7 @@ export function BannersPage() {
                           type="button"
                           onClick={() => moveBanner(b.id, 'down')}
                           disabled={idx === filteredBanners.length - 1 || reordering}
-                          className="p-1 rounded-lg text-slate-500 hover:bg-[#FAF2F4] hover:text-[#804652] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors cursor-pointer"
+                          className="p-1 rounded-lg text-slate-500 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors cursor-pointer"
                           title="Move Down"
                         >
                           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -792,7 +792,7 @@ export function BannersPage() {
                         <button
                           type="button"
                           onClick={() => { setSuccessMessage(''); setEditing(b) }}
-                          className="p-1.5 rounded-lg text-slate-600 hover:bg-[#FAF2F4] hover:text-[#804652] transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-600 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] transition-colors cursor-pointer"
                           title="Edit / Manage Banner"
                         >
                           <PencilIcon />
@@ -803,7 +803,7 @@ export function BannersPage() {
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                             Number(b.is_active) === 1
                               ? 'text-emerald-700 hover:bg-emerald-50'
-                              : 'text-slate-400 hover:bg-[#FAF2F4]'
+                              : 'text-slate-400 hover:bg-[var(--color-surface)]'
                           }`}
                           title={Number(b.is_active) === 1 ? 'Deactivate Banner' : 'Activate Banner'}
                         >
@@ -888,7 +888,7 @@ function BannerDiscountConfig({
   }
 
   return (
-    <div className="rounded-2xl border border-[#F2E5E7] bg-[#FAF2F4]/40 p-4 space-y-3">
+    <div className="rounded-2xl border border-[var(--color-border-muted)] bg-[var(--color-surface)]/40 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
@@ -898,8 +898,8 @@ function BannerDiscountConfig({
             Configured discount applies to linked products or categories.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[#EEDDE0] shadow-2xs">
-          <span className="text-sm font-black text-[#804652]">{discountPercent}%</span>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-[var(--color-border)] shadow-2xs">
+          <span className="text-sm font-black text-[var(--color-primary-strong)]">{discountPercent}%</span>
           <span className="text-[10px] font-bold text-slate-400">OFF</span>
         </div>
       </div>
@@ -913,7 +913,7 @@ function BannerDiscountConfig({
           step="1"
           value={discountPercent}
           onChange={(e) => handlePercentChange(Number(e.target.value))}
-          className="flex-1 accent-[#804652] h-2 bg-slate-200 rounded-lg cursor-pointer"
+          className="flex-1 accent-[var(--color-primary-strong)] h-2 bg-slate-200 rounded-lg cursor-pointer"
         />
         <input
           type="number"
@@ -921,7 +921,7 @@ function BannerDiscountConfig({
           max="65"
           value={discountPercent}
           onChange={(e) => handlePercentChange(Number(e.target.value))}
-          className="w-16 rounded-xl border border-[#EEDDE0] bg-white px-2.5 py-1 text-center text-xs font-bold text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#804652]"
+          className="w-16 rounded-xl border border-[var(--color-border)] bg-white px-2.5 py-1 text-center text-xs font-bold text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
         />
       </div>
 
@@ -935,8 +935,8 @@ function BannerDiscountConfig({
             onClick={() => handlePercentChange(p)}
             className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
               discountPercent === p
-                ? 'bg-[#804652] text-white shadow-xs'
-                : 'bg-white text-slate-700 border border-[#EEDDE0] hover:bg-[#FAF2F4]'
+                ? 'bg-[var(--color-primary-strong)] text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-[var(--color-border)] hover:bg-[var(--color-surface)]'
             }`}
           >
             {p}%
@@ -945,7 +945,7 @@ function BannerDiscountConfig({
       </div>
 
       {/* Discount Badge Text Field */}
-      <div className="pt-2 border-t border-[#F0E0E3]">
+      <div className="pt-2 border-t border-[var(--color-extra-004)]">
         <TextField
           label="Discount Text / Badge Label"
           value={discountText}
@@ -1351,7 +1351,7 @@ function BannerFormModal({
         />
 
         {/* Image File Pickers */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl border border-[#F2E5E7] bg-[#FAF2F4]/30 p-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl border border-[var(--color-border-muted)] bg-[var(--color-surface)]/30 p-3.5">
           <div>
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
               Desktop Banner Image
@@ -1366,7 +1366,7 @@ function BannerFormModal({
                   setDesktopPreview(URL.createObjectURL(f))
                 }
               }}
-              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#FAF2F4] file:text-[#804652] hover:file:bg-[#F2E5E7] cursor-pointer"
+              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[var(--color-surface)] file:text-[var(--color-primary-strong)] hover:file:bg-[var(--color-border-muted)] cursor-pointer"
             />
             {desktopPreview && (
               <img
@@ -1391,7 +1391,7 @@ function BannerFormModal({
                   setMobilePreview(URL.createObjectURL(f))
                 }
               }}
-              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#FAF2F4] file:text-[#804652] hover:file:bg-[#F2E5E7] cursor-pointer"
+              className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[var(--color-surface)] file:text-[var(--color-primary-strong)] hover:file:bg-[var(--color-border-muted)] cursor-pointer"
             />
             {mobilePreview && (
               <img
@@ -1417,7 +1417,7 @@ function BannerFormModal({
             type="checkbox"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-[#804652] focus:ring-[#804652] cursor-pointer"
+            className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary-strong)] focus:ring-[var(--color-primary-strong)] cursor-pointer"
           />
           <label htmlFor="banner-is-active" className="text-xs font-bold text-slate-800 cursor-pointer">
             Active immediately upon creation
@@ -1425,7 +1425,7 @@ function BannerFormModal({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex justify-end gap-2.5 pt-3 border-t border-[#F0E0E3]">
+        <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--color-extra-004)]">
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
@@ -1613,13 +1613,13 @@ function BannerManageModal({
         {error && <Alert>{error}</Alert>}
 
         {/* Modal Navigation Tabs */}
-        <div className="flex border-b border-[#F0E0E3] gap-6 text-xs font-bold">
+        <div className="flex border-b border-[var(--color-extra-004)] gap-6 text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveTab('details')}
             className={`pb-2.5 transition-all cursor-pointer ${
               activeTab === 'details'
-                ? 'border-b-2 border-[#804652] text-[#804652]'
+                ? 'border-b-2 border-[var(--color-primary-strong)] text-[var(--color-primary-strong)]'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -1630,7 +1630,7 @@ function BannerManageModal({
             onClick={() => setActiveTab('images')}
             className={`pb-2.5 transition-all cursor-pointer ${
               activeTab === 'images'
-                ? 'border-b-2 border-[#804652] text-[#804652]'
+                ? 'border-b-2 border-[var(--color-primary-strong)] text-[var(--color-primary-strong)]'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -1641,13 +1641,13 @@ function BannerManageModal({
             onClick={() => setActiveTab('products')}
             className={`pb-2.5 transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'products'
-                ? 'border-b-2 border-[#804652] text-[#804652]'
+                ? 'border-b-2 border-[var(--color-primary-strong)] text-[var(--color-primary-strong)]'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <span>Landing Products</span>
             {banner.items.length > 0 && (
-              <span className="rounded-full bg-[#FAF2F4] text-[#804652] px-2 py-0.2 text-[10px] font-extrabold border border-[#EEDDE0]">
+              <span className="rounded-full bg-[var(--color-surface)] text-[var(--color-primary-strong)] px-2 py-0.2 text-[10px] font-extrabold border border-[var(--color-border)]">
                 {banner.items.length}
               </span>
             )}
@@ -1757,14 +1757,14 @@ function BannerManageModal({
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[#804652] focus:ring-[#804652] cursor-pointer"
+                className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary-strong)] focus:ring-[var(--color-primary-strong)] cursor-pointer"
               />
               <label htmlFor="edit-is-active" className="text-xs font-bold text-slate-800 cursor-pointer">
                 Active banner on storefront
               </label>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[#F0E0E3]">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--color-extra-004)]">
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
@@ -1780,12 +1780,12 @@ function BannerManageModal({
           <div className="space-y-5 pt-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Desktop Image */}
-              <div className="rounded-2xl border border-[#F2E5E7] p-4 bg-slate-50/50">
+              <div className="rounded-2xl border border-[var(--color-border-muted)] p-4 bg-slate-50/50">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-bold text-xs uppercase tracking-wider text-slate-800">Desktop Image Banner</span>
                   <span className="text-[11px] text-slate-500">1200 × 500 px rec.</span>
                 </div>
-                <div className="flex h-36 items-center justify-center overflow-hidden rounded-xl border border-dashed border-[#EEDDE0] bg-white">
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-xl border border-dashed border-[var(--color-border)] bg-white">
                   {currentDesktop ? (
                     <img src={currentDesktop} alt="Desktop banner" className="h-full w-full object-cover" />
                   ) : (
@@ -1812,12 +1812,12 @@ function BannerManageModal({
               </div>
 
               {/* Mobile Image */}
-              <div className="rounded-2xl border border-[#F2E5E7] p-4 bg-slate-50/50">
+              <div className="rounded-2xl border border-[var(--color-border-muted)] p-4 bg-slate-50/50">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-bold text-xs uppercase tracking-wider text-slate-800">Mobile Image (Optional)</span>
                   <span className="text-[11px] text-slate-500">600 × 600 px rec.</span>
                 </div>
-                <div className="flex h-36 items-center justify-center overflow-hidden rounded-xl border border-dashed border-[#EEDDE0] bg-white">
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-xl border border-dashed border-[var(--color-border)] bg-white">
                   {currentMobile ? (
                     <img src={currentMobile} alt="Mobile banner" className="h-full w-full object-cover" />
                   ) : (
@@ -1844,7 +1844,7 @@ function BannerManageModal({
               </div>
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-[#F0E0E3]">
+            <div className="flex justify-end pt-3 border-t border-[var(--color-extra-004)]">
               <Button type="button" variant="secondary" onClick={onClose}>
                 Done
               </Button>
@@ -1856,10 +1856,10 @@ function BannerManageModal({
         {activeTab === 'products' && (
           <div className="space-y-4 pt-1">
             {/* Banner Discount Control in Tab 3 */}
-            <div className="rounded-2xl bg-[#FAF2F4]/50 border border-[#EEDDE0] p-4 space-y-3">
+            <div className="rounded-2xl bg-[var(--color-surface)]/50 border border-[var(--color-border)] p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <p className="font-extrabold text-[#804652] text-xs uppercase tracking-wider">
+                  <p className="font-extrabold text-[var(--color-primary-strong)] text-xs uppercase tracking-wider">
                     Banner Discount Percentage ({discountPercent}%)
                   </p>
                   <p className="text-[11px] text-slate-600 mt-0.5">
@@ -1867,7 +1867,7 @@ function BannerManageModal({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-white border border-[#EEDDE0] font-black text-[#804652] text-xs shadow-2xs">
+                  <span className="px-3 py-1 rounded-full bg-white border border-[var(--color-border)] font-black text-[var(--color-primary-strong)] text-xs shadow-2xs">
                     {discountPercent}% OFF
                   </span>
                   <Button
@@ -1919,7 +1919,7 @@ function BannerManageModal({
                     setDiscountPercent(v)
                     setDiscountText(`FLAT ${v}% OFF`)
                   }}
-                  className="flex-1 accent-[#804652] h-2 bg-slate-200 rounded-lg cursor-pointer"
+                  className="flex-1 accent-[var(--color-primary-strong)] h-2 bg-slate-200 rounded-lg cursor-pointer"
                 />
                 <input
                   type="number"
@@ -1931,7 +1931,7 @@ function BannerManageModal({
                     setDiscountPercent(v)
                     setDiscountText(`FLAT ${v}% OFF`)
                   }}
-                  className="w-16 rounded-xl border border-[#EEDDE0] bg-white px-2.5 py-1 text-center text-xs font-bold text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                  className="w-16 rounded-xl border border-[var(--color-border)] bg-white px-2.5 py-1 text-center text-xs font-bold text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                 />
               </div>
 
@@ -1947,8 +1947,8 @@ function BannerManageModal({
                     }}
                     className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                       discountPercent === p
-                        ? 'bg-[#804652] text-white shadow-xs'
-                        : 'bg-white text-slate-700 border border-[#EEDDE0] hover:bg-[#FAF2F4]'
+                        ? 'bg-[var(--color-primary-strong)] text-white shadow-xs'
+                        : 'bg-white text-slate-700 border border-[var(--color-border)] hover:bg-[var(--color-surface)]'
                     }`}
                   >
                     {p}%
@@ -1959,7 +1959,7 @@ function BannerManageModal({
 
             {/* Existing Items List with T11 Price Calculations */}
             {banner.items.length > 0 ? (
-              <div className="rounded-2xl border border-[#F2E5E7] bg-white divide-y divide-[#F0E0E3] overflow-hidden shadow-2xs">
+              <div className="rounded-2xl border border-[var(--color-border-muted)] bg-white divide-y divide-[var(--color-extra-004)] overflow-hidden shadow-2xs">
                 {banner.items.map((item) => {
                   const linkedP = products.find((p) => p.id === item.product_id)
                   const origPrice = getProductPrice(linkedP) || Number(item.min_price || item.mrp || 0)
@@ -1978,13 +1978,13 @@ function BannerManageModal({
                 })}
               </div>
             ) : (
-              <div className="p-6 text-center rounded-2xl border border-dashed border-[#EEDDE0] text-slate-400 text-xs">
+              <div className="p-6 text-center rounded-2xl border border-dashed border-[var(--color-border)] text-slate-400 text-xs">
                 No products linked to this banner yet.
               </div>
             )}
 
             {/* Add New Product Form with Live Pricing Preview before saving */}
-            <form onSubmit={addItem} className="space-y-3 pt-2 rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 p-4">
+            <form onSubmit={addItem} className="space-y-3 pt-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 p-4">
               <p className="font-bold text-slate-800 text-xs">Link Another Product to this Banner</p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2030,7 +2030,7 @@ function BannerManageModal({
               </div>
             </form>
 
-            <div className="flex justify-end pt-3 border-t border-[#F0E0E3]">
+            <div className="flex justify-end pt-3 border-t border-[var(--color-extra-004)]">
               <Button type="button" variant="secondary" onClick={onClose}>
                 Done
               </Button>

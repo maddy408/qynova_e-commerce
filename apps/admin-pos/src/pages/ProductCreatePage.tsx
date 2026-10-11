@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Alert, Button, Card, Select, TextArea, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Brand, Category, GstRate, HsnCode, Subcategory, Unit, VariantAttribute } from '../lib/types'
+import { ROUTES } from '../routes/routes'
 
 interface StagedImage {
   file: File
@@ -549,7 +550,7 @@ export function ProductCreatePage() {
         await api.put(`/products/${productId}/specifications`, { specifications: validSpecs })
       }
 
-      navigate(`/products/${productId}`)
+      navigate(ROUTES.PRODUCT_DETAIL(productId))
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not create product'))
       setSubmitStep('')
@@ -565,7 +566,7 @@ export function ProductCreatePage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate('/products')}
+            onClick={() => navigate(ROUTES.PRODUCTS)}
             className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
           >
             ‹ Products
@@ -578,7 +579,7 @@ export function ProductCreatePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button type="button" variant="secondary" onClick={() => navigate('/products')} className="text-xs font-bold px-4 py-1.5">
+          <Button type="button" variant="secondary" onClick={() => navigate(ROUTES.PRODUCTS)} className="text-xs font-bold px-4 py-1.5">
             Discard
           </Button>
           <Button
@@ -708,7 +709,7 @@ export function ProductCreatePage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write detailed product description..."
                 className={`w-full rounded-b-lg border ${
-                  isWordLimitExceeded ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]'
+                  isWordLimitExceeded ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]'
                 } bg-white p-3 text-xs focus:outline-none focus:ring-2`}
               />
 
@@ -732,7 +733,7 @@ export function ProductCreatePage() {
                 <button
                   type="button"
                   onClick={addBulletPoint}
-                  className="text-xs font-bold text-[#7B3F4A] hover:text-[#68343E]"
+                  className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]"
                 >
                   + Add Point
                 </button>
@@ -777,7 +778,7 @@ export function ProductCreatePage() {
                 <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-600 text-lg font-bold">
                   📷
                 </div>
-                <div className="text-xs font-bold text-[#7B3F4A]">Upload new <span className="text-slate-500 font-normal">or drag and drop</span></div>
+                <div className="text-xs font-bold text-[var(--color-primary)]">Upload new <span className="text-slate-500 font-normal">or drag and drop</span></div>
                 <p className="text-[11px] text-slate-400">Accepts PNG, JPG, WEBP formats</p>
               </label>
             </div>
@@ -892,7 +893,7 @@ export function ProductCreatePage() {
                     onChange={(e) => setShowDiscount(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#7B3F4A]"></div>
+                  <div className="w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
                   <span className="ml-2 text-xs font-semibold text-slate-700">Show Badge</span>
                 </label>
               </div>
@@ -953,26 +954,26 @@ export function ProductCreatePage() {
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 pt-2 border-t border-slate-100">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={shippingRequired} onChange={(e) => setShippingRequired(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
+                <input type="checkbox" checked={shippingRequired} onChange={(e) => setShippingRequired(e.target.checked)} className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)]" />
                 Shipping Required
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={codAvailable} onChange={(e) => setCodAvailable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
+                <input type="checkbox" checked={codAvailable} onChange={(e) => setCodAvailable(e.target.checked)} className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)]" />
                 COD Available
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={replacementAvailable} onChange={(e) => setReplacementAvailable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
+                <input type="checkbox" checked={replacementAvailable} onChange={(e) => setReplacementAvailable(e.target.checked)} className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)]" />
                 Replacement Allowed
               </label>
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={refundAvailable} onChange={(e) => setRefundAvailable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
+                <input type="checkbox" checked={refundAvailable} onChange={(e) => setRefundAvailable(e.target.checked)} className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)]" />
                 Refund Allowed
               </label>
             </div>
 
             <div className="flex items-center gap-4 pt-2 border-t border-slate-100">
               <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input type="checkbox" checked={returnable} onChange={(e) => setReturnable(e.target.checked)} className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]" />
+                <input type="checkbox" checked={returnable} onChange={(e) => setReturnable(e.target.checked)} className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)]" />
                 Returnable Item
               </label>
               {returnable && (
@@ -1003,12 +1004,12 @@ export function ProductCreatePage() {
             {productType === 'VARIABLE' && (
               <div className="space-y-4 pt-2 border-t border-slate-100">
                 {/* Attribute Selection Dropdown Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FAF2F4]/60 p-3 rounded-2xl border border-[#EEDDE0]">
-                  <label className="text-xs font-bold text-[#804652]">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--color-surface)]/60 p-3 rounded-2xl border border-[var(--color-border)]">
+                  <label className="text-xs font-bold text-[var(--color-primary-strong)]">
                     + Add Variant Attribute Type:
                   </label>
                   <select
-                    className="w-full sm:w-72 rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs font-bold text-[#7B3F4A] shadow-2xs focus:border-[#7B3F4A] focus:outline-none"
+                    className="w-full sm:w-72 rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--color-primary)] shadow-2xs focus:border-[var(--color-primary)] focus:outline-none"
                     value=""
                     onChange={(e) => {
                       if (e.target.value) {
@@ -1035,9 +1036,9 @@ export function ProductCreatePage() {
                     if (!attr) return null
 
                     return (
-                      <div key={attr.id} className="rounded-2xl border border-[#EEDDE0] p-4 bg-[#FAF2F4]/30 shadow-2xs space-y-3">
-                        <div className="flex items-center justify-between border-b border-[#EEDDE0] pb-2">
-                          <span className="font-extrabold text-xs text-[#7B3F4A] uppercase tracking-wider flex items-center gap-2">
+                      <div key={attr.id} className="rounded-2xl border border-[var(--color-border)] p-4 bg-[var(--color-surface)]/30 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
+                          <span className="font-extrabold text-xs text-[var(--color-primary)] uppercase tracking-wider flex items-center gap-2">
                             🏷️ {attr.name}
                           </span>
                           <button
@@ -1063,8 +1064,8 @@ export function ProductCreatePage() {
                                 }
                                 className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all border flex items-center gap-1.5 ${
                                   checked
-                                    ? 'bg-[#7B3F4A] text-white border-[#7B3F4A] shadow-2xs'
-                                    : 'bg-white text-slate-700 border-[#EEDDE0] hover:bg-[#FAF2F4]'
+                                    ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-2xs'
+                                    : 'bg-white text-slate-700 border-[var(--color-border)] hover:bg-[var(--color-surface)]'
                                 }`}
                               >
                                 {val.color_hex && (
@@ -1133,7 +1134,7 @@ export function ProductCreatePage() {
                                     </div>
                                   ))}
                                   <label
-                                    className="cursor-pointer flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-[#7B3F4A] bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F3E5E8] transition-colors text-xs font-bold"
+                                    className="cursor-pointer flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-extra-042)] transition-colors text-xs font-bold"
                                     title="Add Image for this variant"
                                   >
                                     📷
@@ -1247,7 +1248,7 @@ export function ProductCreatePage() {
               <button
                 type="button"
                 onClick={addSpec}
-                className="text-xs font-bold text-[#7B3F4A] hover:text-[#68343E]"
+                className="text-xs font-bold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]"
               >
                 + Add Spec
               </button>
@@ -1302,7 +1303,7 @@ export function ProductCreatePage() {
                   type="checkbox"
                   checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A]"
+                  className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)]"
                 />
                 Featured Product on Home Page
               </label>
@@ -1317,7 +1318,7 @@ export function ProductCreatePage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-slate-700">Categories *</label>
-                <span className="text-[11px] font-semibold text-[#7B3F4A] bg-[#FAF2F4] px-2 py-0.5 rounded-full border border-[#EEDDE0]">
+                <span className="text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-surface)] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
                   {categoryIds.length} selected
                 </span>
               </div>
@@ -1330,7 +1331,7 @@ export function ProductCreatePage() {
                     <div
                       key={c.id}
                       className={`flex items-center justify-between p-2 rounded-lg text-xs font-semibold transition-all ${
-                        isChecked ? 'bg-white border border-[#EEDDE0] shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
+                        isChecked ? 'bg-white border border-[var(--color-border)] shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
                       }`}
                     >
                       <label className="flex items-center gap-2.5 cursor-pointer flex-1">
@@ -1349,9 +1350,9 @@ export function ProductCreatePage() {
                               }
                             }
                           }}
-                          className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] h-4 w-4"
+                          className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)] h-4 w-4"
                         />
-                        <span className={isChecked ? 'font-bold text-[#7B3F4A]' : 'text-slate-700'}>{c.name}</span>
+                        <span className={isChecked ? 'font-bold text-[var(--color-primary)]' : 'text-slate-700'}>{c.name}</span>
                       </label>
 
                       {isChecked && (
@@ -1361,7 +1362,7 @@ export function ProductCreatePage() {
                           title={isPrimary ? 'Primary category' : 'Set as primary category'}
                           className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
                             isPrimary
-                              ? 'bg-[#7B3F4A] text-white'
+                              ? 'bg-[var(--color-primary)] text-white'
                               : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                           }`}
                         >
@@ -1378,7 +1379,7 @@ export function ProductCreatePage() {
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-slate-700">Subcategories</label>
-                <span className="text-[11px] font-semibold text-[#7B3F4A] bg-[#FAF2F4] px-2 py-0.5 rounded-full border border-[#EEDDE0]">
+                <span className="text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-surface)] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
                   {subcategoryIds.length} selected
                 </span>
               </div>
@@ -1393,7 +1394,7 @@ export function ProductCreatePage() {
                       <label
                         key={s.id}
                         className={`flex items-center gap-2.5 p-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${
-                          isChecked ? 'bg-white border border-[#EEDDE0] text-[#7B3F4A] font-bold shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
+                          isChecked ? 'bg-white border border-[var(--color-border)] text-[var(--color-primary)] font-bold shadow-2xs' : 'hover:bg-slate-100 text-slate-700'
                         }`}
                       >
                         <input
@@ -1406,7 +1407,7 @@ export function ProductCreatePage() {
                               setSubcategoryIds((prev) => prev.filter((id) => id !== s.id))
                             }
                           }}
-                          className="rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] h-4 w-4"
+                          className="rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)] h-4 w-4"
                         />
                         <span>{s.name}</span>
                       </label>
@@ -1446,8 +1447,8 @@ export function ProductCreatePage() {
             <h2 className="text-sm font-bold text-slate-900">Search engine listing</h2>
 
             {/* Live SERP Preview Box */}
-            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-1">
-              <p className="text-xs font-bold text-[#7B3F4A] truncate">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-1">
+              <p className="text-xs font-bold text-[var(--color-primary)] truncate">
                 {metaTitle || name || 'Product Title'}
               </p>
               <p className="text-[11px] text-emerald-700 font-mono truncate">

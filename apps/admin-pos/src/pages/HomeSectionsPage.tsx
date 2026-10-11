@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
-import { api, apiErrorMessage } from '../lib/api'
+import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { HomeSection, HomeSectionType } from '../lib/types'
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/api\/?$/, '')
 function imageUrl(path: string | null) {
   if (!path) return ''
-  return `${API_ORIGIN}/${path}`
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${getApiOrigin()}/${path}`
 }
 
 const TYPES: HomeSectionType[] = ['BANNER', 'CATEGORIES', 'BEST_SELLERS', 'NEW_ARRIVALS', 'FEATURED', 'COMBOS', 'DEALS', 'CUSTOM']
@@ -184,7 +184,7 @@ export function HomeSectionsPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Background Image</th>
@@ -195,16 +195,16 @@ export function HomeSectionsPage() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[var(--color-extra-004)]">
               {sections.map((s, i) => (
-                <tr key={s.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                <tr key={s.id} className="hover:bg-[var(--color-surface)]/80 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 font-bold">
                       <button
                         type="button"
                         onClick={() => move(i, -1)}
                         disabled={i === 0}
-                        className="text-slate-400 hover:text-[#804652] disabled:opacity-20 cursor-pointer"
+                        className="text-slate-400 hover:text-[var(--color-primary-strong)] disabled:opacity-20 cursor-pointer"
                         title="Move Up"
                       >
                         ▲
@@ -213,7 +213,7 @@ export function HomeSectionsPage() {
                         type="button"
                         onClick={() => move(i, 1)}
                         disabled={i === sections.length - 1}
-                        className="text-slate-400 hover:text-[#804652] disabled:opacity-20 cursor-pointer"
+                        className="text-slate-400 hover:text-[var(--color-primary-strong)] disabled:opacity-20 cursor-pointer"
                         title="Move Down"
                       >
                         ▼
@@ -222,14 +222,14 @@ export function HomeSectionsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-10 w-16 overflow-hidden rounded-lg border border-[#F2E5E7] bg-[#FAF2F4] flex items-center justify-center">
+                      <div className="h-10 w-16 overflow-hidden rounded-lg border border-[var(--color-border-muted)] bg-[var(--color-surface)] flex items-center justify-center">
                         {s.image_path ? (
                           <img src={imageUrl(s.image_path)} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-[9px] font-bold text-[#804652]">No Image</span>
+                          <span className="text-[9px] font-bold text-[var(--color-primary-strong)]">No Image</span>
                         )}
                       </div>
-                      <label className="cursor-pointer text-[11px] font-bold text-[#804652] hover:text-[#4A1821]">
+                      <label className="cursor-pointer text-[11px] font-bold text-[var(--color-primary-strong)] hover:text-[var(--color-extra-001)]">
                         {uploadingImage ? 'Uploading…' : 'Upload'}
                         <input
                           type="file"
@@ -253,7 +253,7 @@ export function HomeSectionsPage() {
                       <button
                         type="button"
                         onClick={() => openEditModal(s)}
-                        className="p-1.5 rounded-lg text-slate-600 hover:bg-[#FAF2F4] hover:text-[#804652] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-slate-600 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] transition-colors cursor-pointer"
                         title="Edit Section"
                       >
                         <PencilIcon />
@@ -261,7 +261,7 @@ export function HomeSectionsPage() {
                       <button
                         type="button"
                         onClick={() => toggleActive(s)}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${s.is_active ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[#FAF2F4]'}`}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${s.is_active ? 'text-emerald-700 hover:bg-emerald-50' : 'text-slate-400 hover:bg-[var(--color-surface)]'}`}
                         title={s.is_active ? 'Deactivate' : 'Activate'}
                       >
                         <PowerIcon />
@@ -315,12 +315,12 @@ export function HomeSectionsPage() {
             <TextField label="Item Display Limit" type="number" value={itemLimit} onChange={(e) => setItemLimit(e.target.value)} />
 
             {/* Background Image Uploader Card */}
-            <div className="rounded-2xl border-2 border-dashed border-[#EEDDE0] bg-[#FAF5F6]/70 p-4 transition-colors">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[#804652] mb-2.5">
+            <div className="rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]/70 p-4 transition-colors">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary-strong)] mb-2.5">
                 Background Overlay Image
               </label>
               <div className="flex items-center gap-4">
-                <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 border-[#EEDDE0] bg-white shadow-2xs flex items-center justify-center">
+                <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 border-[var(--color-border)] bg-white shadow-2xs flex items-center justify-center">
                   {imagePreview || (editingSection && !imageRemoved && editingSection.image_path) ? (
                     <img
                       src={imagePreview ?? imageUrl(editingSection!.image_path)}
@@ -328,7 +328,7 @@ export function HomeSectionsPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-[10px] font-bold text-[#804652]/60">No Image</span>
+                    <span className="text-[10px] font-bold text-[var(--color-primary-strong)]/60">No Image</span>
                   )}
                 </div>
 
@@ -337,7 +337,7 @@ export function HomeSectionsPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#7B3F4A] text-white text-xs font-semibold hover:bg-[#68333D] transition-all shadow-2xs active:scale-98 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[var(--color-extra-021)] transition-all shadow-2xs active:scale-98 cursor-pointer"
                     >
                       📷 {editingSection ? 'Change Image' : (imagePreview ? 'Change Image' : 'Upload Image')}
                     </button>
@@ -375,7 +375,7 @@ export function HomeSectionsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#F2E5E7]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--color-border-muted)]">
               <Button
                 type="button"
                 variant="secondary"

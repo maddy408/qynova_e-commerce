@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Card, PageHeader, Select, Spinner } from '../components/ui'
+import { ROUTES } from '../routes/routes'
 import { api } from '../lib/api'
 
 interface Delivery {
@@ -59,7 +60,7 @@ export function DeliveriesPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
               <tr>
                 <th className="px-6 py-4">Order No</th>
                 <th className="px-6 py-4">Customer</th>
@@ -70,15 +71,15 @@ export function DeliveriesPage() {
                 <th className="px-6 py-4">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[var(--color-extra-004)]">
               {deliveries.map((d) => (
-                <tr key={d.id} onClick={() => navigate(`/deliveries/${d.id}`)} className="cursor-pointer hover:bg-[#FAF2F4]/80 transition-colors">
+                <tr key={d.id} onClick={() => navigate(ROUTES.DELIVERY_DETAIL(d.id))} className="cursor-pointer hover:bg-[var(--color-surface)]/80 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-950">{d.order_no}</td>
                   <td className="px-6 py-4 font-semibold text-slate-800">
                     {d.customer_name} <span className="text-xs text-slate-600 font-medium">({d.customer_phone})</span>
                   </td>
                   <td className="px-6 py-4 font-semibold text-slate-800">{d.courier ?? '—'}</td>
-                  <td className="px-6 py-4 font-mono text-xs font-bold text-[#804652]">{d.awb ?? '—'}</td>
+                  <td className="px-6 py-4 font-mono text-xs font-bold text-[var(--color-primary-strong)]">{d.awb ?? '—'}</td>
                   <td className="px-6 py-4">
                     <Badge tone={STATUS_TONE[d.status] ?? 'slate'}>{d.status.replace(/_/g, ' ')}</Badge>
                   </td>

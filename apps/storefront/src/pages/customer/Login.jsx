@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
+import { ROUTES } from '../../routes/routes'
+import { env } from '../../config/env'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -15,7 +17,7 @@ export default function Login() {
   // Google Authentication State
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const googleBtnRef = useRef(null)
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+  const googleClientId = env.GOOGLE_CLIENT_ID
 
   // Clear previous session on mount so no stale customer data lingers
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Login() {
       setSuccessMessage(`Welcome back, ${res.data.customer?.name || 'Customer'}!`)
 
       setTimeout(() => {
-        navigate('/', { replace: true })
+        navigate(ROUTES.HOME, { replace: true })
       }, 700)
     } catch (err) {
       setIsGoogleLoading(false)
@@ -219,7 +221,7 @@ export default function Login() {
       setSuccessMessage(`Welcome back, ${response.data.customer?.name || 'Customer'}!`)
 
       setTimeout(() => {
-        navigate('/')
+        navigate(ROUTES.HOME)
       }, 1200)
     } catch (err) {
       setIsVerifyingOtp(false)
@@ -228,10 +230,10 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen lg:h-screen lg:max-h-screen bg-[#F8F3F6] text-[#2D252B] relative overflow-y-auto lg:overflow-hidden flex flex-col justify-center selection:bg-[#F2DDE9] selection:text-[#2D252B] font-sans">
+    <div className="min-h-screen lg:h-screen lg:max-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] relative overflow-y-auto lg:overflow-hidden flex flex-col justify-center selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-text-main)] font-sans">
       {/* Subtle background ambient blur */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#F2DDE9]/40 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#F2DDE9]/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--color-primary-tint)]/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[var(--color-primary-tint)]/30 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Container - Compact viewport layout */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-4 lg:py-2 flex-1 flex flex-col justify-center">
@@ -241,20 +243,20 @@ export default function Login() {
           <div className="lg:col-span-5 flex flex-col justify-center space-y-4 lg:space-y-5">
             {/* Logo */}
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-[#601D49] flex items-center justify-center shadow-sm text-white shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-sm text-white shrink-0">
                 <svg className="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="8" cy="21" r="1" />
                   <circle cx="19" cy="21" r="1" />
                   <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                  <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="#F2DDE9" stroke="none" />
+                  <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="var(--color-primary-tint)" stroke="none" />
                 </svg>
               </div>
               <div>
                 <div className="flex items-baseline leading-none">
-                  <span className="text-2xl font-black tracking-tight text-[#2D252B]">Qynova</span>
-                  <span className="text-2xl font-black tracking-tight text-[#601D49]">.</span>
+                  <span className="text-2xl font-black tracking-tight text-[var(--color-text-main)]">Qynova</span>
+                  <span className="text-2xl font-black tracking-tight text-[var(--color-brand)]">.</span>
                 </div>
-                <p className="text-[10px] font-medium tracking-wide text-[#6B5E68] uppercase mt-0.5">
+                <p className="text-[10px] font-medium tracking-wide text-[var(--color-text-muted)] uppercase mt-0.5">
                   Curated Lifestyle Store
                 </p>
               </div>
@@ -262,11 +264,11 @@ export default function Login() {
 
             {/* Main Headline */}
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold text-[#2D252B] leading-[1.18] tracking-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold text-[var(--color-text-main)] leading-[1.18] tracking-tight">
                 Welcome back!<br />
-                <span className="text-[#601D49]">Discover elegance in every pick.</span>
+                <span className="text-[var(--color-brand)]">Discover elegance in every pick.</span>
               </h1>
-              <p className="mt-2 text-xs sm:text-sm text-[#6B5E68] leading-snug max-w-sm">
+              <p className="mt-2 text-xs sm:text-sm text-[var(--color-text-muted)] leading-snug max-w-sm">
                 Login with your mobile number to view orders, cart items and exclusive member deals.
               </p>
             </div>
@@ -274,18 +276,18 @@ export default function Login() {
             {/* 3 Key Feature Badges */}
             <div className="grid grid-cols-3 gap-2 pt-1 max-w-md">
               <div className="flex flex-col items-start">
-                <div className="w-8.5 h-8.5 rounded-full bg-[#F7F5F7] text-[#601D49] flex items-center justify-center mb-1.5 shadow-xs border border-[#E8E0E5]">
+                <div className="w-8.5 h-8.5 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center mb-1.5 shadow-xs border border-[var(--color-border-subtle)]">
                   <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                     <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
                     <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
                   </svg>
                 </div>
-                <h4 className="text-xs font-bold text-[#2D252B] leading-tight">Curated Quality</h4>
-                <p className="text-[10px] text-[#6B5E68] leading-tight">Handpicked items</p>
+                <h4 className="text-xs font-bold text-[var(--color-text-main)] leading-tight">Curated Quality</h4>
+                <p className="text-[10px] text-[var(--color-text-muted)] leading-tight">Handpicked items</p>
               </div>
 
               <div className="flex flex-col items-start">
-                <div className="w-8.5 h-8.5 rounded-full bg-[#F7F5F7] text-[#601D49] flex items-center justify-center mb-1.5 shadow-xs border border-[#E8E0E5]">
+                <div className="w-8.5 h-8.5 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center mb-1.5 shadow-xs border border-[var(--color-border-subtle)]">
                   <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                     <rect x="1" y="3" width="15" height="13" rx="1" />
                     <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
@@ -293,19 +295,19 @@ export default function Login() {
                     <circle cx="18.5" cy="18.5" r="2.5" />
                   </svg>
                 </div>
-                <h4 className="text-xs font-bold text-[#2D252B] leading-tight">Fast Delivery</h4>
-                <p className="text-[10px] text-[#6B5E68] leading-tight">Direct to your door</p>
+                <h4 className="text-xs font-bold text-[var(--color-text-main)] leading-tight">Fast Delivery</h4>
+                <p className="text-[10px] text-[var(--color-text-muted)] leading-tight">Direct to your door</p>
               </div>
 
               <div className="flex flex-col items-start">
-                <div className="w-8.5 h-8.5 rounded-full bg-[#F7F5F7] text-[#601D49] flex items-center justify-center mb-1.5 shadow-xs border border-[#E8E0E5]">
+                <div className="w-8.5 h-8.5 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center mb-1.5 shadow-xs border border-[var(--color-border-subtle)]">
                   <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     <path d="m9 12 2 2 4-4" />
                   </svg>
                 </div>
-                <h4 className="text-xs font-bold text-[#2D252B] leading-tight">Best Value</h4>
-                <p className="text-[10px] text-[#6B5E68] leading-tight">Premium experience</p>
+                <h4 className="text-xs font-bold text-[var(--color-text-main)] leading-tight">Best Value</h4>
+                <p className="text-[10px] text-[var(--color-text-muted)] leading-tight">Premium experience</p>
               </div>
             </div>
 
@@ -320,7 +322,7 @@ export default function Login() {
               </div>
 
               <div className="absolute -top-1.5 right-2 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-sm border border-emerald-100/80 rotate-[2deg] flex flex-col items-center">
-                <span className="text-[11px] font-extrabold text-[#15803D] tracking-tight">
+                <span className="text-[11px] font-extrabold text-[var(--color-success)] tracking-tight">
                   Good Food <span className="text-red-500">♡</span> Better Life
                 </span>
                 <div className="w-8 h-0.5 bg-emerald-500 rounded-full mt-0.5"></div>
@@ -330,11 +332,11 @@ export default function Login() {
 
           {/* RIGHT SECTION (~55% - 7 cols) */}
           <div className="lg:col-span-7 flex justify-center lg:justify-end">
-            <div className="w-full max-w-[460px] bg-white rounded-3xl p-4.5 sm:p-8 shadow-[0_15px_40px_rgba(139,92,246,0.08)] border border-[#E8E0E5] relative">
+            <div className="w-full max-w-[460px] bg-white rounded-3xl p-4.5 sm:p-8 shadow-[var(--shadow-auth-card)] border border-[var(--color-border-subtle)] relative">
               
               {/* Form Header */}
               <div className="flex items-center gap-3.5 mb-5">
-                <div className="w-13 h-13 rounded-full bg-[#F7F5F7] text-[#601D49] flex items-center justify-center shrink-0">
+                <div className="w-13 h-13 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center shrink-0">
                   <svg className="w-6.5 h-6.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                     <polyline points="10 17 15 12 10 7" />
@@ -342,10 +344,10 @@ export default function Login() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-2xl font-extrabold text-[#2D252B] tracking-tight leading-tight">
+                  <h2 className="text-2xl font-extrabold text-[var(--color-text-main)] tracking-tight leading-tight">
                     Welcome back
                   </h2>
-                  <p className="text-xs sm:text-sm text-[#6B5E68] mt-0.5">
+                  <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5">
                     Login to continue shopping with Qynova.
                   </p>
                 </div>
@@ -380,17 +382,17 @@ export default function Login() {
                 {/* Mobile Number Field */}
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl border border-[#E8E0E5] bg-[#F8F3F6] flex items-center justify-center text-[#6B5E68] shrink-0">
-                      <svg className="w-4.5 h-4.5 text-[#6B5E68]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="w-10 h-10 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-main)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0">
+                      <svg className="w-4.5 h-4.5 text-[var(--color-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
                         Mobile Number <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex items-center border border-[#E8E0E5] rounded-xl overflow-hidden focus-within:border-[#601D49] focus-within:ring-1 focus-within:ring-[#601D49] transition-colors">
-                        <span className="px-3 py-2 bg-[#F8F3F6] text-[#6B5E68] font-semibold text-xs border-r border-[#E8E0E5] select-none">
+                      <div className="flex items-center border border-[var(--color-border-subtle)] rounded-xl overflow-hidden focus-within:border-[var(--color-brand)] focus-within:ring-1 focus-within:ring-[var(--color-brand)] transition-colors">
+                        <span className="px-3 py-2 bg-[var(--color-bg-main)] text-[var(--color-text-muted)] font-semibold text-xs border-r border-[var(--color-border-subtle)] select-none">
                           +91
                         </span>
                         <input
@@ -400,7 +402,7 @@ export default function Login() {
                           value={mobileNumber}
                           onChange={handleMobileChange}
                           placeholder="Enter 10 digit mobile number"
-                          className="flex-1 h-10 px-3 text-xs sm:text-sm text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none disabled:bg-gray-50"
+                          className="flex-1 h-10 px-3 text-xs sm:text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none disabled:bg-gray-50"
                         />
                       </div>
                     </div>
@@ -412,7 +414,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={isSubmitting || isGoogleLoading}
-                    className="w-full h-11.5 rounded-xl bg-[#601D49] hover:bg-[#4D153A] active:bg-[#601D49] text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-sm shadow-black/10 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full h-11.5 rounded-xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] active:bg-[var(--color-brand)] text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-sm shadow-black/10 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <span className="inline-flex items-center gap-2 text-xs sm:text-sm">
@@ -435,8 +437,8 @@ export default function Login() {
                 </div>
 
                 {/* Secure OTP badge */}
-                <div className="flex items-center justify-center gap-1.5 text-[#6B5E68] text-[11px] pt-1">
-                  <svg className="w-3.5 h-3.5 text-[#601D49]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="flex items-center justify-center gap-1.5 text-[var(--color-text-muted)] text-[11px] pt-1">
+                  <svg className="w-3.5 h-3.5 text-[var(--color-brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
@@ -446,10 +448,10 @@ export default function Login() {
                 {/* Divider */}
                 <div className="relative my-3 pt-1">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#E8E0E5]"></div>
+                    <div className="w-full border-t border-[var(--color-border-subtle)]"></div>
                   </div>
                   <div className="relative flex justify-center text-xs">
-                    <span className="px-3 bg-white text-[#6B5E68] font-medium uppercase tracking-wider text-[11px]">
+                    <span className="px-3 bg-white text-[var(--color-text-muted)] font-medium uppercase tracking-wider text-[11px]">
                       Or continue with
                     </span>
                   </div>
@@ -459,7 +461,7 @@ export default function Login() {
                 <div className="w-full">
                   {isGoogleLoading ? (
                     <div className="w-full h-11.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4 text-[#601D49]" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-4 w-4 text-[var(--color-brand)]" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -481,10 +483,10 @@ export default function Login() {
                           className="w-full h-11.5 rounded-xl border border-gray-300 hover:bg-gray-50 active:bg-gray-100 text-gray-700 font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 transition-all cursor-pointer shadow-xs bg-white"
                         >
                           <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
-                            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
-                            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.04 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
-                            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                            <path fill="var(--color-google-blue)" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
+                            <path fill="var(--color-google-green)" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
+                            <path fill="var(--color-google-yellow)" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.04 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                            <path fill="var(--color-google-red)" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
                           </svg>
                           <span>Continue with Google</span>
                         </button>
@@ -495,9 +497,9 @@ export default function Login() {
 
                 {/* Register Redirect */}
                 <div className="text-center pt-2 border-t border-gray-100">
-                  <p className="text-xs sm:text-sm text-[#6B5E68] font-medium">
+                  <p className="text-xs sm:text-sm text-[var(--color-text-muted)] font-medium">
                     Don't have an account?{' '}
-                    <Link to="/register" className="text-[#601D49] hover:text-[#4D153A] font-bold hover:underline">
+                    <Link to={ROUTES.REGISTER} className="text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] font-bold hover:underline">
                       Register
                     </Link>
                   </p>
@@ -505,9 +507,9 @@ export default function Login() {
 
                 {/* Terms and Privacy Policy */}
                 <div className="text-center pt-1">
-                  <p className="text-[10px] text-[#6B5E68]">
+                  <p className="text-[10px] text-[var(--color-text-muted)]">
                     By logging in, you agree to our{' '}
-                    <Link to="/policy/terms" className="underline hover:text-[#2D252B]">
+                    <Link to={ROUTES.POLICY_TERMS} className="underline hover:text-[var(--color-text-main)]">
                       Terms & Privacy Policy
                     </Link>
                     .
@@ -539,15 +541,15 @@ export default function Login() {
 
             {/* Modal Header */}
             <div className="text-center mb-5">
-              <div className="w-12 h-12 rounded-full bg-[#F7F5F7] text-[#601D49] mx-auto flex items-center justify-center mb-3">
+              <div className="w-12 h-12 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] mx-auto flex items-center justify-center mb-3">
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   <path d="m9 12 2 2 4-4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-extrabold text-[#2D252B]">Verify Login OTP</h3>
-              <p className="text-xs text-[#6B5E68] mt-1">
-                Enter the 6-digit code sent to <span className="font-semibold text-[#2D252B]">+91 {mobileNumber}</span>
+              <h3 className="text-xl font-extrabold text-[var(--color-text-main)]">Verify Login OTP</h3>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                Enter the 6-digit code sent to <span className="font-semibold text-[var(--color-text-main)]">+91 {mobileNumber}</span>
               </p>
 
               {/* Dev convenience badge */}
@@ -571,7 +573,7 @@ export default function Login() {
             {/* OTP Form */}
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#2D252B] text-center mb-2">
+                <label className="block text-xs font-semibold text-[var(--color-text-main)] text-center mb-2">
                   Enter 6-Digit Code
                 </label>
                 <input
@@ -584,14 +586,14 @@ export default function Login() {
                     if (otpError) setOtpError('')
                   }}
                   placeholder="• • • • • •"
-                  className="w-full h-12 text-center text-xl sm:text-2xl font-bold tracking-[0.2em] sm:tracking-[0.4em] rounded-xl border border-[#E8E0E5] focus:outline-none focus:border-[#601D49] focus:ring-2 focus:ring-[#601D49]/20 text-[#2D252B] transition-all placeholder-gray-300"
+                  className="w-full h-12 text-center text-xl sm:text-2xl font-bold tracking-[0.2em] sm:tracking-[0.4em] rounded-xl border border-[var(--color-border-subtle)] focus:outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 text-[var(--color-text-main)] transition-all placeholder-gray-300"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isVerifyingOtp || otpValue.length !== 6}
-                className="w-full h-12 rounded-xl bg-[#601D49] hover:bg-[#4D153A] active:bg-[#601D49] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-black/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-12 rounded-xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] active:bg-[var(--color-brand)] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-black/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isVerifyingOtp ? (
                   <span className="inline-flex items-center gap-2">
@@ -610,7 +612,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowOtpModal(false)}
-                  className="text-[#6B5E68] hover:text-[#2D252B] cursor-pointer min-h-[40px] flex items-center"
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] cursor-pointer min-h-[40px] flex items-center"
                 >
                   Edit mobile number
                 </button>
@@ -622,7 +624,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={handleResendOtp}
-                    className="text-[#601D49] hover:text-[#601D49] font-bold hover:underline cursor-pointer min-h-[40px] flex items-center"
+                    className="text-[var(--color-brand)] hover:text-[var(--color-brand)] font-bold hover:underline cursor-pointer min-h-[40px] flex items-center"
                   >
                     Resend OTP
                   </button>

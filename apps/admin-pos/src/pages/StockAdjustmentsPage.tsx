@@ -699,11 +699,11 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
   return (
     <div className="space-y-6 pb-12">
       {/* ── Main Section Tab Navigation ── */}
-      <div className="inline-flex items-center gap-1 bg-white border border-[#F2E5E7] p-1 rounded-full shadow-sm">
+      <div className="inline-flex items-center gap-1 bg-white border border-[var(--color-border-muted)] p-1 rounded-full shadow-sm">
         <button
           onClick={() => handleMainTabChange('OPENING_STOCK')}
           className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-all cursor-pointer ${mainTab === 'OPENING_STOCK'
-              ? 'bg-[#804652] text-white shadow-xs'
+              ? 'bg-[var(--color-primary-strong)] text-white shadow-xs'
               : 'text-slate-700 hover:text-slate-950 font-bold'
             }`}
         >
@@ -712,7 +712,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         <button
           onClick={() => handleMainTabChange('ADJUSTMENTS')}
           className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold rounded-full whitespace-nowrap transition-all cursor-pointer ${mainTab === 'ADJUSTMENTS'
-              ? 'bg-[#804652] text-white shadow-xs'
+              ? 'bg-[var(--color-primary-strong)] text-white shadow-xs'
               : 'text-slate-700 hover:text-slate-950 font-bold'
             }`}
         >
@@ -722,7 +722,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
       {mainTab === 'OPENING_STOCK' && (
         <div className="space-y-4">
-          <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-base font-bold text-slate-950">Manual Opening Stock Entry</h2>
               <p className="text-xs text-slate-600 font-medium">
@@ -731,7 +731,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             </div>
             <div className="flex items-center gap-3">
               {autoSaveStatus && (
-                <span className="text-xs font-bold text-[#804652] animate-pulse bg-[#FAF2F4] px-2.5 py-1 rounded-full border border-[#EEDDE0]">
+                <span className="text-xs font-bold text-[var(--color-primary-strong)] animate-pulse bg-[var(--color-surface)] px-2.5 py-1 rounded-full border border-[var(--color-border)]">
                   {autoSaveStatus}
                 </span>
               )}
@@ -745,26 +745,26 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                   placeholder="Search item or SKU…"
                   value={openingSearch}
                   onChange={(e) => { setOpeningSearch(e.target.value); setOpeningPage(1) }}
-                  className="pl-9 pr-4 py-2 rounded-full border border-[#EEDDE0] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 w-52"
+                  className="pl-9 pr-4 py-2 rounded-full border border-[var(--color-border)] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/30 w-52"
                 />
               </div>
               <button
                 onClick={handleManualSaveOpening}
                 disabled={savingOpening}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#804652] hover:bg-[#6e3743] text-white text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[var(--color-primary-strong)] hover:bg-[var(--color-extra-022)] text-white text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
               >
                 {savingOpening ? 'Saving Stock…' : 'Save Opening Stock'}
               </button>
             </div>
           </div>
 
-          <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm overflow-hidden">
+          <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-sm overflow-hidden">
             {openingLoading ? (
               <div className="p-12 text-center"><Spinner /></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-[11px] font-black tracking-wider whitespace-nowrap">
+                  <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-[11px] font-black tracking-wider whitespace-nowrap">
                     <tr>
                       <th className="px-5 py-3.5 font-black">Product Title</th>
                       <th className="px-5 py-3.5 font-black">SKU / Barcode</th>
@@ -778,7 +778,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       <th className="px-5 py-3.5 font-black text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F0E0E3]">
+                  <tbody className="divide-y divide-[var(--color-extra-004)]">
                     {openingItems.map((item) => {
                       const isDirty = dirtyVariantIds.has(item.variant_id)
                       const row = openingRowData[item.variant_id] || {
@@ -794,7 +794,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       const isDateInvalid = Boolean(row.manufacturing_date && row.expiry_date && row.expiry_date < row.manufacturing_date)
 
                       return (
-                        <tr key={item.variant_id} className={`hover:bg-[#FAF2F4]/80 transition-colors ${isDirty ? 'bg-[#FAF2F4]/50' : ''}`}>
+                        <tr key={item.variant_id} className={`hover:bg-[var(--color-surface)]/80 transition-colors ${isDirty ? 'bg-[var(--color-surface)]/50' : ''}`}>
                           {/* Product Title */}
                           <td className="px-5 py-3.5 font-bold text-slate-950 min-w-[170px]">
                             <div>{item.product_name}</div>
@@ -808,7 +808,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                           </td>
 
                           {/* SKU / Barcode */}
-                          <td className="px-5 py-3.5 font-mono font-bold text-[#804652] whitespace-nowrap">
+                          <td className="px-5 py-3.5 font-mono font-bold text-[var(--color-primary-strong)] whitespace-nowrap">
                             {item.sku} {item.barcode ? `(${item.barcode})` : ''}
                           </td>
 
@@ -826,7 +826,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                               onKeyDown={(e) => handleKeyDown(e, item.variant_id, item.product_name)}
                               placeholder="e.g. B-001"
                               title="Enter Batch Number (e.g. B-001)"
-                              className="w-28 rounded-xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                              className="w-28 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                             />
                           </td>
 
@@ -841,7 +841,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 onChange={(e) => handleInlineRowChange(item.variant_id, 'quantity', e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(e, item.variant_id, item.product_name)}
                                 title="Manual Opening Stock Input (press Enter to save row)"
-                                className={`w-20 rounded-xl border px-2.5 py-1.5 text-xs font-extrabold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652] ${isDirty ? 'border-[#804652] bg-[#FAF2F4] ring-1 ring-[#804652]' : 'border-[#EEDDE0] bg-[#FAF2F4]/30'
+                                className={`w-20 rounded-xl border px-2.5 py-1.5 text-xs font-extrabold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] ${isDirty ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface)] ring-1 ring-[var(--color-primary-strong)]' : 'border-[var(--color-border)] bg-[var(--color-surface)]/30'
                                   }`}
                               />
                               <span className="text-[10px] text-slate-400 font-semibold select-none cursor-help" title="Press Enter to save this row">↵</span>
@@ -861,7 +861,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 onChange={(e) => handleInlineRowChange(item.variant_id, 'mrp', e.target.value)}
                                 onKeyDown={(e) => handleKeyDown(e, item.variant_id, item.product_name)}
                                 title="MRP (₹)"
-                                className="w-20 rounded-xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-2 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                                className="w-20 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-2 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                               />
                             </div>
                           </td>
@@ -874,7 +874,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                               onChange={(e) => handleInlineRowChange(item.variant_id, 'manufacturing_date', e.target.value)}
                               onKeyDown={(e) => handleKeyDown(e, item.variant_id, item.product_name)}
                               title="Manufacturing Date"
-                              className="w-28 rounded-xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-1.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                              className="w-28 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-1.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                             />
                           </td>
 
@@ -888,7 +888,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                               title={isDateInvalid ? 'Expiry Date cannot be earlier than Manufacturing Date' : 'Expiry Date'}
                               className={`w-28 rounded-xl border px-1.5 py-1.5 text-[11px] text-slate-700 focus:outline-none focus:ring-2 ${isDateInvalid
                                   ? 'border-rose-400 bg-rose-50/50 text-rose-800 focus:ring-rose-400'
-                                  : 'border-[#EEDDE0] bg-[#FAF2F4]/30 focus:ring-[#804652]'
+                                  : 'border-[var(--color-border)] bg-[var(--color-surface)]/30 focus:ring-[var(--color-primary-strong)]'
                                 }`}
                             />
                           </td>
@@ -912,8 +912,8 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 disabled={isSavingThis || isDateInvalid}
                                 onClick={() => handleSaveSingle(item.variant_id, item.product_name)}
                                 className={`p-1.5 rounded-xl border transition-all cursor-pointer ${isDirty
-                                    ? 'bg-[#804652] text-white border-[#804652] hover:bg-[#6e3743] shadow-xs'
-                                    : 'bg-white text-slate-600 border-[#EEDDE0] hover:bg-[#FAF2F4] hover:text-[#804652]'
+                                    ? 'bg-[var(--color-primary-strong)] text-white border-[var(--color-primary-strong)] hover:bg-[var(--color-extra-022)] shadow-xs'
+                                    : 'bg-white text-slate-600 border-[var(--color-border)] hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)]'
                                   }`}
                               >
                                 {isSavingThis ? (
@@ -930,7 +930,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 type="button"
                                 title="Edit Opening Stock Details in popup"
                                 onClick={() => openEditPopup(item)}
-                                className="p-1.5 rounded-xl border border-[#EEDDE0] bg-white text-slate-700 hover:bg-[#FAF2F4] hover:text-[#804652] hover:border-[#804652] transition-all cursor-pointer"
+                                className="p-1.5 rounded-xl border border-[var(--color-border)] bg-white text-slate-700 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)] hover:border-[var(--color-primary-strong)] transition-all cursor-pointer"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
@@ -942,7 +942,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                 type="button"
                                 title="Reset / Delete Opening Stock to 0"
                                 onClick={() => setItemToReset(item)}
-                                className="p-1.5 rounded-xl border border-[#EEDDE0] bg-white text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer"
+                                className="p-1.5 rounded-xl border border-[var(--color-border)] bg-white text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer"
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -966,7 +966,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             )}
 
             {/* Pagination with Background Auto-Save */}
-            <div className="flex items-center justify-between border-t border-[#F2E5E7] px-6 py-4 bg-[#FAF2F4]/30 text-xs">
+            <div className="flex items-center justify-between border-t border-[var(--color-border-muted)] px-6 py-4 bg-[var(--color-surface)]/30 text-xs">
               <span className="text-slate-600 font-medium">
                 Page <span className="font-extrabold text-slate-950">{openingPage}</span> of <span className="font-extrabold text-slate-950">{totalPages}</span> ({openingTotal} total items)
               </span>
@@ -975,7 +975,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                   type="button"
                   disabled={openingPage <= 1}
                   onClick={() => handlePageChange(openingPage - 1)}
-                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs cursor-pointer"
+                  className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs cursor-pointer"
                 >
                   ← Previous
                 </button>
@@ -989,7 +989,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <button
                       key={pNum}
                       onClick={() => handlePageChange(pNum)}
-                      className={`h-7 w-7 rounded-full font-bold text-xs transition-colors cursor-pointer ${pNum === openingPage ? 'bg-[#804652] text-white shadow-xs' : 'bg-white border border-[#EEDDE0] text-slate-800 hover:bg-[#FAF2F4]'
+                      className={`h-7 w-7 rounded-full font-bold text-xs transition-colors cursor-pointer ${pNum === openingPage ? 'bg-[var(--color-primary-strong)] text-white shadow-xs' : 'bg-white border border-[var(--color-border)] text-slate-800 hover:bg-[var(--color-surface)]'
                         }`}
                     >
                       {pNum}
@@ -999,7 +999,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                 <button
                   disabled={openingPage >= totalPages}
                   onClick={() => handlePageChange(openingPage + 1)}
-                  className="px-3 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors text-xs cursor-pointer"
+                  className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs cursor-pointer"
                 >
                   Next →
                 </button>
@@ -1012,13 +1012,13 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       {mainTab === 'ADJUSTMENTS' && (
         <div className="space-y-4">
           {/* Sub-view Switcher */}
-          <div className="inline-flex items-center gap-0.5 bg-white border border-[#F2E5E7] p-0.5 rounded-full shadow-sm">
+          <div className="inline-flex items-center gap-0.5 bg-white border border-[var(--color-border-muted)] p-0.5 rounded-full shadow-sm">
             <button
               type="button"
               onClick={() => handleSubViewChange('ADJUSTMENTS')}
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${subView === 'ADJUSTMENTS'
-                  ? 'bg-[#7B3F4A] text-white shadow-sm'
-                  : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
+                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                  : 'text-[var(--color-primary-strong)]/70 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)]'
                 }`}
             >
               Stock Adjustment &amp; History
@@ -1027,8 +1027,8 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               type="button"
               onClick={() => handleSubViewChange('LOGS')}
               className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${subView === 'LOGS'
-                  ? 'bg-[#7B3F4A] text-white shadow-sm'
-                  : 'text-[#804652]/70 hover:bg-[#FAF2F4] hover:text-[#804652]'
+                  ? 'bg-[var(--color-primary)] text-white shadow-sm'
+                  : 'text-[var(--color-primary-strong)]/70 hover:bg-[var(--color-surface)] hover:text-[var(--color-primary-strong)]'
                 }`}
             >
               Recent Adjustment Logs
@@ -1037,7 +1037,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
           {subView === 'ADJUSTMENTS' && (
             <div className="space-y-4">
-              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-serif font-bold text-slate-900">Stock Adjustment &amp; Count</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -1049,7 +1049,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <Badge tone="amber">{changedItems.length} Changed Item(s)</Badge>
                   )}
                   {changedItems.length > 0 && (
-                    <button type="button" onClick={discardChanges} className="px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-white text-xs font-medium text-slate-700 hover:bg-[#FAF2F4] transition-colors">
+                    <button type="button" onClick={discardChanges} className="px-3.5 py-1.5 rounded-full border border-[var(--color-border)] bg-white text-xs font-medium text-slate-700 hover:bg-[var(--color-surface)] transition-colors">
                       Discard
                     </button>
                   )}
@@ -1060,29 +1060,29 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       placeholder="Search product or SKU…"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="pl-9 pr-4 py-2 rounded-full border border-[#EEDDE0] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 w-72 sm:w-80"
+                      className="pl-9 pr-4 py-2 rounded-full border border-[var(--color-border)] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/30 w-72 sm:w-80"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm overflow-hidden">
+              <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-sm overflow-hidden">
                 {stock === null ? (
                   <div className="p-12 text-center"><Spinner /></div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-[#F2E5E7] bg-[#FAF2F4]">
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Product Title</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">SKU / Barcode</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Current On-Hand</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Counted Qty</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-center">Difference</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Status</th>
+                        <tr className="border-b border-[var(--color-border-muted)] bg-[var(--color-surface)]">
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Product Title</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">SKU / Barcode</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Current On-Hand</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Counted Qty</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] text-center">Difference</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] text-right">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#F2E5E7]">
+                      <tbody className="divide-y divide-[var(--color-border-muted)]">
                         {filteredStock.map((item) => {
                           const counted = counts[item.variant_id] ?? item.on_hand
                           const systemQty = Number(item.on_hand)
@@ -1100,7 +1100,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                           return (
                             <tr
                               key={item.variant_id}
-                              className={`hover:bg-[#FAF2F4]/60 transition-colors ${isChanged ? 'bg-[#FAF2F4]/40' : ''
+                              className={`hover:bg-[var(--color-surface)]/60 transition-colors ${isChanged ? 'bg-[var(--color-surface)]/40' : ''
                                 }`}
                             >
                               <td className="px-6 py-3 font-semibold text-slate-900">{item.product_name}</td>
@@ -1113,7 +1113,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                   <button
                                     type="button"
                                     onClick={() => step(-1)}
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#EEDDE0] bg-[#FAF2F4] text-[#804652] hover:bg-[#F2E5E7] font-bold text-xs"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-primary-strong)] hover:bg-[var(--color-border-muted)] font-bold text-xs"
                                   >
                                     −
                                   </button>
@@ -1123,15 +1123,15 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                     step="1"
                                     value={counted}
                                     onChange={(e) => updateCount(item.variant_id, e.target.value)}
-                                    className={`w-20 rounded-full border px-2 py-1 text-center text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 ${isChanged
-                                        ? 'border-[#804652] bg-[#FAF2F4] ring-1 ring-[#EEDDE0]'
-                                        : 'border-[#EEDDE0] bg-white'
+                                    className={`w-20 rounded-full border px-2 py-1 text-center text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/30 ${isChanged
+                                        ? 'border-[var(--color-primary-strong)] bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]'
+                                        : 'border-[var(--color-border)] bg-white'
                                       }`}
                                   />
                                   <button
                                     type="button"
                                     onClick={() => step(1)}
-                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#EEDDE0] bg-[#FAF2F4] text-[#804652] hover:bg-[#F2E5E7] font-bold text-xs"
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-primary-strong)] hover:bg-[var(--color-border-muted)] font-bold text-xs"
                                   >
                                     +
                                   </button>
@@ -1172,15 +1172,15 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               </div>
 
               {changedItems.length > 0 && (
-                <div className="sticky bottom-4 z-10 mt-4 flex items-center justify-between rounded-3xl border border-[#F2E5E7] bg-white p-4 shadow-lg">
+                <div className="sticky bottom-4 z-10 mt-4 flex items-center justify-between rounded-3xl border border-[var(--color-border-muted)] bg-white p-4 shadow-lg">
                   <p className="text-sm text-slate-700">
-                    <span className="font-medium text-[#804652]">{changedItems.length}</span> item(s) changed
+                    <span className="font-medium text-[var(--color-primary-strong)]">{changedItems.length}</span> item(s) changed
                   </p>
                   <div className="flex gap-2">
-                    <button type="button" onClick={discardChanges} className="px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-white text-xs font-medium text-slate-700 hover:bg-[#FAF2F4] transition-colors">
+                    <button type="button" onClick={discardChanges} className="px-3.5 py-1.5 rounded-full border border-[var(--color-border)] bg-white text-xs font-medium text-slate-700 hover:bg-[var(--color-surface)] transition-colors">
                       Discard
                     </button>
-                    <button type="button" onClick={() => setShowReasonModal(true)} className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#7B3F4A] hover:bg-[#6a3340] text-white text-xs font-semibold transition-colors">Stock Adjustment</button>
+                    <button type="button" onClick={() => setShowReasonModal(true)} className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[var(--color-primary)] hover:bg-[var(--color-extra-026)] text-white text-xs font-semibold transition-colors">Stock Adjustment</button>
                   </div>
                 </div>
               )}
@@ -1189,7 +1189,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
           {subView === 'LOGS' && (
             <div className="space-y-4">
-              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-serif font-bold text-slate-900">Recent Adjustment Logs</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -1203,38 +1203,38 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     placeholder="Search by adjustment #, reason, product…"
                     value={logSearch}
                     onChange={(e) => setLogSearch(e.target.value)}
-                    className="pl-9 pr-4 py-2 rounded-full border border-[#EEDDE0] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652]/30 w-80 sm:w-96"
+                    className="pl-9 pr-4 py-2 rounded-full border border-[var(--color-border)] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/30 w-80 sm:w-96"
                   />
                 </div>
               </div>
 
-              <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-sm overflow-hidden">
+              <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-sm overflow-hidden">
                 {adjustments === null ? (
                   <div className="p-12 text-center"><Spinner /></div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-[#F2E5E7] bg-[#FAF2F4]">
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Adjustment #</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Date &amp; Time</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Reason</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Adjusted By</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652]">Product</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">System Qty</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Counted Qty</th>
-                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[#804652] text-right">Difference</th>
+                        <tr className="border-b border-[var(--color-border-muted)] bg-[var(--color-surface)]">
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Adjustment #</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Date &amp; Time</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Reason</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Adjusted By</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">Product</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] text-right">System Qty</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] text-right">Counted Qty</th>
+                          <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] text-right">Difference</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#F2E5E7]">
+                      <tbody className="divide-y divide-[var(--color-border-muted)]">
                         {filteredAdjustments.map((adj) => {
                           if (!adj.items || adj.items.length === 0) {
                             return (
-                              <tr key={adj.id} className="hover:bg-[#FAF2F4]/60 transition-colors">
+                              <tr key={adj.id} className="hover:bg-[var(--color-surface)]/60 transition-colors">
                                 <td className="px-6 py-3 font-mono font-semibold text-slate-900">{adj.adjustment_no}</td>
                                 <td className="px-6 py-3 text-slate-500 whitespace-nowrap">{new Date(adj.created_at).toLocaleString()}</td>
                                 <td className="px-6 py-3 text-slate-700 font-medium">
-                                  <span className="inline-block rounded-full bg-[#FAF2F4] px-2 py-0.5 text-xs text-[#804652] font-medium border border-[#EEDDE0]">
+                                  <span className="inline-block rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-primary-strong)] font-medium border border-[var(--color-border)]">
                                     {adj.reason}
                                   </span>
                                 </td>
@@ -1247,33 +1247,33 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                           return adj.items.map((item, itemIdx) => (
                             <tr
                               key={`${adj.id}-${item.variant_id}-${itemIdx}`}
-                              className={`hover:bg-[#FAF2F4]/60 transition-colors ${itemIdx > 0 ? 'bg-[#FAF2F4]/20' : ''}`}
+                              className={`hover:bg-[var(--color-surface)]/60 transition-colors ${itemIdx > 0 ? 'bg-[var(--color-surface)]/20' : ''}`}
                             >
                               {itemIdx === 0 && (
                                 <>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-6 py-3 font-mono font-semibold text-slate-900 align-top border-b border-[#F2E5E7]"
+                                    className="px-6 py-3 font-mono font-semibold text-slate-900 align-top border-b border-[var(--color-border-muted)]"
                                   >
                                     {adj.adjustment_no}
                                   </td>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-6 py-3 text-slate-500 align-top border-b border-[#F2E5E7] whitespace-nowrap"
+                                    className="px-6 py-3 text-slate-500 align-top border-b border-[var(--color-border-muted)] whitespace-nowrap"
                                   >
                                     {new Date(adj.created_at).toLocaleString()}
                                   </td>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-6 py-3 text-slate-700 font-medium align-top border-b border-[#F2E5E7]"
+                                    className="px-6 py-3 text-slate-700 font-medium align-top border-b border-[var(--color-border-muted)]"
                                   >
-                                    <span className="inline-block rounded-full bg-[#FAF2F4] px-2 py-0.5 text-xs text-[#804652] font-medium border border-[#EEDDE0]">
+                                    <span className="inline-block rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-primary-strong)] font-medium border border-[var(--color-border)]">
                                       {adj.reason}
                                     </span>
                                   </td>
                                   <td
                                     rowSpan={adj.items.length}
-                                    className="px-6 py-3 text-slate-600 align-top border-b border-[#F2E5E7] whitespace-nowrap"
+                                    className="px-6 py-3 text-slate-600 align-top border-b border-[var(--color-border-muted)] whitespace-nowrap"
                                   >
                                     {adj.created_by_name}
                                   </td>
@@ -1325,9 +1325,9 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             {error && <Alert>{error}</Alert>}
             <TextField label="Reason" required autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Monthly stock count" />
 
-            <div className="max-h-48 overflow-y-auto rounded-2xl border border-[#F2E5E7]">
+            <div className="max-h-48 overflow-y-auto rounded-2xl border border-[var(--color-border-muted)]">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-[#F2E5E7] text-xs uppercase text-[#804652] bg-[#FAF2F4]">
+                <thead className="border-b border-[var(--color-border-muted)] text-xs uppercase text-[var(--color-primary-strong)] bg-[var(--color-surface)]">
                   <tr>
                     <th className="px-3 py-2 font-medium">Product</th>
                     <th className="px-3 py-2 font-medium">System</th>
@@ -1335,7 +1335,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     <th className="px-3 py-2 font-medium">Diff</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F2E5E7]">
+                <tbody className="divide-y divide-[var(--color-border-muted)]">
                   {changedItems.map((item) => {
                     const diff = Number(counts[item.variant_id]) - Number(item.on_hand)
                     return (
@@ -1361,7 +1361,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#7B3F4A] hover:bg-[#6a3340] text-white text-xs font-semibold transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[var(--color-primary)] hover:bg-[var(--color-extra-026)] text-white text-xs font-semibold transition-colors disabled:opacity-60"
               >
                 {submitting ? 'Saving…' : 'Confirm Adjustment'}
               </button>
@@ -1375,11 +1375,11 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         <Modal title="Opening Stock Details" width="xl" onClose={() => setEditingItem(null)}>
           <div className="space-y-6">
             {/* Product Summary Header Card */}
-            <div className="rounded-2xl border border-[#F2E5E7] bg-[#FAF2F4]/40 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="rounded-2xl border border-[var(--color-border-muted)] bg-[var(--color-surface)]/40 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-950">{editingItem.product_name}</h3>
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-600 font-medium">
-                  <span>SKU: <span className="font-mono font-bold text-[#804652]">{editingItem.sku}</span></span>
+                  <span>SKU: <span className="font-mono font-bold text-[var(--color-primary-strong)]">{editingItem.sku}</span></span>
                   {editingItem.barcode && <span>• Barcode: <span className="font-mono font-bold">{editingItem.barcode}</span></span>}
                   {editingItem.retail_price && <span>• Default Price: <span className="font-bold text-slate-900">₹{Number(editingItem.retail_price).toFixed(2)}</span></span>}
                   {editingItem.mrp && <span>• MRP: <span className="font-bold text-slate-900">₹{Number(editingItem.mrp).toFixed(2)}</span></span>}
@@ -1387,7 +1387,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               </div>
               <div className="text-right">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Current On-Hand</span>
-                <span className="text-sm font-black text-[#804652]">{editingItem.on_hand} units</span>
+                <span className="text-sm font-black text-[var(--color-primary-strong)]">{editingItem.on_hand} units</span>
               </div>
             </div>
 
@@ -1404,7 +1404,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             {/* Existing Batches Table */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#4A1821]">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[var(--color-extra-001)]">
                   Existing Batches ({batchList.length})
                 </h4>
                 {batchForm.batch_id !== null && (
@@ -1423,7 +1423,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       setBatchDateError('')
                       setBatchActionFeedback(null)
                     }}
-                    className="text-xs font-bold text-[#804652] hover:underline cursor-pointer"
+                    className="text-xs font-bold text-[var(--color-primary-strong)] hover:underline cursor-pointer"
                   >
                     + Add New Batch Instead
                   </button>
@@ -1433,13 +1433,13 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               {loadingBatches ? (
                 <div className="p-6 text-center"><Spinner /></div>
               ) : batchList.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#EEDDE0] p-4 text-center text-xs text-slate-500 font-medium">
+                <div className="rounded-2xl border border-dashed border-[var(--color-border)] p-4 text-center text-xs text-slate-500 font-medium">
                   No batches created yet for this product. Fill in the form below to initialize opening batch details.
                 </div>
               ) : (
-                <div className="rounded-2xl border border-[#F2E5E7] overflow-hidden overflow-x-auto max-h-48">
+                <div className="rounded-2xl border border-[var(--color-border-muted)] overflow-hidden overflow-x-auto max-h-48">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#FAF2F4] text-[#4A1821] uppercase text-[10px] font-black border-b border-[#F0E0E3]">
+                    <thead className="bg-[var(--color-surface)] text-[var(--color-extra-001)] uppercase text-[10px] font-black border-b border-[var(--color-extra-004)]">
                       <tr>
                         <th className="px-3 py-2">Batch #</th>
                         <th className="px-3 py-2">Qty</th>
@@ -1452,12 +1452,12 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                         <th className="px-3 py-2 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#F0E0E3]">
+                    <tbody className="divide-y divide-[var(--color-extra-004)]">
                       {batchList.map((b) => {
                         const isSelected = batchForm.batch_id === b.id
                         return (
-                          <tr key={b.id} className={`hover:bg-[#FAF2F4]/80 transition-colors ${isSelected ? 'bg-[#FAF2F4] font-bold' : ''}`}>
-                            <td className="px-3 py-2 font-mono font-bold text-[#804652]">{b.batch_no}</td>
+                          <tr key={b.id} className={`hover:bg-[var(--color-surface)]/80 transition-colors ${isSelected ? 'bg-[var(--color-surface)] font-bold' : ''}`}>
+                            <td className="px-3 py-2 font-mono font-bold text-[var(--color-primary-strong)]">{b.batch_no}</td>
                             <td className="px-3 py-2 font-bold">{Number(b.quantity)}</td>
                             <td className="px-3 py-2 font-bold text-slate-700">{Number(b.available_quantity)}</td>
                             <td className="px-3 py-2">₹{Number(b.selling_price || 0).toFixed(2)}</td>
@@ -1485,7 +1485,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                     setBatchDateError('')
                                     setBatchActionFeedback(null)
                                   }}
-                                  className="p-1 rounded-lg text-slate-600 hover:text-[#804652] hover:bg-[#FAF2F4] transition-colors cursor-pointer"
+                                  className="p-1 rounded-lg text-slate-600 hover:text-[var(--color-primary-strong)] hover:bg-[var(--color-surface)] transition-colors cursor-pointer"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-3.5 w-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>
                                 </button>
@@ -1509,9 +1509,9 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
             </div>
 
             {/* Batch Form */}
-            <form onSubmit={handleSaveBatchDetails} className="space-y-4 pt-2 border-t border-[#F2E5E7]">
+            <form onSubmit={handleSaveBatchDetails} className="space-y-4 pt-2 border-t border-[var(--color-border-muted)]">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black uppercase tracking-wider text-[#804652]">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[var(--color-primary-strong)]">
                   {batchForm.batch_id ? `Edit Batch Details (ID #${batchForm.batch_id})` : 'Add New Opening Batch Details'}
                 </h4>
                 {batchForm.batch_id && (
@@ -1533,7 +1533,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     value={batchForm.batch_no}
                     onChange={(e) => handleBatchFormChange('batch_no', e.target.value)}
                     placeholder="e.g. BATCH-001"
-                    className="w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                   />
                 </div>
 
@@ -1550,7 +1550,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     value={batchForm.quantity}
                     onChange={(e) => handleBatchFormChange('quantity', e.target.value)}
                     placeholder="e.g. 50"
-                    className="w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-extrabold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-extrabold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                   />
                 </div>
 
@@ -1566,7 +1566,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     value={batchForm.selling_price}
                     onChange={(e) => handleBatchFormChange('selling_price', e.target.value)}
                     placeholder="e.g. 299.00"
-                    className="w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                   />
                 </div>
 
@@ -1582,7 +1582,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     value={batchForm.mrp}
                     onChange={(e) => handleBatchFormChange('mrp', e.target.value)}
                     placeholder="e.g. 350.00"
-                    className="w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                   />
                 </div>
 
@@ -1595,7 +1595,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     type="date"
                     value={batchForm.manufacturing_date}
                     onChange={(e) => handleBatchFormChange('manufacturing_date', e.target.value)}
-                    className="w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652]"
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                   />
                 </div>
 
@@ -1608,7 +1608,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     type="date"
                     value={batchForm.expiry_date}
                     onChange={(e) => handleBatchFormChange('expiry_date', e.target.value)}
-                    className={`w-full rounded-2xl border px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 ${batchDateError ? 'border-rose-400 bg-rose-50/50 focus:ring-rose-400' : 'border-[#EEDDE0] bg-[#FAF2F4]/30 focus:ring-[#804652]'
+                    className={`w-full rounded-2xl border px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 ${batchDateError ? 'border-rose-400 bg-rose-50/50 focus:ring-rose-400' : 'border-[var(--color-border)] bg-[var(--color-surface)]/30 focus:ring-[var(--color-primary-strong)]'
                       }`}
                   />
                 </div>
@@ -1629,7 +1629,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                 <button
                   type="submit"
                   disabled={Boolean(batchDateError) || savingBatchModal}
-                  className="inline-flex items-center gap-1.5 px-6 py-2 rounded-full bg-[#804652] hover:bg-[#6e3743] text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-6 py-2 rounded-full bg-[var(--color-primary-strong)] hover:bg-[var(--color-extra-022)] text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
                 >
                   {savingBatchModal ? 'Saving Details…' : batchForm.batch_id ? 'Update Batch Details' : 'Save Opening Stock Batch'}
                 </button>
@@ -1644,7 +1644,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         <Modal title="Confirm Reset Opening Stock" width="sm" onClose={() => setItemToReset(null)}>
           <div className="space-y-4">
             <p className="text-xs text-slate-700 font-medium leading-relaxed">
-              Are you sure you want to reset opening stock for <span className="font-extrabold text-slate-950">{itemToReset.product_name}</span> (SKU: <span className="font-mono font-bold text-[#804652]">{itemToReset.sku}</span>)?
+              Are you sure you want to reset opening stock for <span className="font-extrabold text-slate-950">{itemToReset.product_name}</span> (SKU: <span className="font-mono font-bold text-[var(--color-primary-strong)]">{itemToReset.sku}</span>)?
             </p>
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold text-amber-900 leading-snug">
               This will safely set on-hand stock to 0 units and deactivate active opening batches in accordance with inventory movement audit rules.
@@ -1671,7 +1671,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         <Modal title="Delete Batch" width="sm" onClose={() => setBatchToDelete(null)}>
           <div className="space-y-4">
             <p className="text-xs text-slate-700 font-medium leading-relaxed">
-              Are you sure you want to delete batch <span className="font-mono font-bold text-[#804652]">{batchToDelete.batch_no}</span>?
+              Are you sure you want to delete batch <span className="font-mono font-bold text-[var(--color-primary-strong)]">{batchToDelete.batch_no}</span>?
             </p>
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-[11px] font-semibold text-rose-900 leading-snug">
               Unconsumed stock ({Number(batchToDelete.available_quantity)} units) from this batch will be safely deducted from on-hand inventory.

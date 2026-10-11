@@ -11,6 +11,11 @@ dist
 dist-ssr
 *.local
 
+# Env files with real secrets — .env.example/.env.development/.env.production
+# are placeholders and stay tracked
+.env
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

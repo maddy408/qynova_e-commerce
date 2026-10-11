@@ -169,8 +169,8 @@ export function TaxPage() {
   return (
     <div className="space-y-8 pb-12">
       {/* ================= SECTION 1: GST RATES TABLE ================= */}
-      <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
-        <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex items-center justify-between bg-white">
+      <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex items-center justify-between bg-white">
           <div>
             <h3 className="text-xl font-bold text-slate-950">GST Rates &amp; Split Slabs</h3>
             <p className="text-xs text-slate-600 font-medium mt-0.5">CGST, SGST, IGST breakup for invoices and purchases</p>
@@ -178,7 +178,7 @@ export function TaxPage() {
           <button
             type="button"
             onClick={handleOpenGstCreate}
-            className="px-4 py-1.5 rounded-full bg-[#FAF0F2] text-[#804652] border border-[#F2DFE2] text-xs font-bold hover:bg-[#F5E6E9] transition-colors shadow-2xs"
+            className="px-4 py-1.5 rounded-full bg-[var(--color-extra-010)] text-[var(--color-primary-strong)] border border-[var(--color-extra-019)] text-xs font-bold hover:bg-[var(--color-extra-027)] transition-colors shadow-2xs"
           >
             + Add GST Rate
           </button>
@@ -189,7 +189,7 @@ export function TaxPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Tax Name</th>
                   <th className="px-6 py-4">Total GST %</th>
@@ -200,12 +200,12 @@ export function TaxPage() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
+              <tbody className="divide-y divide-[var(--color-extra-013)]">
                 {gstRates.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#FAF5F6] transition-colors">
+                  <tr key={r.id} className="hover:bg-[var(--color-surface-alt)] transition-colors">
                     <td className="px-6 py-4 font-bold text-slate-900 text-sm">{r.name}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] font-mono font-bold px-3 py-1 rounded-full text-xs shadow-2xs">
+                      <span className="bg-[var(--color-extra-006)] text-[var(--color-extra-001)] border border-[var(--color-extra-007)] font-mono font-bold px-3 py-1 rounded-full text-xs shadow-2xs">
                         {r.gst_percent}%
                       </span>
                     </td>
@@ -220,13 +220,13 @@ export function TaxPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       {r.status === 'ACTIVE' ? (
-                        <span className="bg-[#E3F8E9] text-[#0E7A36] border border-[#B7EDC4] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-[#0E7A36]"></span>
+                        <span className="bg-[var(--color-extra-016)] text-[var(--color-extra-011)] border border-[var(--color-extra-017)] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-[var(--color-extra-011)]"></span>
                           ACTIVE
                         </span>
                       ) : (
-                        <span className="bg-[#FDE8EC] text-[#B91C1C] border border-[#F9B6C2] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
-                          <span className="h-2 w-2 rounded-full bg-[#B91C1C]"></span>
+                        <span className="bg-[var(--color-extra-014)] text-[var(--color-extra-008)] border border-[var(--color-extra-015)] font-black text-[11px] px-3 py-1 rounded-full inline-flex items-center gap-1.5 uppercase tracking-wider shadow-2xs">
+                          <span className="h-2 w-2 rounded-full bg-[var(--color-extra-008)]"></span>
                           INACTIVE
                         </span>
                       )}
@@ -236,7 +236,7 @@ export function TaxPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenGstEdit(r)}
-                          className="p-1.5 text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] rounded-lg transition-colors border border-transparent hover:border-[#EEDDE0]"
+                          className="p-1.5 text-slate-600 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface)] rounded-lg transition-colors border border-transparent hover:border-[var(--color-border)]"
                           title="Edit GST Rate"
                         >
                           <PencilIcon className="h-4 w-4" />
@@ -272,8 +272,8 @@ export function TaxPage() {
       </div>
 
       {/* ================= SECTION 2: HSN CODES TABLE ================= */}
-      <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
-        <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex items-center justify-between bg-white">
+      <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
+        <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex items-center justify-between bg-white">
           <div>
             <h3 className="text-xl font-bold text-slate-950">HSN &amp; SAC Codes</h3>
             <p className="text-xs text-slate-600 font-medium mt-0.5">Harmonized System Nomenclature mapping for GST filing</p>
@@ -281,7 +281,7 @@ export function TaxPage() {
           <button
             type="button"
             onClick={handleOpenHsnCreate}
-            className="px-4 py-1.5 rounded-full bg-[#FAF0F2] text-[#804652] border border-[#F2DFE2] text-xs font-bold hover:bg-[#F5E6E9] transition-colors shadow-2xs"
+            className="px-4 py-1.5 rounded-full bg-[var(--color-extra-010)] text-[var(--color-primary-strong)] border border-[var(--color-extra-019)] text-xs font-bold hover:bg-[var(--color-extra-027)] transition-colors shadow-2xs"
           >
             + Add HSN Code
           </button>
@@ -292,18 +292,18 @@ export function TaxPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-6 py-4">HSN / SAC Code</th>
                   <th className="px-6 py-4">Description</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F6EDEE]">
+              <tbody className="divide-y divide-[var(--color-extra-013)]">
                 {hsnCodes.map((h) => (
-                  <tr key={h.id} className="hover:bg-[#FAF5F6] transition-colors">
+                  <tr key={h.id} className="hover:bg-[var(--color-surface-alt)] transition-colors">
                     <td className="px-6 py-4 font-mono font-bold text-slate-900 text-sm">
-                      <span className="bg-[#F3E1E4] text-[#4A1821] border border-[#DCBAC1] px-3 py-1 rounded-full text-xs font-mono font-bold inline-block shadow-2xs">
+                      <span className="bg-[var(--color-extra-006)] text-[var(--color-extra-001)] border border-[var(--color-extra-007)] px-3 py-1 rounded-full text-xs font-mono font-bold inline-block shadow-2xs">
                         {h.code}
                       </span>
                     </td>
@@ -313,7 +313,7 @@ export function TaxPage() {
                         <button
                           type="button"
                           onClick={() => handleOpenHsnEdit(h)}
-                          className="p-1.5 text-slate-600 hover:text-[#7B3F4A] hover:bg-[#FAF2F4] rounded-lg transition-colors border border-transparent hover:border-[#EEDDE0]"
+                          className="p-1.5 text-slate-600 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface)] rounded-lg transition-colors border border-transparent hover:border-[var(--color-border)]"
                           title="Edit HSN Code"
                         >
                           <PencilIcon className="h-4 w-4" />
@@ -353,7 +353,7 @@ export function TaxPage() {
                 value={gstName}
                 onChange={(e) => setGstName(e.target.value)}
                 placeholder="e.g. GST 18%, GST 5%, Exempt"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -376,7 +376,7 @@ export function TaxPage() {
                     setIgstPercent(val)
                   }}
                   placeholder="e.g. 18"
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
                 />
               </div>
 
@@ -387,7 +387,7 @@ export function TaxPage() {
                 <select
                   value={taxMode}
                   onChange={(e) => setTaxMode(e.target.value)}
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs cursor-pointer"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs cursor-pointer"
                 >
                   <option value="EXCLUSIVE">Exclusive (Tax added on top)</option>
                   <option value="INCLUSIVE">Inclusive (Tax included in price)</option>
@@ -395,7 +395,7 @@ export function TaxPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 bg-[#FAF5F6] p-3 rounded-2xl border border-[#EEDDE0]">
+            <div className="grid grid-cols-3 gap-2 bg-[var(--color-surface-alt)] p-3 rounded-2xl border border-[var(--color-border)]">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                   CGST %
@@ -405,7 +405,7 @@ export function TaxPage() {
                   step="0.01"
                   value={cgstPercent}
                   onChange={(e) => setCgstPercent(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-xs text-slate-900"
+                  className="w-full rounded-lg border border-[var(--color-surface-muted)] bg-white px-2.5 py-1.5 text-xs text-slate-900"
                 />
               </div>
               <div>
@@ -417,7 +417,7 @@ export function TaxPage() {
                   step="0.01"
                   value={sgstPercent}
                   onChange={(e) => setSgstPercent(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-xs text-slate-900"
+                  className="w-full rounded-lg border border-[var(--color-surface-muted)] bg-white px-2.5 py-1.5 text-xs text-slate-900"
                 />
               </div>
               <div>
@@ -429,12 +429,12 @@ export function TaxPage() {
                   step="0.01"
                   value={igstPercent}
                   onChange={(e) => setIgstPercent(e.target.value)}
-                  className="w-full rounded-lg border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-xs text-slate-900"
+                  className="w-full rounded-lg border border-[var(--color-surface-muted)] bg-white px-2.5 py-1.5 text-xs text-slate-900"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setShowGstForm(false)}
@@ -445,7 +445,7 @@ export function TaxPage() {
               <button
                 type="submit"
                 disabled={gstSubmitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
                 {gstSubmitting ? 'Saving…' : editingGstRate ? 'Save Changes' : 'Create GST Rate'}
               </button>
@@ -471,7 +471,7 @@ export function TaxPage() {
                 value={hsnCode}
                 onChange={(e) => setHsnCode(e.target.value)}
                 placeholder="e.g. 6109, 8517, 9503"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs font-mono"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs font-mono"
               />
             </div>
 
@@ -484,7 +484,7 @@ export function TaxPage() {
                 value={hsnDescription}
                 onChange={(e) => setHsnDescription(e.target.value)}
                 placeholder="e.g. T-Shirts, Mobile Phones, Toys"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
               />
             </div>
 
@@ -495,7 +495,7 @@ export function TaxPage() {
               <select
                 value={hsnGstRateId}
                 onChange={(e) => setHsnGstRateId(e.target.value)}
-                className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs cursor-pointer"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs cursor-pointer"
               >
                 <option value="">No Default Rate</option>
                 {gstRates?.map((r) => (
@@ -506,7 +506,7 @@ export function TaxPage() {
               </select>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setShowHsnForm(false)}
@@ -517,7 +517,7 @@ export function TaxPage() {
               <button
                 type="submit"
                 disabled={hsnSubmitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50"
               >
                 {hsnSubmitting ? 'Saving…' : editingHsnCode ? 'Save Changes' : 'Create HSN Code'}
               </button>

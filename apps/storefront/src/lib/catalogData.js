@@ -2,11 +2,11 @@
 // All actual business catalog data, images, prices, and categories come from MySQL via the REST API.
 
 export const CATEGORY_PALETTES = [
-  { bg: 'bg-[#FFFFFF] border-[#E8E0E5] hover:border-[#601D49] hover:bg-[#F2DDE9]/40 text-[#2D252B]', iconBg: 'bg-[#F2DDE9] text-[#601D49]' },
-  { bg: 'bg-[#F8F3F6] border-[#E8E0E5] hover:border-[#601D49] text-[#2D252B]', iconBg: 'bg-[#F2DDE9] text-[#601D49]' },
-  { bg: 'bg-[#FFFFFF] border-[#E8E0E5] hover:border-[#601D49] hover:bg-[#F2DDE9]/40 text-[#2D252B]', iconBg: 'bg-[#F2DDE9] text-[#601D49]' },
-  { bg: 'bg-[#F7F5F7] border-[#E8E0E5] hover:border-[#601D49] text-[#2D252B]', iconBg: 'bg-[#F2DDE9] text-[#601D49]' },
-  { bg: 'bg-[#FFFFFF] border-[#E8E0E5] hover:border-[#601D49] hover:bg-[#F2DDE9]/40 text-[#2D252B]', iconBg: 'bg-[#F2DDE9] text-[#601D49]' },
+  { bg: 'bg-[var(--color-background)] border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] hover:bg-[var(--color-primary-tint)]/40 text-[var(--color-text-main)]', iconBg: 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]' },
+  { bg: 'bg-[var(--color-bg-main)] border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] text-[var(--color-text-main)]', iconBg: 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]' },
+  { bg: 'bg-[var(--color-background)] border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] hover:bg-[var(--color-primary-tint)]/40 text-[var(--color-text-main)]', iconBg: 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]' },
+  { bg: 'bg-[var(--color-bg-alt)] border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] text-[var(--color-text-main)]', iconBg: 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]' },
+  { bg: 'bg-[var(--color-background)] border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] hover:bg-[var(--color-primary-tint)]/40 text-[var(--color-text-main)]', iconBg: 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]' },
 ]
 
 export function getCategoryPalette(indexOrSlug) {

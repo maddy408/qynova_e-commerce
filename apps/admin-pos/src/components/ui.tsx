@@ -14,10 +14,10 @@ export function Button({
     'inline-flex items-center justify-center gap-2 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-1 active:scale-98 cursor-pointer'
   const sizes = size === 'sm' ? 'px-3.5 py-1.5 text-xs' : 'px-4.5 py-2 text-xs'
   const variants: Record<string, string> = {
-    primary: 'bg-gradient-to-r from-[#804652] to-[#6E3642] text-white hover:opacity-95 shadow-2xs focus:ring-[#804652]',
-    secondary: 'bg-white text-slate-800 border border-[#EEDDE0] hover:bg-[#FAF2F4] hover:border-[#804652] shadow-2xs focus:ring-[#804652]',
+    primary: 'bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white hover:opacity-95 shadow-2xs focus:ring-[var(--color-primary-strong)]',
+    secondary: 'bg-white text-slate-800 border border-[var(--color-border)] hover:bg-[var(--color-surface)] hover:border-[var(--color-primary-strong)] shadow-2xs focus:ring-[var(--color-primary-strong)]',
     danger: 'bg-rose-700 text-white hover:bg-rose-800 shadow-2xs focus:ring-rose-500',
-    ghost: 'text-[#804652] hover:bg-[#FAF2F4] focus:ring-[#804652]',
+    ghost: 'text-[var(--color-primary-strong)] hover:bg-[var(--color-surface)] focus:ring-[var(--color-primary-strong)]',
   }
   return <button className={`${base} ${sizes} ${variants[variant]} ${className}`} {...props} />
 }
@@ -37,7 +37,7 @@ export function TextField({
         </span>
       )}
       <input
-        className={`w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652] focus:border-[#804652] shadow-2xs transition-all ${
+        className={`w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] focus:border-[var(--color-primary-strong)] shadow-2xs transition-all ${
           error ? 'border-red-400' : ''
         } ${className}`}
         {...props}
@@ -60,7 +60,7 @@ export function TextArea({
         </span>
       )}
       <textarea
-        className={`w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#804652] focus:border-[#804652] shadow-2xs transition-all ${className}`}
+        className={`w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] focus:border-[var(--color-primary-strong)] shadow-2xs transition-all ${className}`}
         {...props}
       />
     </label>
@@ -81,7 +81,7 @@ export function Select({
         </span>
       )}
       <select
-        className={`w-full rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/40 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[#804652] focus:border-[#804652] shadow-2xs transition-all ${className}`}
+        className={`w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)] focus:border-[var(--color-primary-strong)] shadow-2xs transition-all ${className}`}
         {...props}
       >
         {children}
@@ -92,7 +92,7 @@ export function Select({
 
 export function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'red' | 'amber' | 'teal' }) {
   const tones: Record<string, string> = {
-    slate: 'bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0]',
+    slate: 'bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)]',
     green: 'bg-emerald-50 text-emerald-900 border border-emerald-200',
     red: 'bg-rose-50 text-rose-900 border border-rose-200',
     amber: 'bg-amber-50 text-amber-900 border border-amber-200',
@@ -102,7 +102,7 @@ export function Badge({ children, tone = 'slate' }: { children: ReactNode; tone?
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-3xl border border-[#F2E5E7] bg-white shadow-2xs overflow-hidden ${className}`}>{children}</div>
+  return <div className={`rounded-3xl border border-[var(--color-border-muted)] bg-white shadow-2xs overflow-hidden ${className}`}>{children}</div>
 }
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
@@ -152,16 +152,16 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className={`relative flex max-h-[90vh] w-full ${widths[width] ?? widths.md} flex-col rounded-3xl bg-white shadow-2xl border border-[#F2E5E7] overflow-hidden`}
+        className={`relative flex max-h-[90vh] w-full ${widths[width] ?? widths.md} flex-col rounded-3xl bg-white shadow-2xl border border-[var(--color-border-muted)] overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-[#F2E5E7] px-6 py-4 bg-[#FAF2F4]">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border-muted)] px-6 py-4 bg-[var(--color-surface)]">
           <h2 className="text-base font-bold text-slate-950">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-[#EEDDE0] hover:text-slate-800 transition cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-[var(--color-border)] hover:text-slate-800 transition cursor-pointer"
             aria-label="Close modal"
           >
             <XMarkIcon className="h-4 w-4" />
@@ -189,7 +189,7 @@ export function EmptyState({ title, description }: { title: string; description?
 export function Spinner({ className = 'h-6 w-6' }: { className?: string }) {
   return (
     <div className="flex justify-center py-12">
-      <div className={`animate-spin rounded-full border-2 border-[#EEDDE0] border-t-[#804652] ${className}`} />
+      <div className={`animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-primary-strong)] ${className}`} />
     </div>
   )
 }

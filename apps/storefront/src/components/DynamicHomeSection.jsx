@@ -78,11 +78,11 @@ function getDefaultViewAllLink(section) {
 function getBadgeBg(type) {
   switch (type) {
     case 'BEST_SELLERS':
-      return 'bg-[#F2DDE9] text-[#601D49]'
+      return 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
     case 'NEW_ARRIVALS':
       return 'bg-emerald-100 text-emerald-800'
     case 'FEATURED':
-      return 'bg-[#F2DDE9] text-[#601D49]'
+      return 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
     case 'DEALS':
       return 'bg-amber-100 text-amber-800'
     case 'COMBOS':
@@ -90,7 +90,7 @@ function getBadgeBg(type) {
     case 'CUSTOM':
       return 'bg-rose-100 text-rose-800'
     default:
-      return 'bg-[#F2DDE9] text-[#601D49]'
+      return 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
   }
 }
 

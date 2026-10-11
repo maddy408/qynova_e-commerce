@@ -163,7 +163,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
       {savedMsg && <Alert tone="green">{savedMsg}</Alert>}
       {priceError && <Alert tone="red">{priceError}</Alert>}
 
-      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[#F9F3F4] border-[#EEDDE0]">
+      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[var(--color-extra-020)] border-[var(--color-border)]">
         {[
           { id: 'company', label: 'Company Details' },
           { id: 'prices', label: 'Price Settings (Wholesale / Retail / Customer-Wise)' },
@@ -177,7 +177,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
             onClick={() => setTab(t.id)}
             className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
               tab === t.id
-                ? 'bg-[#7B3F4A] text-white shadow-xs'
+                ? 'bg-[var(--color-primary)] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
             }`}
           >
@@ -190,15 +190,15 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
         {tab === 'prices' && (
           <div className="space-y-4 text-xs">
             {/* Batch Consumption Strategy Card */}
-            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-2">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-2">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#7B3F4A]">Batch Stock Consumption Strategy (FIFO vs FEFO)</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">Batch Stock Consumption Strategy (FIFO vs FEFO)</h4>
                   <p className="text-[11px] text-slate-600 mt-0.5">
                     Select how POS sales &amp; orders consume stock batches. FIFO (First-In, First-Out) consumes oldest batch; FEFO (First-Expired, First-Out) consumes nearest expiry.
                   </p>
                 </div>
-                <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-full border border-[#EEDDE0] shadow-2xs">
+                <div className="flex items-center gap-4 bg-white px-3 py-1.5 rounded-full border border-[var(--color-border)] shadow-2xs">
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-800">
                     <input
                       type="radio"
@@ -206,7 +206,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                       value="FIFO"
                       checked={consumptionRule === 'FIFO'}
                       onChange={() => setConsumptionRule('FIFO')}
-                      className="accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                      className="accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                     />
                     FIFO (First-In First-Out)
                   </label>
@@ -217,7 +217,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                       value="FEFO"
                       checked={consumptionRule === 'FEFO'}
                       onChange={() => setConsumptionRule('FEFO')}
-                      className="accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                      className="accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
                     />
                     FEFO (First-Expired First-Out)
                   </label>
@@ -245,21 +245,21 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
 
             {loadingPrices ? (
               <div className="flex justify-center py-12">
-                <Spinner className="w-8 h-8 text-[#7B3F4A]" />
+                <Spinner className="w-8 h-8 text-[var(--color-primary)]" />
               </div>
             ) : (
-              <div className="overflow-x-auto border border-[#F2E5E7] rounded-2xl">
+              <div className="overflow-x-auto border border-[var(--color-border-muted)] rounded-2xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF2F4]/80 border-b border-[#F2E5E7] uppercase font-bold text-[#804652] text-[10px] tracking-wider">
+                  <thead className="bg-[var(--color-surface)]/80 border-b border-[var(--color-border-muted)] uppercase font-bold text-[var(--color-primary-strong)] text-[10px] tracking-wider">
                     <tr>
                       <th className="px-3 py-3">Item / SKU</th>
                       <th className="px-3 py-3 text-right">MRP (₹)</th>
-                      <th className="px-3 py-3 text-center bg-[#FAF2F4]">Retail Rate (₹)</th>
+                      <th className="px-3 py-3 text-center bg-[var(--color-surface)]">Retail Rate (₹)</th>
                       <th className="px-3 py-3 text-center bg-amber-50/50">Wholesale Rate (₹)</th>
                       <th className="px-3 py-3 text-center bg-rose-50/40">Customer-Wise Rate (₹)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2E5E7]">
+                  <tbody className="divide-y divide-[var(--color-border-muted)]">
                     {filteredPriceVariants.map((v) => (
                       <tr key={v.variant_id} className="hover:bg-slate-50/70">
                         <td className="px-3 py-2">
@@ -269,13 +269,13 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                         <td className="px-3 py-2 text-right font-medium text-slate-500">
                           ₹{Number(v.mrp || 0).toFixed(2)}
                         </td>
-                        <td className="px-3 py-2 bg-[#FAF2F4]/40">
+                        <td className="px-3 py-2 bg-[var(--color-surface)]/40">
                           <input
                             type="number"
                             step="0.01"
                             value={v.retail_price ?? ''}
                             onChange={(e) => handlePriceChange(v.variant_id, 'retail_price', e.target.value)}
-                            className="w-28 text-center font-semibold text-slate-900 rounded-lg border border-[#EEDDE0] p-1 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A] focus:outline-none"
+                            className="w-28 text-center font-semibold text-slate-900 rounded-lg border border-[var(--color-border)] p-1 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] focus:outline-none"
                             placeholder="0.00"
                           />
                         </td>
@@ -330,7 +330,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 rows={3}
                 value={companyAddress}
                 onChange={(e) => setCompanyAddress(e.target.value)}
-                className="w-full rounded-xl border border-[#EEDDE0] p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A] focus:outline-none"
+                className="w-full rounded-xl border border-[var(--color-border)] p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] focus:outline-none"
               />
             </div>
           </div>
@@ -344,11 +344,11 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
               <TextField label="E-Commerce Invoice Prefix" value={invoicePrefix} onChange={(e) => setInvoicePrefix(e.target.value)} placeholder="e.g. INV" />
               <TextField label="Order No. Prefix" value={orderPrefix} onChange={(e) => setOrderPrefix(e.target.value)} placeholder="e.g. ORD" />
             </div>
-            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/70 p-4">
-              <p className="font-bold text-[#804652] uppercase tracking-wider text-[11px]">Preview Generated Numbers:</p>
-              <p className="mt-1 font-mono text-[#7B3F4A] font-bold">{posInvoicePrefix}-20261007-0012</p>
-              <p className="font-mono text-[#7B3F4A] font-bold">{invoicePrefix}-20261007-0045</p>
-              <p className="font-mono text-[#7B3F4A] font-bold">{orderPrefix}-20261007-0099</p>
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-4">
+              <p className="font-bold text-[var(--color-primary-strong)] uppercase tracking-wider text-[11px]">Preview Generated Numbers:</p>
+              <p className="mt-1 font-mono text-[var(--color-primary)] font-bold">{posInvoicePrefix}-20261007-0012</p>
+              <p className="font-mono text-[var(--color-primary)] font-bold">{invoicePrefix}-20261007-0045</p>
+              <p className="font-mono text-[var(--color-primary)] font-bold">{orderPrefix}-20261007-0099</p>
             </div>
           </div>
         )}
@@ -362,7 +362,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 <select
                   value={printerPaperSize}
                   onChange={(e) => setPrinterPaperSize(e.target.value)}
-                  className="w-full rounded-xl border border-[#EEDDE0] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+                  className="w-full rounded-xl border border-[var(--color-border)] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                 >
                   <option value="80mm">80mm Standard Thermal Paper</option>
                   <option value="58mm">58mm Compact Mini Receipt</option>
@@ -373,7 +373,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 <select
                   value={printerConnection}
                   onChange={(e) => setPrinterConnection(e.target.value)}
-                  className="w-full rounded-xl border border-[#EEDDE0] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+                  className="w-full rounded-xl border border-[var(--color-border)] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                 >
                   <option value="USB / Local Spooler">USB / Direct ESC/POS Spooler</option>
                   <option value="Network / Ethernet (LAN)">Network / Ethernet (LAN IP)</option>
@@ -386,7 +386,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 type="checkbox"
                 checked={autoPrintPosSales}
                 onChange={(e) => setAutoPrintPosSales(e.target.checked)}
-                className="h-4 w-4 rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                className="h-4 w-4 rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               Auto-print receipt immediately upon completing POS sale
             </label>
@@ -403,7 +403,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 <select
                   value={scannerMode}
                   onChange={(e) => setScannerMode(e.target.value)}
-                  className="w-full rounded-xl border border-[#EEDDE0] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+                  className="w-full rounded-xl border border-[var(--color-border)] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                 >
                   <option value="HID / Wireless TCP">Wireless TCP / HID Keyboard Emulation</option>
                   <option value="SPP Serial">SPP Serial Port Mode</option>
@@ -416,7 +416,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
                 type="checkbox"
                 checked={scannerBeep}
                 onChange={(e) => setScannerBeep(e.target.checked)}
-                className="h-4 w-4 rounded border-[#EEDDE0] accent-[#7B3F4A] text-[#7B3F4A] focus:ring-[#7B3F4A]"
+                className="h-4 w-4 rounded border-[var(--color-border)] accent-[var(--color-primary)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
               />
               Enable audio notification tone on successful barcode scan
             </label>

@@ -189,11 +189,11 @@ export function ReturnsPage() {
       {error && <Alert>{error}</Alert>}
 
       {/* Tabs */}
-      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[#F9F3F4] border-[#EEDDE0]">
+      <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm border bg-[var(--color-extra-020)] border-[var(--color-border)]">
         <button
           onClick={() => setActiveTab('SALE')}
           className={`px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
-            activeTab === 'SALE' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            activeTab === 'SALE' ? 'bg-[var(--color-primary)] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
           Sale Returns ({saleReturns.length})
@@ -201,14 +201,14 @@ export function ReturnsPage() {
         <button
           onClick={() => setActiveTab('PURCHASE')}
           className={`px-4 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
-            activeTab === 'PURCHASE' ? 'bg-[#7B3F4A] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+            activeTab === 'PURCHASE' ? 'bg-[var(--color-primary)] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
           }`}
         >
           Purchase Returns ({purchaseReturns.length})
         </button>
       </div>
 
-      <Card className="overflow-hidden border border-[#F2E5E7] shadow-2xs rounded-3xl">
+      <Card className="overflow-hidden border border-[var(--color-border-muted)] shadow-2xs rounded-3xl">
         {loading ? (
           <div className="p-8 text-center text-sm text-slate-500">Loading return records…</div>
         ) : activeTab === 'SALE' ? (
@@ -219,7 +219,7 @@ export function ReturnsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#FAF2F4]/80 text-[10px] font-bold uppercase tracking-wider text-[#804652] border-b border-[#F2E5E7]">
+                <thead className="bg-[var(--color-surface)]/80 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] border-b border-[var(--color-border-muted)]">
                   <tr>
                     <th className="px-4 py-3">Return No</th>
                     <th className="px-4 py-3">Customer</th>
@@ -230,10 +230,10 @@ export function ReturnsPage() {
                     <th className="px-4 py-3">Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F2E5E7]">
+                <tbody className="divide-y divide-[var(--color-border-muted)]">
                   {saleReturns.map((r) => (
-                    <tr key={r.id} className="hover:bg-[#FAF2F4]/40 transition">
-                      <td className="px-4 py-3 font-mono font-bold text-[#7B3F4A]">{r.return_no}</td>
+                    <tr key={r.id} className="hover:bg-[var(--color-surface)]/40 transition">
+                      <td className="px-4 py-3 font-mono font-bold text-[var(--color-primary)]">{r.return_no}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">{r.customer_name || 'Walk-in Customer'}</td>
                       <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.reason}</td>
                       <td className="px-4 py-3">
@@ -263,7 +263,7 @@ export function ReturnsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#FAF2F4]/80 text-[10px] font-bold uppercase tracking-wider text-[#804652] border-b border-[#F2E5E7]">
+              <thead className="bg-[var(--color-surface)]/80 text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] border-b border-[var(--color-border-muted)]">
                 <tr>
                   <th className="px-4 py-3">Return No</th>
                   <th className="px-4 py-3">Supplier</th>
@@ -274,10 +274,10 @@ export function ReturnsPage() {
                   <th className="px-4 py-3">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F2E5E7]">
+              <tbody className="divide-y divide-[var(--color-border-muted)]">
                 {purchaseReturns.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#FAF2F4]/40 transition">
-                    <td className="px-4 py-3 font-mono font-bold text-[#7B3F4A]">{r.return_no}</td>
+                  <tr key={r.id} className="hover:bg-[var(--color-surface)]/40 transition">
+                    <td className="px-4 py-3 font-mono font-bold text-[var(--color-primary)]">{r.return_no}</td>
                     <td className="px-4 py-3 font-medium text-slate-900">{r.supplier_name || 'General Supplier'}</td>
                     <td className="px-4 py-3 text-slate-600 max-w-xs truncate">{r.reason}</td>
                     <td className="px-4 py-3">
@@ -346,8 +346,8 @@ export function ReturnsPage() {
             />
 
             {/* Item Selector Box */}
-            <div className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-4 space-y-3">
-              <span className="block text-xs font-bold uppercase tracking-wider text-[#7B3F4A]">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+              <span className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
                 Add Products to Return
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_90px_110px_80px] gap-2 items-end">
@@ -361,7 +361,7 @@ export function ReturnsPage() {
                       const found = allVariants.find((v) => v.id === vId)
                       if (found) setItemUnitPrice(String(found.retail_price))
                     }}
-                    className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A] focus:outline-none"
+                    className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] focus:outline-none"
                   >
                     <option value="">Choose item to return…</option>
                     {allVariants.map((v) => (
@@ -394,9 +394,9 @@ export function ReturnsPage() {
             {stagedItems.length > 0 && (
               <div className="space-y-2">
                 <span className="text-xs font-bold text-slate-800">Return Items Summary ({stagedItems.length})</span>
-                <div className="rounded-2xl border border-[#EEDDE0] overflow-hidden">
+                <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#FAF2F4]/80 border-b border-[#EEDDE0] text-[#804652] uppercase font-bold text-[10px] tracking-wider">
+                    <thead className="bg-[var(--color-surface)]/80 border-b border-[var(--color-border)] text-[var(--color-primary-strong)] uppercase font-bold text-[10px] tracking-wider">
                       <tr>
                         <th className="p-2.5">Variant</th>
                         <th className="p-2.5">SKU</th>
@@ -406,14 +406,14 @@ export function ReturnsPage() {
                         <th className="p-2.5 text-right"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EEDDE0]">
+                    <tbody className="divide-y divide-[var(--color-border)]">
                       {stagedItems.map((item) => (
-                        <tr key={item.variant_id} className="hover:bg-[#FAF2F4]/30">
+                        <tr key={item.variant_id} className="hover:bg-[var(--color-surface)]/30">
                           <td className="p-2.5 font-semibold text-slate-900">{item.variant_label}</td>
                           <td className="p-2.5 text-slate-500 font-mono">{item.sku}</td>
                           <td className="p-2.5 font-bold text-slate-800">{item.qty}</td>
                           <td className="p-2.5">₹{item.unit_price.toFixed(2)}</td>
-                          <td className="p-2.5 font-bold text-[#7B3F4A]">₹{(item.qty * item.unit_price).toFixed(2)}</td>
+                          <td className="p-2.5 font-bold text-[var(--color-primary)]">₹{(item.qty * item.unit_price).toFixed(2)}</td>
                           <td className="p-2.5 text-right">
                             <button
                               type="button"

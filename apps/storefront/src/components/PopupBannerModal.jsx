@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resolveImageUrl } from '../lib/api'
+import { ROUTES } from '../routes/routes'
 
 export default function PopupBannerModal({ banner }) {
   const navigate = useNavigate()
@@ -44,25 +45,25 @@ export default function PopupBannerModal({ banner }) {
       return
     }
     if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(`/products?category_id=${banner.target_id}`)
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
       return
     }
     if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(`/product/${banner.target_id}`)
+      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
       return
     }
     if (banner.target_type === 'EXTERNAL_URL' && banner.target_url) {
       window.open(banner.target_url, '_blank', 'noopener,noreferrer')
       return
     }
-    navigate('/products')
+    navigate(ROUTES.PRODUCTS)
   }
 
   const image = resolveImageUrl(banner.image_desktop_path || banner.image_mobile_path)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl border border-[#E8E0E5] animate-scale-up">
+      <div className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl border border-[var(--color-border-subtle)] animate-scale-up">
         {/* Close Button */}
         <button
           type="button"
@@ -75,7 +76,7 @@ export default function PopupBannerModal({ banner }) {
 
         {/* Media */}
         {image && (
-          <div className="w-full h-48 sm:h-56 overflow-hidden bg-[#F8F3F6]">
+          <div className="w-full h-48 sm:h-56 overflow-hidden bg-[var(--color-bg-main)]">
             <img src={image} alt={banner.title} className="w-full h-full object-cover" />
           </div>
         )}
@@ -84,25 +85,25 @@ export default function PopupBannerModal({ banner }) {
         <div className="p-6 text-center space-y-3">
           {banner.discount_text && (
             <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F2DDE9] text-[#601D49] text-xs font-black uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-xs font-black uppercase tracking-wider">
                 <span>🔥</span>
                 <span>{banner.discount_text}</span>
               </span>
             </div>
           )}
 
-          <h3 className="text-xl sm:text-2xl font-black text-[#2D252B] leading-tight">
+          <h3 className="text-xl sm:text-2xl font-black text-[var(--color-text-main)] leading-tight">
             {banner.title}
           </h3>
 
           {banner.subtitle && (
-            <p className="text-sm font-semibold text-[#601D49]">
+            <p className="text-sm font-semibold text-[var(--color-brand)]">
               {banner.subtitle}
             </p>
           )}
 
           {banner.description && (
-            <p className="text-xs text-[#6B5E68] leading-relaxed max-w-sm mx-auto">
+            <p className="text-xs text-[var(--color-text-muted)] leading-relaxed max-w-sm mx-auto">
               {banner.description}
             </p>
           )}
@@ -111,14 +112,14 @@ export default function PopupBannerModal({ banner }) {
             <button
               type="button"
               onClick={handleAction}
-              className="px-6 py-2.5 rounded-full bg-[#601D49] hover:bg-[#4D153A] text-white text-xs sm:text-sm font-black shadow-md transition-all active:scale-95 cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white text-xs sm:text-sm font-black shadow-md transition-all active:scale-95 cursor-pointer"
             >
               {banner.cta_text || 'Explore Offer →'}
             </button>
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2.5 rounded-full bg-[#F7F5F7] hover:bg-[#F2DDE9] text-[#2D252B] text-xs sm:text-sm font-bold transition-all cursor-pointer border border-[#E8E0E5]"
+              className="px-4 py-2.5 rounded-full bg-[var(--color-bg-alt)] hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] text-xs sm:text-sm font-bold transition-all cursor-pointer border border-[var(--color-border-subtle)]"
             >
               Maybe Later
             </button>

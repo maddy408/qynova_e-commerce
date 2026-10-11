@@ -263,6 +263,14 @@ $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPa
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 
+// TODO: Razorpay implementation — RazorpayController/RazorpayWebhookController
+// exist as empty placeholders (src/Controllers/). Not wired in yet:
+// $razorpay = new RazorpayController($pdo);
+// $router->post('/api/payments/razorpay/create-order', fn () => $razorpay->createOrder());
+// $router->post('/api/payments/razorpay/verify', fn () => $razorpay->verifyPayment());
+// $razorpayWebhook = new RazorpayWebhookController($pdo);
+// $router->post('/api/payments/razorpay/webhook', fn () => $razorpayWebhook->handle());
+
 // Invoices (docs/DOCUMENTATION.md section 16) — POS billing + e-commerce
 // invoices (the latter auto-created by OrderService::confirmPayment)
 $invoices = new InvoiceController($pdo);
