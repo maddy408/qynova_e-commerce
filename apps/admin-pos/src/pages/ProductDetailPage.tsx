@@ -224,7 +224,17 @@ function SimpleVariantSection({
   const variant = product.variants[0];
   const [sku, setSku] = useState(variant?.sku ?? '');
   const [mrp, setMrp] = useState(variant?.mrp ?? '');
-  const [retailPrice, setRetailPrice] = useState(variant?.retail_price ?? '');
+  // "Selling Price" shown here initializes from retail_price — the column
+  // PricingService.php actually reads first for a RETAIL-type customer,
+  // which every walk-in sale defaults to (InvoiceService::createPosSale
+  // defaults customerType to 'RETAIL'). Saving writes BOTH normal_price
+  // and retail_price together so the edit takes effect at checkout
+  // immediately and the fallback column doesn't go stale. The one
+  // accepted trade-off: if a distinct Retail-tier override was set via
+  // the Retail Price Adjustment page, editing this field resets it back
+  // to match the base price — deliberate, not silent, since this is the
+  // only place a SIMPLE product's base price can be edited post-creation.
+  const [sellingPrice, setSellingPrice] = useState(variant?.retail_price ?? '');
   const [lowStockThreshold, setLowStockThreshold] = useState(variant?.low_stock_threshold ?? '5');
   const [saving, setSaving] = useState(false);
 
@@ -242,7 +252,7 @@ function SimpleVariantSection({
     setSaving(true);
     onError('');
     try {
-      await api.put(`/variants/${variant.id}`, { sku, mrp, retail_price: retailPrice });
+      await api.put(`/variants/${variant.id}`, { sku, mrp, normal_price: sellingPrice, retail_price: sellingPrice });
       if (lowStockThreshold.trim() !== '' && lowStockThreshold !== variant.low_stock_threshold) {
         await api.put(`/inventory/${variant.id}/threshold`, { low_stock_threshold: Number(lowStockThreshold) });
       }
@@ -263,7 +273,7 @@ function SimpleVariantSection({
       <div className="grid grid-cols-5 gap-4">
         <TextField label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} />
         <TextField label="MRP" type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} />
-        <TextField label="Selling Price" type="number" step="0.01" value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} />
+        <TextField label="Selling Price" type="number" step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} />
         <div>
           <span className="mb-1 block text-sm font-medium text-slate-700">Stock on hand</span>
           <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{variant.on_hand ?? '0'}</p>
@@ -454,13 +464,18 @@ function VariantsSection({
   }
 
   function startEdit(v: ProductVariant) {
+    // "Price" is retail_price — see the comment on SimpleVariantSection's
+    // sellingPrice state above for why saveEdit() below also writes
+    // normal_price alongside it.
     setEditing((prev) => ({ ...prev, [v.id]: { mrp: v.mrp, retail_price: v.retail_price } }));
   }
 
   async function saveEdit(variantId: number) {
     const values = editing[variantId];
     if (!values) return;
-    await api.put(`/variants/${variantId}`, values);
+    // normal_price too, so the base-price fallback doesn't go stale — see
+    // the comment on SimpleVariantSection's sellingPrice state above.
+    await api.put(`/variants/${variantId}`, { ...values, normal_price: values.retail_price });
     setEditing((prev) => {
       const next = { ...prev };
       delete next[variantId];

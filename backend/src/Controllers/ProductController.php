@@ -129,18 +129,52 @@ final class ProductController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
-        $stmt = $this->pdo->query(
+        $search = isset($_GET['search']) ? trim((string) $_GET['search']) : '';
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        // Default kept generous (not the usual 20-50 list-page size): the
+        // pre-existing Settings "prices" tab fetches this endpoint with no
+        // page/limit at all and expects every variant back, so an
+        // aggressive default would silently truncate it. The new Price
+        // Adjustment pages pass an explicit, smaller limit.
+        $limit = min(500, max(1, (int) ($_GET['limit'] ?? 500)));
+        $offset = ($page - 1) * $limit;
+
+        $where = ["v.deleted_at IS NULL", "p.deleted_at IS NULL"];
+        $params = [];
+        if ($search !== '') {
+            $where[] = '(p.name LIKE :search1 OR v.sku LIKE :search2 OR v.barcode LIKE :search3)';
+            $needle = '%' . $search . '%';
+            $params['search1'] = $needle;
+            $params['search2'] = $needle;
+            $params['search3'] = $needle;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM product_variants v JOIN products p ON p.id = v.product_id WHERE {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare(
             "SELECT v.id AS variant_id, v.product_id, v.sku, v.barcode, p.name AS product_name, u.name AS unit_name,
-                    v.mrp, v.retail_price, v.wholesale_price, v.customer_price,
+                    v.mrp, v.normal_price, v.retail_price, v.wholesale_price, v.customer_price,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN units u ON u.id = p.unit_id
-             WHERE v.deleted_at IS NULL AND p.deleted_at IS NULL
-             ORDER BY p.name, v.sku"
+             WHERE {$whereSql}
+             ORDER BY p.name, v.sku
+             LIMIT :limit OFFSET :offset"
         );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
 
-        Response::json(['variants' => $stmt->fetchAll()]);
+        Response::json(['variants' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit]);
     }
 
     public function updatePriceSettings(): void
@@ -172,6 +206,88 @@ final class ProductController
         }
 
         Response::json(['updated' => true]);
+    }
+
+    /**
+     * PUT /api/products/variants/{id}/price — single-tier, single-row price
+     * edit backing the 3 Price Adjustment pages (RowEditable: one save =
+     * one row, one field). Unlike updatePriceSettings() above, this logs
+     * every change to price_history (G12) so price edits are auditable,
+     * and validates the new value instead of letting a bad request hit
+     * the DB's CHECK constraint as an ugly 500.
+     */
+    public function updateVariantPrice(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $variantId = (int) $id;
+        $body = Request::json();
+        $priceType = (string) ($body['price_type'] ?? '');
+        $column = match ($priceType) {
+            'RETAIL' => 'retail_price',
+            'WHOLESALE' => 'wholesale_price',
+            'CUSTOMER' => 'customer_price',
+            default => null,
+        };
+
+        if ($column === null) {
+            Response::error('price_type must be one of RETAIL, WHOLESALE, or CUSTOMER', 422);
+        }
+
+        $rawValue = $body['value'] ?? null;
+        if ($rawValue === null || $rawValue === '' || !is_numeric($rawValue)) {
+            Response::error('A numeric price value is required', 422);
+        }
+
+        $newValue = round((float) $rawValue, 2);
+        if ($newValue < 0) {
+            Response::error('Price cannot be negative', 422);
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $current = $this->pdo->prepare(
+                "SELECT {$column} AS old_value FROM product_variants WHERE id = :id AND deleted_at IS NULL FOR UPDATE"
+            );
+            $current->execute(['id' => $variantId]);
+            $row = $current->fetch();
+
+            if ($row === false) {
+                throw new RuntimeException('Variant not found');
+            }
+
+            $oldValue = $row['old_value'];
+
+            // RETAIL is the only tier stored NOT NULL (schema default from
+            // creation); WHOLESALE/CUSTOMER stay nullable so "not set" is
+            // distinguishable from "deliberately zero".
+            $updateStmt = $this->pdo->prepare(
+                "UPDATE product_variants SET {$column} = :value WHERE id = :id"
+            );
+            $updateStmt->execute(['value' => $newValue, 'id' => $variantId]);
+
+            $this->pdo->prepare(
+                'INSERT INTO price_history (variant_id, customer_id, price_type, old_price, new_price, changed_by, changed_at)
+                 VALUES (:variant_id, NULL, :price_type, :old_price, :new_price, :changed_by, NOW())'
+            )->execute([
+                'variant_id' => $variantId,
+                'price_type' => $priceType,
+                'old_price' => $oldValue,
+                'new_price' => $newValue,
+                'changed_by' => (int) $claims['sub'],
+            ]);
+
+            $this->pdo->commit();
+
+            Response::json(['variant_id' => $variantId, 'price_type' => $priceType, 'old_price' => $oldValue, 'new_price' => (string) $newValue]);
+        } catch (RuntimeException $e) {
+            $this->pdo->rollBack();
+            Response::error($e->getMessage(), 404);
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
     /**
