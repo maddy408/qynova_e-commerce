@@ -106,12 +106,24 @@ final class UserService
             return;
         }
 
+        // Password, role, or active-status changes invalidate any session
+        // issued under the old credentials/permissions — otherwise a
+        // demoted or deactivated cashier (or anyone whose password just
+        // changed) keeps a working refresh token until it happens to expire.
+        $shouldRevokeSessions = array_key_exists('role_id', $data)
+            || array_key_exists('password', $data)
+            || (array_key_exists('status', $data) && $data['status'] !== 'ACTIVE');
+
         try {
             $stmt = $this->pdo->prepare('UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = :id AND deleted_at IS NULL');
             $stmt->execute($params);
 
             if ($stmt->rowCount() === 0) {
                 throw new RuntimeException('User not found');
+            }
+
+            if ($shouldRevokeSessions) {
+                (new RefreshTokenService($this->pdo))->revokeAllForUser($id, 'ACCOUNT_CHANGED');
             }
         } catch (PDOException $e) {
             if ((int) $e->getCode() === 23000) {
