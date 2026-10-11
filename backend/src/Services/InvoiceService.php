@@ -291,6 +291,28 @@ final class InvoiceService
         }
 
         $discountTotal = bcadd($billDiscountAmount, $couponDiscount, 2);
+
+        // G1: amount_paid is a financial fact, not a UI preview — the
+        // frontend's own grand-total calculation (shown to the cashier
+        // before this request, and sometimes sent through unchanged as
+        // the default "paid in full" amount) must never be trusted past
+        // what this request's own server-computed grand_total allows.
+        // Previously this only used amount_paid to derive a payment_status
+        // label and stored whatever was sent verbatim, with no ceiling —
+        // a wrong or malicious client could mark any invoice PAID for an
+        // arbitrary amount.
+        $amountPaidTrimmed = trim($amountPaid);
+        if ($amountPaidTrimmed === '' || !is_numeric($amountPaidTrimmed)) {
+            $amountPaidTrimmed = '0';
+        }
+        if (bccomp($amountPaidTrimmed, '0', 2) < 0) {
+            throw new RuntimeException('Amount paid cannot be negative');
+        }
+        if (bccomp($amountPaidTrimmed, $grandTotal, 2) > 0) {
+            throw new RuntimeException("Amount paid (₹{$amountPaidTrimmed}) cannot exceed the invoice total (₹{$grandTotal})");
+        }
+        $amountPaid = $amountPaidTrimmed;
+
         $paymentStatus = bccomp($amountPaid, $grandTotal, 2) >= 0 ? 'PAID' : (bccomp($amountPaid, '0', 2) > 0 ? 'PARTIAL' : 'UNPAID');
 
         $this->pdo->beginTransaction();
