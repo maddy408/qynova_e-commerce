@@ -55,6 +55,84 @@
   --color-lavender-surface: #FFFFFF;
   --color-brand-purple: #601D49;
   --color-brand-purple-hover: #4D153A;
+
+  /* Status (added for Phase 4 dynamic-theme sweep — see src/theme/appColors.js) */
+  --color-success: #15803D;
+  --color-warning: #EA580C;
+  --color-error: #F43F5E;
+  --color-info: #14B8A6;
+  --color-primary-tint: #F2DDE9;
+
+  /* Referral program accent (distinct violet family, referral modal/badges only) */
+  --color-referral-tint: #EDE5FF;
+  --color-referral: #7042D2;
+  --color-referral-alt: #8B5CF6;
+  --color-referral-strong: #7C3AED;
+  --color-referral-dark: #6B21A8;
+
+  /* Third-party brand colors used verbatim */
+  --color-whatsapp: #25D366;
+  --color-google-blue: #4285F4;
+  --color-google-green: #34A853;
+  --color-google-yellow: #FBBC05;
+  --color-google-red: #EA4335;
+
+  /*
+   * "Extra" tokens: every other distinct color this app used before this
+   * refactor (chart/badge accents, gradient stops, status tints, etc.)
+   * that doesn't map to a semantic name above — pass-through values kept
+   * for a pixel-identical render, not meaningful design tokens. Good
+   * candidates for a future consolidation pass.
+   */
+  --color-extra-001: #0284c7;
+  --color-extra-002: #0d9488;
+  --color-extra-003: #f97316;
+  --color-extra-004: #0369a1;
+  --color-extra-005: #0f766e;
+  --color-extra-006: #c2410c;
+  --color-extra-007: #be123c;
+  --color-extra-008: #7c4de8;
+  --color-extra-009: #0a192f;
+  --color-extra-010: #1e3a8a;
+  --color-extra-011: #06b6d4;
+  --color-extra-012: #38bdf8;
+  --color-extra-013: #431407;
+  --color-extra-014: #9a3412;
+  --color-extra-015: #f59e0b;
+  --color-extra-016: #4c0519;
+  --color-extra-017: #831843;
+  --color-extra-018: #be185d;
+  --color-extra-019: #fb7185;
+  --color-extra-020: #042f2e;
+  --color-extra-021: #115e59;
+  --color-extra-022: #2dd4bf;
+  --color-extra-023: #a78bfa;
+  --color-extra-024: #0ea5e9;
+  --color-extra-025: #e11d48;
+  --color-extra-026: #16a34a;
+  --color-extra-027: #22c55e;
+  --color-extra-028: #5b21b6;
+  --color-extra-029: #db2777;
+  --color-extra-030: #d8c8ff;
+  --color-extra-031: #ec4899;
+  --color-extra-032: #9333ea;
+  --color-extra-033: #3b0764;
+  --color-extra-034: #581c87;
+  --color-extra-035: #e8cedb;
+  --color-extra-036: #d8adc5;
+  --color-extra-037: #9b3e7a;
+  --color-extra-038: #75235a;
+  --color-extra-039: #421332;
+  --color-extra-040: #e0d6ff;
+  --color-extra-041: #20bd5a;
+
+  /* Shadow / gradient tokens (alpha-blended colors — kept as full values
+     since Tailwind's arbitrary shadow syntax takes the whole value) */
+  --shadow-cart-bar: 0 -4px 20px rgba(96, 29, 73, 0.10);
+  --shadow-auth-card: 0 15px 40px rgba(139, 92, 246, 0.08);
+  --shadow-register-card: 0 15px 35px rgba(139, 92, 246, 0.08);
+  --shadow-profile-card: 0 10px 35px rgba(139, 92, 246, 0.05);
+  --gradient-surface-scrim: rgba(248, 243, 246, 0.92), rgba(248, 243, 246, 0.96);
 }
 
 html, body {

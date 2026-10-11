@@ -193,8 +193,8 @@ function ProductImagesSection({
             void upload(e.dataTransfer.files);
           }}
           disabled={uploading}
-          className={`flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed text-xs font-medium text-slate-400 hover:border-[#7B3F4A] hover:text-[#7B3F4A] ${
-            dragOver ? 'border-[#7B3F4A] bg-[#FAF2F4] text-[#7B3F4A]' : 'border-[#EEDDE0]'
+          className={`flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed text-xs font-medium text-slate-400 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] ${
+            dragOver ? 'border-[var(--color-primary)] bg-[var(--color-surface)] text-[var(--color-primary)]' : 'border-[var(--color-border)]'
           }`}
         >
           {uploading ? '…' : <>+<br />Add</>}
@@ -517,7 +517,7 @@ function VariantsSection({
                 <button
                   type="button"
                   onClick={() => setAddingValueForAttr(isAddingValue ? null : attr.id)}
-                  className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E] flex items-center gap-1"
+                  className="text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-extra-009)] flex items-center gap-1"
                 >
                   {isAddingValue ? 'Cancel' : `+ Add Custom ${attr.name}`}
                 </button>
@@ -533,7 +533,7 @@ function VariantsSection({
                       toggleValue(valId)
                     }
                   }}
-                  className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-[#7B3F4A] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20"
+                  className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
                 >
                   <option value="">Select a {attr.name} ({unselectedForAttr.length} available)…</option>
                   {unselectedForAttr.map((v) => (
@@ -546,21 +546,21 @@ function VariantsSection({
 
               {/* Inline Form to Add New Custom Value */}
               {isAddingValue && (
-                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/60 p-2.5">
+                <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-2.5">
                   <input
                     type="text"
                     placeholder={`New ${attr.name} value (e.g. ${attr.name === 'Color' ? 'Lime Green' : attr.name === 'Weight' ? '500g' : 'Value'})`}
                     value={newValueInput}
                     onChange={(e) => setNewValueInput(e.target.value)}
-                    className="flex-1 rounded-xl border border-[#EEDDE0] bg-white px-2.5 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#7B3F4A]"
+                    className="flex-1 rounded-xl border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                   />
                   {attr.name.toLowerCase() === 'color' && (
                     <input
                       type="color"
                       title="Pick Color Hex"
-                      value={newValueHexInput || '#7B3F4A'}
+                      value={newValueHexInput || 'var(--color-primary)'}
                       onChange={(e) => setNewValueHexInput(e.target.value)}
-                      className="h-7 w-9 cursor-pointer rounded border border-[#EEDDE0] p-0.5"
+                      className="h-7 w-9 cursor-pointer rounded border border-[var(--color-border)] p-0.5"
                     />
                   )}
                   <Button
@@ -580,7 +580,7 @@ function VariantsSection({
                   {selectedForAttr.map((value) => (
                     <span
                       key={value.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#EEDDE0] bg-[#FAF2F4] px-3 py-1 text-xs font-semibold text-[#7B3F4A] shadow-2xs transition hover:bg-[#F2E5E7]"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-semibold text-[var(--color-primary)] shadow-2xs transition hover:bg-[var(--color-border-muted)]"
                     >
                       {value.color_hex && (
                         <span
@@ -592,7 +592,7 @@ function VariantsSection({
                       <button
                         type="button"
                         onClick={() => toggleValue(value.id)}
-                        className="ml-1 text-[#804652] hover:text-rose-600 font-bold text-xs"
+                        className="ml-1 text-[var(--color-primary-strong)] hover:text-rose-600 font-bold text-xs"
                         title="Remove"
                       >
                         ✕
@@ -606,25 +606,25 @@ function VariantsSection({
         })}
 
         {newRows.length > 0 && (
-          <div className="space-y-3 border-t border-[#EEDDE0] pt-4">
+          <div className="space-y-3 border-t border-[var(--color-border)] pt-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#7B3F4A]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
                 Staged Variants ({newRows.length} combination{newRows.length === 1 ? '' : 's'})
               </h3>
               <span className="text-[11px] font-medium text-slate-500">Attach images and initial stock before creating</span>
             </div>
             {newRows.map((row, index) => (
-              <div key={row.key} className="rounded-2xl border border-[#EEDDE0] bg-[#FAF2F4]/50 p-4 space-y-3">
+              <div key={row.key} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-slate-900">
-                    Variant {index + 1}: <span className="text-[#7B3F4A]">{row.title}</span>
+                    Variant {index + 1}: <span className="text-[var(--color-primary)]">{row.title}</span>
                   </p>
                 </div>
 
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                   <div>
                     <label className="mb-1 block text-[11px] font-semibold text-slate-600">Variant Image</label>
-                    <label className="group relative flex h-16 w-16 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-[#EEDDE0] bg-white hover:border-[#7B3F4A] hover:bg-[#FAF2F4] transition">
+                    <label className="group relative flex h-16 w-16 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-white hover:border-[var(--color-primary)] hover:bg-[var(--color-surface)] transition">
                       {row.image ? (
                         <>
                           <img src={row.image.previewUrl} alt="" className="h-full w-full object-cover" />
@@ -634,7 +634,7 @@ function VariantsSection({
                         </>
                       ) : (
                         <div className="text-center p-1">
-                          <span className="block text-[#7B3F4A] text-xs font-bold">+ Image</span>
+                          <span className="block text-[var(--color-primary)] text-xs font-bold">+ Image</span>
                         </div>
                       )}
                       <input
@@ -653,7 +653,7 @@ function VariantsSection({
                         value={row.sku}
                         onChange={(e) => updateRow(row.key, { sku: e.target.value })}
                         placeholder="SKU"
-                        className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+                        className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                       />
                     </div>
                     <div>
@@ -664,7 +664,7 @@ function VariantsSection({
                         type="number"
                         min="0"
                         placeholder="Qty e.g. 10"
-                        className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+                        className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                       />
                     </div>
                     <div>
@@ -675,7 +675,7 @@ function VariantsSection({
                         type="number"
                         min="0"
                         placeholder="Threshold e.g. 5"
-                        className="w-full rounded-xl border border-[#EEDDE0] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+                        className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                       />
                     </div>
                   </div>
@@ -694,7 +694,7 @@ function VariantsSection({
       {product.variants.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
               <tr>
                 <th className="py-3 px-3">Variant</th>
                 <th className="py-3 px-3">SKU</th>
@@ -707,7 +707,7 @@ function VariantsSection({
                 <th className="py-3 px-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[var(--color-extra-004)]">
               {product.variants.map((v) => {
                 const label = v.attribute_values.map((a) => a.value).join(' / ') || '—';
                 const editValues = editing[v.id];
@@ -770,11 +770,11 @@ function VariantsSection({
                     <td className="py-2 pr-3 text-right">
                       <div className="flex justify-end gap-2">
                         {editValues ? (
-                          <button onClick={() => saveEdit(v.id)} className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E]">
+                          <button onClick={() => saveEdit(v.id)} className="text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]">
                             Save
                           </button>
                         ) : (
-                          <button onClick={() => startEdit(v)} className="text-xs font-semibold text-[#7B3F4A] hover:text-[#68343E]">
+                          <button onClick={() => startEdit(v)} className="text-xs font-semibold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]">
                             Edit
                           </button>
                         )}
@@ -877,7 +877,7 @@ function VariantImageModal({
           type="button"
           onClick={() => fileInput.current?.click()}
           disabled={uploading}
-          className="flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-[#EEDDE0] text-xs font-medium text-slate-400 hover:border-[#7B3F4A] hover:text-[#7B3F4A]"
+          className="flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-[var(--color-border)] text-xs font-medium text-slate-400 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
         >
           {uploading ? '…' : <>+<br />Add</>}
         </button>
@@ -944,13 +944,13 @@ function SpecificationsSection({
               value={row.name}
               onChange={(e) => update(i, 'name', e.target.value)}
               placeholder="Name (e.g. Material)"
-              className="w-1/2 rounded-xl border border-[#EEDDE0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+              className="w-1/2 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
             />
             <input
               value={row.value}
               onChange={(e) => update(i, 'value', e.target.value)}
               placeholder="Value (e.g. Plastic)"
-              className="w-1/2 rounded-xl border border-[#EEDDE0] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/20 focus:border-[#7B3F4A]"
+              className="w-1/2 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
             />
             <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
               ✕

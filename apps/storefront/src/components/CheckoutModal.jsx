@@ -166,22 +166,22 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 lg:p-6 animate-in fade-in duration-200">
       
       {/* Container */}
-      <div className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-[#E8E0E5] overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-[var(--color-border-subtle)] overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="px-5 sm:px-8 py-4 border-b border-[#E8E0E5] bg-[#F8F3F6] flex items-center justify-between shrink-0">
+        <div className="px-5 sm:px-8 py-4 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-main)] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#601D49] text-white flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-[var(--color-brand)] text-white flex items-center justify-center shadow-xs">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <rect x="2" y="5" width="20" height="14" rx="2" />
                 <line x1="2" y1="10" x2="22" y2="10" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-[#2D252B]">
+              <h2 className="text-lg sm:text-xl font-black text-[var(--color-text-main)]">
                 {orderConfirmed ? 'Order Confirmed!' : !getCustomerToken() ? 'Sign In Required' : 'Secure Checkout'}
               </h2>
-              <p className="text-[11px] text-[#6B5E68] font-medium">
+              <p className="text-[11px] text-[var(--color-text-muted)] font-medium">
                 {orderConfirmed ? 'Thank you for your purchase' : !getCustomerToken() ? 'Please authenticate to complete checkout' : '100% Secure & Encrypted Transaction'}
               </p>
             </div>
@@ -189,7 +189,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
 
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-[#E8E0E5] text-gray-600 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+            className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-[var(--color-border-subtle)] text-gray-600 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
             title="Close"
           >
             ✕
@@ -207,24 +207,24 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
               <span className="text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
                 Order Placed Successfully
               </span>
-              <h3 className="text-2xl font-black text-[#2D252B]">
+              <h3 className="text-2xl font-black text-[var(--color-text-main)]">
                 Congratulations, {formData.fullName}!
               </h3>
-              <p className="text-xs sm:text-sm text-[#6B5E68] max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] max-w-md mx-auto leading-relaxed">
                 Your order has been received and is being prepared for dispatch. We will send updates to{' '}
-                <strong className="text-[#2D252B]">+91 {formData.phone}</strong>.
+                <strong className="text-[var(--color-text-main)]">+91 {formData.phone}</strong>.
               </p>
             </div>
 
             {/* Order Card info */}
-            <div className="max-w-md mx-auto bg-[#F8F3F6] rounded-2xl p-4 sm:p-5 border border-[#E8E0E5] text-left space-y-2.5 text-xs">
-              <div className="flex justify-between items-center pb-2 border-b border-[#E8E0E5]">
-                <span className="text-[#6B5E68] font-semibold">Order ID:</span>
-                <span className="font-mono font-black text-[#2D252B] text-sm">{confirmedOrderId}</span>
+            <div className="max-w-md mx-auto bg-[var(--color-bg-main)] rounded-2xl p-4 sm:p-5 border border-[var(--color-border-subtle)] text-left space-y-2.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-[var(--color-border-subtle)]">
+                <span className="text-[var(--color-text-muted)] font-semibold">Order ID:</span>
+                <span className="font-mono font-black text-[var(--color-text-main)] text-sm">{confirmedOrderId}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[#6B5E68] font-semibold">Payment Mode:</span>
-                <span className="font-bold text-[#2D252B]">
+                <span className="text-[var(--color-text-muted)] font-semibold">Payment Mode:</span>
+                <span className="font-bold text-[var(--color-text-main)]">
                   {formData.paymentMethod === 'COD'
                     ? 'Cash on Delivery (Pay at Doorstep)'
                     : formData.paymentMethod === 'UPI'
@@ -233,12 +233,12 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[#6B5E68] font-semibold">Total Amount:</span>
-                <span className="font-black text-[#601D49] text-sm">₹{grandTotal}</span>
+                <span className="text-[var(--color-text-muted)] font-semibold">Total Amount:</span>
+                <span className="font-black text-[var(--color-brand)] text-sm">₹{grandTotal}</span>
               </div>
               <div className="flex justify-between items-start pt-1">
-                <span className="text-[#6B5E68] font-semibold">Deliver to:</span>
-                <span className="font-medium text-[#2D252B] text-right max-w-[200px]">
+                <span className="text-[var(--color-text-muted)] font-semibold">Deliver to:</span>
+                <span className="font-medium text-[var(--color-text-main)] text-right max-w-[200px]">
                   {formData.streetAddress}, {formData.city}, {formData.state} - {formData.pincode}
                 </span>
               </div>
@@ -247,7 +247,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
             <div className="pt-3">
               <button
                 onClick={onClose}
-                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#601D49] hover:bg-[#4D153A] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
+                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
               >
                 Continue Shopping →
               </button>
@@ -255,17 +255,17 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
           </div>
         ) : !getCustomerToken() ? (
           <div className="p-8 sm:p-12 text-center space-y-6 overflow-y-auto">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-[#F2DDE9] text-[#601D49] flex items-center justify-center text-3xl shadow-inner">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-3xl shadow-inner">
               🔒
             </div>
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-[#601D49] bg-[#F2DDE9] px-3 py-1 rounded-full">
+              <span className="text-xs font-black uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full">
                 Authentication Required
               </span>
-              <h3 className="text-2xl font-black text-[#2D252B]">
+              <h3 className="text-2xl font-black text-[var(--color-text-main)]">
                 Please Sign In to Checkout
               </h3>
-              <p className="text-xs sm:text-sm text-[#6B5E68] max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] max-w-md mx-auto leading-relaxed">
                 Log in or create an account to complete your order, apply your discounts, and track delivery progress.
               </p>
             </div>
@@ -273,14 +273,14 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
               <Link
                 to="/login"
                 onClick={onClose}
-                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-[#601D49] hover:bg-[#4D153A] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
+                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
               >
                 Sign In / Register →
               </Link>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-[#E8E0E5] text-[#2D252B] font-bold text-xs uppercase tracking-wider hover:bg-[#F2DDE9] transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-[var(--color-border-subtle)] text-[var(--color-text-main)] font-bold text-xs uppercase tracking-wider hover:bg-[var(--color-primary-tint)] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -310,13 +310,13 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                 
                 {/* 1. Contact Info */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#2D252B] tracking-wider">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[var(--color-text-main)] tracking-wider">
                     <span>1. Customer Information</span>
                   </div>
                   
                   {/* Full Name */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                    <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -325,8 +325,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       value={formData.fullName}
                       onChange={handleInputChange}
                       placeholder="e.g. Priya Sharma"
-                      className={`w-full h-10 px-3.5 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none transition-colors ${
-                        errors.fullName ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
+                      className={`w-full h-10 px-3.5 rounded-xl border text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none transition-colors ${
+                        errors.fullName ? 'border-red-400 bg-red-50/20' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-brand)]'
                       }`}
                     />
                     {errors.fullName && <p className="text-[10px] text-red-500 mt-1">{errors.fullName}</p>}
@@ -335,11 +335,11 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                   {/* Phone & Email - Stack on mobile, side-by-side on tablet/desktop */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
                         Mobile Number <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex items-center border border-[#E8E0E5] rounded-xl overflow-hidden focus-within:border-[#601D49]">
-                        <span className="px-2.5 py-2 bg-[#F7F5F7] text-[#6B5E68] font-semibold text-xs border-r border-[#E8E0E5]">
+                      <div className="flex items-center border border-[var(--color-border-subtle)] rounded-xl overflow-hidden focus-within:border-[var(--color-brand)]">
+                        <span className="px-2.5 py-2 bg-[var(--color-bg-alt)] text-[var(--color-text-muted)] font-semibold text-xs border-r border-[var(--color-border-subtle)]">
                           +91
                         </span>
                         <input
@@ -349,15 +349,15 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                           value={formData.phone}
                           onChange={handleInputChange}
                           placeholder="10-digit mobile"
-                          className="flex-1 h-10 px-2.5 text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none"
+                          className="flex-1 h-10 px-2.5 text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none"
                         />
                       </div>
                       {errors.phone && <p className="text-[10px] text-red-500 mt-1">{errors.phone}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
-                        Email Address <span className="text-[#6B5E68] font-normal">(Optional)</span>
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
+                        Email Address <span className="text-[var(--color-text-muted)] font-normal">(Optional)</span>
                       </label>
                       <input
                         type="email"
@@ -365,20 +365,20 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="For order receipts"
-                        className="w-full h-10 px-3.5 rounded-xl border border-[#E8E0E5] text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none focus:border-[#601D49]"
+                        className="w-full h-10 px-3.5 rounded-xl border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none focus:border-[var(--color-brand)]"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Delivery Address */}
-                <div className="space-y-3 pt-2 border-t border-[#E8E0E5]">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#2D252B] tracking-wider">
+                <div className="space-y-3 pt-2 border-t border-[var(--color-border-subtle)]">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[var(--color-text-main)] tracking-wider">
                     <span>2. Delivery Address</span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                    <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
                       Street Address / House No. / Landmark <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -387,8 +387,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       value={formData.streetAddress}
                       onChange={handleInputChange}
                       placeholder="Flat/House No., Building, Street Name, Area"
-                      className={`w-full p-3 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none transition-colors ${
-                        errors.streetAddress ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
+                      className={`w-full p-3 rounded-xl border text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none transition-colors ${
+                        errors.streetAddress ? 'border-red-400 bg-red-50/20' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-brand)]'
                       }`}
                     />
                     {errors.streetAddress && <p className="text-[10px] text-red-500 mt-0.5">{errors.streetAddress}</p>}
@@ -397,7 +397,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                   {/* City, State, Pincode: Stacked or comfortable grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
                         City <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -406,27 +406,27 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         value={formData.city}
                         onChange={handleInputChange}
                         placeholder="e.g. Bengaluru"
-                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none ${
-                          errors.city ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
+                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none ${
+                          errors.city ? 'border-red-400 bg-red-50/20' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-brand)]'
                         }`}
                       />
                       {errors.city && <p className="text-[10px] text-red-500 mt-1">{errors.city}</p>}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">State</label>
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">State</label>
                       <input
                         type="text"
                         name="state"
                         value={formData.state}
                         onChange={handleInputChange}
                         placeholder="State"
-                        className="w-full h-10 px-3 rounded-xl border border-[#E8E0E5] text-xs text-[#2D252B] focus:outline-none focus:border-[#601D49]"
+                        className="w-full h-10 px-3 rounded-xl border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-brand)]"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#2D252B] mb-1">
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
                         Pincode <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -436,8 +436,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         value={formData.pincode}
                         onChange={handleInputChange}
                         placeholder="6-digit PIN"
-                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[#2D252B] placeholder-[#6B5E68]/60 focus:outline-none ${
-                          errors.pincode ? 'border-red-400 bg-red-50/20' : 'border-[#E8E0E5] focus:border-[#601D49]'
+                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none ${
+                          errors.pincode ? 'border-red-400 bg-red-50/20' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-brand)]'
                         }`}
                       />
                       {errors.pincode && <p className="text-[10px] text-red-500 mt-1">{errors.pincode}</p>}
@@ -446,8 +446,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                 </div>
 
                 {/* 3. Payment Method: Big Touch Tiles */}
-                <div className="space-y-2.5 pt-2 border-t border-[#E8E0E5]">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[#2D252B] tracking-wider">
+                <div className="space-y-2.5 pt-2 border-t border-[var(--color-border-subtle)]">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[var(--color-text-main)] tracking-wider">
                     <span>3. Payment Options</span>
                   </div>
 
@@ -456,8 +456,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                     <label
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === 'COD'
-                          ? 'border-[#601D49] bg-[#F2DDE9]/40 shadow-xs'
-                          : 'border-[#E8E0E5] hover:border-[#601D49]/50'
+                          ? 'border-[var(--color-brand)] bg-[var(--color-primary-tint)]/40 shadow-xs'
+                          : 'border-[var(--color-border-subtle)] hover:border-[var(--color-brand)]/50'
                       }`}
                     >
                       <input
@@ -466,18 +466,18 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         value="COD"
                         checked={formData.paymentMethod === 'COD'}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-[#601D49] focus:ring-[#601D49]"
+                        className="w-4 h-4 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-bold text-[#2D252B]">
+                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)]">
                             💵 Cash on Delivery (COD)
                           </span>
-                          <span className="text-[10px] font-bold text-[#601D49] bg-[#F2DDE9] px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-2 py-0.5 rounded">
                             Recommended
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#6B5E68] mt-0.5">Pay in cash or UPI when your order arrives</p>
+                        <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Pay in cash or UPI when your order arrives</p>
                       </div>
                     </label>
 
@@ -485,8 +485,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                     <label
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === 'UPI'
-                          ? 'border-[#601D49] bg-[#F2DDE9]/40 shadow-xs'
-                          : 'border-[#E8E0E5] hover:border-[#601D49]/50'
+                          ? 'border-[var(--color-brand)] bg-[var(--color-primary-tint)]/40 shadow-xs'
+                          : 'border-[var(--color-border-subtle)] hover:border-[var(--color-brand)]/50'
                       }`}
                     >
                       <input
@@ -495,18 +495,18 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         value="UPI"
                         checked={formData.paymentMethod === 'UPI'}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-[#601D49] focus:ring-[#601D49]"
+                        className="w-4 h-4 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-bold text-[#2D252B]">
+                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)]">
                             📱 UPI (GPay / PhonePe / Paytm)
                           </span>
-                          <span className="text-[10px] font-bold text-[#601D49] bg-[#F2DDE9] px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-bold text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-2 py-0.5 rounded">
                             Instant
                           </span>
                         </div>
-                        <p className="text-[11px] text-[#6B5E68] mt-0.5">Scan QR or enter UPI ID at delivery</p>
+                        <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Scan QR or enter UPI ID at delivery</p>
                       </div>
                     </label>
 
@@ -514,8 +514,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                     <label
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         formData.paymentMethod === 'CARD'
-                          ? 'border-[#601D49] bg-[#F2DDE9]/40 shadow-xs'
-                          : 'border-[#E8E0E5] hover:border-[#601D49]/50'
+                          ? 'border-[var(--color-brand)] bg-[var(--color-primary-tint)]/40 shadow-xs'
+                          : 'border-[var(--color-border-subtle)] hover:border-[var(--color-brand)]/50'
                       }`}
                     >
                       <input
@@ -524,13 +524,13 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         value="CARD"
                         checked={formData.paymentMethod === 'CARD'}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-[#601D49] focus:ring-[#601D49]"
+                        className="w-4 h-4 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs sm:text-sm font-bold text-[#2D252B]">
+                        <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)]">
                           💳 Debit / Credit Card & Net Banking
                         </span>
-                        <p className="text-[11px] text-[#6B5E68] mt-0.5">Visa, Mastercard, RuPay & All Major Banks</p>
+                        <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Visa, Mastercard, RuPay & All Major Banks</p>
                       </div>
                     </label>
                   </div>
@@ -540,8 +540,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
 
               {/* RIGHT: Order Summary Card (12 cols mobile, 5 cols desktop) */}
               <div className="lg:col-span-5">
-                <div className="bg-[#F8F3F6] rounded-2xl p-4 sm:p-5 border border-[#E8E0E5] space-y-4 lg:sticky lg:top-4">
-                  <h3 className="text-xs font-black uppercase text-[#2D252B] tracking-wider">
+                <div className="bg-[var(--color-bg-main)] rounded-2xl p-4 sm:p-5 border border-[var(--color-border-subtle)] space-y-4 lg:sticky lg:top-4">
+                  <h3 className="text-xs font-black uppercase text-[var(--color-text-main)] tracking-wider">
                     Order Summary ({items.length} items)
                   </h3>
 
@@ -556,14 +556,14 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                             onError={(e) => {
                               e.currentTarget.src = '/placeholder-product.svg'
                             }}
-                            className="w-9 h-9 rounded-lg object-cover border border-[#E8E0E5] shrink-0"
+                            className="w-9 h-9 rounded-lg object-cover border border-[var(--color-border-subtle)] shrink-0"
                           />
                           <div className="min-w-0">
-                            <p className="font-bold text-[#2D252B] truncate">{it.name}</p>
-                            <p className="text-[10px] text-[#6B5E68]">Qty: {it.quantity}</p>
+                            <p className="font-bold text-[var(--color-text-main)] truncate">{it.name}</p>
+                            <p className="text-[10px] text-[var(--color-text-muted)]">Qty: {it.quantity}</p>
                           </div>
                         </div>
-                        <span className="font-black text-[#2D252B] shrink-0">
+                        <span className="font-black text-[var(--color-text-main)] shrink-0">
                           ₹{(Number(it.price) || 0) * (Number(it.quantity) || 1)}
                         </span>
                       </div>
@@ -571,13 +571,13 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                   </div>
 
                   {/* Price Calculation */}
-                  <div className="space-y-1.5 text-xs text-[#6B5E68] border-t border-[#E8E0E5] pt-3">
+                  <div className="space-y-1.5 text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border-subtle)] pt-3">
                     <div className="flex justify-between">
                       <span>Item Subtotal</span>
-                      <span className="font-bold text-[#2D252B]">₹{subtotal}</span>
+                      <span className="font-bold text-[var(--color-text-main)]">₹{subtotal}</span>
                     </div>
                     {discountAmount > 0 && (
-                      <div className="flex justify-between text-[#601D49] font-semibold">
+                      <div className="flex justify-between text-[var(--color-brand)] font-semibold">
                         <span>Discount Savings</span>
                         <span>-₹{discountAmount}</span>
                       </div>
@@ -587,12 +587,12 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       {deliveryCharge === 0 ? (
                         <span className="text-emerald-700 font-bold">FREE</span>
                       ) : (
-                        <span className="font-bold text-[#2D252B]">₹{deliveryCharge}</span>
+                        <span className="font-bold text-[var(--color-text-main)]">₹{deliveryCharge}</span>
                       )}
                     </div>
-                    <div className="flex justify-between text-base font-black text-[#2D252B] border-t border-[#E8E0E5] pt-2">
+                    <div className="flex justify-between text-base font-black text-[var(--color-text-main)] border-t border-[var(--color-border-subtle)] pt-2">
                       <span>Final Payable</span>
-                      <span className="text-[#601D49]">₹{grandTotal}</span>
+                      <span className="text-[var(--color-brand)]">₹{grandTotal}</span>
                     </div>
                   </div>
 
@@ -600,7 +600,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-12 rounded-2xl bg-[#601D49] hover:bg-[#4D153A] active:scale-98 text-white font-extrabold text-sm shadow-xl shadow-black/15 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-75"
+                    className="w-full h-12 rounded-2xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] active:scale-98 text-white font-extrabold text-sm shadow-xl shadow-black/15 flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-75"
                   >
                     {isSubmitting ? (
                       <span className="inline-flex items-center gap-2">
@@ -618,7 +618,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                     )}
                   </button>
 
-                  <p className="text-[10px] text-[#6B5E68] text-center">
+                  <p className="text-[10px] text-[var(--color-text-muted)] text-center">
                     🔒 Guaranteed Safe & Secure Checkout • 7-Day Easy Returns
                   </p>
                 </div>

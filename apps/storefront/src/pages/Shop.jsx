@@ -368,11 +368,11 @@ export default function Shop() {
   }, [categoryIdParam, categoryBanners])
 
   return (
-    <div className="min-h-screen bg-[#F8F3F6] text-[#2D252B] font-sans selection:bg-[#F2DDE9] selection:text-[#601D49] flex flex-col justify-between">
+    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-brand)] flex flex-col justify-between">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#2D252B] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[#601D49]/30 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-[var(--color-text-main)] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[var(--color-brand)]/30 animate-bounce">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -398,12 +398,12 @@ export default function Shop() {
         <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8">
           
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-xs font-bold text-[#6B5E68] mb-3">
-            <Link to="/" className="text-[#601D49] hover:underline">
+          <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] mb-3">
+            <Link to="/" className="text-[var(--color-brand)] hover:underline">
               Home
             </Link>
             <span>/</span>
-            <span className="text-[#2D252B]">{pageTitle}</span>
+            <span className="text-[var(--color-text-main)]">{pageTitle}</span>
           </div>
 
           {/* Dynamic Category Banner: Positioned below breadcrumbs, above category heading (Hidden if no active banner) */}
@@ -418,17 +418,17 @@ export default function Shop() {
           )}
 
           {/* Page Header / Category Heading */}
-          <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-[#E8E0E5]">
+          <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-[var(--color-border-subtle)]">
             <div>
-              <span className="text-xs font-extrabold uppercase tracking-wider text-[#601D49] bg-[#F2DDE9] px-3 py-1 rounded-full">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full">
                 {sectionParam ? `Collection: ${sectionParam.replace('_', ' ')}` : currentCategoryObj ? 'Category' : 'Store Catalog'}
               </span>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#2D252B] tracking-tight mt-1.5">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--color-text-main)] tracking-tight mt-1.5">
                 {pageTitle}
               </h1>
-              <p className="text-xs sm:text-sm text-[#6B5E68] mt-1">
+              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
                 Showing{' '}
-                <strong className="text-[#601D49] font-bold">
+                <strong className="text-[var(--color-brand)] font-bold">
                   {pagination.total}
                 </strong>{' '}
                 product{pagination.total === 1 ? '' : 's'} available in database
@@ -437,14 +437,14 @@ export default function Shop() {
 
             {/* Sort & Filter Controls */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <label htmlFor="shop-sort" className="text-xs font-bold text-[#6B5E68]">
+              <label htmlFor="shop-sort" className="text-xs font-bold text-[var(--color-text-muted)]">
                 Sort by:
               </label>
               <select
                 id="shop-sort"
                 value={sortParam}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-white border border-[#E8E0E5] text-xs sm:text-sm font-bold text-[#2D252B] rounded-xl px-3 py-2 focus:outline-none focus:border-[#601D49] focus:ring-1 focus:ring-[#601D49] shadow-xs cursor-pointer"
+                className="bg-white border border-[var(--color-border-subtle)] text-xs sm:text-sm font-bold text-[var(--color-text-main)] rounded-xl px-3 py-2 focus:outline-none focus:border-[var(--color-brand)] focus:ring-1 focus:ring-[var(--color-brand)] shadow-xs cursor-pointer"
               >
                 <option value="newest">Newest First</option>
                 <option value="best_sellers">Best Sellers</option>
@@ -458,7 +458,7 @@ export default function Shop() {
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="px-3.5 py-2 bg-[#F2DDE9] hover:bg-[#F2DDE9] text-[#601D49] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-2 bg-[var(--color-primary-tint)] hover:bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Clear Filters ✕
                 </button>
@@ -473,8 +473,8 @@ export default function Shop() {
               onClick={() => handleCategoryChange('')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 !categoryIdParam
-                  ? 'bg-[#601D49] text-white shadow-xs'
-                  : 'bg-[#F2DDE9] text-[#2D252B] hover:bg-[#F2DDE9]'
+                  ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                  : 'bg-[var(--color-primary-tint)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)]'
               }`}
             >
               All Categories
@@ -488,8 +488,8 @@ export default function Shop() {
                   onClick={() => handleCategoryChange(cat.id)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
                     isSelected
-                      ? 'bg-[#601D49] text-white shadow-xs'
-                      : 'bg-[#F2DDE9] text-[#2D252B] hover:bg-[#F2DDE9]'
+                      ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                      : 'bg-[var(--color-primary-tint)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)]'
                   }`}
                 >
                   {cat.name}
@@ -504,35 +504,35 @@ export default function Shop() {
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <div
                   key={n}
-                  className="bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse space-y-3"
+                  className="bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse space-y-3"
                 >
-                  <div className="bg-[#F2DDE9]/60 aspect-square rounded-xl w-full" />
-                  <div className="h-3 bg-[#F2DDE9]/70 rounded w-2/3" />
-                  <div className="h-4 bg-[#F2DDE9]/70 rounded w-full" />
-                  <div className="h-4 bg-[#F2DDE9]/70 rounded w-1/2" />
+                  <div className="bg-[var(--color-primary-tint)]/60 aspect-square rounded-xl w-full" />
+                  <div className="h-3 bg-[var(--color-primary-tint)]/70 rounded w-2/3" />
+                  <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-full" />
+                  <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-1/2" />
                 </div>
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="py-16 text-center bg-white rounded-3xl border border-[#E8E0E5] shadow-xs my-6 p-8 max-w-lg mx-auto space-y-4">
+            <div className="py-16 text-center bg-white rounded-3xl border border-[var(--color-border-subtle)] shadow-xs my-6 p-8 max-w-lg mx-auto space-y-4">
               <span className="text-5xl block">🛍️</span>
-              <h2 className="text-xl font-black text-[#2D252B]">
+              <h2 className="text-xl font-black text-[var(--color-text-main)]">
                 No products found in this category
               </h2>
-              <p className="text-xs sm:text-sm text-[#6B5E68] max-w-sm mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] max-w-sm mx-auto leading-relaxed">
                 No items matched your current filter criteria from the database. Try selecting another category or view all products.
               </p>
               <div className="pt-2 flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="px-5 py-2.5 bg-[#601D49] hover:bg-[#601D49] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-colors"
+                  className="px-5 py-2.5 bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-colors"
                 >
                   View All Products
                 </button>
                 <Link
                   to="/"
-                  className="px-5 py-2.5 bg-[#F2DDE9] hover:bg-[#F2DDE9] text-[#601D49] rounded-xl text-xs font-bold transition-colors"
+                  className="px-5 py-2.5 bg-[var(--color-primary-tint)] hover:bg-[var(--color-primary-tint)] text-[var(--color-brand)] rounded-xl text-xs font-bold transition-colors"
                 >
                   Back to Home
                 </Link>
@@ -555,10 +555,10 @@ export default function Shop() {
 
           {/* SERVER-SIDE PAGINATION CONTROLS */}
           {pagination.totalPages > 1 && (
-            <div className="pt-8 pb-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[#E8E0E5]">
+            <div className="pt-8 pb-10 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--color-border-subtle)]">
               <p className="text-xs text-gray-500 font-medium order-2 sm:order-1">
-                Page <strong className="text-[#2D252B]">{pagination.page}</strong> of{' '}
-                <strong className="text-[#2D252B]">{pagination.totalPages}</strong> ({pagination.total} total products)
+                Page <strong className="text-[var(--color-text-main)]">{pagination.page}</strong> of{' '}
+                <strong className="text-[var(--color-text-main)]">{pagination.totalPages}</strong> ({pagination.total} total products)
               </p>
 
               <div className="flex items-center gap-1.5 order-1 sm:order-2">
@@ -569,7 +569,7 @@ export default function Shop() {
                   onClick={() => handlePageChange(pagination.page - 1)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                     pagination.hasPreviousPage
-                      ? 'bg-white border-[#E8E0E5] text-[#2D252B] hover:bg-[#F2DDE9] cursor-pointer shadow-xs'
+                      ? 'bg-white border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)] cursor-pointer shadow-xs'
                       : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
                   }`}
                 >
@@ -586,8 +586,8 @@ export default function Shop() {
                       onClick={() => handlePageChange(p)}
                       className={`w-8 h-8 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         isCurrent
-                          ? 'bg-[#601D49] text-white shadow-xs'
-                          : 'bg-white border border-[#E8E0E5] text-[#2D252B] hover:bg-[#F7F5F7]'
+                          ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                          : 'bg-white border border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)]'
                       }`}
                     >
                       {p}
@@ -602,7 +602,7 @@ export default function Shop() {
                   onClick={() => handlePageChange(pagination.page + 1)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
                     pagination.hasNextPage
-                      ? 'bg-white border-[#E8E0E5] text-[#2D252B] hover:bg-[#F2DDE9] cursor-pointer shadow-xs'
+                      ? 'bg-white border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)] cursor-pointer shadow-xs'
                       : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
                   }`}
                 >
@@ -616,43 +616,43 @@ export default function Shop() {
       </div>
 
       {/* FOOTER (Burgundy & White Aesthetic) */}
-      <footer className="bg-white text-[#2D252B] pt-12 pb-8 border-t border-[#E8E0E5] mt-12">
+      <footer className="bg-white text-[var(--color-text-main)] pt-12 pb-8 border-t border-[var(--color-border-subtle)] mt-12">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-[#E8E0E5]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-[var(--color-border-subtle)]">
             <div className="space-y-3">
               <div className="flex items-baseline leading-none">
-                <span className="text-2xl font-black tracking-tight text-[#601D49]">
+                <span className="text-2xl font-black tracking-tight text-[var(--color-brand)]">
                   {storeSettings?.store_name || 'Store'}
                 </span>
               </div>
-              <p className="text-xs text-[#6B5E68] leading-relaxed">
+              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
                 {storeSettings?.description || 'Your trusted online shopping destination.'}
               </p>
             </div>
-            <div className="space-y-2 text-xs text-[#6B5E68]">
-              <h4 className="font-black uppercase text-[#2D252B] text-xs">Quick Links</h4>
+            <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
+              <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Quick Links</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/" className="hover:text-[#601D49] transition-colors">Home Catalog</Link></li>
-                <li><Link to="/products?section=best_sellers" className="hover:text-[#601D49] transition-colors">Best Sellers</Link></li>
-                <li><Link to="/products?section=new_arrivals" className="hover:text-[#601D49] transition-colors">New Arrivals</Link></li>
+                <li><Link to="/" className="hover:text-[var(--color-brand)] transition-colors">Home Catalog</Link></li>
+                <li><Link to="/products?section=best_sellers" className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
+                <li><Link to="/products?section=new_arrivals" className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
               </ul>
             </div>
-            <div className="space-y-2 text-xs text-[#6B5E68]">
-              <h4 className="font-black uppercase text-[#2D252B] text-xs">Customer Care</h4>
+            <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
+              <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Customer Care</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/pages/shipping-policy" className="hover:text-[#601D49] transition-colors">Shipping Information</Link></li>
-                <li><Link to="/pages/return-exchange-policy" className="hover:text-[#601D49] transition-colors">Return & Refund Policy</Link></li>
-                <li><Link to="/pages/privacy-policy" className="hover:text-[#601D49] transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/pages/terms-and-conditions" className="hover:text-[#601D49] transition-colors">Terms and Conditions</Link></li>
+                <li><Link to="/pages/shipping-policy" className="hover:text-[var(--color-brand)] transition-colors">Shipping Information</Link></li>
+                <li><Link to="/pages/return-exchange-policy" className="hover:text-[var(--color-brand)] transition-colors">Return & Refund Policy</Link></li>
+                <li><Link to="/pages/privacy-policy" className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/pages/terms-and-conditions" className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
               </ul>
             </div>
-            <div className="space-y-2 text-xs text-[#6B5E68]">
-              <h4 className="font-black uppercase text-[#2D252B] text-xs">Contact</h4>
+            <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
+              <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Contact</h4>
               {storeSettings?.phone && <p>📞 {storeSettings.phone}</p>}
               {storeSettings?.email && <p>✉️ {storeSettings.email}</p>}
             </div>
           </div>
-          <p className="pt-6 text-center text-[11px] text-[#6B5E68]">
+          <p className="pt-6 text-center text-[11px] text-[var(--color-text-muted)]">
             © {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}
           </p>
         </div>

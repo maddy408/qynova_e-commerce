@@ -246,11 +246,11 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F3F6] text-[#2D252B] font-sans selection:bg-[#F2DDE9] selection:text-[#601D49] overflow-x-hidden flex flex-col justify-between">
+    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-brand)] overflow-x-hidden flex flex-col justify-between">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#2D252B] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[#601D49]/30 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-[var(--color-text-main)] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[var(--color-brand)]/30 animate-bounce">
           <span>{toastMessage}</span>
         </div>
       )}
@@ -311,16 +311,16 @@ export default function Home() {
           <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 space-y-8">
             {[1, 2].map((idx) => (
               <div key={idx} className="space-y-4">
-                <div className="h-6 w-48 bg-[#F2DDE9]/60 rounded-lg animate-pulse" />
+                <div className="h-6 w-48 bg-[var(--color-primary-tint)]/60 rounded-lg animate-pulse" />
                 <div className="flex gap-4 overflow-hidden py-2">
                   {[1, 2, 3, 4].map((c) => (
                     <div
                       key={c}
-                      className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[#E8E0E5] animate-pulse h-64 space-y-3"
+                      className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse h-64 space-y-3"
                     >
-                      <div className="bg-[#F2DDE9]/60 aspect-square rounded-xl w-full" />
-                      <div className="h-3 bg-[#F2DDE9]/70 rounded w-2/3" />
-                      <div className="h-4 bg-[#F2DDE9]/70 rounded w-1/2" />
+                      <div className="bg-[var(--color-primary-tint)]/60 aspect-square rounded-xl w-full" />
+                      <div className="h-3 bg-[var(--color-primary-tint)]/70 rounded w-2/3" />
+                      <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-1/2" />
                     </div>
                   ))}
                 </div>
@@ -337,7 +337,7 @@ export default function Home() {
           <HorizontalProductSection
             id="recently-viewed-section"
             badgeText="👁️ RECENTLY VIEWED"
-            badgeBg="bg-[#F2DDE9] text-[#601D49]"
+            badgeBg="bg-[var(--color-primary-tint)] text-[var(--color-brand)]"
             title="Recently Viewed Products"
             subtitle="Products you browsed during recent visits"
             products={recentlyViewed}
@@ -352,16 +352,16 @@ export default function Home() {
 
         {/* 10. CUSTOMER SUPPORT & WHATSAPP */}
         <section id="support-section" className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-8">
-          <div className="bg-white border border-[#E8E0E5] rounded-3xl p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-sm">
+          <div className="bg-white border border-[var(--color-border-subtle)] rounded-3xl p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-sm">
             <div className="space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-[#601D49] bg-[#F2DDE9] px-3 py-1 rounded-full shadow-xs">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>24/7 CUSTOMER CARE</span>
               </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-[#2D252B]">
+              <h3 className="text-2xl sm:text-3xl font-black text-[var(--color-text-main)]">
                 Need Help with Orders or Custom Gifts?
               </h3>
-              <p className="text-xs sm:text-sm text-[#6B5E68] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] leading-relaxed">
                 Our customer care team is available on WhatsApp and phone to assist with product inquiries, bulk orders, return requests, and gift customization.
               </p>
             </div>
@@ -372,7 +372,7 @@ export default function Home() {
                   href={`https://wa.me/${(storeSettings.whatsapp_number || storeSettings.phone).replace(/[^0-9]/g, '')}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20products`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-green-700/15 active:scale-95 transition-all cursor-pointer"
+                  className="px-6 py-3 rounded-full bg-[var(--color-whatsapp)] hover:bg-[var(--color-extra-041)] text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-green-700/15 active:scale-95 transition-all cursor-pointer"
                 >
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                     <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.353.101.173.448.74 0.961 1.196.662.589 1.22.771 1.393.858.173.086.274.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
@@ -384,7 +384,7 @@ export default function Home() {
               {storeSettings?.phone && (
                 <a
                   href={`tel:${storeSettings.phone.replace(/[^0-9+]/g, '')}`}
-                  className="px-5 py-3 rounded-full bg-[#F8F3F6] hover:bg-[#F2DDE9] border border-[#E8E0E5] text-[#2D252B] font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                  className="px-5 py-3 rounded-full bg-[var(--color-bg-main)] hover:bg-[var(--color-primary-tint)] border border-[var(--color-border-subtle)] text-[var(--color-text-main)] font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer"
                 >
                   <span>📞 {storeSettings.phone}</span>
                 </a>
@@ -395,63 +395,63 @@ export default function Home() {
       </div>
 
       {/* 11. FOOTER (Burgundy & White Aesthetic) */}
-      <footer className="bg-white text-[#2D252B] pt-12 pb-8 border-t border-[#E8E0E5] mt-12">
+      <footer className="bg-white text-[var(--color-text-main)] pt-12 pb-8 border-t border-[var(--color-border-subtle)] mt-12">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-[#E8E0E5]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-[var(--color-border-subtle)]">
             <div className="lg:col-span-2 space-y-3.5">
               <div className="flex items-center gap-2.5">
                 {storeSettings?.logo ? (
                   <img src={resolveImageUrl(storeSettings.logo)} alt={storeSettings.store_name} className="w-9 h-9 rounded-xl object-cover shadow-md" />
                 ) : (
-                  <div className="w-9 h-9 rounded-xl bg-[#601D49] flex items-center justify-center text-white shadow-md font-black text-sm">
+                  <div className="w-9 h-9 rounded-xl bg-[var(--color-brand)] flex items-center justify-center text-white shadow-md font-black text-sm">
                     {storeSettings?.store_name ? storeSettings.store_name.charAt(0) : 'S'}
                   </div>
                 )}
                 <div>
                   <div className="flex items-baseline leading-none">
-                    <span className="text-xl font-black text-[#601D49]">{storeSettings?.store_name || 'Store'}</span>
+                    <span className="text-xl font-black text-[var(--color-brand)]">{storeSettings?.store_name || 'Store'}</span>
                   </div>
                   {storeSettings?.tagline && (
-                    <p className="text-[9px] font-bold text-[#6B5E68] uppercase tracking-widest mt-0.5">
+                    <p className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-0.5">
                       {storeSettings.tagline}
                     </p>
                   )}
                 </div>
               </div>
-              <p className="text-xs text-[#6B5E68] leading-relaxed max-w-sm">
+              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed max-w-sm">
                 {storeSettings?.description || 'Your trusted online shopping destination.'}
               </p>
             </div>
 
-            <div className="space-y-2.5 text-xs text-[#6B5E68]">
-              <h4 className="font-black uppercase tracking-wider text-[#2D252B] text-[11px]">Collections</h4>
+            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
+              <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Collections</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/products?section=best_sellers" className="hover:text-[#601D49] transition-colors">Best Sellers</Link></li>
-                <li><Link to="/products?section=new_arrivals" className="hover:text-[#601D49] transition-colors">New Arrivals</Link></li>
-                <li><Link to="/products?section=featured" className="hover:text-[#601D49] transition-colors">Featured Selections</Link></li>
-                <li><Link to="/products?section=deals" className="hover:text-[#601D49] transition-colors">Flash Deals</Link></li>
+                <li><Link to="/products?section=best_sellers" className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
+                <li><Link to="/products?section=new_arrivals" className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
+                <li><Link to="/products?section=featured" className="hover:text-[var(--color-brand)] transition-colors">Featured Selections</Link></li>
+                <li><Link to="/products?section=deals" className="hover:text-[var(--color-brand)] transition-colors">Flash Deals</Link></li>
               </ul>
             </div>
 
-            <div className="space-y-2.5 text-xs text-[#6B5E68]">
-              <h4 className="font-black uppercase tracking-wider text-[#2D252B] text-[11px]">Customer Care</h4>
+            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
+              <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Customer Care</h4>
               <ul className="space-y-1.5">
-                <li><Link to="/pages/shipping-policy" className="hover:text-[#601D49] transition-colors">Shipping Policy</Link></li>
-                <li><Link to="/pages/return-exchange-policy" className="hover:text-[#601D49] transition-colors">Returns & Exchange</Link></li>
-                <li><Link to="/pages/privacy-policy" className="hover:text-[#601D49] transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/pages/terms-and-conditions" className="hover:text-[#601D49] transition-colors">Terms of Service</Link></li>
+                <li><Link to="/pages/shipping-policy" className="hover:text-[var(--color-brand)] transition-colors">Shipping Policy</Link></li>
+                <li><Link to="/pages/return-exchange-policy" className="hover:text-[var(--color-brand)] transition-colors">Returns & Exchange</Link></li>
+                <li><Link to="/pages/privacy-policy" className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
+                <li><Link to="/pages/terms-and-conditions" className="hover:text-[var(--color-brand)] transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
 
-            <div className="space-y-2.5 text-xs text-[#6B5E68]">
-              <h4 className="font-black uppercase tracking-wider text-[#2D252B] text-[11px]">Get in Touch</h4>
+            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
+              <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Get in Touch</h4>
               {storeSettings?.address && <p>📍 {storeSettings.address}</p>}
               {storeSettings?.phone && <p>📞 {storeSettings.phone}</p>}
               {storeSettings?.email && <p>✉️ {storeSettings.email}</p>}
             </div>
           </div>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[#6B5E68] gap-3">
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--color-text-muted)] gap-3">
             <p>© {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}</p>
             <p>100% Secure Checkout • Express Shipping • Quality Assured</p>
           </div>

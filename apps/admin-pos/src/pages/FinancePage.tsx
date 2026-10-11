@@ -144,9 +144,9 @@ export function FinancePage() {
           <p className="mt-1 text-[11px] text-slate-400">All store operational expenses</p>
         </Card>
 
-        <Card className={`p-5 border-l-4 ${summary.net_profit >= 0 ? 'border-l-[#7B3F4A]' : 'border-l-amber-500'}`}>
+        <Card className={`p-5 border-l-4 ${summary.net_profit >= 0 ? 'border-l-[var(--color-primary)]' : 'border-l-amber-500'}`}>
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Net Profit / Cash Flow</p>
-          <p className={`mt-1 text-2xl font-black ${summary.net_profit >= 0 ? 'text-[#7B3F4A]' : 'text-amber-600'}`}>
+          <p className={`mt-1 text-2xl font-black ${summary.net_profit >= 0 ? 'text-[var(--color-primary)]' : 'text-amber-600'}`}>
             ₹{summary.net_profit.toFixed(2)}
           </p>
           <p className="mt-1 text-[11px] text-slate-400">Income minus total expenses</p>
@@ -161,7 +161,7 @@ export function FinancePage() {
             <select
               value={filterType}
               onChange={(e: any) => setFilterType(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:ring-2 focus:ring-[#7B3F4A] focus:border-[#7B3F4A]"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
             >
               <option value="">All Types (Income & Expenses)</option>
               <option value="INCOME">Income Only</option>
@@ -182,7 +182,7 @@ export function FinancePage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#FAF2F4]/80 text-[11px] uppercase text-[#804652] border-b border-[#EEDDE0]">
+              <thead className="bg-[var(--color-surface)]/80 text-[11px] uppercase text-[var(--color-primary-strong)] border-b border-[var(--color-border)]">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Date</th>
                   <th className="px-4 py-3 font-semibold">Transaction No</th>

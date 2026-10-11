@@ -897,7 +897,7 @@ export function PurchasesPage() {
                 : toast.type === 'success'
                 ? 'bg-emerald-50/95 border-emerald-200 text-emerald-950'
                 : toast.type === 'info'
-                ? 'bg-[#FAF2F4]/95 border-[#EEDDE0] text-[#7B3F4A]'
+                ? 'bg-[var(--color-surface)]/95 border-[var(--color-border)] text-[var(--color-primary)]'
                 : 'bg-amber-50/95 border-amber-200 text-amber-950'
             }`}
           >
@@ -927,13 +927,13 @@ export function PurchasesPage() {
           <Spinner />
         </div>
       ) : (
-        <div className="rounded-3xl bg-white border border-[#F2E5E7] shadow-2xs overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[var(--color-border-muted)] shadow-2xs overflow-hidden">
           {/* Card Header */}
-          <div className="p-5 sm:p-6 border-b border-[#F2E5E7] flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white">
+          <div className="p-5 sm:p-6 border-b border-[var(--color-border-muted)] flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white">
             <div>
               <div className="flex items-center gap-2.5">
                 <h3 className="text-xl font-serif font-bold text-slate-900">All Purchases</h3>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FAF2F4] text-[#804652] border border-[#EEDDE0]">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)]">
                   {totalFilteredCount} Record{totalFilteredCount === 1 ? '' : 's'}
                 </span>
               </div>
@@ -948,7 +948,7 @@ export function PurchasesPage() {
               <button
                 type="button"
                 onClick={handlePrintCurrentPage}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#EEDDE0] bg-[#FAF2F4] text-[#7B3F4A] hover:bg-[#F2E5E7] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-primary)] hover:bg-[var(--color-border-muted)] text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 title={`Print ${paginatedPurchases.length} records on current Page ${safeCurrentPage}`}
               >
                 <PrinterIcon className="h-3.5 w-3.5" />
@@ -975,7 +975,7 @@ export function PurchasesPage() {
                   setNewPurchaseSplit(INITIAL_SPLIT_PAYMENT_VALUES)
                   fetchVariants()
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 transition-all shadow-md active:scale-98 shrink-0 cursor-pointer"
               >
                 + New Purchase
               </button>
@@ -983,7 +983,7 @@ export function PurchasesPage() {
           </div>
 
           {/* Search & Filter Toolbar */}
-          <div className="p-4 bg-[#FAF2F4]/30 border-b border-[#F2E5E7] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div className="p-4 bg-[var(--color-surface)]/30 border-b border-[var(--color-border-muted)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
             {/* 1. Search text */}
             <div className="relative">
               <input
@@ -991,7 +991,7 @@ export function PurchasesPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search Pur No, Supplier, Notes…"
-                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-2 focus:ring-[#7B3F4A]/10 shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-white px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/10 shadow-2xs"
               />
               {searchTerm && (
                 <button
@@ -1009,7 +1009,7 @@ export function PurchasesPage() {
               <select
                 value={selectedSupplier}
                 onChange={(e) => setSelectedSupplier(e.target.value)}
-                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[var(--color-primary)] shadow-2xs"
               >
                 <option value="">All Suppliers ({suppliers.length})</option>
                 {suppliers.map((s) => (
@@ -1025,7 +1025,7 @@ export function PurchasesPage() {
               <select
                 value={selectedPaymentStatus}
                 onChange={(e) => setSelectedPaymentStatus(e.target.value)}
-                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[var(--color-primary)] shadow-2xs"
               >
                 <option value="">All Payment Statuses</option>
                 <option value="PAID">PAID</option>
@@ -1039,7 +1039,7 @@ export function PurchasesPage() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-[var(--color-primary)] shadow-2xs"
               >
                 <option value="">All Status (Active &amp; Cancelled)</option>
                 <option value="ACTIVE">ACTIVE Only</option>
@@ -1053,7 +1053,7 @@ export function PurchasesPage() {
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full rounded-xl border border-[#E5D5D8] bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-[#7B3F4A] shadow-2xs"
+                className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-[var(--color-primary)] shadow-2xs"
                 title="Filter by Purchase Date"
               />
               {(searchTerm || selectedSupplier || selectedPaymentStatus || selectedStatus || dateFilter) && (
@@ -1078,7 +1078,7 @@ export function PurchasesPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+              <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Purchase No</th>
                   <th className="px-4 py-3">Supplier</th>
@@ -1092,7 +1092,7 @@ export function PurchasesPage() {
                   <th className="px-4 py-3 text-right no-print">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0E0E3]">
+              <tbody className="divide-y divide-[var(--color-extra-004)]">
                 {paginatedPurchases.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="px-4 py-12 text-center text-slate-500">
@@ -1110,15 +1110,15 @@ export function PurchasesPage() {
                     const isPartial = p.payment_status === 'PARTIAL' || p.payment_status === 'PARTIALLY_PAID'
 
                     return (
-                      <tr key={p.id} className="hover:bg-[#FAF2F4]/80 transition-colors">
+                      <tr key={p.id} className="hover:bg-[var(--color-surface)]/80 transition-colors">
                         <td className="px-4 py-3 font-mono font-bold text-slate-950">{p.purchase_no}</td>
                         <td className="px-4 py-3 text-slate-950 font-bold">{p.supplier_name}</td>
                         <td className="px-4 py-3 text-slate-950 font-black">₹{formatMoney(p.grand_total)}</td>
                         <td className="px-4 py-3 text-emerald-800 font-black">₹{formatMoney(effectivePaid)}</td>
-                        <td className="px-4 py-3 text-[#804652] font-black">₹{formatMoney(effectiveBalance)}</td>
+                        <td className="px-4 py-3 text-[var(--color-primary-strong)] font-black">₹{formatMoney(effectiveBalance)}</td>
                         <td className="px-4 py-2.5 text-slate-700 font-medium text-[11px] max-w-[160px] truncate" title={p.payment_method ?? ''}>
                           {p.payment_method === 'SPLIT' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FAF2F4] text-[#7B3F4A] border border-[#EEDDE0]">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--color-surface)] text-[var(--color-primary)] border border-[var(--color-border)]">
                               ⚡ Split
                             </span>
                           ) : (
@@ -1153,7 +1153,7 @@ export function PurchasesPage() {
                               onClick={() => handleEditAction(p)}
                               title="Edit Payment"
                               aria-label="Edit Payment"
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[#7B3F4A] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/30 cursor-pointer"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[var(--color-primary)] bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-border-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 cursor-pointer"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
@@ -1176,7 +1176,7 @@ export function PurchasesPage() {
                               title="Print Purchase Bill"
                               aria-label="Print Purchase Bill"
                               disabled={loadingPrintId === p.id}
-                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[#7B3F4A] bg-[#FAF2F4] border-[#EEDDE0] hover:bg-[#F2E5E7] focus:outline-none focus:ring-2 focus:ring-[#7B3F4A]/30 cursor-pointer disabled:opacity-50"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border text-xs transition-colors shadow-2xs text-[var(--color-primary)] bg-[var(--color-surface)] border-[var(--color-border)] hover:bg-[var(--color-border-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 cursor-pointer disabled:opacity-50"
                             >
                               <PrinterIcon className="h-4 w-4" />
                             </button>
@@ -1192,7 +1192,7 @@ export function PurchasesPage() {
 
           {/* Pagination Controls Footer */}
           {totalFilteredCount > 0 && (
-            <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[#F2E5E7] px-6 py-3 bg-[#FAF2F4]/50 text-xs text-slate-600">
+            <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-[var(--color-border-muted)] px-6 py-3 bg-[var(--color-surface)]/50 text-xs text-slate-600">
               <div className="flex items-center gap-3">
                 <span>
                   Showing <strong className="text-slate-900">{totalFilteredCount > 0 ? startIndex + 1 : 0}</strong> to{' '}
@@ -1204,7 +1204,7 @@ export function PurchasesPage() {
                   <select
                     value={pageSize}
                     onChange={(e) => setPageSize(Number(e.target.value))}
-                    className="rounded-lg border border-[#E5D5D8] bg-white px-2 py-0.5 text-xs text-slate-800 font-bold focus:outline-none"
+                    className="rounded-lg border border-[var(--color-surface-muted)] bg-white px-2 py-0.5 text-xs text-slate-800 font-bold focus:outline-none"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1219,18 +1219,18 @@ export function PurchasesPage() {
                   type="button"
                   disabled={safeCurrentPage <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="px-3.5 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-semibold disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  className="px-3.5 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-semibold disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   ← Previous
                 </button>
-                <span className="px-2 font-bold text-[#804652]">
+                <span className="px-2 font-bold text-[var(--color-primary-strong)]">
                   Page {safeCurrentPage} of {totalPages}
                 </span>
                 <button
                   type="button"
                   disabled={safeCurrentPage >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="px-3.5 py-1 rounded-full border border-[#EEDDE0] bg-white text-slate-700 font-semibold disabled:opacity-40 hover:bg-[#FAF2F4] transition-colors cursor-pointer disabled:cursor-not-allowed"
+                  className="px-3.5 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-semibold disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors cursor-pointer disabled:cursor-not-allowed"
                 >
                   Next →
                 </button>
@@ -1367,7 +1367,7 @@ export function PurchasesPage() {
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-slate-200">
                   <p className="text-[10px] uppercase font-semibold text-slate-500">Current Status</p>
-                  <p className="text-sm font-bold text-[#7B3F4A]">{editPurchase.payment_status}</p>
+                  <p className="text-sm font-bold text-[var(--color-primary)]">{editPurchase.payment_status}</p>
                 </div>
               </div>
             </div>
@@ -1454,7 +1454,7 @@ export function PurchasesPage() {
                             title="Print Payment Receipt"
                             aria-label="Print Payment Receipt"
                             disabled={loadingPaymentPrintId === pay.id}
-                            className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-[#7B3F4A] transition-colors shadow-2xs text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                            className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 hover:text-[var(--color-primary)] transition-colors shadow-2xs text-[11px] font-semibold cursor-pointer disabled:opacity-50"
                           >
                             <PrinterIcon className="h-3.5 w-3.5" />
                             <span>Print</span>
@@ -1573,7 +1573,7 @@ export function PurchasesPage() {
                   required
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
                 >
                   <option value="">Select Supplier…</option>
                   {suppliers.map((s) => (
@@ -1593,7 +1593,7 @@ export function PurchasesPage() {
                   required
                   value={purchaseDate}
                   onChange={(e) => setPurchaseDate(e.target.value)}
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
                 />
               </div>
             </div>
@@ -1642,12 +1642,12 @@ export function PurchasesPage() {
                   }}
                   onKeyDown={handleKeyDown}
                   placeholder="Type item name, SKU or barcode… (Press ↑ ↓ to navigate, Enter to select)"
-                  className="w-full rounded-xl border border-[#E5D5D8] bg-[#FDFBFB] pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#7B3F4A] focus:ring-4 focus:ring-[#7B3F4A]/10 transition-all shadow-2xs"
+                  className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] pl-9 pr-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs"
                 />
               </div>
 
               {dropdownOpen && (
-                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-2xl border border-[#F2E5E7] bg-white shadow-xl">
+                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-2xl border border-[var(--color-border-muted)] bg-white shadow-xl">
                   {filteredVariants.length === 0 ? (
                     <div className="p-3 text-center text-xs text-slate-500">No items found matching search.</div>
                   ) : (
@@ -1657,7 +1657,7 @@ export function PurchasesPage() {
                         onClick={() => selectVariant(v)}
                         onMouseEnter={() => setHighlightedIndex(index)}
                         className={`flex cursor-pointer items-center justify-between px-3.5 py-2.5 text-xs transition-colors ${
-                          index === highlightedIndex ? 'bg-[#7B3F4A] text-white font-medium' : 'hover:bg-[#FAF2F4] text-slate-800'
+                          index === highlightedIndex ? 'bg-[var(--color-primary)] text-white font-medium' : 'hover:bg-[var(--color-surface)] text-slate-800'
                         }`}
                       >
                         <div>
@@ -1678,13 +1678,13 @@ export function PurchasesPage() {
             </div>
 
             {/* Purchase Item List (Always Active & Displayed) */}
-            <div className="rounded-2xl border border-[#F2E5E7] bg-white overflow-hidden shadow-2xs space-y-2">
-              <div className="px-4 py-2.5 bg-[#FAF2F4] border-b border-[#F2E5E7] flex items-center justify-between">
-                <h4 className="text-xs font-bold text-[#804652] uppercase tracking-wider">Purchase Item List ({items.length})</h4>
+            <div className="rounded-2xl border border-[var(--color-border-muted)] bg-white overflow-hidden shadow-2xs space-y-2">
+              <div className="px-4 py-2.5 bg-[var(--color-surface)] border-b border-[var(--color-border-muted)] flex items-center justify-between">
+                <h4 className="text-xs font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">Purchase Item List ({items.length})</h4>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-[11px] font-black tracking-wider">
+                  <thead className="border-b border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-[11px] font-black tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Product Item</th>
                       <th className="px-3 py-2.5">Qty</th>
@@ -1695,7 +1695,7 @@ export function PurchasesPage() {
                       <th className="px-3 py-2.5 text-right"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F2E5E7]">
+                  <tbody className="divide-y divide-[var(--color-border-muted)]">
                     {items.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-4 py-6 text-center text-xs font-medium text-slate-500">
@@ -1706,7 +1706,7 @@ export function PurchasesPage() {
                       items.map((item) => {
                         const sub = (Number(item.quantity) || 0) * (Number(item.unit_cost) || 0) - (Number(item.discount_amount) || 0)
                         return (
-                          <tr key={item.variant_id} className="hover:bg-[#FAF2F4]/50">
+                          <tr key={item.variant_id} className="hover:bg-[var(--color-surface)]/50">
                             <td className="px-4 py-2.5">
                               <p className="font-bold text-slate-900">{item.product_name}</p>
                               <p className="text-[10px] text-slate-500 font-mono">SKU: {item.sku}</p>
@@ -1717,7 +1717,7 @@ export function PurchasesPage() {
                                 min="1"
                                 value={item.quantity}
                                 onChange={(e) => updateItem(item.variant_id, 'quantity', e.target.value)}
-                                className="w-16 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                                className="w-16 rounded-lg border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                               />
                             </td>
                             <td className="px-3 py-2.5">
@@ -1726,7 +1726,7 @@ export function PurchasesPage() {
                                 step="0.01"
                                 value={item.unit_cost}
                                 onChange={(e) => updateItem(item.variant_id, 'unit_cost', e.target.value)}
-                                className="w-24 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                                className="w-24 rounded-lg border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                               />
                             </td>
                             <td className="px-3 py-2.5">
@@ -1735,7 +1735,7 @@ export function PurchasesPage() {
                                 step="0.01"
                                 value={item.mrp}
                                 onChange={(e) => updateItem(item.variant_id, 'mrp', e.target.value)}
-                                className="w-24 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                                className="w-24 rounded-lg border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                               />
                             </td>
                             <td className="px-3 py-2.5">
@@ -1745,7 +1745,7 @@ export function PurchasesPage() {
                                 step="0.01"
                                 value={item.discount_amount}
                                 onChange={(e) => updateItem(item.variant_id, 'discount_amount', e.target.value)}
-                                className="w-20 rounded-lg border border-[#E5D5D8] bg-[#FDFBFB] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#7B3F4A] focus:ring-1 focus:ring-[#7B3F4A]"
+                                className="w-20 rounded-lg border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-2 py-1 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]"
                               />
                             </td>
                             <td className="px-3 py-2.5 font-bold text-slate-900">₹{sub.toFixed(2)}</td>
@@ -1767,13 +1767,13 @@ export function PurchasesPage() {
                 </table>
               </div>
 
-              <div className="flex justify-between items-center px-4 py-3 bg-[#FAF2F4]/60 border-t border-[#F2E5E7]">
+              <div className="flex justify-between items-center px-4 py-3 bg-[var(--color-surface)]/60 border-t border-[var(--color-border-muted)]">
                 <span className="text-slate-600 font-semibold text-xs">Grand Total</span>
-                <span className="text-base font-extrabold text-[#804652]">₹{grandTotal.toFixed(2)}</span>
+                <span className="text-base font-extrabold text-[var(--color-primary-strong)]">₹{grandTotal.toFixed(2)}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#F2E5E7]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--color-border-muted)]">
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
@@ -1784,7 +1784,7 @@ export function PurchasesPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[#804652] to-[#6E3642] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-strong)] to-[var(--color-primary-strong-hover)] text-white text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-md active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? 'Creating…' : 'Submit Stock Purchase'}
               </button>

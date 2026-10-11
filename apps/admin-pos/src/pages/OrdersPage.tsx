@@ -55,7 +55,7 @@ export function OrdersPage() {
       ) : (
         <Card>
           <table className="w-full text-left text-xs">
-            <thead className="border-b-2 border-[#E8CCD1] uppercase text-[#4A1821] bg-[#F8EAED] text-xs font-black tracking-wider">
+            <thead className="border-b-2 border-[var(--color-extra-003)] uppercase text-[var(--color-extra-001)] bg-[var(--color-extra-005)] text-xs font-black tracking-wider">
               <tr>
                 <th className="px-6 py-4">Order</th>
                 <th className="px-6 py-4">Customer</th>
@@ -65,9 +65,9 @@ export function OrdersPage() {
                 <th className="px-6 py-4">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F0E0E3]">
+            <tbody className="divide-y divide-[var(--color-extra-004)]">
               {orders.map((o) => (
-                <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer hover:bg-[#FAF2F4]/80 transition-colors">
+                <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} className="cursor-pointer hover:bg-[var(--color-surface)]/80 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-950">{o.order_no}</td>
                   <td className="px-6 py-4 font-semibold text-slate-800">{o.customer_name}</td>
                   <td className="px-6 py-4">
