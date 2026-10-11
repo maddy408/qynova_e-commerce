@@ -4,10 +4,10 @@ import { Alert, Button, Modal, Spinner } from '../components/ui'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category } from '../lib/types'
 
-const API_ORIGIN = getApiOrigin()
-
 function imageUrl(path: string | null) {
-  return path ? `${API_ORIGIN}/${path}` : null
+  if (!path) return null
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return `${getApiOrigin()}/${path}`
 }
 
 export function CategoriesPage() {
