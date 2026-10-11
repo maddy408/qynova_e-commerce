@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, clearToken, getToken, setToken } from './api'
-import type { StaffUser } from './types'
+import { api, clearToken, getToken, setToken } from '../lib/api'
+import type { StaffUser } from '../lib/types'
 
 interface AuthContextValue {
   user: StaffUser | null

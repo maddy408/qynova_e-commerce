@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { useAuth } from '../context/auth'
 import { NAV_SECTIONS, ROUTES, type NavSection } from '../routes/routes'
 import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
 
