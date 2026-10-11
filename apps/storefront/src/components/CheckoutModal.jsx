@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api, getCustomerToken, fetchCustomerAddresses, resolveImageUrl } from '../lib/api'
 import { clearCart } from '../lib/cart'
 import { ROUTES } from '../routes/routes'
+import { ENDPOINTS } from '../api/endpoints'
 
 export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [formData, setFormData] = useState({
@@ -117,28 +118,36 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
     setSubmissionError('')
 
     try {
-      // 1. Prepare production order payload
+      // 1. Prepare the order payload in the shape OrderController::checkout()
+      // / OrderService::checkout() actually read: top-level `items` +
+      // `address` (nested — name/phone/line1/city_district/state/pincode,
+      // not flat shipping_address/city strings) + `coupon_code`. The
+      // backend re-resolves price/stock/tax from `items[].variant_id` and
+      // `.quantity` itself — product_id/price here are display-only and
+      // ignored server-side, never trusted.
       const orderPayload = {
-        customer_name: formData.fullName,
-        customer_phone: formData.phone.replace(/[^0-9]/g, ''),
-        customer_email: formData.email || null,
-        shipping_address: `${formData.streetAddress}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-        billing_address: `${formData.streetAddress}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode,
-        payment_method: formData.paymentMethod,
-        coupon_code: cartData?.appliedCoupon || null,
         items: items.map((item) => ({
           variant_id: item.variant_id || item.variantId || item.id,
           product_id: item.product_id || item.productId || item.id,
           quantity: Number(item.quantity) || 1,
           price: Number(item.price) || 0,
         })),
+        address: {
+          name: formData.fullName,
+          phone: formData.phone.replace(/[^0-9]/g, ''),
+          line1: formData.streetAddress,
+          city_district: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+        },
+        coupon_code: cartData?.appliedCoupon || null,
+        // Not yet persisted by the backend (OrderService::checkout has no
+        // payment-method parameter) — kept here for when that's added.
+        payment_method: formData.paymentMethod,
       }
 
       // 2. Post order directly to MySQL via PHP REST API
-      const response = await api.post('/orders', orderPayload)
+      const response = await api.post(ENDPOINTS.ORDERS.CHECKOUT, orderPayload)
       const orderId =
         response.data?.order?.order_no ||
         response.data?.order_no ||
