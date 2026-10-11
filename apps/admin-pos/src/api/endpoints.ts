@@ -212,4 +212,12 @@ export const ENDPOINTS = {
     BY_ID: (id: string | number) => `/users/${id}`,
   },
   ROLES: '/roles',
+
+  // TODO: Razorpay implementation — placeholders only, not called yet
+  // (see src/api/services/paymentService.ts, src/config/razorpayConfig.ts).
+  // Matches the commented-out backend routes in backend/public/index.php.
+  PAYMENTS: {
+    RAZORPAY_CREATE_ORDER: '/payments/razorpay/create-order',
+    RAZORPAY_VERIFY: '/payments/razorpay/verify',
+  },
 }

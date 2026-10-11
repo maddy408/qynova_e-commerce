@@ -89,4 +89,12 @@ export const ENDPOINTS = {
     STORE: '/settings/store',
     DELIVERY: '/settings/delivery',
   },
+
+  // TODO: Razorpay implementation — placeholders only, not called yet
+  // (see src/api/services/paymentService.js, src/config/razorpayConfig.js).
+  // Matches the commented-out backend routes in backend/public/index.php.
+  PAYMENTS: {
+    RAZORPAY_CREATE_ORDER: '/payments/razorpay/create-order',
+    RAZORPAY_VERIFY: '/payments/razorpay/verify',
+  },
 }
