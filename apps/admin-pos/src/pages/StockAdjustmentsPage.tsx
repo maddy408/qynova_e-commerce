@@ -133,12 +133,15 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
   const [search, setSearch] = useState('')
   const [adjustments, setAdjustments] = useState<Adjustment[] | null>(null)
   const [logSearch, setLogSearch] = useState('')
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsTotal, setLogsTotal] = useState(0)
   const [showReasonModal, setShowReasonModal] = useState(false)
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const PAGE_SIZE = 10
+  const LOGS_PAGE_SIZE = 10
 
   function loadOpeningStock(page: number, searchStr: string) {
     setOpeningLoading(true)
@@ -177,8 +180,12 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       .finally(() => setOpeningLoading(false))
   }
 
-  function loadStock() {
-    api.get('/inventory', { params: { limit: 100 } }).then((res) => {
+  function loadStock(searchStr: string) {
+    // search is now server-side (was a hardcoded limit:100 fetched once
+    // and filtered client-side — items past the first 100 were simply
+    // never visible, with no indication there was more, and a search
+    // term could never reach them).
+    api.get('/inventory', { params: { limit: 500, search: searchStr || undefined } }).then((res) => {
       const items: StockItem[] = res.data.items
       setStock(items)
       setCounts((prev) => {
@@ -191,8 +198,12 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
     })
   }
 
-  function loadAdjustments() {
-    api.get('/inventory/adjustments').then((res) => setAdjustments(res.data.adjustments))
+  function loadAdjustments(page: number, searchStr: string) {
+    setAdjustments(null)
+    api.get('/inventory/adjustments', { params: { page, limit: LOGS_PAGE_SIZE, search: searchStr || undefined } }).then((res) => {
+      setAdjustments(res.data.adjustments)
+      setLogsTotal(res.data.total ?? res.data.adjustments.length)
+    })
   }
 
   useEffect(() => {
@@ -200,9 +211,17 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
   }, [openingPage, openingSearch])
 
   useEffect(() => {
-    loadStock()
-    loadAdjustments()
-  }, [])
+    loadStock(search)
+  }, [search])
+
+  useEffect(() => {
+    loadAdjustments(logsPage, logSearch)
+  }, [logsPage, logSearch])
+
+  function handleLogSearchChange(value: string) {
+    setLogSearch(value)
+    setLogsPage(1)
+  }
 
   // Single-item save & feedback state
   const [savingVariantId, setSavingVariantId] = useState<number | null>(null)
@@ -628,27 +647,10 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
 
   const totalPages = Math.ceil(openingTotal / PAGE_SIZE) || 1
 
-  const filteredStock = useMemo(() => {
-    if (!stock) return []
-    const q = search.trim().toLowerCase()
-    if (q === '') return stock
-    return stock.filter((i) => i.product_name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q))
-  }, [stock, search])
-
-  const filteredAdjustments = useMemo(() => {
-    if (!adjustments) return []
-    const q = logSearch.trim().toLowerCase()
-    if (q === '') return adjustments
-    return adjustments.filter((adj) => {
-      const matchNo = adj.adjustment_no?.toLowerCase().includes(q)
-      const matchReason = adj.reason?.toLowerCase().includes(q)
-      const matchUser = adj.created_by_name?.toLowerCase().includes(q)
-      const matchItem = adj.items?.some(
-        (it) => it.product_name?.toLowerCase().includes(q) || it.sku?.toLowerCase().includes(q)
-      )
-      return Boolean(matchNo || matchReason || matchUser || matchItem)
-    })
-  }, [adjustments, logSearch])
+  // search/logSearch now filter server-side (loadStock/loadAdjustments
+  // effects above) — stock/adjustments already arrive pre-filtered.
+  const filteredStock = stock ?? []
+  const filteredAdjustments = adjustments ?? []
 
   const changedItems = useMemo(() => {
     if (!stock) return []
@@ -686,8 +688,8 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         for (const item of changedItems) delete next[item.variant_id]
         return next
       })
-      loadStock()
-      loadAdjustments()
+      loadStock(search)
+      loadAdjustments(logsPage, logSearch)
       loadOpeningStock(openingPage, openingSearch)
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not save stock adjustment'))
@@ -1202,7 +1204,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     type="text"
                     placeholder="Search by adjustment #, reason, product…"
                     value={logSearch}
-                    onChange={(e) => setLogSearch(e.target.value)}
+                    onChange={(e) => handleLogSearchChange(e.target.value)}
                     className="pl-9 pr-4 py-2 rounded-full border border-[var(--color-border)] bg-white text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]/30 w-80 sm:w-96"
                   />
                 </div>
@@ -1311,6 +1313,33 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                         )}
                       </tbody>
                     </table>
+                  </div>
+                )}
+
+                {Math.ceil(logsTotal / LOGS_PAGE_SIZE) > 1 && (
+                  <div className="flex items-center justify-between border-t border-[var(--color-border-muted)] px-6 py-4 bg-[var(--color-surface)]/30 text-xs">
+                    <span className="text-slate-600 font-medium">
+                      Page <span className="font-extrabold text-slate-950">{logsPage}</span> of{' '}
+                      <span className="font-extrabold text-slate-950">{Math.ceil(logsTotal / LOGS_PAGE_SIZE)}</span> ({logsTotal} total)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={logsPage <= 1}
+                        onClick={() => setLogsPage((p) => Math.max(1, p - 1))}
+                        className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs cursor-pointer"
+                      >
+                        ← Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={logsPage >= Math.ceil(logsTotal / LOGS_PAGE_SIZE)}
+                        onClick={() => setLogsPage((p) => p + 1)}
+                        className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs cursor-pointer"
+                      >
+                        Next →
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

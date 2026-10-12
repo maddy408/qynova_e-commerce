@@ -97,7 +97,18 @@ final class InventoryController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'inventory.view');
 
-        Response::json(['adjustments' => (new InventoryService($this->pdo))->listAdjustments()]);
+        $search = isset($_GET['search']) ? (string) $_GET['search'] : null;
+        $page = (int) ($_GET['page'] ?? 1);
+        $limit = (int) ($_GET['limit'] ?? 20);
+
+        $result = (new InventoryService($this->pdo))->listAdjustments($search, $page, $limit);
+
+        Response::json([
+            'adjustments' => $result['items'],
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'limit' => $result['limit'],
+        ]);
     }
 
     public function storeAdjustment(): void

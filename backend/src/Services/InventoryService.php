@@ -345,6 +345,7 @@ final class InventoryService
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN inventory i ON i.variant_id = v.id
+             LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
              LEFT JOIN (
                  SELECT b1.*
                  FROM inventory_batches b1
@@ -392,14 +393,61 @@ final class InventoryService
         )->fetchAll();
     }
 
-    /** @return list<array<string, mixed>> */
-    public function listAdjustments(): array
+    /**
+     * G6: server-side search + pagination, one row per adjustment event
+     * (not per line item) to match how the Recent Adjustment Logs page
+     * groups a multi-item adjustment under one row. Previously hard-
+     * capped at the 200 most recent with no search — older history
+     * became permanently invisible once a store crossed 200 adjustments,
+     * with no indication there was more.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
+    public function listAdjustments(?string $search = null, int $page = 1, int $limit = 20): array
     {
-        $adjustments = $this->pdo->query(
+        $page = max(1, $page);
+        $limit = min(100, max(1, $limit));
+        $offset = ($page - 1) * $limit;
+
+        $where = [];
+        $params = [];
+        $searchTrimmed = $search !== null ? trim($search) : '';
+        if ($searchTrimmed !== '') {
+            $where[] = '(sa.adjustment_no LIKE :s1 OR sa.reason LIKE :s2 OR u.name LIKE :s3 OR EXISTS (
+                SELECT 1 FROM stock_adjustment_items sai2
+                JOIN product_variants v2 ON v2.id = sai2.variant_id
+                JOIN products p2 ON p2.id = v2.product_id
+                WHERE sai2.adjustment_id = sa.id AND (p2.name LIKE :s4 OR v2.sku LIKE :s5)
+            ))';
+            $needle = '%' . $searchTrimmed . '%';
+            $params['s1'] = $needle;
+            $params['s2'] = $needle;
+            $params['s3'] = $needle;
+            $params['s4'] = $needle;
+            $params['s5'] = $needle;
+        }
+        $whereSql = $where === [] ? '' : ('WHERE ' . implode(' AND ', $where));
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM stock_adjustments sa JOIN users u ON u.id = sa.created_by {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare(
             "SELECT sa.*, u.name AS created_by_name
              FROM stock_adjustments sa JOIN users u ON u.id = sa.created_by
-             ORDER BY sa.created_at DESC LIMIT 200"
-        )->fetchAll();
+             {$whereSql}
+             ORDER BY sa.created_at DESC, sa.id DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $adjustments = $stmt->fetchAll();
 
         foreach ($adjustments as &$adjustment) {
             $items = $this->pdo->prepare(
@@ -414,7 +462,7 @@ final class InventoryService
         }
         unset($adjustment);
 
-        return $adjustments;
+        return ['items' => $adjustments, 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
     /**
