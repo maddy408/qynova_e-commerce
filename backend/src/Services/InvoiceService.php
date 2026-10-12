@@ -572,6 +572,16 @@ final class InvoiceService
             $params['customer_type'] = strtoupper($filters['customer_type']);
         }
 
+        // Added for Phase 6's sale-return flow: a walk-in sale's invoice
+        // has customer_id = NULL, so the customer_id filter above can't
+        // find it — staff need to look an invoice up by its own number.
+        if (!empty($filters['search'])) {
+            $where[] = '(i.invoice_no LIKE :search1 OR c.name LIKE :search2)';
+            $needle = '%' . trim((string) $filters['search']) . '%';
+            $params['search1'] = $needle;
+            $params['search2'] = $needle;
+        }
+
         if (!empty($filters['date_from'])) {
             $where[] = 'DATE(i.created_at) >= :date_from';
             $params['date_from'] = $filters['date_from'];
