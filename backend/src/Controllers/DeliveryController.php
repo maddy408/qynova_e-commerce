@@ -26,7 +26,13 @@ final class DeliveryController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'delivery.manage');
 
-        Response::json(['deliveries' => $this->deliveries->list($_GET)]);
+        $result = $this->deliveries->list($_GET);
+        Response::json([
+            'deliveries' => $result['items'],
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'limit' => $result['limit'],
+        ]);
     }
 
     public function show(string $id): void

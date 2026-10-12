@@ -24,6 +24,23 @@ final class OrderService
     private const FREE_SHIPPING_ABOVE = '500.00';
     private const RESERVATION_MINUTES = 20;
 
+    /**
+     * Fulfillment pipeline order, used by updateStatus() to reject
+     * backward moves and to gate anything past PENDING on payment
+     * actually being captured. Mirrors FORWARD_STATUSES in
+     * OrderDetailPage.tsx and DELIVERY_TO_ORDER_STATUS's targets in
+     * DeliveryService.php.
+     */
+    private const STATUS_RANK = [
+        'PENDING' => 0,
+        'CONFIRMED' => 1,
+        'PROCESSING' => 2,
+        'PACKED' => 3,
+        'SHIPPED' => 4,
+        'OUT_FOR_DELIVERY' => 5,
+        'DELIVERED' => 6,
+    ];
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
@@ -377,10 +394,23 @@ final class OrderService
             throw new RuntimeException("Order is {$order['status']} and its status can no longer be changed here");
         }
 
-        $allowed = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
-
-        if (!in_array($newStatus, $allowed, true)) {
+        if (!array_key_exists($newStatus, self::STATUS_RANK)) {
             throw new RuntimeException('Use the dedicated cancel endpoint to cancel an order');
+        }
+
+        // This endpoint is the manual fulfillment-stage updater — the
+        // payment-and-confirm step is confirmPayment()'s job, which sets
+        // status and payment_status together atomically. Without this
+        // check, an admin could pick DELIVERED straight off a PENDING,
+        // never-paid order (OrderDetailPage.tsx's dropdown lists every
+        // status with no filtering), creating an invoice via the branch
+        // below for goods that were never actually paid for.
+        if (self::STATUS_RANK[$newStatus] >= self::STATUS_RANK['CONFIRMED'] && $order['payment_status'] !== 'PAID') {
+            throw new RuntimeException('Order must be paid before it can move past PENDING');
+        }
+
+        if (self::STATUS_RANK[$newStatus] <= self::STATUS_RANK[$order['status']]) {
+            throw new RuntimeException("Status can only move forward — order is already {$order['status']}");
         }
 
         $this->pdo->prepare('UPDATE orders SET status = :status WHERE id = :id')
@@ -402,7 +432,16 @@ final class OrderService
         return $this->find($orderId) ?? throw new RuntimeException('Order not found after status update');
     }
 
-    /** @param array<string, mixed> $filters */
+    /**
+     * G6: server-side search + pagination. Previously a flat, unfiltered
+     * LIMIT 200 with no page/limit params read at all — OrdersPage.tsx
+     * had no way to reach anything past the 200 most recent orders, and
+     * its status dropdown was the only filter despite `search` already
+     * being supported here and simply never wired up.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
     public function list(array $filters): array
     {
         $where = [];
@@ -431,15 +470,31 @@ final class OrderService
 
         $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
 
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $limit = min(200, max(1, (int) ($filters['limit'] ?? 50)));
+        $offset = ($page - 1) * $limit;
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
         $stmt = $this->pdo->prepare(
             "SELECT o.id, o.order_no, o.customer_id, c.name AS customer_name, o.status, o.payment_status,
                     o.grand_total, o.created_at
              FROM orders o JOIN customers c ON c.id = o.customer_id
-             WHERE {$whereSql} ORDER BY o.created_at DESC LIMIT 200"
+             WHERE {$whereSql} ORDER BY o.created_at DESC, o.id DESC
+             LIMIT :limit OFFSET :offset"
         );
-        $stmt->execute($params);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
 
-        return $stmt->fetchAll();
+        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
     /** @return array<string, mixed>|null */
