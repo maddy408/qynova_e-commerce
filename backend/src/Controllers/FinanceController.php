@@ -66,7 +66,11 @@ final class FinanceController
     public function store(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'reports.financial.view');
+        // Not reports.financial.view — that permission is documented as
+        // "View P&L, expenses, income" (read-only); gating a write here
+        // on it would let any future view-only reporting role also
+        // fabricate or delete ledger entries. See migration 0035.
+        PermissionMiddleware::require($claims, 'finance.manage');
 
         $body = Request::json();
         $type = strtoupper(trim((string) ($body['type'] ?? 'EXPENSE')));
@@ -111,7 +115,7 @@ final class FinanceController
     public function destroy(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'reports.financial.view');
+        PermissionMiddleware::require($claims, 'finance.manage');
 
         $stmt = $this->pdo->prepare(
             "UPDATE finance_transactions SET deleted_at = NOW(), deleted_by = :deleted_by WHERE id = :id AND deleted_at IS NULL"
