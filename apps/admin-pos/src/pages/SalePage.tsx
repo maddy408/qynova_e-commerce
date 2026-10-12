@@ -562,7 +562,12 @@ export function SalePage() {
         }
       }
 
-      // If no matches by file name, populate first 3 top products as suggestions from photo
+      // Nothing actually matched the photo — show a few catalog items as
+      // unchecked suggestions rather than silently pre-selecting them.
+      // These used to come back labeled "Visual Item Match" and
+      // pre-checked like a real match, so a cashier clicking "Add
+      // Selected" without reading the fine print could add and charge
+      // for products that were never scanned.
       if (detectedList.length === 0 && (products ?? []).length > 0) {
         for (const p of (products ?? []).slice(0, 3)) {
           detectedList.push({
@@ -572,8 +577,8 @@ export function SalePage() {
             price: resolveVariantPrice(p, priceType),
             available: parseFloat(p.available) || 0,
             qty: 1,
-            selected: true,
-            matchedBy: 'Visual Item Match',
+            selected: false,
+            matchedBy: 'No match found — pick manually if intended',
           })
         }
       }
@@ -756,9 +761,13 @@ export function SalePage() {
     } else {
       api.get('/pos/products', { params: { search: clean, limit: 10 } }).then((res) => {
         const items = res.data?.items || []
+        // Only an exact barcode/SKU match counts as a real scan — falling
+        // back to items[0] (just the top name-search hit) would silently
+        // add whatever product happened to rank first to the cart and
+        // charge for it, even though the scanned code matched nothing.
         const item = items.find(
           (p: PosProduct) => (p.barcode && p.barcode.trim().toLowerCase() === clean.toLowerCase()) || p.sku.toLowerCase() === clean.toLowerCase()
-        ) || items[0]
+        )
         if (item) {
           addToCart(item)
           playBeepSound('success')
