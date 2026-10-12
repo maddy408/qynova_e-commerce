@@ -10,6 +10,7 @@ use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\CouponService;
 use App\Services\InventoryService;
+use App\Services\InvoicePaymentService;
 use App\Services\InvoiceService;
 use App\Services\RefundService;
 use PDO;
@@ -18,10 +19,12 @@ use RuntimeException;
 final class InvoiceController
 {
     private readonly InvoiceService $invoices;
+    private readonly InvoicePaymentService $payments;
 
     public function __construct(private readonly PDO $pdo)
     {
         $this->invoices = new InvoiceService($pdo, new InventoryService($pdo), new CouponService($pdo), new RefundService($pdo));
+        $this->payments = new InvoicePaymentService($pdo, $this->invoices);
     }
 
     public function index(): void
@@ -110,7 +113,17 @@ final class InvoiceController
         }
     }
 
-    public function update(string $id): void
+    /**
+     * Phase 5 — Invoice Amendment. Replaces the old update() endpoint,
+     * which let amount_paid/status/customer_id be rewritten directly via
+     * a raw SQL UPDATE: no cap on amount_paid against grand_total, no
+     * payment_status recompute, status settable to CANCELLED bypassing
+     * cancel()'s restock+refund logic entirely, no audit trail. From here
+     * on: amount_paid only ever changes through collectPayment/
+     * reversePayment below (both derive payment_status, both audit-log),
+     * and status only ever changes through the existing cancel() endpoint.
+     */
+    public function collectPayment(string $id): void
     {
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'orders.manage');
@@ -118,26 +131,71 @@ final class InvoiceController
         $body = Request::json();
 
         try {
-            $stmt = $this->pdo->prepare(
-                "UPDATE invoices SET
-                 payment_method = COALESCE(:payment_method, payment_method),
-                 amount_paid = COALESCE(:amount_paid, amount_paid),
-                 customer_id = COALESCE(:customer_id, customer_id),
-                 status = COALESCE(:status, status)
-                 WHERE id = :id"
-            );
-
-            $stmt->execute([
-                'id' => (int) $id,
-                'payment_method' => isset($body['payment_method']) ? (string) $body['payment_method'] : null,
-                'amount_paid' => isset($body['amount_paid']) ? (string) $body['amount_paid'] : null,
-                'customer_id' => isset($body['customer_id']) && $body['customer_id'] !== '' ? (int) $body['customer_id'] : null,
-                'status' => isset($body['status']) ? (string) $body['status'] : null,
-            ]);
-
-            Response::json(['invoice' => $this->invoices->find((int) $id)]);
+            $result = $this->payments->collectPayment((int) $id, $body, (int) $claims['sub'], Request::clientIp());
+            Response::json($result, 201);
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }
+    }
+
+    public function reversePayment(string $id, string $paymentId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $reason = trim((string) ($body['reason'] ?? ''));
+
+        try {
+            Response::json($this->payments->reversePayment((int) $id, (int) $paymentId, $reason, (int) $claims['sub'], Request::clientIp()));
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function listPayments(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        Response::json(['payments' => $this->payments->listPayments((int) $id)]);
+    }
+
+    /** Narrow correction for a mis-recorded payment method label — never touches money. */
+    public function updatePaymentMethod(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $method = strtoupper(trim((string) ($body['payment_method'] ?? '')));
+        $allowed = \App\Services\InvoiceService::ALLOWED_POS_PAYMENT_METHODS;
+
+        if (!in_array($method, $allowed, true)) {
+            Response::error('Invalid payment method', 422);
+        }
+
+        $invoice = $this->invoices->find((int) $id);
+        if ($invoice === null) {
+            Response::error('Invoice not found', 404);
+        }
+        if ($invoice['status'] === 'CANCELLED') {
+            Response::error('Cannot amend a cancelled invoice', 422);
+        }
+
+        $this->pdo->prepare('UPDATE invoices SET payment_method = :method WHERE id = :id')
+            ->execute(['method' => $method, 'id' => (int) $id]);
+
+        $this->pdo->prepare(
+            "INSERT INTO audit_logs (actor_type, actor_id, action, entity_type, entity_id, old_value, new_value)
+             VALUES ('USER', :actor, 'INVOICE_PAYMENT_METHOD_CORRECT', 'invoice', :id, :old_val, :new_val)"
+        )->execute([
+            'actor' => (int) $claims['sub'],
+            'id' => (int) $id,
+            'old_val' => json_encode(['payment_method' => $invoice['payment_method']]),
+            'new_val' => json_encode(['payment_method' => $method]),
+        ]);
+
+        Response::json(['invoice' => $this->invoices->find((int) $id)]);
     }
 }

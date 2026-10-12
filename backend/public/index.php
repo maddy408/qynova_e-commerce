@@ -280,7 +280,10 @@ $invoices = new InvoiceController($pdo);
 $router->get('/api/invoices', fn () => $invoices->index());
 $router->get('/api/invoices/{id}', fn ($id) => $invoices->show($id));
 $router->post('/api/invoices/pos-sale', fn () => $invoices->storePosSale());
-$router->put('/api/invoices/{id}', fn ($id) => $invoices->update($id));
+$router->put('/api/invoices/{id}/payment-method', fn ($id) => $invoices->updatePaymentMethod($id));
+$router->get('/api/invoices/{id}/payments', fn ($id) => $invoices->listPayments($id));
+$router->post('/api/invoices/{id}/payments', fn ($id) => $invoices->collectPayment($id));
+$router->post('/api/invoices/{id}/payments/{paymentId}/reverse', fn ($id, $paymentId) => $invoices->reversePayment($id, $paymentId));
 $router->post('/api/invoices/{id}/cancel', fn ($id) => $invoices->cancel($id));
 $router->delete('/api/invoices/{id}', fn ($id) => $invoices->destroy($id));
 
