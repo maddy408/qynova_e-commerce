@@ -14,12 +14,13 @@ use PDO;
  * common backend" principle. "Orders" figures are read from the e-commerce
  * `orders` table specifically, since POS has no separate order concept.
  *
- * Deliberately NOT included: Net Profit, Expenses, Income
- * (docs section 6/20) — there is no expenses/income module yet, and
- * reporting a number as if it were real when it's actually always zero
- * would be worse than omitting it. Gross profit IS included, but labeled
- * an estimate: invoice_items don't snapshot the cost price at sale time,
- * so it's computed against each variant's *current* purchase_price, which
+ * Net Profit/Expenses/Income (added Phase 7) come from finance_transactions
+ * — manually-recorded ledger entries (rent, utilities, misc income — see
+ * FinanceController), deliberately kept separate from the sales-vs-COGS
+ * `gross_profit_estimate` in productAnalytics() below, which has its own,
+ * different caveats. Gross profit IS included there, but labeled an
+ * estimate: invoice_items don't snapshot the cost price at sale time, so
+ * it's computed against each variant's *current* purchase_price, which
  * drifts from the truth if costs changed since. See database/README.md.
  */
 final class DashboardService
@@ -52,14 +53,28 @@ final class DashboardService
              FROM orders"
         )->fetch();
 
+        // total_refund_amount counts COMPLETED only — refunds.status also
+        // includes PENDING/PROCESSING/FAILED/CANCELLED, none of which
+        // actually paid money out, so a blanket SUM(amount) overstates
+        // real cash outflow (RefundService::summary() has the same
+        // "total" label on the same blanket sum; this dashboard figure
+        // is the one actually rendered, so it's the one fixed here).
         $refunds = $this->pdo->query(
             "SELECT
-                COALESCE(SUM(amount), 0) AS total_refund_amount,
+                COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0) AS total_refund_amount,
                 COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) AS pending_refund_amount,
                 COALESCE(SUM(status = 'COMPLETED'), 0) AS completed_refund_count,
                 COALESCE(SUM(status = 'PENDING'), 0) AS pending_refund_count
              FROM refunds"
         )->fetch();
+
+        $finance = $this->pdo->query(
+            "SELECT
+                COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END), 0) AS total_income,
+                COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) AS total_expense
+             FROM finance_transactions WHERE deleted_at IS NULL"
+        )->fetch();
+        $netProfit = bcsub((string) $finance['total_income'], (string) $finance['total_expense'], 2);
 
         $customers = $this->pdo->query(
             "SELECT
@@ -93,6 +108,11 @@ final class DashboardService
                 'total_products' => (int) $products['total_products'],
                 'low_stock_products' => $lowStockCount,
                 'out_of_stock_products' => $outOfStockCount,
+            ],
+            'finance' => [
+                'total_income' => $finance['total_income'],
+                'total_expense' => $finance['total_expense'],
+                'net_profit' => $netProfit,
             ],
         ];
     }
