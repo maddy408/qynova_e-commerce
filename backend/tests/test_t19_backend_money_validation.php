@@ -248,6 +248,10 @@ echo "\n--- Cleanup ---\n";
 foreach ([$custId, $custIdB] as $cid) {
     $pdo->prepare('DELETE FROM collection_receipt_items WHERE invoice_id IN (SELECT id FROM invoices WHERE customer_id = ?)')->execute([$cid]);
     $pdo->prepare('DELETE FROM collection_receipts WHERE customer_id = ?')->execute([$cid]);
+    // Phase 5: createPosSale() now also writes invoice_payments/lines for
+    // any sale with amount_paid > 0 — must clear those before invoices.
+    $pdo->prepare('DELETE FROM invoice_payment_lines WHERE payment_id IN (SELECT id FROM invoice_payments WHERE invoice_id IN (SELECT id FROM invoices WHERE customer_id = ?))')->execute([$cid]);
+    $pdo->prepare('DELETE FROM invoice_payments WHERE invoice_id IN (SELECT id FROM invoices WHERE customer_id = ?)')->execute([$cid]);
     $pdo->prepare('DELETE FROM invoice_items WHERE invoice_id IN (SELECT id FROM invoices WHERE customer_id = ?)')->execute([$cid]);
     $pdo->prepare('DELETE FROM invoices WHERE customer_id = ?')->execute([$cid]);
     $pdo->prepare('DELETE FROM customers WHERE id = ?')->execute([$cid]);

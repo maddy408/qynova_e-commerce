@@ -21,22 +21,27 @@ interface Invoice {
 }
 
 const PAYMENT_TONE: Record<string, 'green' | 'amber' | 'red'> = { PAID: 'green', PARTIAL: 'amber', UNPAID: 'red' }
+const REFERENCE_REQUIRED_METHODS = ['UPI', 'CARD', 'NETBANKING', 'GOOGLE_PAY']
 
 export function InvoicesPage() {
   const navigate = useNavigate()
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
   const [channel, setChannel] = useState('')
 
-  // Edit Invoice Modal state
+  // Record Payment / amendment modal state
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
-  const [editPaymentMethod, setEditPaymentMethod] = useState('CASH')
-  const [editAmountPaid, setEditAmountPaid] = useState('')
-  const [editStatus, setEditStatus] = useState('ACTIVE')
-  const [savingEdit, setSavingEdit] = useState(false)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('CASH')
+  const [paymentReferenceNo, setPaymentReferenceNo] = useState('')
+  const [recordingPayment, setRecordingPayment] = useState(false)
+  const [correctMethod, setCorrectMethod] = useState('CASH')
+  const [correctingMethod, setCorrectingMethod] = useState(false)
+  const [modalError, setModalError] = useState('')
 
   // Delete Invoice state
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [cancelingInvoice, setCancelingInvoice] = useState(false)
   const [msg, setMsg] = useState('')
 
   function loadInvoices() {
@@ -47,30 +52,74 @@ export function InvoicesPage() {
     loadInvoices()
   }, [channel])
 
-  function openEdit(inv: Invoice) {
-    setEditingInvoice(inv)
-    setEditPaymentMethod(inv.payment_method || 'CASH')
-    setEditAmountPaid(inv.amount_paid || inv.grand_total)
-    setEditStatus(inv.status)
+  function balanceOf(inv: Invoice): number {
+    return Math.max(0, Number(inv.grand_total) - Number(inv.amount_paid || 0))
   }
 
-  async function handleSaveEdit() {
+  function openEdit(inv: Invoice) {
+    setEditingInvoice(inv)
+    setPaymentAmount(balanceOf(inv) > 0 ? balanceOf(inv).toFixed(2) : '')
+    setPaymentMethod('CASH')
+    setPaymentReferenceNo('')
+    setCorrectMethod(inv.payment_method || 'CASH')
+    setModalError('')
+  }
+
+  async function handleRecordPayment() {
     if (!editingInvoice) return
-    setSavingEdit(true)
+    setModalError('')
+    if (REFERENCE_REQUIRED_METHODS.includes(paymentMethod) && !paymentReferenceNo.trim()) {
+      setModalError(`Reference number is required for ${paymentMethod}`)
+      return
+    }
+    setRecordingPayment(true)
     try {
-      await api.put(`/invoices/${editingInvoice.id}`, {
-        payment_method: editPaymentMethod,
-        amount_paid: editAmountPaid,
-        status: editStatus,
+      await api.post(`/invoices/${editingInvoice.id}/payments`, {
+        amount: paymentAmount,
+        lines: [{ method: paymentMethod, amount: paymentAmount, reference_no: paymentReferenceNo || undefined }],
       })
       setEditingInvoice(null)
-      setMsg(`Invoice ${editingInvoice.invoice_no} updated successfully!`)
+      setMsg(`Payment recorded for invoice ${editingInvoice.invoice_no}!`)
       setTimeout(() => setMsg(''), 3000)
       loadInvoices()
     } catch (err) {
-      alert(apiErrorMessage(err))
+      setModalError(apiErrorMessage(err, 'Could not record payment'))
     } finally {
-      setSavingEdit(false)
+      setRecordingPayment(false)
+    }
+  }
+
+  async function handleCorrectMethod() {
+    if (!editingInvoice) return
+    setModalError('')
+    setCorrectingMethod(true)
+    try {
+      await api.put(`/invoices/${editingInvoice.id}/payment-method`, { payment_method: correctMethod })
+      setEditingInvoice(null)
+      setMsg(`Payment method corrected for invoice ${editingInvoice.invoice_no}!`)
+      setTimeout(() => setMsg(''), 3000)
+      loadInvoices()
+    } catch (err) {
+      setModalError(apiErrorMessage(err, 'Could not update payment method'))
+    } finally {
+      setCorrectingMethod(false)
+    }
+  }
+
+  async function handleCancelInvoice(inv: Invoice) {
+    const reason = window.prompt(`Cancellation reason for invoice ${inv.invoice_no}?`)
+    if (!reason) return
+    setCancelingInvoice(true)
+    try {
+      await api.post(`/invoices/${inv.id}/cancel`, { reason })
+      setEditingInvoice(null)
+      setMsg(`Invoice ${inv.invoice_no} cancelled.`)
+      setTimeout(() => setMsg(''), 3000)
+      loadInvoices()
+    } catch (err) {
+      alert(apiErrorMessage(err, 'Could not cancel invoice'))
+    } finally {
+      setCancelingInvoice(false)
     }
   }
 
@@ -159,7 +208,7 @@ export function InvoicesPage() {
                       <button
                         onClick={() => openEdit(inv)}
                         className="p-1.5 text-slate-500 hover:text-amber-600 rounded hover:bg-amber-50 transition-colors"
-                        title="Edit Invoice Details"
+                        title="Amend Invoice (Record Payment / Cancel)"
                       >
                         <PencilIcon className="w-4 h-4" />
                       </button>
@@ -188,48 +237,86 @@ export function InvoicesPage() {
         </Card>
       )}
 
-      {/* Edit Invoice Modal */}
+      {/* Amend Invoice Modal — Record Payment / Correct Method / Cancel */}
       {editingInvoice && (
-        <Modal title={`Edit Invoice - ${editingInvoice.invoice_no}`} onClose={() => setEditingInvoice(null)}>
-          <div className="space-y-4 text-xs">
-            <div className="rounded-lg bg-slate-50 p-3">
+        <Modal title={`Amend Invoice - ${editingInvoice.invoice_no}`} onClose={() => setEditingInvoice(null)}>
+          <div className="space-y-5 text-xs">
+            <div className="rounded-lg bg-slate-50 p-3 space-y-1">
               <div className="font-bold text-slate-900 text-sm">Invoice #{editingInvoice.invoice_no}</div>
-              <div className="text-slate-600 mt-1">
-                Grand Total: <strong className="text-slate-900">₹{editingInvoice.grand_total}</strong>
+              <div className="text-slate-600">
+                Grand Total: <strong className="text-slate-900">₹{editingInvoice.grand_total}</strong> · Paid:{' '}
+                <strong className="text-slate-900">₹{editingInvoice.amount_paid ?? '0.00'}</strong> · Balance:{' '}
+                <strong className="text-slate-900">₹{balanceOf(editingInvoice).toFixed(2)}</strong>
               </div>
             </div>
 
-            <Select
-              label="Payment Method"
-              value={editPaymentMethod}
-              onChange={(e) => setEditPaymentMethod(e.target.value)}
-            >
-              {PAYMENT_METHODS.map((pm) => (
-                <option key={pm.code} value={pm.code}>
-                  {pm.label}
-                </option>
-              ))}
-            </Select>
+            {modalError && <Alert>{modalError}</Alert>}
 
-            <TextField
-              label="Amount Paid (₹)"
-              type="number"
-              step="0.01"
-              value={editAmountPaid}
-              onChange={(e) => setEditAmountPaid(e.target.value)}
-            />
+            {editingInvoice.status === 'CANCELLED' ? (
+              <p className="text-slate-500">This invoice is cancelled and can no longer be amended.</p>
+            ) : (
+              <>
 
-            <Select label="Invoice Status" value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="CANCELLED">CANCELLED</option>
-            </Select>
+            {balanceOf(editingInvoice) > 0 && (
+              <div className="space-y-3 border-t border-slate-100 pt-3">
+                <h3 className="text-xs font-bold text-slate-900">Record Payment</h3>
+                <TextField
+                  label="Amount (₹)"
+                  type="number"
+                  step="0.01"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                />
+                <Select label="Method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  {PAYMENT_METHODS.filter((pm) => pm.code !== 'CREDIT').map((pm) => (
+                    <option key={pm.code} value={pm.code}>
+                      {pm.label}
+                    </option>
+                  ))}
+                </Select>
+                {REFERENCE_REQUIRED_METHODS.includes(paymentMethod) && (
+                  <TextField
+                    label="Reference No."
+                    value={paymentReferenceNo}
+                    onChange={(e) => setPaymentReferenceNo(e.target.value)}
+                    placeholder="UTR / transaction ID"
+                  />
+                )}
+                <div className="flex justify-end">
+                  <Button onClick={handleRecordPayment} disabled={recordingPayment || !paymentAmount}>
+                    {recordingPayment ? 'Recording...' : 'Record Payment'}
+                  </Button>
+                </div>
+              </div>
+            )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="secondary" onClick={() => setEditingInvoice(null)}>
-                Cancel
+            <div className="space-y-3 border-t border-slate-100 pt-3">
+              <h3 className="text-xs font-bold text-slate-900">Correct Payment Method Label</h3>
+              <Select value={correctMethod} onChange={(e) => setCorrectMethod(e.target.value)}>
+                {PAYMENT_METHODS.map((pm) => (
+                  <option key={pm.code} value={pm.code}>
+                    {pm.label}
+                  </option>
+                ))}
+              </Select>
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={handleCorrectMethod} disabled={correctingMethod}>
+                  {correctingMethod ? 'Saving...' : 'Save Method'}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex justify-end border-t border-slate-100 pt-3">
+              <Button variant="danger" onClick={() => handleCancelInvoice(editingInvoice)} disabled={cancelingInvoice}>
+                {cancelingInvoice ? 'Cancelling...' : 'Cancel Invoice'}
               </Button>
-              <Button onClick={handleSaveEdit} disabled={savingEdit}>
-                {savingEdit ? 'Saving...' : 'Update Invoice'}
+            </div>
+              </>
+            )}
+
+            <div className="flex justify-end">
+              <Button variant="secondary" onClick={() => setEditingInvoice(null)}>
+                Close
               </Button>
             </div>
           </div>

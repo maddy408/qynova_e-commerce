@@ -412,6 +412,33 @@ final class InvoiceService
                 $this->coupons->recordUsage($couponId, $customerId, null, $couponDiscount);
             }
 
+            // Back this sale's amount_paid with a real invoice_payments row
+            // from day one (Phase 5) — otherwise SUM(invoice_payments) !=
+            // invoices.amount_paid until the next payment is collected
+            // through InvoicePaymentService, breaking G9. Skipped for
+            // CREDIT: that method means "no payment method was actually
+            // used," so there's nothing to attribute a payment line to.
+            if (bccomp($amountPaid, '0', 2) > 0 && $normalizedMethod !== 'CREDIT') {
+                $receiptNo = 'REC-INV-' . date('Ymd') . '-' . $invoiceId;
+                $this->pdo->prepare(
+                    "INSERT INTO invoice_payments (invoice_id, customer_id, receipt_no, payment_date, total_amount, notes, status, created_by)
+                     VALUES (:invoice_id, :customer_id, :receipt_no, CURDATE(), :amount, 'Initial payment at sale', 'ACTIVE', :created_by)"
+                )->execute([
+                    'invoice_id' => $invoiceId,
+                    'customer_id' => $customerId,
+                    'receipt_no' => $receiptNo,
+                    'amount' => $amountPaid,
+                    'created_by' => $cashierUserId,
+                ]);
+                $this->pdo->prepare(
+                    'INSERT INTO invoice_payment_lines (payment_id, payment_method, amount) VALUES (:payment_id, :method, :amount)'
+                )->execute([
+                    'payment_id' => (int) $this->pdo->lastInsertId(),
+                    'method' => $normalizedMethod,
+                    'amount' => $amountPaid,
+                ]);
+            }
+
             $this->pdo->commit();
 
             return $invoiceId;
