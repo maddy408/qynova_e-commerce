@@ -655,6 +655,61 @@ $zipExtractor->cleanup($caseImagesDir);
 @unlink($caseSheetPath);
 @unlink($caseZipPath);
 
+// ---------------------------------------------------------------------
+// GROUP 14: the same image filename referenced more than once in one
+// import (e.g. two variants sharing one photo) is uploaded/converted
+// ONCE and reused, not duplicated on disk.
+// ---------------------------------------------------------------------
+echo "\n-- Duplicate image reference within one import is not re-uploaded --\n";
+$dedupZipPath = $tmpDir . '/t26-dedup-' . $uid . '.zip';
+$dedupZa = new ZipArchive();
+$dedupZa->open($dedupZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$dedupZa->addFromString('shared.jpg', $pngBytes);
+$dedupZa->close();
+$dedupImagesDir = $zipExtractor->extract($dedupZipPath);
+
+$dedupProductCode = 'T26-DEDUP-' . $uid;
+$dedupRowA = array_merge($baseRow, [
+    'Product Name' => 'T26 Dedup Product ' . $uid,
+    'Product Code' => $dedupProductCode,
+    'Variant SKU' => 'T26-DEDUP-SKU-A-' . $uid,
+    'Product Image Path' => 'shared.jpg', // product-level use
+    'Variant Image Path' => 'shared.jpg', // AND variant-level use, same file
+]);
+$dedupRowB = array_merge($baseRow, [
+    'Product Name' => 'T26 Dedup Product ' . $uid,
+    'Product Code' => $dedupProductCode,
+    'Variant SKU' => 'T26-DEDUP-SKU-B-' . $uid,
+    'Size' => 'XL', 'Color' => 'Blue',
+    'Product Image Path' => '', // product already got its image from row A
+    'Variant Image Path' => 'shared.jpg', // same filename again, second variant
+]);
+$dedupSheetPath = $tmpDir . '/t26-dedup-sheet-' . $uid . '.xlsx';
+writeImportSheet($dedupSheetPath, [$dedupRowA, $dedupRowB]);
+$dedupResult = $importer->commit($dedupSheetPath, true, $cashierUserId, false, $dedupImagesDir);
+assertTest('Dedup import: both rows succeed', $dedupResult['successful_rows'] === 2 && $dedupResult['failed_rows'] === 0, json_encode($dedupResult['errors']));
+
+$dedupProductId = (int) $pdo->query("SELECT id FROM products WHERE product_code = '{$dedupProductCode}'")->fetchColumn();
+$dedupVariantAId = (int) $pdo->query("SELECT id FROM product_variants WHERE sku = 'T26-DEDUP-SKU-A-{$uid}'")->fetchColumn();
+$dedupVariantBId = (int) $pdo->query("SELECT id FROM product_variants WHERE sku = 'T26-DEDUP-SKU-B-{$uid}'")->fetchColumn();
+
+$dedupProductImage = $pdo->query("SELECT image_path, thumb_path FROM product_images WHERE product_id = {$dedupProductId}")->fetch();
+$dedupVariantAImage = $pdo->query("SELECT image_path FROM variant_images WHERE variant_id = {$dedupVariantAId}")->fetchColumn();
+$dedupVariantBImage = $pdo->query("SELECT image_path FROM variant_images WHERE variant_id = {$dedupVariantBId}")->fetchColumn();
+
+assertTest('Product image and both variants\' images all point to the SAME stored file (one physical upload, three references)',
+    $dedupProductImage !== false && $dedupProductImage['image_path'] === $dedupVariantAImage && $dedupVariantAImage === $dedupVariantBImage,
+    json_encode(['product' => $dedupProductImage['image_path'] ?? null, 'variantA' => $dedupVariantAImage, 'variantB' => $dedupVariantBImage]));
+
+$dedupFileCount = count(glob(__DIR__ . "/../public/uploads/products/*.webp") ?: []);
+assertTest('Exactly one physical image pair (2 files: main+thumb) exists on disk for this import, not three', $dedupFileCount === 2, (string) $dedupFileCount);
+
+@unlink(__DIR__ . '/../public/' . $dedupProductImage['image_path']);
+@unlink(__DIR__ . '/../public/' . $dedupProductImage['thumb_path']);
+$zipExtractor->cleanup($dedupImagesDir);
+@unlink($dedupSheetPath);
+@unlink($dedupZipPath);
+
 // Authoritative, whole-suite orphan check — every group above cleans up
 // after itself individually, but this is the one check that actually
 // catches a leak regardless of which group's manual cleanup was wrong.

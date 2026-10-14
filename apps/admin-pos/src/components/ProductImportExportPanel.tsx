@@ -197,8 +197,8 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
                 Product Images ZIP (Optional)
               </label>
               <p className="mb-1.5 text-[11px] text-slate-500">
-                Upload a ZIP containing an /images/ folder with your product and variant images. Image filenames in Excel
-                must match the filenames inside the ZIP.
+                Upload a ZIP containing your product and variant images inside an images folder. The image filenames in
+                Excel must match the filenames inside the ZIP.
               </p>
               <input
                 ref={imagesZipInputRef}

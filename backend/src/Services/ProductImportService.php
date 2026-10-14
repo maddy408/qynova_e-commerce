@@ -63,6 +63,21 @@ final class ProductImportService
     /** @var list<string> relative paths written during the row currently being processed — see run() */
     private array $pendingUploadedFiles = [];
 
+    /** @var list<string> cache keys (see downloadAndStore()) first populated during the row currently being processed */
+    private array $pendingCacheKeys = [];
+
+    /**
+     * Same image token (URL or filename) referenced more than once across
+     * the file — e.g. the same photo used as both a product's main image
+     * and reused on a second variant row — is fetched/converted/stored
+     * only ONCE; every later occurrence reuses this cached result instead
+     * of uploading a duplicate physical file. Scoped to one run() call
+     * (reset there), not across separate requests.
+     *
+     * @var array<string, array{path: string, thumb_path: string}>
+     */
+    private array $imageCache = [];
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
@@ -145,13 +160,23 @@ final class ProductImportService
         // only consulted in commit mode, where a row that writes an image
         // and then fails LATER in that same row (a later statement throws)
         // must not leave an orphaned file on disk even though its DB rows
-        // were rolled back by the SAVEPOINT below.
+        // were rolled back by the SAVEPOINT below. $imageCache persists for
+        // the WHOLE file (not reset per row) — that's what lets a filename
+        // referenced by more than one row reuse one stored file instead of
+        // uploading a duplicate; $pendingCacheKeys tracks only the entries
+        // THIS row added, so a row that fails after creating a fresh cache
+        // entry un-caches it too (its file is being deleted right below),
+        // while an entry reused from an earlier, already-succeeded row is
+        // never touched by a later row's failure.
         $this->pendingUploadedFiles = [];
+        $this->pendingCacheKeys = [];
+        $this->imageCache = [];
 
         foreach ($rows as $index => $row) {
             $excelRow = $index + 2; // header is row 1
             $this->pdo->exec('SAVEPOINT import_row');
             $this->pendingUploadedFiles = [];
+            $this->pendingCacheKeys = [];
 
             try {
                 [$productId, $variantId] = $this->processRow($row, $autoCreateMasters, $updateExisting, $userId, $fileHash, $imagesDir, $commit, $imageStats, $productIdByGroupKey);
@@ -161,6 +186,9 @@ final class ProductImportService
                 $this->pdo->exec('ROLLBACK TO SAVEPOINT import_row');
                 foreach ($this->pendingUploadedFiles as $uploadedPath) {
                     $this->uploader->delete($uploadedPath);
+                }
+                foreach ($this->pendingCacheKeys as $cacheKey) {
+                    unset($this->imageCache[$cacheKey]);
                 }
                 $results[] = ['row' => $excelRow, 'status' => 'error', 'errors' => [$e->getMessage()], 'raw' => $row];
             }
@@ -596,8 +624,10 @@ final class ProductImportService
                 'sort' => $i,
                 'primary' => $i === 0 ? 1 : 0,
             ]);
-            $this->pendingUploadedFiles[] = $stored['path'];
-            $this->pendingUploadedFiles[] = $stored['thumb_path'];
+            // downloadAndStore() itself tracks pendingUploadedFiles — only
+            // for a fresh store, never for a cache hit (see its docblock),
+            // so a row reusing an earlier row's shared image can't have
+            // that shared file deleted out from under it if THIS row fails.
         }
     }
 
@@ -636,8 +666,7 @@ final class ProductImportService
                 'sort' => $i,
                 'primary' => $i === 0 ? 1 : 0,
             ]);
-            $this->pendingUploadedFiles[] = $stored['path'];
-            $this->pendingUploadedFiles[] = $stored['thumb_path'];
+            // See the matching comment in maybeImportProductImages().
         }
     }
 
@@ -687,6 +716,21 @@ final class ProductImportService
         $foundKey = $statsPrefix . '_found';
         $missingKey = $statsPrefix . '_missing';
 
+        // Same token already stored earlier in this same file (e.g. one
+        // photo reused across two variants) — reuse that result instead
+        // of fetching/converting/uploading it a second time. Only a real,
+        // already-committed store is ever reused — a pending one from a
+        // row that's still mid-processing is never observed here, since
+        // PHP runs this single-threaded and a row either finishes (cache
+        // entry stays) or throws (see run(), which un-caches it) before
+        // any other row's downloadAndStore() call can run.
+        $cacheKey = ($isUrl ? 'url:' : 'file:') . mb_strtolower($token) . '|' . ($imagesDir ?? '');
+        if ($persist && isset($this->imageCache[$cacheKey])) {
+            $imageStats[$foundKey][] = $token;
+
+            return $this->imageCache[$cacheKey];
+        }
+
         if ($isUrl) {
             $fetched = $this->imageFetcher->fetch($token);
             if ($fetched === null) {
@@ -730,7 +774,13 @@ final class ProductImportService
                 'name' => $originalName,
             ];
 
-            return $this->uploader->store($file, 'products');
+            $stored = $this->uploader->store($file, 'products');
+            $this->imageCache[$cacheKey] = $stored;
+            $this->pendingCacheKeys[] = $cacheKey;
+            $this->pendingUploadedFiles[] = $stored['path'];
+            $this->pendingUploadedFiles[] = $stored['thumb_path'];
+
+            return $stored;
         } finally {
             if ($isUrl) {
                 @unlink($tmpPath); // only the downloaded temp copy — a zip-extracted file is cleaned up once for the whole request by the controller
