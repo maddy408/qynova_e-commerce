@@ -37,9 +37,10 @@ final class ProductImportController
 
         $path = $this->uploadedFilePath();
         $autoCreate = ($_POST['auto_create_masters'] ?? '') === '1';
+        $updateExisting = ($_POST['update_existing'] ?? '') === '1';
 
         try {
-            Response::json($this->importer->preview($path, $autoCreate));
+            Response::json($this->importer->preview($path, $autoCreate, $updateExisting));
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         } finally {
@@ -54,9 +55,10 @@ final class ProductImportController
 
         $path = $this->uploadedFilePath();
         $autoCreate = ($_POST['auto_create_masters'] ?? '') === '1';
+        $updateExisting = ($_POST['update_existing'] ?? '') === '1';
 
         try {
-            Response::json($this->importer->commit($path, $autoCreate, (int) $claims['sub']));
+            Response::json($this->importer->commit($path, $autoCreate, (int) $claims['sub'], $updateExisting));
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         } finally {
@@ -72,9 +74,10 @@ final class ProductImportController
 
         $path = $this->uploadedFilePath();
         $autoCreate = ($_POST['auto_create_masters'] ?? '') === '1';
+        $updateExisting = ($_POST['update_existing'] ?? '') === '1';
 
         try {
-            $result = $this->importer->preview($path, $autoCreate);
+            $result = $this->importer->preview($path, $autoCreate, $updateExisting);
             Response::file($this->importer->errorReport($result['results']), 'product-import-errors.xlsx');
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);

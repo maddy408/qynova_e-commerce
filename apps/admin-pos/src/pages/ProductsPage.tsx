@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { ProductImportExportPanel } from '../components/ProductImportExportPanel'
 import { api, getApiOrigin } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
 import { ROUTES } from '../routes/routes'
@@ -17,14 +18,68 @@ export function ProductsPage() {
   const navigate = useNavigate()
   const [products, setProducts] = useState<ProductListItem[] | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
-
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
+  const [search, setSearch] = useState('')
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  })
+  const [togglingId, setTogglingId] = useState<number | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<ProductListItem | null>(null)
 
-  function load() {
-    api.get('/products', { params: { limit: 100 } }).then((res) => setProducts(res.data.items))
+  function load(p = page, l = limit, s = search) {
+    const params: Record<string, string | number> = { page: p, limit: l }
+    if (s.trim()) params.search = s.trim()
+
+    api.get('/products', { params }).then((res) => {
+      setProducts(res.data.items || res.data.data || [])
+      if (res.data.pagination) {
+        setPagination(res.data.pagination)
+      } else {
+        const total = res.data.total ?? (res.data.items?.length || 0)
+        const totalPages = Math.max(1, Math.ceil(total / l))
+        setPagination({
+          page: p,
+          limit: l,
+          total,
+          totalPages,
+          hasNextPage: p < totalPages,
+          hasPreviousPage: p > 1,
+        })
+      }
+    })
   }
 
-  useEffect(load, [])
+  useEffect(() => {
+    load(page, limit, search)
+  }, [page, limit])
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setPage(1)
+    load(1, limit, search)
+  }
+
+  async function handleToggleActive(p: ProductListItem, e: React.MouseEvent) {
+    e.stopPropagation()
+    const nextStatus = p.is_active ? 0 : 1
+    setTogglingId(p.id)
+    try {
+      await api.put(`/products/${p.id}`, { is_active: nextStatus })
+      setProducts((prev) =>
+        prev ? prev.map((item) => (item.id === p.id ? { ...item, is_active: nextStatus as 0 | 1 } : item)) : null
+      )
+    } catch (err) {
+      console.error('Failed to toggle product status:', err)
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   function handleDelete(p: ProductListItem, e: React.MouseEvent) {
     e.stopPropagation()
@@ -35,8 +90,11 @@ export function ProductsPage() {
     if (!deletingProduct) return
     await api.delete(`/products/${deletingProduct.id}`)
     setDeletingProduct(null)
-    load()
+    load(page, limit, search)
   }
+
+  const startCount = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1
+  const endCount = Math.min(pagination.page * pagination.limit, pagination.total)
 
   return (
     <div className="space-y-6">
@@ -44,7 +102,7 @@ export function ProductsPage() {
         title="Products Catalog"
         description="Manage products, variants, SKUs, pricing, and batch stock."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* View Mode Toggle */}
             <div className="flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-xs font-semibold">
               <button
@@ -67,6 +125,8 @@ export function ProductsPage() {
               </button>
             </div>
 
+            <ProductImportExportPanel onImported={() => load(page, limit, search)} />
+
             <Link to={ROUTES.PRODUCT_NEW}>
               <Button>+ New Product</Button>
             </Link>
@@ -74,11 +134,59 @@ export function ProductsPage() {
         }
       />
 
+      {/* Search and Filters Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--color-border-muted)] bg-white p-3 shadow-2xs">
+        <form onSubmit={handleSearchSubmit} className="flex flex-1 items-center gap-2 max-w-md">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search products by name, code or tags..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary)] focus:outline-hidden"
+          />
+          <Button type="submit" size="sm" variant="secondary">
+            Search
+          </Button>
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('')
+                setPage(1)
+                load(1, limit, '')
+              }}
+              className="text-xs text-slate-400 hover:text-rose-600 font-bold px-1"
+            >
+              ✕
+            </button>
+          )}
+        </form>
+
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+          <span>Show:</span>
+          <select
+            value={limit}
+            onChange={(e) => {
+              const newLimit = Number(e.target.value)
+              setLimit(newLimit)
+              setPage(1)
+            }}
+            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-800 focus:outline-hidden cursor-pointer"
+          >
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>per page</span>
+        </div>
+      </div>
+
       {products === null ? (
         <Spinner />
       ) : products.length === 0 ? (
         <Card>
-          <EmptyState title="No products yet" description="Create your first product to get started." />
+          <EmptyState title="No products found" description="Try adjusting your search filter or add a new product." />
         </Card>
       ) : viewMode === 'grid' ? (
         /* Compact Product Grid List View */
@@ -96,7 +204,9 @@ export function ProductsPage() {
               <div
                 key={p.id}
                 onClick={() => navigate(ROUTES.PRODUCT_DETAIL(p.id))}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--color-border-muted)] bg-white p-3 shadow-2xs hover:shadow-md hover:border-[var(--color-primary)] transition-all cursor-pointer"
+                className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-white p-3 shadow-2xs hover:shadow-md hover:border-[var(--color-primary)] transition-all cursor-pointer ${
+                  p.is_active ? 'border-[var(--color-border-muted)]' : 'border-slate-200 bg-slate-50/60 opacity-80'
+                }`}
               >
                 <div>
                   {/* Thumbnail Image */}
@@ -113,7 +223,7 @@ export function ProductsPage() {
                       </div>
                     )}
                     <span className="absolute top-1.5 right-1.5">
-                      <Badge tone={p.is_active ? 'green' : 'slate'}>{p.is_active ? 'Active' : 'Off'}</Badge>
+                      <Badge tone={p.is_active ? 'green' : 'slate'}>{p.is_active ? 'Active' : 'Deactivated'}</Badge>
                     </span>
                   </div>
 
@@ -142,16 +252,21 @@ export function ProductsPage() {
 
                 {/* Card Actions */}
                 <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  {/* Product Deactivate / Activate Button */}
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(ROUTES.PRODUCT_DETAIL(p.id))
-                    }}
-                    className="text-[11px] font-semibold text-[var(--color-primary)] hover:text-[var(--color-extra-009)]"
+                    disabled={togglingId === p.id}
+                    onClick={(e) => handleToggleActive(p, e)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors cursor-pointer ${
+                      p.is_active
+                        ? 'border-slate-300 text-slate-600 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700'
+                        : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                    title={p.is_active ? 'Click to deactivate product' : 'Click to activate product'}
                   >
-                    View Details →
+                    {togglingId === p.id ? 'Saving…' : p.is_active ? 'Deactivate' : 'Activate'}
                   </button>
+
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -233,7 +348,20 @@ export function ProductsPage() {
                     )}
                   </td>
                   <td className="px-4 py-2.5">
-                    <Badge tone={p.is_active ? 'green' : 'slate'}>{p.is_active ? 'Active' : 'Inactive'}</Badge>
+                    <button
+                      type="button"
+                      disabled={togglingId === p.id}
+                      onClick={(e) => handleToggleActive(p, e)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-colors cursor-pointer ${
+                        p.is_active
+                          ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                          : 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                      title="Click to toggle active / deactivated status"
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${p.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                      <span>{togglingId === p.id ? 'Saving…' : p.is_active ? 'Active' : 'Deactivated'}</span>
+                    </button>
                   </td>
                   <td className="px-4 py-2.5 text-right flex items-center justify-end gap-1.5">
                     <button
@@ -269,6 +397,60 @@ export function ProductsPage() {
             </tbody>
           </table>
         </Card>
+      )}
+
+      {/* Backend Direct Pagination Controls */}
+      {pagination.totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-[var(--color-border-muted)] bg-white p-3 shadow-2xs">
+          <p className="text-xs text-slate-500 font-medium">
+            Showing <strong className="text-slate-800">{startCount}</strong> to{' '}
+            <strong className="text-slate-800">{endCount}</strong> of{' '}
+            <strong className="text-slate-800">{pagination.total}</strong> products
+          </p>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!pagination.hasPreviousPage}
+              onClick={() => setPage(page - 1)}
+            >
+              ← Previous
+            </Button>
+
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === pagination.totalPages || Math.abs(p - page) <= 1)
+              .map((p, idx, arr) => {
+                const prev = arr[idx - 1]
+                const showEllipsis = prev && p - prev > 1
+                return (
+                  <div key={p} className="flex items-center">
+                    {showEllipsis && <span className="px-1 text-slate-400 text-xs">…</span>}
+                    <button
+                      type="button"
+                      onClick={() => setPage(p)}
+                      className={`h-7 w-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        p === page
+                          ? 'bg-[var(--color-primary)] text-white shadow-2xs'
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  </div>
+                )
+              })}
+
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!pagination.hasNextPage}
+              onClick={() => setPage(page + 1)}
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog
