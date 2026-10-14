@@ -16,6 +16,17 @@ use App\Tests\TestDbGuard;
 $pdo = db();
 TestDbGuard::assertTestDatabase($pdo, __FILE__);
 
+function countUploadedProductFiles(): int
+{
+    return count(glob(__DIR__ . '/../public/uploads/products/*.webp') ?: []);
+}
+
+// Captured before any work starts so the very last assertion in this
+// file can catch ANY net-new file left behind by the whole suite — a
+// single authoritative orphan check instead of trusting every
+// individual group's own manual @unlink() calls to be complete.
+$initialUploadedFileCount = countUploadedProductFiles();
+
 echo "======================================================================\n";
 echo "TASK T26: PRODUCT EXCEL IMPORT/EXPORT TEST SUITE\n";
 echo "Database: unified_pos_test\n";
@@ -489,8 +500,8 @@ $noZipRow = array_merge($baseRow, [
 $noZipSheetPath = $tmpDir . '/t26-nozip-' . $uid . '.xlsx';
 writeImportSheet($noZipSheetPath, [$noZipRow]);
 $noZipResult = $importer->preview($noZipSheetPath, true, false, null);
-assertTest('Filename image cell with no images ZIP attached fails cleanly, naming the missing ZIP',
-    $noZipResult['failed_rows'] === 1 && str_contains($noZipResult['errors'][0]['reason'], 'no images ZIP was uploaded'),
+assertTest('Filename image cell with no images ZIP attached fails cleanly with the spec-exact message',
+    $noZipResult['failed_rows'] === 1 && $noZipResult['errors'][0]['reason'] === 'Product image filenames are present in Excel, but no Product Images ZIP was uploaded.',
     json_encode($noZipResult['errors']));
 @unlink($noZipSheetPath);
 
@@ -511,6 +522,147 @@ assertTest('Filename not present inside an otherwise-valid ZIP fails cleanly, na
 $zipExtractor->cleanup($zipImagesDir2);
 @unlink($missingSheetPath);
 @unlink($zipPath);
+
+// ---------------------------------------------------------------------
+// GROUP 13: preview never persists real files; image_summary aggregate;
+// orphan cleanup when a row fails AFTER its image was already written;
+// case-insensitive zip filename matching.
+// ---------------------------------------------------------------------
+echo "\n-- Preview never writes real files / image_summary / orphan cleanup / case-insensitive match --\n";
+
+// 13a: preview with a real image URL must not write anything to disk
+$previewImgRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Preview No Write ' . $uid,
+    'Product Code' => 'T26-PREVIEWIMG-' . $uid,
+    'Variant SKU' => 'T26-PREVIEWIMG-SKU-' . $uid,
+    'Product Images' => 'https://httpbin.org/image/jpeg',
+]);
+$previewImgSheetPath = $tmpDir . '/t26-previewimg-' . $uid . '.xlsx';
+writeImportSheet($previewImgSheetPath, [$previewImgRow]);
+$beforeCount = countUploadedProductFiles();
+$previewImgResult = $importer->preview($previewImgSheetPath, true, false);
+$afterCount = countUploadedProductFiles();
+if ($previewImgResult['successful_rows'] === 1) {
+    assertTest('Preview with an image URL validates successfully but writes NO file to disk', $afterCount === $beforeCount, "{$beforeCount} -> {$afterCount}");
+} else {
+    echo "  [SKIP] Preview-no-write check row failed (" . ($previewImgResult['errors'][0]['reason'] ?? 'unknown') . ") — likely no outbound network right now.\n";
+}
+assertTest('image_summary key is present on a preview() result', array_key_exists('image_summary', $previewImgResult));
+@unlink($previewImgSheetPath);
+
+// 13b: image_summary found/missing aggregate across a mixed file (one resolvable, one missing)
+$mixedZipPath = $tmpDir . '/t26-mixed-' . $uid . '.zip';
+$mixedZa = new ZipArchive();
+$mixedZa->open($mixedZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$mixedZa->addFromString('present-image.jpg', $pngBytes);
+$mixedZa->close();
+$mixedImagesDir = $zipExtractor->extract($mixedZipPath);
+
+$foundRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Mixed Found ' . $uid,
+    'Product Code' => 'T26-MIXED-FOUND-' . $uid,
+    'Variant SKU' => 'T26-MIXED-FOUND-SKU-' . $uid,
+    'Product Images' => 'present-image.jpg',
+]);
+$missingRow2 = array_merge($baseRow, [
+    'Product Name' => 'T26 Mixed Missing ' . $uid,
+    'Product Code' => 'T26-MIXED-MISSING-' . $uid,
+    'Variant SKU' => 'T26-MIXED-MISSING-SKU-' . $uid,
+    'Product Images' => 'absent-image.jpg',
+]);
+$mixedSheetPath = $tmpDir . '/t26-mixed-sheet-' . $uid . '.xlsx';
+writeImportSheet($mixedSheetPath, [$foundRow, $missingRow2]);
+$mixedResult = $importer->preview($mixedSheetPath, true, false, $mixedImagesDir);
+assertTest('Mixed file: one row succeeds, one fails on the missing image', $mixedResult['successful_rows'] === 1 && $mixedResult['failed_rows'] === 1, json_encode($mixedResult));
+assertTest('image_summary.product_images_found contains the resolvable filename', in_array('present-image.jpg', $mixedResult['image_summary']['product_images_found'], true), json_encode($mixedResult['image_summary']));
+assertTest('image_summary.product_images_missing contains the unresolvable filename', in_array('absent-image.jpg', $mixedResult['image_summary']['product_images_missing'], true), json_encode($mixedResult['image_summary']));
+// This was preview() (dry run) — nothing should have been persisted at
+// all (no DB row, no file), consistent with 13a above; nothing to clean.
+$foundProductId = (int) $pdo->query("SELECT id FROM products WHERE product_code = 'T26-MIXED-FOUND-{$uid}'")->fetchColumn();
+assertTest('preview() left no product row behind either (whole transaction rolled back)', $foundProductId === 0);
+$zipExtractor->cleanup($mixedImagesDir);
+@unlink($mixedSheetPath);
+@unlink($mixedZipPath);
+
+// 13c: a row whose image IS written, but a LATER field in the same row
+// then fails (negative Low Stock Threshold) — the already-written image
+// file must be deleted, not left orphaned, when the row rolls back.
+$orphanZipPath = $tmpDir . '/t26-orphan-' . $uid . '.zip';
+$orphanZa = new ZipArchive();
+$orphanZa->open($orphanZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$orphanZa->addFromString('orphan-test.jpg', $pngBytes);
+$orphanZa->close();
+$orphanImagesDir = $zipExtractor->extract($orphanZipPath);
+
+$orphanRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Orphan Cleanup ' . $uid,
+    'Product Code' => 'T26-ORPHAN-' . $uid,
+    'Variant SKU' => 'T26-ORPHAN-SKU-' . $uid,
+    'Variant Images' => 'orphan-test.jpg', // written by createVariant()'s maybeImportVariantImages, the LAST step inside createVariant
+    'Low Stock Threshold' => '-5', // processRow applies this AFTER createVariant() returns -> throws -> row rolls back
+]);
+$orphanSheetPath = $tmpDir . '/t26-orphan-sheet-' . $uid . '.xlsx';
+// Written directly via PhpSpreadsheet (bypassing Spreadsheet::writeRows'
+// formula-injection guard) so the cell holds a genuine numeric -5, the
+// same as a real Excel file typed by a human — the guard's own
+// leading-apostrophe rule would otherwise turn "-5" into "'-5" here,
+// which is no longer is_numeric() and would silently skip the
+// threshold update this test exists to trigger.
+$orphanWorkbook = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+$orphanSheet = $orphanWorkbook->getActiveSheet();
+foreach (ProductImportService::HEADERS as $colIndex => $header) {
+    $orphanSheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1) . '1', $header);
+    $orphanSheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1) . '2', $orphanRow[$header] ?? '');
+}
+(new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($orphanWorkbook))->save($orphanSheetPath);
+$beforeOrphanCount = countUploadedProductFiles();
+$orphanResult = $importer->commit($orphanSheetPath, true, $cashierUserId, false, $orphanImagesDir);
+$afterOrphanCount = countUploadedProductFiles();
+assertTest('Row with a negative Low Stock Threshold (applied after the image write) fails', $orphanResult['failed_rows'] === 1 && str_contains($orphanResult['errors'][0]['reason'], 'negative'), json_encode($orphanResult['errors']));
+assertTest('The image written earlier in that same failed row was cleaned up — no orphan left on disk', $afterOrphanCount === $beforeOrphanCount, "{$beforeOrphanCount} -> {$afterOrphanCount}");
+$orphanVariantExists = (int) $pdo->query("SELECT COUNT(*) FROM product_variants WHERE sku = 'T26-ORPHAN-SKU-{$uid}'")->fetchColumn();
+assertTest('The variant row itself was also rolled back (SAVEPOINT), not just the image', $orphanVariantExists === 0, (string) $orphanVariantExists);
+$zipExtractor->cleanup($orphanImagesDir);
+@unlink($orphanSheetPath);
+@unlink($orphanZipPath);
+
+// 13d: case-insensitive filename matching, extension/case preserved from the real file on disk
+$caseZipPath = $tmpDir . '/t26-case-' . $uid . '.zip';
+$caseZa = new ZipArchive();
+$caseZa->open($caseZipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$caseZa->addFromString('Front.JPG', $pngBytes); // stored with mixed case + uppercase extension
+$caseZa->close();
+$caseImagesDir = $zipExtractor->extract($caseZipPath);
+
+$caseRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Case Insensitive ' . $uid,
+    'Product Code' => 'T26-CASE-' . $uid,
+    'Variant SKU' => 'T26-CASE-SKU-' . $uid,
+    'Product Images' => 'front.jpg', // lowercase in Excel — must still match "Front.JPG" in the zip
+]);
+$caseSheetPath = $tmpDir . '/t26-case-sheet-' . $uid . '.xlsx';
+writeImportSheet($caseSheetPath, [$caseRow]);
+$caseResult = $importer->commit($caseSheetPath, true, $cashierUserId, false, $caseImagesDir);
+assertTest('Lowercase Excel filename matches a differently-cased file in the ZIP', $caseResult['successful_rows'] === 1, json_encode($caseResult['errors']));
+$caseProductId = (int) $pdo->query("SELECT id FROM products WHERE product_code = 'T26-CASE-{$uid}'")->fetchColumn();
+$caseImage = $pdo->query("SELECT image_path, thumb_path FROM product_images WHERE product_id = {$caseProductId}")->fetch();
+assertTest('Case-insensitively matched image was stored as local WebP', $caseImage !== false && str_ends_with($caseImage['image_path'], '.webp'), json_encode($caseImage));
+if ($caseImage !== false) {
+    @unlink(__DIR__ . '/../public/' . $caseImage['image_path']);
+    @unlink(__DIR__ . '/../public/' . $caseImage['thumb_path']);
+}
+$zipExtractor->cleanup($caseImagesDir);
+@unlink($caseSheetPath);
+@unlink($caseZipPath);
+
+// Authoritative, whole-suite orphan check — every group above cleans up
+// after itself individually, but this is the one check that actually
+// catches a leak regardless of which group's manual cleanup was wrong.
+assertTest(
+    'The entire suite left no net-new uploaded image files behind',
+    countUploadedProductFiles() === $initialUploadedFileCount,
+    "{$initialUploadedFileCount} -> " . countUploadedProductFiles()
+);
 
 echo "\n======================================================================\n";
 echo "RESULTS: {$passed} passed, {$failed} failed\n";
