@@ -70,8 +70,24 @@ final class Spreadsheet
      */
     public static function writeRows(string $outputPath, array $headers, array $rows): void
     {
+        self::writeRowsWithInstructions($outputPath, $headers, $rows, null);
+    }
+
+    /**
+     * Same as writeRows(), but when $instructions is non-null a second
+     * "Instructions" sheet is appended — used for the import sample
+     * template (spec: "a separate sheet for instructions and supported
+     * values").
+     *
+     * @param list<string> $headers
+     * @param list<array<string, mixed>> $rows
+     * @param list<string>|null $instructions plain lines, one per row
+     */
+    public static function writeRowsWithInstructions(string $outputPath, array $headers, array $rows, ?array $instructions): void
+    {
         $workbook = new PhpSpreadsheetWorkbook();
         $sheet = $workbook->getActiveSheet();
+        $sheet->setTitle('Products');
 
         foreach ($headers as $colIndex => $header) {
             $sheet->setCellValue(Coordinate::stringFromColumnIndex($colIndex + 1) . '1', $header);
@@ -80,8 +96,18 @@ final class Spreadsheet
         foreach ($rows as $rowIndex => $row) {
             foreach ($headers as $colIndex => $header) {
                 $cell = Coordinate::stringFromColumnIndex($colIndex + 1) . (string) ($rowIndex + 2);
-                $sheet->setCellValue($cell, $row[$header] ?? '');
+                $sheet->setCellValueExplicit($cell, self::sanitizeCell($row[$header] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             }
+        }
+
+        if ($instructions !== null) {
+            $instructionSheet = $workbook->createSheet();
+            $instructionSheet->setTitle('Instructions');
+            foreach ($instructions as $i => $line) {
+                $instructionSheet->setCellValueExplicit('A' . ($i + 1), self::sanitizeCell($line), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            }
+            $instructionSheet->getColumnDimension('A')->setWidth(110);
+            $workbook->setActiveSheetIndex(0);
         }
 
         $dir = dirname($outputPath);
@@ -90,5 +116,22 @@ final class Spreadsheet
         }
 
         (new Xlsx($workbook))->save($outputPath);
+    }
+
+    /**
+     * Spreadsheet-formula-injection guard (OWASP CSV injection): a cell
+     * whose content starts with =, +, -, @, tab or CR is prefixed with a
+     * leading apostrophe so Excel/LibreOffice render it as literal text
+     * instead of evaluating it as a formula when the file is opened.
+     */
+    private static function sanitizeCell(mixed $value): string
+    {
+        $value = (string) $value;
+
+        if ($value !== '' && str_contains("=+-@\t\r", $value[0])) {
+            return "'" . $value;
+        }
+
+        return $value;
     }
 }
