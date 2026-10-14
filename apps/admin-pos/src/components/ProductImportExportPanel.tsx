@@ -45,11 +45,13 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
   const { toasts, push, dismiss } = useToasts()
   const [modalOpen, setModalOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [imagesZip, setImagesZip] = useState<File | null>(null)
   const [autoCreate, setAutoCreate] = useState(false)
   const [updateExisting, setUpdateExisting] = useState(false)
   const [preview, setPreview] = useState<ImportResult | null>(null)
   const [committedResult, setCommittedResult] = useState<ImportResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const imagesZipInputRef = useRef<HTMLInputElement | null>(null)
 
   const templateGuard = useDoubleSubmitGuard()
   const exportGuard = useDoubleSubmitGuard()
@@ -59,11 +61,13 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
 
   function resetModal() {
     setFile(null)
+    setImagesZip(null)
     setPreview(null)
     setCommittedResult(null)
     setAutoCreate(false)
     setUpdateExisting(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (imagesZipInputRef.current) imagesZipInputRef.current.value = ''
   }
 
   function closeModal() {
@@ -96,6 +100,9 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
     formData.append('file', file as File)
     formData.append('auto_create_masters', autoCreate ? '1' : '0')
     formData.append('update_existing', updateExisting ? '1' : '0')
+    if (imagesZip) {
+      formData.append('images_zip', imagesZip)
+    }
     return formData
   }
 
@@ -173,6 +180,28 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
               {file && (
                 <p className="mt-1 text-[11px] text-slate-500">
                   {file.name} · {(file.size / 1024).toFixed(1)} KB
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-800">
+                Images ZIP (optional — only if the Product Images / Variant Images columns hold filenames, not http(s) URLs)
+              </label>
+              <input
+                ref={imagesZipInputRef}
+                type="file"
+                accept=".zip"
+                onChange={(e) => {
+                  setImagesZip(e.target.files?.[0] ?? null)
+                  setPreview(null)
+                  setCommittedResult(null)
+                }}
+                className="block w-full text-xs text-slate-700 file:mr-3 file:rounded-full file:border-0 file:bg-slate-700 file:px-4 file:py-2 file:text-xs file:font-bold file:text-white"
+              />
+              {imagesZip && (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {imagesZip.name} · {(imagesZip.size / 1024).toFixed(1)} KB
                 </p>
               )}
             </div>
