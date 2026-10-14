@@ -132,18 +132,18 @@ $baseRow = [
     'Description' => '', 'Short Description' => '', 'Material' => '',
     'Unit' => '', 'HSN Code' => '', 'Tax' => '', 'Tax Type' => '',
     'Manufacturer' => '', 'Manufacturing Date' => '', 'Expiry Date' => '',
-    'Product Images' => '',
+    'Product Image Path' => '',
     'Variant SKU' => 'T26-SKU-A-' . $uid,
     'Variant Barcode' => '',
     'Variant Description' => '', 'Size' => 'L', 'Color' => 'Red',
     'MRP' => '500', 'Selling Price' => '450', 'Variant Cost Price' => '300',
-    'Variant Stock' => '20', 'Low Stock Threshold' => '4',
-    'Variant Images' => '', 'Status' => 'ACTIVE',
+    'Opening Stock' => '20', 'Low Stock Threshold' => '4',
+    'Variant Image Path' => '', 'Status' => 'ACTIVE',
 ];
 $row2 = array_merge($baseRow, [
     'Variant SKU' => 'T26-SKU-B-' . $uid,
     'Size' => 'XL', 'Color' => 'Blue',
-    'MRP' => '520', 'Selling Price' => '470', 'Variant Stock' => '10', 'Low Stock Threshold' => '3',
+    'MRP' => '520', 'Selling Price' => '470', 'Opening Stock' => '10', 'Low Stock Threshold' => '3',
 ]);
 writeImportSheet($sheetPath, [$baseRow, $row2]);
 
@@ -169,14 +169,14 @@ assertTest('Exactly one OPENING_STOCK movement recorded for variant A', $movemen
 // resolve through the real WebP pipeline, not a raw URL string; a
 // repeat import of the same product never duplicates the image rows.
 // ---------------------------------------------------------------------
-echo "\n-- Import with Product Images / Variant Images (live network) --\n";
+echo "\n-- Import with Product Image Path / Variant Image Path (live network) --\n";
 $imageProductCode = 'T26-IMG-' . $uid;
 $imageRow = array_merge($baseRow, [
     'Product Name' => 'T26 Image Test Product ' . $uid,
     'Product Code' => $imageProductCode,
     'Variant SKU' => 'T26-IMG-SKU-' . $uid,
-    'Product Images' => 'https://httpbin.org/image/jpeg, https://httpbin.org/image/png',
-    'Variant Images' => 'https://httpbin.org/image/webp',
+    'Product Image Path' => 'https://httpbin.org/image/jpeg, https://httpbin.org/image/png',
+    'Variant Image Path' => 'https://httpbin.org/image/webp',
 ]);
 $imageSheetPath = $tmpDir . '/t26-images-' . $uid . '.xlsx';
 writeImportSheet($imageSheetPath, [$imageRow]);
@@ -240,7 +240,7 @@ assertTest('Stock was NOT double-counted by the rejected re-import', $stockAStil
 // ---------------------------------------------------------------------
 echo "\n-- Preview is a dry run --\n";
 $previewSheetPath = $tmpDir . '/t26-preview-' . $uid . '.xlsx';
-$newSkuRow = array_merge($baseRow, ['Variant SKU' => 'T26-PREVIEW-ONLY-' . $uid, 'Product Code' => $productCode, 'Variant Stock' => '5']);
+$newSkuRow = array_merge($baseRow, ['Variant SKU' => 'T26-PREVIEW-ONLY-' . $uid, 'Product Code' => $productCode, 'Opening Stock' => '5']);
 writeImportSheet($previewSheetPath, [$newSkuRow]);
 $previewResult = $importer->preview($previewSheetPath, true, false);
 assertTest('Preview reports success for a well-formed new-SKU row', $previewResult['successful_rows'] === 1);
@@ -256,12 +256,12 @@ echo "\n-- Re-import with update_existing=true --\n";
 $updateRow = array_merge($baseRow, [
     'Variant SKU' => 'T26-SKU-A-' . $uid,
     'Selling Price' => '399',      // price change
-    'Variant Stock' => '35',       // 20 -> 35, expect a +15 diff movement, not a reset
+    'Opening Stock' => '35',       // 20 -> 35, expect a +15 diff movement, not a reset
     'Low Stock Threshold' => '8',
     'Status' => 'ACTIVE',
 ]);
 $updateRow2 = array_merge($row2, [
-    'Variant Stock' => '',         // BLANK — must NOT touch variant B's stock
+    'Opening Stock' => '',         // BLANK — must NOT touch variant B's stock
 ]);
 $updateSheetPath = $tmpDir . '/t26-update-' . $uid . '.xlsx';
 writeImportSheet($updateSheetPath, [$updateRow, $updateRow2]);
@@ -283,7 +283,7 @@ $thresholdAfter = (float) $pdo->query("SELECT low_stock_threshold FROM inventory
 assertTest('Variant A low stock threshold updated to 8', $thresholdAfter === 8.0, (string) $thresholdAfter);
 
 $stockBAfter = (float) $pdo->query("SELECT on_hand FROM inventory WHERE variant_id = {$variantBId}")->fetchColumn();
-assertTest('Variant B stock untouched by a blank Variant Stock cell (still ' . $stockBBefore . ')', $stockBAfter === $stockBBefore, "{$stockBBefore} -> {$stockBAfter}");
+assertTest('Variant B stock untouched by a blank Opening Stock cell (still ' . $stockBBefore . ')', $stockBAfter === $stockBBefore, "{$stockBBefore} -> {$stockBAfter}");
 
 // ---------------------------------------------------------------------
 // GROUP 7: re-committing the IDENTICAL update file again must not
@@ -359,7 +359,7 @@ $sdRow = array_merge($baseRow, [
     'Product Code' => $sdCode,
     'Variant SKU' => $sdSku,
     'Variant Barcode' => 'T26-SD-BARCODE-' . $uid,
-    'Variant Stock' => '7',
+    'Opening Stock' => '7',
 ]);
 $sdSheetPath = $tmpDir . '/t26-softdelete-' . $uid . '.xlsx';
 writeImportSheet($sdSheetPath, [$sdRow]);
@@ -467,8 +467,8 @@ $zipRow = array_merge($baseRow, [
     'Product Name' => 'T26 Zip Image Product ' . $uid,
     'Product Code' => $zipProductCode,
     'Variant SKU' => 'T26-ZIP-SKU-' . $uid,
-    'Product Images' => 'zip-main.jpg',
-    'Variant Images' => 'zip-variant.jpg',
+    'Product Image Path' => 'zip-main.jpg',
+    'Variant Image Path' => 'zip-variant.jpg',
 ]);
 $zipSheetPath = $tmpDir . '/t26-zip-import-' . $uid . '.xlsx';
 writeImportSheet($zipSheetPath, [$zipRow]);
@@ -495,7 +495,7 @@ $noZipRow = array_merge($baseRow, [
     'Product Name' => 'T26 No Zip Product ' . $uid,
     'Product Code' => 'T26-NOZIP-' . $uid,
     'Variant SKU' => 'T26-NOZIP-SKU-' . $uid,
-    'Product Images' => 'some-file.jpg',
+    'Product Image Path' => 'some-file.jpg',
 ]);
 $noZipSheetPath = $tmpDir . '/t26-nozip-' . $uid . '.xlsx';
 writeImportSheet($noZipSheetPath, [$noZipRow]);
@@ -511,7 +511,7 @@ $missingRow = array_merge($baseRow, [
     'Product Name' => 'T26 Missing In Zip Product ' . $uid,
     'Product Code' => 'T26-MISSING-' . $uid,
     'Variant SKU' => 'T26-MISSING-SKU-' . $uid,
-    'Product Images' => 'does-not-exist-in-zip.jpg',
+    'Product Image Path' => 'does-not-exist-in-zip.jpg',
 ]);
 $missingSheetPath = $tmpDir . '/t26-missing-' . $uid . '.xlsx';
 writeImportSheet($missingSheetPath, [$missingRow]);
@@ -535,7 +535,7 @@ $previewImgRow = array_merge($baseRow, [
     'Product Name' => 'T26 Preview No Write ' . $uid,
     'Product Code' => 'T26-PREVIEWIMG-' . $uid,
     'Variant SKU' => 'T26-PREVIEWIMG-SKU-' . $uid,
-    'Product Images' => 'https://httpbin.org/image/jpeg',
+    'Product Image Path' => 'https://httpbin.org/image/jpeg',
 ]);
 $previewImgSheetPath = $tmpDir . '/t26-previewimg-' . $uid . '.xlsx';
 writeImportSheet($previewImgSheetPath, [$previewImgRow]);
@@ -562,13 +562,13 @@ $foundRow = array_merge($baseRow, [
     'Product Name' => 'T26 Mixed Found ' . $uid,
     'Product Code' => 'T26-MIXED-FOUND-' . $uid,
     'Variant SKU' => 'T26-MIXED-FOUND-SKU-' . $uid,
-    'Product Images' => 'present-image.jpg',
+    'Product Image Path' => 'present-image.jpg',
 ]);
 $missingRow2 = array_merge($baseRow, [
     'Product Name' => 'T26 Mixed Missing ' . $uid,
     'Product Code' => 'T26-MIXED-MISSING-' . $uid,
     'Variant SKU' => 'T26-MIXED-MISSING-SKU-' . $uid,
-    'Product Images' => 'absent-image.jpg',
+    'Product Image Path' => 'absent-image.jpg',
 ]);
 $mixedSheetPath = $tmpDir . '/t26-mixed-sheet-' . $uid . '.xlsx';
 writeImportSheet($mixedSheetPath, [$foundRow, $missingRow2]);
@@ -598,7 +598,7 @@ $orphanRow = array_merge($baseRow, [
     'Product Name' => 'T26 Orphan Cleanup ' . $uid,
     'Product Code' => 'T26-ORPHAN-' . $uid,
     'Variant SKU' => 'T26-ORPHAN-SKU-' . $uid,
-    'Variant Images' => 'orphan-test.jpg', // written by createVariant()'s maybeImportVariantImages, the LAST step inside createVariant
+    'Variant Image Path' => 'orphan-test.jpg', // written by createVariant()'s maybeImportVariantImages, the LAST step inside createVariant
     'Low Stock Threshold' => '-5', // processRow applies this AFTER createVariant() returns -> throws -> row rolls back
 ]);
 $orphanSheetPath = $tmpDir . '/t26-orphan-sheet-' . $uid . '.xlsx';
@@ -638,7 +638,7 @@ $caseRow = array_merge($baseRow, [
     'Product Name' => 'T26 Case Insensitive ' . $uid,
     'Product Code' => 'T26-CASE-' . $uid,
     'Variant SKU' => 'T26-CASE-SKU-' . $uid,
-    'Product Images' => 'front.jpg', // lowercase in Excel — must still match "Front.JPG" in the zip
+    'Product Image Path' => 'front.jpg', // lowercase in Excel — must still match "Front.JPG" in the zip
 ]);
 $caseSheetPath = $tmpDir . '/t26-case-sheet-' . $uid . '.xlsx';
 writeImportSheet($caseSheetPath, [$caseRow]);

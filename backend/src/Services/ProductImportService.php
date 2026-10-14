@@ -33,7 +33,7 @@ use RuntimeException;
  * the current on-hand quantity (never a raw "set"), and a blank stock
  * cell never touches existing stock — see updateVariant().
  *
- * Images: "Product Images" / "Variant Images" cells hold one or more
+ * Images: "Product Image Path" / "Variant Image Path" cells hold one or more
  * comma-separated URLs (first = primary/main image). Each URL is
  * downloaded through SafeImageFetcher (SSRF-guarded: public hosts only,
  * no redirects, size-capped, MIME re-sniffed) and then run through the
@@ -51,10 +51,10 @@ final class ProductImportService
     public const HEADERS = [
         'Product Name', 'Product Code', 'Category', 'Subcategory', 'Brand',
         'Description', 'Short Description', 'Material', 'Unit', 'HSN Code', 'Tax', 'Tax Type',
-        'Manufacturer', 'Manufacturing Date', 'Expiry Date', 'Product Images',
+        'Manufacturer', 'Manufacturing Date', 'Expiry Date', 'Product Image Path',
         'Variant SKU', 'Variant Barcode', 'Variant Description', 'Size', 'Color',
-        'MRP', 'Selling Price', 'Variant Cost Price', 'Variant Stock', 'Low Stock Threshold',
-        'Variant Images', 'Status',
+        'MRP', 'Selling Price', 'Variant Cost Price', 'Opening Stock', 'Low Stock Threshold',
+        'Variant Image Path', 'Status',
     ];
 
     private readonly ImageUploadService $uploader;
@@ -227,7 +227,7 @@ final class ProductImportService
                 ?? $this->createProduct($row, $productName, $productCode, $autoCreateMasters);
             $productIdByGroupKey[$groupKey] = $productId;
 
-            $this->maybeImportProductImages(trim($row['Product Images'] ?? ''), $productId, $imagesDir, $persistImages, $imageStats);
+            $this->maybeImportProductImages(trim($row['Product Image Path'] ?? ''), $productId, $imagesDir, $persistImages, $imageStats);
         }
 
         $existingVariantId = $this->findVariantBySku($sku);
@@ -242,7 +242,7 @@ final class ProductImportService
             $this->assertBarcodeFree($barcode, null);
             $variantId = $this->createVariant($row, $productId, $sku, $barcode, (float) $mrp, (float) $sellingPrice, $autoCreateMasters, $imagesDir, $persistImages, $imageStats);
 
-            $stockRaw = trim($row['Variant Stock'] ?? '');
+            $stockRaw = trim($row['Opening Stock'] ?? '');
             if ($stockRaw !== '' && is_numeric($stockRaw) && (float) $stockRaw > 0 && $userId !== null) {
                 $this->inventory->apply(
                     variantId: $variantId,
@@ -452,7 +452,7 @@ final class ProductImportService
         $this->pdo->prepare('INSERT INTO inventory (variant_id, product_id, on_hand, reserved) VALUES (:v, :p, 0, 0)')
             ->execute(['v' => $variantId, 'p' => $productId]);
 
-        $this->maybeImportVariantImages(trim($row['Variant Images'] ?? ''), $variantId, $imagesDir, $persistImages, $imageStats);
+        $this->maybeImportVariantImages(trim($row['Variant Image Path'] ?? ''), $variantId, $imagesDir, $persistImages, $imageStats);
 
         return $variantId;
     }
@@ -462,7 +462,7 @@ final class ProductImportService
      * variant (only reached when $updateExisting was requested). Price,
      * barcode, description and status are replaced outright; stock is
      * reconciled as a difference against the current on-hand quantity so
-     * a blank "Variant Stock" cell never resets existing stock to zero,
+     * a blank "Opening Stock" cell never resets existing stock to zero,
      * and re-submitting the identical file never double-applies the
      * difference (idempotency key is derived from the file's own
      * content hash, not just the variant id).
@@ -509,7 +509,7 @@ final class ProductImportService
 
         $this->pdo->prepare('UPDATE product_variants SET ' . implode(', ', $sets) . ' WHERE id = :id')->execute($params);
 
-        $stockRaw = trim($row['Variant Stock'] ?? '');
+        $stockRaw = trim($row['Opening Stock'] ?? '');
         if ($stockRaw !== '' && is_numeric($stockRaw) && $userId !== null) {
             $currentStmt = $this->pdo->prepare('SELECT on_hand FROM inventory WHERE variant_id = :id');
             $currentStmt->execute(['id' => $variantId]);
@@ -540,7 +540,7 @@ final class ProductImportService
             $this->inventory->setLowStockThreshold($variantId, (string) $lowStock);
         }
 
-        $this->maybeImportVariantImages(trim($row['Variant Images'] ?? ''), $variantId, $imagesDir, $persistImages, $imageStats);
+        $this->maybeImportVariantImages(trim($row['Variant Image Path'] ?? ''), $variantId, $imagesDir, $persistImages, $imageStats);
 
         return $variantId;
     }
