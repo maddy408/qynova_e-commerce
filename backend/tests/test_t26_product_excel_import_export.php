@@ -328,6 +328,81 @@ assertTest('First row with a fresh barcode succeeds, second row with the SAME ba
 @unlink($sheetPath);
 @unlink($updateSheetPath);
 
+// ---------------------------------------------------------------------
+// GROUP 11: re-importing a file after its product/variant was soft-
+// deleted — regression for a real bug found in production use: the
+// product_code/sku/barcode unique keys are plain (not partial) indexes,
+// so a soft-deleted row still occupies them; findExistingProduct()/
+// findVariantBySku()/assertBarcodeFree() used to filter on
+// "deleted_at IS NULL", so they'd miss the soft-deleted row and the
+// subsequent raw INSERT would crash with an uncaught
+// "Duplicate entry ... for key uq_products_product_code" SQL error
+// instead of a clean, actionable row error.
+// ---------------------------------------------------------------------
+echo "\n-- Re-import after soft-delete (regression) --\n";
+$sdCode = 'T26-SD-' . $uid;
+$sdSku = 'T26-SD-SKU-' . $uid;
+$sdRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Soft Delete Product ' . $uid,
+    'Product Code' => $sdCode,
+    'Variant SKU' => $sdSku,
+    'Variant Barcode' => 'T26-SD-BARCODE-' . $uid,
+    'Variant Stock' => '7',
+]);
+$sdSheetPath = $tmpDir . '/t26-softdelete-' . $uid . '.xlsx';
+writeImportSheet($sdSheetPath, [$sdRow]);
+$sdResult1 = $importer->commit($sdSheetPath, true, $cashierUserId);
+assertTest('Soft-delete regression: initial import succeeds', $sdResult1['successful_rows'] === 1, json_encode($sdResult1['errors']));
+
+$sdProductId = (int) $pdo->query("SELECT id FROM products WHERE product_code = '{$sdCode}'")->fetchColumn();
+$sdVariantId = (int) $pdo->query("SELECT id FROM product_variants WHERE sku = '{$sdSku}'")->fetchColumn();
+
+// Soft-delete both, exactly as the admin UI's "Delete Product" would.
+$pdo->exec("UPDATE products SET deleted_at = NOW() WHERE id = {$sdProductId}");
+$pdo->exec("UPDATE product_variants SET deleted_at = NOW() WHERE id = {$sdVariantId}");
+
+// Re-importing the identical file WITHOUT update_existing must fail
+// cleanly (not crash) — the code/SKU truly already exist, deleted or not.
+$sdResult2 = $importer->preview($sdSheetPath, true, false);
+assertTest('Re-import after soft-delete, update_existing=false: rejected with a clean row error (not a raw SQL crash)',
+    $sdResult2['failed_rows'] === 1 && str_contains($sdResult2['errors'][0]['reason'], 'SKU already exists'),
+    json_encode($sdResult2['errors']));
+
+// With update_existing=true, the product AND the variant must be
+// reactivated and reused, not left broken and not duplicated.
+$sdResult3 = $importer->commit($sdSheetPath, true, $cashierUserId, true);
+assertTest('Re-import after soft-delete, update_existing=true: succeeds', $sdResult3['successful_rows'] === 1, json_encode($sdResult3['errors']));
+
+$sdProductDeletedAt = $pdo->query("SELECT deleted_at FROM products WHERE id = {$sdProductId}")->fetchColumn();
+assertTest('Soft-deleted product was reactivated (deleted_at cleared)', $sdProductDeletedAt === null);
+$sdVariantDeletedAt = $pdo->query("SELECT deleted_at FROM product_variants WHERE id = {$sdVariantId}")->fetchColumn();
+assertTest('Soft-deleted variant was reactivated (deleted_at cleared)', $sdVariantDeletedAt === null);
+$sdProductCount = (int) $pdo->query("SELECT COUNT(*) FROM products WHERE product_code = '{$sdCode}'")->fetchColumn();
+assertTest('No duplicate product row was created for the same code', $sdProductCount === 1, (string) $sdProductCount);
+$sdVariantCount = (int) $pdo->query("SELECT COUNT(*) FROM product_variants WHERE sku = '{$sdSku}'")->fetchColumn();
+assertTest('No duplicate variant row was created for the same SKU', $sdVariantCount === 1, (string) $sdVariantCount);
+
+// A barcode held by a soft-deleted DIFFERENT variant must still be
+// reported as a clean conflict, not silently reused and not a crash.
+$otherSdSku = 'T26-SD-OTHER-SKU-' . $uid;
+$pdo->exec("INSERT INTO products (name, slug, product_code) VALUES ('T26 SD Other', 't26-sd-other-{$uid}', NULL)");
+$otherProductId = (int) $pdo->lastInsertId();
+$pdo->exec("INSERT INTO product_variants (product_id, sku, barcode, mrp, retail_price, deleted_at) VALUES ({$otherProductId}, '{$otherSdSku}', 'T26-SD-CONFLICT-BARCODE-{$uid}', 100, 90, NOW())");
+$conflictRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Barcode Conflict Product ' . $uid,
+    'Product Code' => 'T26-SD-CONFLICT-' . $uid,
+    'Variant SKU' => 'T26-SD-CONFLICT-SKU-' . $uid,
+    'Variant Barcode' => "T26-SD-CONFLICT-BARCODE-{$uid}",
+]);
+$conflictSheetPath = $tmpDir . '/t26-barcode-conflict-' . $uid . '.xlsx';
+writeImportSheet($conflictSheetPath, [$conflictRow]);
+$conflictResult = $importer->preview($conflictSheetPath, true, false);
+assertTest('A barcode held by an unrelated soft-deleted variant is still reported as a clean conflict, not a crash',
+    $conflictResult['failed_rows'] === 1 && str_contains($conflictResult['errors'][0]['reason'], 'Barcode already exists'),
+    json_encode($conflictResult['errors']));
+@unlink($conflictSheetPath);
+@unlink($sdSheetPath);
+
 echo "\n======================================================================\n";
 echo "RESULTS: {$passed} passed, {$failed} failed\n";
 echo "======================================================================\n";

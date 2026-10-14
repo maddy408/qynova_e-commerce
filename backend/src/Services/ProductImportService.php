@@ -240,14 +240,30 @@ final class ProductImportService
         return [$productId, $variantId];
     }
 
+    /**
+     * product_code carries a plain (not partial/filtered) UNIQUE KEY at
+     * the database level, so a *soft-deleted* product still occupies its
+     * code — looking this up with "AND deleted_at IS NULL" would miss it
+     * and then createProduct()'s INSERT would crash with a raw duplicate-
+     * key SQL error instead of a clean row error. So the code lookup
+     * ignores deleted_at entirely and reactivates (clears deleted_at) a
+     * soft-deleted match — re-importing the same file after deleting its
+     * product must recreate/reuse it, not hard-fail forever. The Name
+     * fallback stays restricted to active rows: name isn't a unique
+     * constraint, so blindly resurrecting an unrelated deleted product by
+     * name match would be more surprising than helpful.
+     */
     private function findExistingProduct(?string $productCode, string $productName): ?int
     {
         if ($productCode !== null) {
-            $stmt = $this->pdo->prepare('SELECT id FROM products WHERE product_code = :code AND deleted_at IS NULL');
+            $stmt = $this->pdo->prepare('SELECT id, deleted_at FROM products WHERE product_code = :code');
             $stmt->execute(['code' => $productCode]);
-            $id = $stmt->fetchColumn();
-            if ($id !== false) {
-                return (int) $id;
+            $row = $stmt->fetch();
+            if ($row !== false) {
+                if ($row['deleted_at'] !== null) {
+                    $this->pdo->prepare('UPDATE products SET deleted_at = NULL WHERE id = :id')->execute(['id' => $row['id']]);
+                }
+                return (int) $row['id'];
             }
         }
 
@@ -258,23 +274,40 @@ final class ProductImportService
         return $id === false ? null : (int) $id;
     }
 
+    /**
+     * sku also carries a plain UNIQUE KEY, so — same reasoning as
+     * findExistingProduct() above — a soft-deleted variant must still be
+     * found here. Whether it's then actually reused is gated by
+     * $updateExisting in processRow() exactly like an active match: a
+     * caller not asking for update mode still gets a clean "SKU already
+     * exists" rejection rather than resurrecting deleted data by
+     * surprise; updateVariant() clears deleted_at when it is reused.
+     */
     private function findVariantBySku(string $sku): ?int
     {
-        $stmt = $this->pdo->prepare('SELECT id FROM product_variants WHERE sku = :sku AND deleted_at IS NULL');
+        $stmt = $this->pdo->prepare('SELECT id FROM product_variants WHERE sku = :sku');
         $stmt->execute(['sku' => $sku]);
         $id = $stmt->fetchColumn();
 
         return $id === false ? null : (int) $id;
     }
 
-    /** @param int|null $excludeVariantId variant allowed to already own this barcode (update mode) */
+    /**
+     * barcode is likewise a plain UNIQUE KEY — checked regardless of
+     * deleted_at for the same reason, but (unlike sku/product_code)
+     * never auto-reactivates anything: a barcode collision found on a
+     * *different* variant than the one being processed is a genuine
+     * conflict to ask the admin about, not an identity to resurrect.
+     *
+     * @param int|null $excludeVariantId variant allowed to already own this barcode (update mode)
+     */
     private function assertBarcodeFree(?string $barcode, ?int $excludeVariantId): void
     {
         if ($barcode === null) {
             return;
         }
 
-        $sql = 'SELECT 1 FROM product_variants WHERE barcode = :barcode AND deleted_at IS NULL';
+        $sql = 'SELECT 1 FROM product_variants WHERE barcode = :barcode';
         $params = ['barcode' => $barcode];
         if ($excludeVariantId !== null) {
             $sql .= ' AND id != :excluded';
@@ -418,7 +451,12 @@ final class ProductImportService
         $productStmt->execute(['id' => $variantId]);
         $productId = (int) $productStmt->fetchColumn();
 
-        $sets = ['mrp = :mrp', 'retail_price = :retail_price'];
+        // deleted_at = NULL unconditionally: a harmless no-op for an
+        // already-active variant, and the reactivation for one that
+        // findVariantBySku() matched while soft-deleted (see its
+        // docblock) — otherwise a resurrected row would still be
+        // invisible everywhere a listing filters on deleted_at.
+        $sets = ['mrp = :mrp', 'retail_price = :retail_price', 'deleted_at = NULL'];
         $params = ['mrp' => $mrp, 'retail_price' => $sellingPrice, 'id' => $variantId];
 
         if ($barcode !== null) {
