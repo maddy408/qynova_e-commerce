@@ -12,12 +12,20 @@ interface RowResult {
   variant_id?: number
 }
 
+interface ImageSummary {
+  product_images_found: string[]
+  product_images_missing: string[]
+  variant_images_found: string[]
+  variant_images_missing: string[]
+}
+
 interface ImportResult {
   total_rows: number
   successful_rows: number
   failed_rows: number
   results: RowResult[]
   errors: { row: number; reason: string }[]
+  image_summary: ImageSummary
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -186,8 +194,12 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
 
             <div>
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                Images ZIP (optional — only if the Product Images / Variant Images columns hold filenames, not http(s) URLs)
+                Product Images ZIP (Optional)
               </label>
+              <p className="mb-1.5 text-[11px] text-slate-500">
+                Upload a ZIP containing an /images/ folder with your product and variant images. Image filenames in Excel
+                must match the filenames inside the ZIP.
+              </p>
               <input
                 ref={imagesZipInputRef}
                 type="file"
@@ -225,6 +237,44 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
                   <span className="text-rose-700">Failed: {activeResult.failed_rows}</span>
                   {committedResult && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">Committed</span>}
                 </div>
+
+                {activeResult.image_summary && (
+                  <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--color-border-muted)] bg-[var(--color-surface)]/40 p-3 text-[11px]">
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-slate-600">Product images found</p>
+                      <p className="text-emerald-700">{activeResult.image_summary.product_images_found.length}</p>
+                      {activeResult.image_summary.product_images_found.length > 0 && (
+                        <p className="text-slate-500 break-words">{activeResult.image_summary.product_images_found.join(', ')}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-slate-600">Product images missing</p>
+                      <p className={activeResult.image_summary.product_images_missing.length > 0 ? 'text-rose-700' : 'text-slate-500'}>
+                        {activeResult.image_summary.product_images_missing.length}
+                      </p>
+                      {activeResult.image_summary.product_images_missing.length > 0 && (
+                        <p className="text-rose-600 break-words">{activeResult.image_summary.product_images_missing.join(', ')}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-slate-600">Variant images found</p>
+                      <p className="text-emerald-700">{activeResult.image_summary.variant_images_found.length}</p>
+                      {activeResult.image_summary.variant_images_found.length > 0 && (
+                        <p className="text-slate-500 break-words">{activeResult.image_summary.variant_images_found.join(', ')}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold uppercase tracking-wider text-slate-600">Variant images missing</p>
+                      <p className={activeResult.image_summary.variant_images_missing.length > 0 ? 'text-rose-700' : 'text-slate-500'}>
+                        {activeResult.image_summary.variant_images_missing.length}
+                      </p>
+                      {activeResult.image_summary.variant_images_missing.length > 0 && (
+                        <p className="text-rose-600 break-words">{activeResult.image_summary.variant_images_missing.join(', ')}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="max-h-72 overflow-auto rounded-2xl border border-[var(--color-border-muted)]">
                   <table className="w-full text-left text-[11px]">
                     <thead className="sticky top-0 bg-[var(--color-surface)] font-bold uppercase tracking-wider text-slate-600">

@@ -60,6 +60,9 @@ final class ProductImportService
     private readonly ImageUploadService $uploader;
     private readonly SafeImageFetcher $imageFetcher;
 
+    /** @var list<string> relative paths written during the row currently being processed — see run() */
+    private array $pendingUploadedFiles = [];
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
@@ -129,17 +132,36 @@ final class ProductImportService
 
         $results = [];
         $productIdByGroupKey = [];
+        $imageStats = [
+            'product_images_found' => [],
+            'product_images_missing' => [],
+            'variant_images_found' => [],
+            'variant_images_missing' => [],
+        ];
+
+        // preview() ($commit=false) must never leave a real file behind —
+        // images are only ever validated there, never persisted (see
+        // downloadAndStore()'s $persist parameter) — so this tracking is
+        // only consulted in commit mode, where a row that writes an image
+        // and then fails LATER in that same row (a later statement throws)
+        // must not leave an orphaned file on disk even though its DB rows
+        // were rolled back by the SAVEPOINT below.
+        $this->pendingUploadedFiles = [];
 
         foreach ($rows as $index => $row) {
             $excelRow = $index + 2; // header is row 1
             $this->pdo->exec('SAVEPOINT import_row');
+            $this->pendingUploadedFiles = [];
 
             try {
-                [$productId, $variantId] = $this->processRow($row, $autoCreateMasters, $updateExisting, $userId, $fileHash, $imagesDir, $productIdByGroupKey);
+                [$productId, $variantId] = $this->processRow($row, $autoCreateMasters, $updateExisting, $userId, $fileHash, $imagesDir, $commit, $imageStats, $productIdByGroupKey);
                 $this->pdo->exec('RELEASE SAVEPOINT import_row');
                 $results[] = ['row' => $excelRow, 'status' => 'success', 'errors' => [], 'product_id' => $productId, 'variant_id' => $variantId];
             } catch (RuntimeException $e) {
                 $this->pdo->exec('ROLLBACK TO SAVEPOINT import_row');
+                foreach ($this->pendingUploadedFiles as $uploadedPath) {
+                    $this->uploader->delete($uploadedPath);
+                }
                 $results[] = ['row' => $excelRow, 'status' => 'error', 'errors' => [$e->getMessage()], 'raw' => $row];
             }
         }
@@ -159,6 +181,12 @@ final class ProductImportService
             'failed_rows' => count($failedRows),
             'results' => $results,
             'errors' => array_map(fn ($r) => ['row' => $r['row'], 'reason' => $r['errors'][0]], $failedRows),
+            'image_summary' => [
+                'product_images_found' => array_values(array_unique($imageStats['product_images_found'])),
+                'product_images_missing' => array_values(array_unique($imageStats['product_images_missing'])),
+                'variant_images_found' => array_values(array_unique($imageStats['variant_images_found'])),
+                'variant_images_missing' => array_values(array_unique($imageStats['variant_images_missing'])),
+            ],
         ];
     }
 
@@ -167,7 +195,7 @@ final class ProductImportService
      * @param array<string, int> $productIdByGroupKey
      * @return array{0: int, 1: int} [productId, variantId]
      */
-    private function processRow(array $row, bool $autoCreateMasters, bool $updateExisting, ?int $userId, string $fileHash, ?string $imagesDir, array &$productIdByGroupKey): array
+    private function processRow(array $row, bool $autoCreateMasters, bool $updateExisting, ?int $userId, string $fileHash, ?string $imagesDir, bool $persistImages, array &$imageStats, array &$productIdByGroupKey): array
     {
         $productName = trim($row['Product Name'] ?? '');
         $sku = trim($row['Variant SKU'] ?? '');
@@ -199,7 +227,7 @@ final class ProductImportService
                 ?? $this->createProduct($row, $productName, $productCode, $autoCreateMasters);
             $productIdByGroupKey[$groupKey] = $productId;
 
-            $this->maybeImportProductImages(trim($row['Product Images'] ?? ''), $productId, $imagesDir);
+            $this->maybeImportProductImages(trim($row['Product Images'] ?? ''), $productId, $imagesDir, $persistImages, $imageStats);
         }
 
         $existingVariantId = $this->findVariantBySku($sku);
@@ -209,10 +237,10 @@ final class ProductImportService
                 throw new RuntimeException('SKU already exists');
             }
             $this->assertBarcodeFree($barcode, $existingVariantId);
-            $variantId = $this->updateVariant($existingVariantId, $row, $barcode, (float) $mrp, (float) $sellingPrice, $userId, $fileHash, $imagesDir);
+            $variantId = $this->updateVariant($existingVariantId, $row, $barcode, (float) $mrp, (float) $sellingPrice, $userId, $fileHash, $imagesDir, $persistImages, $imageStats);
         } else {
             $this->assertBarcodeFree($barcode, null);
-            $variantId = $this->createVariant($row, $productId, $sku, $barcode, (float) $mrp, (float) $sellingPrice, $autoCreateMasters, $imagesDir);
+            $variantId = $this->createVariant($row, $productId, $sku, $barcode, (float) $mrp, (float) $sellingPrice, $autoCreateMasters, $imagesDir, $persistImages, $imageStats);
 
             $stockRaw = trim($row['Variant Stock'] ?? '');
             if ($stockRaw !== '' && is_numeric($stockRaw) && (float) $stockRaw > 0 && $userId !== null) {
@@ -385,6 +413,8 @@ final class ProductImportService
         float $sellingPrice,
         bool $autoCreate,
         ?string $imagesDir,
+        bool $persistImages,
+        array &$imageStats,
     ): int {
         $costPrice = trim($row['Variant Cost Price'] ?? '');
         $status = trim($row['Status'] ?? 'ACTIVE') ?: 'ACTIVE';
@@ -422,7 +452,7 @@ final class ProductImportService
         $this->pdo->prepare('INSERT INTO inventory (variant_id, product_id, on_hand, reserved) VALUES (:v, :p, 0, 0)')
             ->execute(['v' => $variantId, 'p' => $productId]);
 
-        $this->maybeImportVariantImages(trim($row['Variant Images'] ?? ''), $variantId, $imagesDir);
+        $this->maybeImportVariantImages(trim($row['Variant Images'] ?? ''), $variantId, $imagesDir, $persistImages, $imageStats);
 
         return $variantId;
     }
@@ -439,7 +469,7 @@ final class ProductImportService
      *
      * @param array<string, string> $row
      */
-    private function updateVariant(int $variantId, array $row, ?string $barcode, float $mrp, float $sellingPrice, ?int $userId, string $fileHash, ?string $imagesDir): int
+    private function updateVariant(int $variantId, array $row, ?string $barcode, float $mrp, float $sellingPrice, ?int $userId, string $fileHash, ?string $imagesDir, bool $persistImages, array &$imageStats): int
     {
         $costPrice = trim($row['Variant Cost Price'] ?? '');
         $statusRaw = trim($row['Status'] ?? '');
@@ -510,7 +540,7 @@ final class ProductImportService
             $this->inventory->setLowStockThreshold($variantId, (string) $lowStock);
         }
 
-        $this->maybeImportVariantImages(trim($row['Variant Images'] ?? ''), $variantId, $imagesDir);
+        $this->maybeImportVariantImages(trim($row['Variant Images'] ?? ''), $variantId, $imagesDir, $persistImages, $imageStats);
 
         return $variantId;
     }
@@ -518,18 +548,32 @@ final class ProductImportService
     /**
      * Imports a comma-separated list of images for a product, but only
      * the first time — a product that already has at least one image is
-     * left untouched so re-running the same (or an updating) import
-     * never accumulates duplicate image rows. Each token is either an
-     * http(s) URL (downloaded via SafeImageFetcher) or a plain filename
-     * resolved against $imagesDir (the extracted "images.zip" uploaded
-     * alongside the Excel file) — see downloadAndStore().
+     * left untouched (before any download/zip-lookup even happens) so
+     * re-running the same (or an updating) import never re-downloads,
+     * re-converts, or orphans files nothing will reference. Each token is
+     * either an http(s) URL (downloaded via SafeImageFetcher) or a plain
+     * filename resolved against $imagesDir (the extracted "images.zip"
+     * uploaded alongside the Excel file) — see downloadAndStore().
+     *
+     * @param array{product_images_found: list<string>, product_images_missing: list<string>, variant_images_found: list<string>, variant_images_missing: list<string>} $imageStats
      */
-    private function maybeImportProductImages(string $csv, int $productId, ?string $imagesDir): void
+    private function maybeImportProductImages(string $csv, int $productId, ?string $imagesDir, bool $persist, array &$imageStats): void
     {
         if ($csv === '') {
             return;
         }
 
+        if (!$this->looksLikeUrlList($csv) && $imagesDir === null) {
+            throw new RuntimeException('Product image filenames are present in Excel, but no Product Images ZIP was uploaded.');
+        }
+
+        // Checked unconditionally (preview AND commit) and returns BEFORE
+        // any network/disk work: a product that already has images is a
+        // DB fact unaffected by $persist, and neither preview nor commit
+        // would ever touch these images — skipping the loop entirely here
+        // (not just the DB insert at the bottom of it) is what prevents a
+        // repeat import from wastefully re-downloading/re-converting and
+        // orphaning files nothing will ever reference.
         $countStmt = $this->pdo->prepare('SELECT COUNT(*) FROM product_images WHERE product_id = :id');
         $countStmt->execute(['id' => $productId]);
         if ((int) $countStmt->fetchColumn() > 0) {
@@ -537,7 +581,12 @@ final class ProductImportService
         }
 
         foreach ($this->splitImageList($csv) as $i => $token) {
-            $stored = $this->downloadAndStore($token, $imagesDir);
+            $stored = $this->downloadAndStore($token, $imagesDir, $persist, $imageStats, 'product_images');
+
+            if (!$persist || $stored === null) {
+                continue; // preview — validated only, nothing to insert
+            }
+
             $this->pdo->prepare(
                 'INSERT INTO product_images (product_id, image_path, thumb_path, sort_order, is_primary) VALUES (:p, :path, :thumb, :sort, :primary)'
             )->execute([
@@ -547,15 +596,24 @@ final class ProductImportService
                 'sort' => $i,
                 'primary' => $i === 0 ? 1 : 0,
             ]);
+            $this->pendingUploadedFiles[] = $stored['path'];
+            $this->pendingUploadedFiles[] = $stored['thumb_path'];
         }
     }
 
-    private function maybeImportVariantImages(string $csv, int $variantId, ?string $imagesDir): void
+    /** @param array{product_images_found: list<string>, product_images_missing: list<string>, variant_images_found: list<string>, variant_images_missing: list<string>} $imageStats */
+    private function maybeImportVariantImages(string $csv, int $variantId, ?string $imagesDir, bool $persist, array &$imageStats): void
     {
         if ($csv === '') {
             return;
         }
 
+        if (!$this->looksLikeUrlList($csv) && $imagesDir === null) {
+            throw new RuntimeException('Variant image filenames are present in Excel, but no Product Images ZIP was uploaded.');
+        }
+
+        // See the matching comment in maybeImportProductImages() — same
+        // reasoning, applied to variant_images.
         $countStmt = $this->pdo->prepare('SELECT COUNT(*) FROM variant_images WHERE variant_id = :id');
         $countStmt->execute(['id' => $variantId]);
         if ((int) $countStmt->fetchColumn() > 0) {
@@ -563,7 +621,12 @@ final class ProductImportService
         }
 
         foreach ($this->splitImageList($csv) as $i => $token) {
-            $stored = $this->downloadAndStore($token, $imagesDir);
+            $stored = $this->downloadAndStore($token, $imagesDir, $persist, $imageStats, 'variant_images');
+
+            if (!$persist || $stored === null) {
+                continue;
+            }
+
             $this->pdo->prepare(
                 'INSERT INTO variant_images (variant_id, image_path, thumb_path, sort_order, is_primary) VALUES (:v, :path, :thumb, :sort, :primary)'
             )->execute([
@@ -573,6 +636,8 @@ final class ProductImportService
                 'sort' => $i,
                 'primary' => $i === 0 ? 1 : 0,
             ]);
+            $this->pendingUploadedFiles[] = $stored['path'];
+            $this->pendingUploadedFiles[] = $stored['thumb_path'];
         }
     }
 
@@ -582,46 +647,79 @@ final class ProductImportService
         return array_values(array_filter(array_map('trim', explode(',', $csv))));
     }
 
+    /** True only when EVERY token in the cell is an http(s) URL — a mixed cell is treated as filename-style for the "no ZIP uploaded" check. */
+    private function looksLikeUrlList(string $csv): bool
+    {
+        foreach ($this->splitImageList($csv) as $token) {
+            if (!preg_match('#^https?://#i', $token)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * $token is either an http(s) URL — downloaded through the
-     * SSRF-guarded SafeImageFetcher — or a plain filename to resolve
-     * against $imagesDir (the extracted contents of an "images.zip"
-     * uploaded alongside the Excel file; see SafeZipExtractor). Either
-     * way the resulting local file is run through the same
-     * ImageUploadService the manual upload endpoints use, so an imported
-     * image gets the identical WebP conversion — never a raw URL string,
-     * never an arbitrary server path (only basename() is ever used
-     * against $imagesDir, so a cell cannot reach outside it).
+     * SSRF-guarded SafeImageFetcher — or a plain filename resolved
+     * case-insensitively against $imagesDir (the extracted contents of
+     * an "images.zip" uploaded alongside the Excel file; see
+     * SafeZipExtractor) while preserving that file's actual on-disk
+     * name/extension. Either way, when $persist is true the resulting
+     * local file is run through the same ImageUploadService the manual
+     * upload endpoints use, so an imported image gets the identical WebP
+     * conversion — never a raw URL string, never an arbitrary server
+     * path (only basename() is ever used against $imagesDir, so a cell
+     * cannot reach outside it).
      *
-     * @return array{path: string, thumb_path: string}
+     * When $persist is false (preview — a dry run must never write a
+     * real file, see run()), the token is still fully validated
+     * (downloaded / located + MIME-sniffed) but nothing is written to
+     * permanent storage and null is returned. Either way, the token is
+     * recorded into $imageStats as found or missing.
+     *
+     * @param array{product_images_found: list<string>, product_images_missing: list<string>, variant_images_found: list<string>, variant_images_missing: list<string>} $imageStats
+     * @return array{path: string, thumb_path: string}|null
      */
-    private function downloadAndStore(string $token, ?string $imagesDir): array
+    private function downloadAndStore(string $token, ?string $imagesDir, bool $persist, array &$imageStats, string $statsPrefix): ?array
     {
         $isUrl = (bool) preg_match('#^https?://#i', $token);
+        $foundKey = $statsPrefix . '_found';
+        $missingKey = $statsPrefix . '_missing';
 
         if ($isUrl) {
             $fetched = $this->imageFetcher->fetch($token);
             if ($fetched === null) {
+                $imageStats[$missingKey][] = $token;
                 throw new RuntimeException("Could not resolve image (blocked, unreachable, too large, or not a JPG/PNG/WEBP): {$token}");
             }
+            $imageStats[$foundKey][] = $token;
             $tmpPath = $fetched['tmp_path'];
             $size = $fetched['size'];
             $originalName = basename((string) (parse_url($token, PHP_URL_PATH) ?: 'image'));
         } else {
-            if ($imagesDir === null) {
-                throw new RuntimeException("Image '{$token}' is a filename, but no images ZIP was uploaded with this import");
-            }
+            // $imagesDir === null was already turned into the clearer
+            // "no Product Images ZIP was uploaded" row error one level up
+            // (maybeImportProductImages/maybeImportVariantImages), so
+            // reaching here with $imagesDir === null cannot happen.
+            $candidate = $this->resolveZipFilename((string) $imagesDir, $token);
 
-            $safeName = basename($token); // defensively re-applied even though $token is an Excel cell, not a zip entry
-            $candidate = $imagesDir . '/' . $safeName;
-
-            if (!is_file($candidate)) {
+            if ($candidate === null) {
+                $imageStats[$missingKey][] = $token;
                 throw new RuntimeException("Image file '{$token}' was not found inside the uploaded images ZIP");
             }
 
+            $imageStats[$foundKey][] = $token;
             $tmpPath = $candidate;
             $size = (int) filesize($candidate);
-            $originalName = $safeName;
+            $originalName = basename($candidate); // the real on-disk name/extension, not necessarily the Excel cell's own casing
+        }
+
+        if (!$persist) {
+            if ($isUrl) {
+                @unlink($tmpPath);
+            }
+            return null;
         }
 
         try {
@@ -638,6 +736,38 @@ final class ProductImportService
                 @unlink($tmpPath); // only the downloaded temp copy — a zip-extracted file is cleaned up once for the whole request by the controller
             }
         }
+    }
+
+    /**
+     * Resolves $token against the flat images directory extracted from
+     * the uploaded ZIP (see SafeZipExtractor — entries are always
+     * flattened to their own basename there). Tries an exact match
+     * first, then falls back to a case-insensitive scan so "Front.JPG"
+     * in Excel matches a zip entry saved as "front.jpg" — the real
+     * on-disk filename (and its real extension/case) is what's
+     * returned, never the Excel cell's own spelling.
+     */
+    private function resolveZipFilename(string $imagesDir, string $token): ?string
+    {
+        $wanted = basename($token); // defensively re-applied even though $token is an Excel cell, not a zip entry
+        $exact = $imagesDir . '/' . $wanted;
+
+        if (is_file($exact)) {
+            return $exact;
+        }
+
+        $entries = @scandir($imagesDir);
+        if ($entries === false) {
+            return null;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry !== '.' && $entry !== '..' && strcasecmp($entry, $wanted) === 0) {
+                return $imagesDir . '/' . $entry;
+            }
+        }
+
+        return null;
     }
 
     /** @param list<string> $names */
