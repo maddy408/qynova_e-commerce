@@ -175,7 +175,7 @@ final class ProductExportService
             'Manufacturer' => 'Acme Textiles',
             'Manufacturing Date' => '2026-01-01',
             'Expiry Date' => '',
-            'Product Images' => 'https://example.test/images/tshirt-front.jpg, https://example.test/images/tshirt-back.jpg',
+            'Product Images' => 'tshirt-front.jpg, tshirt-back.jpg',
             'Variant SKU' => 'TSH-L-BLU',
             'Variant Barcode' => '8901234567',
             'Variant Description' => 'Blue, size L',
@@ -186,7 +186,7 @@ final class ProductExportService
             'Variant Cost Price' => '500',
             'Variant Stock' => '20',
             'Low Stock Threshold' => '5',
-            'Variant Images' => 'https://example.test/images/tshirt-l-blue-1.jpg, https://example.test/images/tshirt-l-blue-2.jpg',
+            'Variant Images' => 'tshirt-l-blue-1.jpg, tshirt-l-blue-2.jpg',
             'Status' => 'ACTIVE',
         ];
         $secondRow = array_merge($exampleRow, [
@@ -199,7 +199,7 @@ final class ProductExportService
             'Selling Price' => '799',
             'Variant Stock' => '15',
             'Product Images' => '', // only the product's FIRST row needs the Product Images cell filled in
-            'Variant Images' => 'https://example.test/images/tshirt-xl-orange-1.jpg',
+            'Variant Images' => 'tshirt-xl-orange-1.jpg',
         ]);
 
         $instructions = [
@@ -213,7 +213,13 @@ final class ProductExportService
             '',
             'Tax: enter the GST percentage only, e.g. 5 or 18. Tax Type is EXCLUSIVE (tax added on top of Selling Price, the normal case) or INCLUSIVE (tax already included in Selling Price).',
             '',
-            'Product Images / Variant Images: one or more image URLs (https://...), separated by commas. The FIRST url becomes the main/primary image. Only fill in Product Images on the FIRST row of a product — repeating it on every variant row is harmless but unnecessary. Images must be plain JPG, PNG or WEBP, reachable over the public internet, 5MB or smaller each; anything else fails that row with a clear reason.',
+            'Product Images / Variant Images: one or more images, separated by commas. The FIRST one becomes the main/primary image. Only fill in Product Images on the FIRST row of a product — repeating it on every variant row is harmless but unnecessary. Each entry must be plain JPG, PNG or WEBP, 5MB or smaller; anything else fails that row with a clear reason.',
+            '',
+            'TWO WAYS to specify each image — pick whichever matches what you have:',
+            '  (1) A FILENAME, e.g.  tshirt-front.jpg  — as in the example rows. When importing, also attach a ZIP file (field name "images_zip") containing the actual image files. The importer matches by filename ONLY, ignoring any folders inside the ZIP — if two files in the ZIP share the same name, the last one wins, so keep names unique. This is the option to use when your photos are just files on your own computer.',
+            '  (2) A full http(s):// URL, e.g.  https://example.test/images/tshirt-front.jpg  — used as-is, downloaded directly, no ZIP needed.',
+            '',
+            'A row is rejected (with a clear reason, never silently skipped) if its image is a filename but no images ZIP was attached, or if that filename is not found inside the ZIP, or if a URL cannot be downloaded.',
             '',
             'Variant Stock: the quantity to set as this variant\'s stock. Leave blank to not touch stock at all (safe for re-exporting and re-importing without changing quantities).',
             '',

@@ -10,6 +10,7 @@ use App\Services\InventoryService;
 use App\Services\ProductExportService;
 use App\Services\ProductImportService;
 use App\Services\SafeImageFetcher;
+use App\Services\SafeZipExtractor;
 use App\Tests\TestDbGuard;
 
 $pdo = db();
@@ -402,6 +403,114 @@ assertTest('A barcode held by an unrelated soft-deleted variant is still reporte
     json_encode($conflictResult['errors']));
 @unlink($conflictSheetPath);
 @unlink($sdSheetPath);
+
+// ---------------------------------------------------------------------
+// GROUP 12: filename + ZIP image resolution (no network dependency —
+// a tiny real PNG is generated in-memory via GD)
+// ---------------------------------------------------------------------
+echo "\n-- Filename + images ZIP --\n";
+
+function makeTinyPng(): string
+{
+    $img = imagecreatetruecolor(2, 2);
+    imagefill($img, 0, 0, imagecolorallocate($img, 200, 50, 50));
+    ob_start();
+    imagepng($img);
+    $bytes = ob_get_clean();
+    imagedestroy($img);
+    return (string) $bytes;
+}
+
+$zipExtractor = new SafeZipExtractor();
+$pngBytes = makeTinyPng();
+
+// 12a: SafeZipExtractor itself — flat extraction, zip-slip resistance, non-image skip
+$zipPath = $tmpDir . '/t26-images-' . $uid . '.zip';
+$za = new ZipArchive();
+$za->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$za->addFromString('front.jpg', $pngBytes);
+$za->addFromString('subfolder/back.jpg', $pngBytes); // nested path — must still resolve by basename only
+$za->addFromString('../../etc/evil.jpg', $pngBytes); // zip-slip attempt — must land harmlessly as "evil.jpg", never escape
+$za->addFromString('readme.txt', 'not an image');     // non-image — must be skipped, not fail the whole zip
+$za->close();
+
+$extractedDir = $zipExtractor->extract($zipPath);
+assertTest('front.jpg extracted at the flat destination root', is_file($extractedDir . '/front.jpg'));
+assertTest('Nested subfolder/back.jpg is flattened to just back.jpg', is_file($extractedDir . '/back.jpg'));
+assertTest('Zip-slip entry landed harmlessly as evil.jpg inside the dest dir, not outside it', is_file($extractedDir . '/evil.jpg') && !is_file('/etc/evil.jpg'));
+assertTest('Non-image entry (readme.txt) was skipped', !is_file($extractedDir . '/readme.txt'));
+$zipExtractor->cleanup($extractedDir);
+assertTest('cleanup() removes the extraction directory', !is_dir($extractedDir));
+
+// 12b: end-to-end import using filename-only image cells + a real images zip
+$zipPath2 = $tmpDir . '/t26-images-2-' . $uid . '.zip';
+$za2 = new ZipArchive();
+$za2->open($zipPath2, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+$za2->addFromString('zip-main.jpg', $pngBytes);
+$za2->addFromString('zip-variant.jpg', $pngBytes);
+$za2->close();
+$zipImagesDir = $zipExtractor->extract($zipPath2);
+
+$zipProductCode = 'T26-ZIP-' . $uid;
+$zipRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Zip Image Product ' . $uid,
+    'Product Code' => $zipProductCode,
+    'Variant SKU' => 'T26-ZIP-SKU-' . $uid,
+    'Product Images' => 'zip-main.jpg',
+    'Variant Images' => 'zip-variant.jpg',
+]);
+$zipSheetPath = $tmpDir . '/t26-zip-import-' . $uid . '.xlsx';
+writeImportSheet($zipSheetPath, [$zipRow]);
+$zipImportResult = $importer->commit($zipSheetPath, true, $cashierUserId, false, $zipImagesDir);
+assertTest('Import with filename-only image cells + images ZIP succeeds', $zipImportResult['successful_rows'] === 1, json_encode($zipImportResult['errors']));
+
+$zipVariantId = (int) $pdo->query("SELECT id FROM product_variants WHERE sku = 'T26-ZIP-SKU-{$uid}'")->fetchColumn();
+$zipProductId = (int) $pdo->query("SELECT product_id FROM product_variants WHERE id = {$zipVariantId}")->fetchColumn();
+$zipProductImage = $pdo->query("SELECT image_path, thumb_path FROM product_images WHERE product_id = {$zipProductId}")->fetch();
+$zipVariantImage = $pdo->query("SELECT image_path, thumb_path FROM variant_images WHERE variant_id = {$zipVariantId}")->fetch();
+assertTest('Product image resolved from the ZIP and converted to local WebP', $zipProductImage !== false && str_ends_with($zipProductImage['image_path'], '.webp'), json_encode($zipProductImage));
+assertTest('Variant image resolved from the ZIP and converted to local WebP', $zipVariantImage !== false && str_ends_with($zipVariantImage['image_path'], '.webp'), json_encode($zipVariantImage));
+
+@unlink(__DIR__ . '/../public/' . $zipProductImage['image_path']);
+@unlink(__DIR__ . '/../public/' . $zipProductImage['thumb_path']);
+@unlink(__DIR__ . '/../public/' . $zipVariantImage['image_path']);
+@unlink(__DIR__ . '/../public/' . $zipVariantImage['thumb_path']);
+$zipExtractor->cleanup($zipImagesDir);
+@unlink($zipSheetPath);
+@unlink($zipPath2);
+
+// 12c: filename cell but NO images zip uploaded -> clean error, not a crash
+$noZipRow = array_merge($baseRow, [
+    'Product Name' => 'T26 No Zip Product ' . $uid,
+    'Product Code' => 'T26-NOZIP-' . $uid,
+    'Variant SKU' => 'T26-NOZIP-SKU-' . $uid,
+    'Product Images' => 'some-file.jpg',
+]);
+$noZipSheetPath = $tmpDir . '/t26-nozip-' . $uid . '.xlsx';
+writeImportSheet($noZipSheetPath, [$noZipRow]);
+$noZipResult = $importer->preview($noZipSheetPath, true, false, null);
+assertTest('Filename image cell with no images ZIP attached fails cleanly, naming the missing ZIP',
+    $noZipResult['failed_rows'] === 1 && str_contains($noZipResult['errors'][0]['reason'], 'no images ZIP was uploaded'),
+    json_encode($noZipResult['errors']));
+@unlink($noZipSheetPath);
+
+// 12d: filename cell referencing a file NOT present in the (otherwise valid) zip
+$zipImagesDir2 = $zipExtractor->extract($zipPath);
+$missingRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Missing In Zip Product ' . $uid,
+    'Product Code' => 'T26-MISSING-' . $uid,
+    'Variant SKU' => 'T26-MISSING-SKU-' . $uid,
+    'Product Images' => 'does-not-exist-in-zip.jpg',
+]);
+$missingSheetPath = $tmpDir . '/t26-missing-' . $uid . '.xlsx';
+writeImportSheet($missingSheetPath, [$missingRow]);
+$missingResult = $importer->preview($missingSheetPath, true, false, $zipImagesDir2);
+assertTest('Filename not present inside an otherwise-valid ZIP fails cleanly, naming the file',
+    $missingResult['failed_rows'] === 1 && str_contains($missingResult['errors'][0]['reason'], 'was not found inside the uploaded images ZIP'),
+    json_encode($missingResult['errors']));
+$zipExtractor->cleanup($zipImagesDir2);
+@unlink($missingSheetPath);
+@unlink($zipPath);
 
 echo "\n======================================================================\n";
 echo "RESULTS: {$passed} passed, {$failed} failed\n";
