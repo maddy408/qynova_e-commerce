@@ -14,6 +14,7 @@ require_once dirname(__DIR__) . '/config/database.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\BannerController;
+use App\Controllers\BroadcastController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
 use App\Controllers\CouponController;
@@ -281,6 +282,12 @@ $router->post('/api/notifications/read-all', fn () => $notifications->markAllRea
 $deviceTokens = new DeviceTokenController($pdo);
 $router->post('/api/device-tokens', fn () => $deviceTokens->register());
 $router->delete('/api/device-tokens', fn () => $deviceTokens->remove());
+
+// Admin -> all-customers broadcast push notifications (requires
+// 'notifications.broadcast' — see BroadcastController).
+$broadcasts = new BroadcastController($pdo);
+$router->post('/api/notifications/broadcast', fn () => $broadcasts->send());
+$router->get('/api/notifications/broadcast-history', fn () => $broadcasts->history());
 
 // TODO: Razorpay implementation — RazorpayController/RazorpayWebhookController
 // exist as empty placeholders (src/Controllers/). Not wired in yet:
