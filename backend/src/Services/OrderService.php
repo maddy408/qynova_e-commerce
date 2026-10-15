@@ -41,13 +41,58 @@ final class OrderService
         'DELIVERED' => 6,
     ];
 
+    private readonly NotificationDispatcher $notifications;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
         private readonly CouponService $coupons,
         private readonly InvoiceService $invoices,
         private readonly RefundService $refunds,
+        ?NotificationDispatcher $notifications = null,
     ) {
+        $this->notifications = $notifications ?? new NotificationDispatcher($pdo);
+    }
+
+    /**
+     * Staff who should hear about new orders / customer-initiated
+     * cancellations: the ADMIN role (bypasses permission checks
+     * everywhere else in this app, same rule here) plus anyone whose
+     * role explicitly holds `orders.manage` — mirrors exactly what
+     * PermissionMiddleware::require('orders.manage') itself allows, so
+     * "who gets notified" never drifts from "who is allowed to act on
+     * it". Inactive/soft-deleted staff are excluded.
+     *
+     * @return list<int>
+     */
+    private function orderManagerUserIds(): array
+    {
+        return $this->pdo->query(
+            "SELECT DISTINCT u.id FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.status = 'ACTIVE' AND u.deleted_at IS NULL
+               AND (
+                    r.code = 'ADMIN'
+                    OR EXISTS (
+                        SELECT 1 FROM role_permissions rp
+                        JOIN permissions p ON p.id = rp.permission_id
+                        WHERE rp.role_id = r.id AND p.code = 'orders.manage'
+                    )
+               )"
+        )->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /** Human-readable fulfillment message per status, for the customer-facing notification body. */
+    private function statusNotificationCopy(string $status): ?array
+    {
+        return match ($status) {
+            'PROCESSING' => ['type' => 'ORDER_PROCESSING', 'title' => 'Order is being processed', 'body' => 'is now being processed.'],
+            'PACKED' => ['type' => 'ORDER_PACKED', 'title' => 'Order packed', 'body' => 'has been packed and will ship soon.'],
+            'SHIPPED' => ['type' => 'ORDER_SHIPPED', 'title' => 'Order shipped', 'body' => 'has shipped.'],
+            'OUT_FOR_DELIVERY' => ['type' => 'ORDER_OUT_FOR_DELIVERY', 'title' => 'Out for delivery', 'body' => 'is out for delivery.'],
+            'DELIVERED' => ['type' => 'ORDER_DELIVERED', 'title' => 'Order delivered', 'body' => 'has been delivered. Thank you for shopping with us!'],
+            default => null,
+        };
     }
 
     /**
@@ -232,7 +277,24 @@ final class OrderService
             throw $e;
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order created but could not be reloaded');
+        $newOrder = $this->find($orderId) ?? throw new RuntimeException('Order created but could not be reloaded');
+
+        // Fired AFTER commit(), outside the transaction and outside any
+        // try/catch that could roll back the order itself — a push/DB
+        // failure here must never undo an order the customer was already
+        // told succeeded (see NotificationDispatcher's docblock).
+        $this->notifications->notifyMany(
+            recipientType: 'USER',
+            recipientIds: $this->orderManagerUserIds(),
+            type: 'NEW_ORDER',
+            title: 'New order received',
+            body: "Order #{$orderNo} for ₹{$totals['grand_total']} was just placed.",
+            referenceType: 'ORDER',
+            referenceId: $orderId,
+            data: ['order_id' => $orderId, 'order_no' => $orderNo],
+        );
+
+        return $newOrder;
     }
 
     /**
@@ -287,7 +349,20 @@ final class OrderService
             throw $e;
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order not found after confirmation');
+        $confirmed = $this->find($orderId) ?? throw new RuntimeException('Order not found after confirmation');
+
+        $this->notifications->notify(
+            recipientType: 'CUSTOMER',
+            recipientId: (int) $order['customer_id'],
+            type: 'ORDER_CONFIRMED',
+            title: 'Order confirmed',
+            body: "Your order #{$order['order_no']} is confirmed and payment was received.",
+            referenceType: 'ORDER',
+            referenceId: $orderId,
+            data: ['order_id' => $orderId, 'order_no' => $order['order_no']],
+        );
+
+        return $confirmed;
     }
 
     public function cancel(int $orderId, string $reason, ?int $actorUserId): array
@@ -379,7 +454,35 @@ final class OrderService
             throw $e;
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order not found after cancellation');
+        $cancelled = $this->find($orderId) ?? throw new RuntimeException('Order not found after cancellation');
+
+        if ($actorUserId === null) {
+            // Customer cancelled their own order — tell the people who can act on it.
+            $this->notifications->notifyMany(
+                recipientType: 'USER',
+                recipientIds: $this->orderManagerUserIds(),
+                type: 'ORDER_CANCELLED',
+                title: 'Order cancelled by customer',
+                body: "Order #{$order['order_no']} was cancelled by the customer." . ($wasPaid ? ' A refund has been initiated.' : ''),
+                referenceType: 'ORDER',
+                referenceId: $orderId,
+                data: ['order_id' => $orderId, 'order_no' => $order['order_no']],
+            );
+        } else {
+            // Staff cancelled it on the customer's behalf — tell the customer.
+            $this->notifications->notify(
+                recipientType: 'CUSTOMER',
+                recipientId: (int) $order['customer_id'],
+                type: 'ORDER_CANCELLED',
+                title: 'Order cancelled',
+                body: "Your order #{$order['order_no']} has been cancelled." . ($wasPaid ? ' A refund has been initiated.' : ''),
+                referenceType: 'ORDER',
+                referenceId: $orderId,
+                data: ['order_id' => $orderId, 'order_no' => $order['order_no']],
+            );
+        }
+
+        return $cancelled;
     }
 
     public function updateStatus(int $orderId, string $newStatus, ?int $actorUserId, ?string $note): array
@@ -429,7 +532,23 @@ final class OrderService
             }
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order not found after status update');
+        $updated = $this->find($orderId) ?? throw new RuntimeException('Order not found after status update');
+
+        $copy = $this->statusNotificationCopy($newStatus);
+        if ($copy !== null) {
+            $this->notifications->notify(
+                recipientType: 'CUSTOMER',
+                recipientId: (int) $order['customer_id'],
+                type: $copy['type'],
+                title: $copy['title'],
+                body: "Your order #{$order['order_no']} {$copy['body']}",
+                referenceType: 'ORDER',
+                referenceId: $orderId,
+                data: ['order_id' => $orderId, 'order_no' => $order['order_no'], 'status' => $newStatus],
+            );
+        }
+
+        return $updated;
     }
 
     /**

@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/auth'
 import { NAV_SECTIONS, ROUTES, type NavSection } from '../routes/routes'
 import { LogoutIcon, MenuIcon, XMarkIcon, ZapIcon } from './Icons'
+import { NotificationBell } from './NotificationBell'
 
 const SECTIONS = NAV_SECTIONS
 
@@ -109,6 +110,8 @@ export function Layout() {
 
             {/* Right Action Island (User profile + logout) */}
             <div className="hidden sm:flex items-center gap-2.5 shrink-0 pr-1">
+              <NotificationBell />
+
               {/* User Profile Capsule */}
               <div className="flex items-center gap-2 pl-1 pr-3.5 py-1 bg-[var(--color-surface)] border border-[var(--color-extra-003)] rounded-full shadow-2xs">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-strong)] to-[var(--color-extra-001)] text-[11px] font-black text-white shadow-xs">
@@ -135,6 +138,7 @@ export function Layout() {
 
             {/* Mobile Menu Button */}
             <div className="flex lg:hidden items-center gap-2">
+              <NotificationBell />
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
                 className="p-1.5 rounded-full border border-[var(--color-extra-003)] bg-[var(--color-surface)] text-[var(--color-primary-strong)] hover:bg-[var(--color-extra-005)]"
