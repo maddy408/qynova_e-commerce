@@ -31,6 +31,7 @@ final class FcmSenderService
 {
     private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
     private const SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
+    private const CONCURRENCY = 20;
 
     private ?array $serviceAccount = null;
     private bool $serviceAccountLoadAttempted = false;
@@ -47,9 +48,11 @@ final class FcmSenderService
     }
 
     /**
-     * Sends to every token in the list, tolerating individual failures.
-     * Tokens FCM reports as unregistered/invalid are deactivated via
-     * DeviceTokenService so future sends don't keep retrying them.
+     * Sends to every token in the list SEQUENTIALLY, tolerating
+     * individual failures — fine for the handful of tokens one customer
+     * or one order's recipients has, but see sendBatch() for a broadcast
+     * to many customers at once, where sequential one-at-a-time HTTP
+     * round-trips would make the admin's request take far too long.
      *
      * @param list<string> $tokens
      * @param array<string, string> $data string-only values — FCM's data
@@ -81,9 +84,101 @@ final class FcmSenderService
             return false;
         }
 
-        $projectId = (string) Config::get('fcm.project_id');
-        $url = "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
+        $ch = curl_init($this->sendUrl());
+        curl_setopt_array($ch, $this->curlOptionsFor($token, $title, $body, $data, $accessToken));
+        $response = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
 
+        if ($response === false) {
+            error_log('FcmSenderService: cURL error sending push: ' . $curlError);
+
+            return false;
+        }
+
+        return $this->handleResponse($token, $status, $response);
+    }
+
+    /**
+     * Sends to many tokens with bounded parallelism (curl_multi) instead
+     * of one blocking HTTP round-trip at a time — a broadcast to, say,
+     * 2,000 customer devices at ~150ms/request would otherwise take over
+     * 5 minutes serially; in windows of self::CONCURRENCY it's roughly
+     * (tokens / concurrency) round-trips instead of (tokens) of them.
+     * This project has no background job queue, so this is the
+     * synchronous-but-parallel middle ground — see BroadcastService's
+     * docblock for why a true queue wasn't introduced for this.
+     *
+     * @param list<string> $tokens
+     * @param array<string, string> $data
+     * @return array{attempted: int, sent: int}
+     */
+    public function sendBatch(array $tokens, string $title, string $body, array $data = []): array
+    {
+        if (!$this->isConfigured() || $tokens === []) {
+            return ['attempted' => count($tokens), 'sent' => 0];
+        }
+
+        $accessToken = $this->getAccessToken();
+        if ($accessToken === null) {
+            return ['attempted' => count($tokens), 'sent' => 0];
+        }
+
+        $sent = 0;
+        $url = $this->sendUrl();
+
+        foreach (array_chunk($tokens, self::CONCURRENCY) as $chunk) {
+            $multi = curl_multi_init();
+            $handles = [];
+
+            foreach ($chunk as $token) {
+                $ch = curl_init($url);
+                curl_setopt_array($ch, $this->curlOptionsFor($token, $title, $body, $data, $accessToken));
+                curl_multi_add_handle($multi, $ch);
+                $handles[(int) $ch] = ['handle' => $ch, 'token' => $token];
+            }
+
+            $running = null;
+            do {
+                $status = curl_multi_exec($multi, $running);
+                if ($running > 0) {
+                    curl_multi_select($multi, 1.0);
+                }
+            } while ($running > 0 && $status === CURLM_OK);
+
+            foreach ($handles as $entry) {
+                $ch = $entry['handle'];
+                $response = curl_multi_getcontent($ch);
+                $httpStatus = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($ch);
+
+                if ($response === '' && $curlError !== '') {
+                    error_log('FcmSenderService: cURL error in batch send: ' . $curlError);
+                } elseif ($this->handleResponse($entry['token'], $httpStatus, (string) $response)) {
+                    $sent++;
+                }
+
+                curl_multi_remove_handle($multi, $ch);
+                curl_close($ch);
+            }
+
+            curl_multi_close($multi);
+        }
+
+        return ['attempted' => count($tokens), 'sent' => $sent];
+    }
+
+    private function sendUrl(): string
+    {
+        $projectId = (string) Config::get('fcm.project_id');
+
+        return "https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send";
+    }
+
+    /** @param array<string, string> $data @return array<int, mixed> */
+    private function curlOptionsFor(string $token, string $title, string $body, array $data, string $accessToken): array
+    {
         $payload = [
             'message' => [
                 'token' => $token,
@@ -98,8 +193,7 @@ final class FcmSenderService
             ],
         ];
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        return [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => [
@@ -108,23 +202,17 @@ final class FcmSenderService
             ],
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_TIMEOUT => 8,
-        ]);
-        $response = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+        ];
+    }
 
-        if ($response === false) {
-            error_log('FcmSenderService: cURL error sending push: ' . $curlError);
-
-            return false;
-        }
-
+    /** True on success; deactivates the token and logs on a terminal FCM-reported error. */
+    private function handleResponse(string $token, int $status, string $response): bool
+    {
         if ($status >= 200 && $status < 300) {
             return true;
         }
 
-        $decoded = json_decode((string) $response, true);
+        $decoded = json_decode($response, true);
         $errorStatus = $decoded['error']['status'] ?? null;
 
         if (in_array($errorStatus, ['NOT_FOUND', 'UNREGISTERED', 'INVALID_ARGUMENT'], true)) {

@@ -14,6 +14,8 @@
  */
 import type { ComponentType } from 'react'
 import { BannersPage } from '../pages/BannersPage'
+import { BroadcastNotificationsPage } from '../pages/BroadcastNotificationsPage'
+import { TopOffersPage } from '../pages/TopOffersPage'
 import { BrandsPage } from '../pages/BrandsPage'
 import { CategoriesPage } from '../pages/CategoriesPage'
 import { CouponsPage } from '../pages/CouponsPage'
@@ -91,6 +93,8 @@ export const ROUTES = {
   REFERRAL_SETTINGS: '/referral-settings',
   BANNERS: '/banners',
   HOME_SECTIONS: '/home-sections',
+  TOP_OFFERS: '/top-offers',
+  BROADCAST_NOTIFICATIONS: '/notifications/broadcast',
 
   SETTINGS: '/settings',
   SETTINGS_COMPANY: '/settings/company',
@@ -152,6 +156,8 @@ export const ROUTE_TABLE: RouteDef[] = [
   { path: ROUTES.REFERRAL_SETTINGS, component: ReferralSettingsPage, access: 'settings.manage' },
   { path: ROUTES.BANNERS, component: BannersPage, access: 'banners.manage' },
   { path: ROUTES.HOME_SECTIONS, component: HomeSectionsPage, access: 'banners.manage' },
+  { path: ROUTES.TOP_OFFERS, component: TopOffersPage, access: 'banners.manage' },
+  { path: ROUTES.BROADCAST_NOTIFICATIONS, component: BroadcastNotificationsPage, access: 'notifications.broadcast' },
 
   { path: ROUTES.SETTINGS_COMPANY, component: SettingsSetupPage, access: 'settings.manage' },
   { path: ROUTES.SETTINGS_PREFIX, component: SettingsSetupPage, access: 'settings.manage' },
@@ -248,11 +254,14 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'marketing',
     label: 'Marketing',
     to: ROUTES.REFERRAL_SETTINGS,
-    matchPrefixes: [ROUTES.REFERRAL_SETTINGS, ROUTES.BANNERS, ROUTES.HOME_SECTIONS],
+    matchPrefixes: [ROUTES.REFERRAL_SETTINGS, ROUTES.BANNERS, ROUTES.HOME_SECTIONS, ROUTES.COUPONS, ROUTES.BROADCAST_NOTIFICATIONS],
     items: [
       { to: ROUTES.REFERRAL_SETTINGS, label: 'Referral', permission: 'settings.manage' },
       { to: ROUTES.BANNERS, label: 'Banner', permission: 'banners.manage' },
       { to: ROUTES.HOME_SECTIONS, label: 'Home Sections', permission: 'banners.manage' },
+      { to: ROUTES.TOP_OFFERS, label: 'Top Offers', permission: 'banners.manage' },
+      { to: ROUTES.COUPONS, label: 'Offers & Coupons', permission: 'coupons.manage' },
+      { to: ROUTES.BROADCAST_NOTIFICATIONS, label: 'Send Notification', permission: 'notifications.broadcast' },
     ],
   },
   {
