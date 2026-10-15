@@ -20,11 +20,13 @@ use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\DeliveryController;
+use App\Controllers\DeviceTokenController;
 use App\Controllers\HomeSectionController;
 use App\Controllers\HoldBillController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
 use App\Controllers\MasterDataController;
+use App\Controllers\NotificationController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ProductExportController;
@@ -36,6 +38,7 @@ use App\Controllers\RefundController;
 use App\Controllers\ReportExportController;
 use App\Controllers\SettingsController;
 use App\Controllers\SubcategoryController;
+use App\Controllers\TopOfferController;
 use App\Controllers\UserController;
 use App\Controllers\VariantController;
 use App\Controllers\VariantImageController;
@@ -266,6 +269,19 @@ $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPa
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 
+// Notifications + FCM device tokens — shared by admin-pos (staff) and
+// storefront (customer); the recipient is always derived from the
+// caller's own JWT, never a request parameter (see both controllers).
+$notifications = new NotificationController($pdo);
+$router->get('/api/notifications', fn () => $notifications->index());
+$router->get('/api/notifications/unread-count', fn () => $notifications->unreadCount());
+$router->post('/api/notifications/{id}/read', fn ($id) => $notifications->markRead($id));
+$router->post('/api/notifications/read-all', fn () => $notifications->markAllRead());
+
+$deviceTokens = new DeviceTokenController($pdo);
+$router->post('/api/device-tokens', fn () => $deviceTokens->register());
+$router->delete('/api/device-tokens', fn () => $deviceTokens->remove());
+
 // TODO: Razorpay implementation — RazorpayController/RazorpayWebhookController
 // exist as empty placeholders (src/Controllers/). Not wired in yet:
 // $razorpay = new RazorpayController($pdo);
@@ -360,6 +376,18 @@ $router->put('/api/home-sections/{id}', fn ($id) => $homeSections->update($id));
 $router->post('/api/home-sections/{id}/image', fn ($id) => $homeSections->uploadImage($id));
 $router->delete('/api/home-sections/{id}/image', fn ($id) => $homeSections->removeImage($id));
 $router->delete('/api/home-sections/{id}', fn ($id) => $homeSections->destroy($id));
+
+// Top Offers (Top Offers for You section)
+$topOffers = new TopOfferController($pdo);
+$router->get('/api/top-offers', fn () => $topOffers->index());
+$router->get('/api/admin/top-offers', fn () => $topOffers->adminIndex());
+$router->get('/api/admin/top-offers/{id}', fn ($id) => $topOffers->show($id));
+$router->post('/api/admin/top-offers', fn () => $topOffers->store());
+$router->put('/api/admin/top-offers/{id}', fn ($id) => $topOffers->update($id));
+$router->post('/api/admin/top-offers/{id}/image', fn ($id) => $topOffers->uploadImage($id));
+$router->delete('/api/admin/top-offers/{id}/image', fn ($id) => $topOffers->removeImage($id));
+$router->patch('/api/admin/top-offers/{id}/toggle', fn ($id) => $topOffers->toggle($id));
+$router->delete('/api/admin/top-offers/{id}', fn ($id) => $topOffers->destroy($id));
 
 // Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)
 $dashboard = new DashboardController($pdo);
