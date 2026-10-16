@@ -169,7 +169,7 @@ export function TopOffersPage() {
       } else {
         const res = await api.post('/admin/top-offers', payload)
         targetId = res.data?.id
-        setSuccessMessage('Top offer created successfully')
+        setSuccessMessage(res.data?.message || 'Top offer created successfully and push notification sent to customers!')
       }
 
       // If an image file was selected, upload it
@@ -645,6 +645,15 @@ export function TopOffersPage() {
                 </label>
               </div>
             </div>
+
+            {!editingOffer && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                <span>🔔</span>
+                <span className="font-semibold">
+                  A push notification will automatically be sent to customer devices when this offer is created.
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>

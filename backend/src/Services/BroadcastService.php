@@ -163,6 +163,137 @@ final class BroadcastService
         ];
     }
 
+    /**
+     * Programmatic push notification dispatch to active customers or targeted customer IDs
+     * for newly created offers and coupons. Bypasses manual rate limits and never throws,
+     * ensuring business operations always succeed even if push delivery encounters an error.
+     *
+     * @param list<int> $targetCustomerIds
+     * @param array<string, mixed>|null $data
+     * @return array{
+     *   campaign_id: int, status: string, recipient_customer_count: int,
+     *   token_count: int, success_count: int, failure_count: int
+     * }
+     */
+    public function sendToCustomers(
+        string $title,
+        string $body,
+        int $sentByUserId,
+        array $targetCustomerIds = [],
+        string $type = 'OFFER',
+        ?array $data = null,
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): array {
+        $title = trim($title);
+        $body = trim($body);
+
+        if ($title === '' || $body === '') {
+            return [
+                'campaign_id' => 0,
+                'status' => 'SKIPPED',
+                'recipient_customer_count' => 0,
+                'token_count' => 0,
+                'success_count' => 0,
+                'failure_count' => 0,
+            ];
+        }
+
+        if (mb_strlen($title) > 255) {
+            $title = mb_substr($title, 0, 252) . '...';
+        }
+        if (mb_strlen($body) > 500) {
+            $body = mb_substr($body, 0, 497) . '...';
+        }
+
+        try {
+            // 1. Resolve eligible customers
+            if ($targetCustomerIds !== []) {
+                $placeholders = implode(',', array_fill(0, count($targetCustomerIds), '?'));
+                $stmt = $this->pdo->prepare(
+                    "SELECT id FROM customers WHERE status = 'ACTIVE' AND deleted_at IS NULL AND id IN ({$placeholders})"
+                );
+                $stmt->execute(array_values($targetCustomerIds));
+                $customerIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+            } else {
+                $customerIds = $this->pdo->query(
+                    "SELECT id FROM customers WHERE status = 'ACTIVE' AND deleted_at IS NULL"
+                )->fetchAll(PDO::FETCH_COLUMN);
+                $customerIds = array_map('intval', $customerIds);
+            }
+
+            $campaignId = $this->createCampaign($title, $body, $sentByUserId, null, count($customerIds));
+
+            if ($customerIds === []) {
+                $this->completeCampaign($campaignId, 0, 0, 0);
+
+                return [
+                    'campaign_id' => $campaignId,
+                    'status' => 'COMPLETED',
+                    'recipient_customer_count' => 0,
+                    'token_count' => 0,
+                    'success_count' => 0,
+                    'failure_count' => 0,
+                ];
+            }
+
+            $normalizedType = trim(strtoupper($type));
+            if ($normalizedType === '') {
+                $normalizedType = 'OFFER';
+            }
+
+            // 2. Persist in-app notification row for all recipients
+            $this->notifications->createForMany(
+                recipientType: 'CUSTOMER',
+                recipientIds: $customerIds,
+                type: $normalizedType,
+                title: $title,
+                body: $body,
+                referenceType: $referenceType ?: 'BROADCAST_CAMPAIGN',
+                referenceId: $referenceId ?: $campaignId,
+                data: $data,
+            );
+
+            // 3. Fetch active device tokens
+            $tokenRows = $this->deviceTokens->activeTokensForMany('CUSTOMER', $customerIds);
+            $tokens = array_values(array_unique(array_column($tokenRows, 'token')));
+
+            // 4. Send FCM push batch
+            $result = ['attempted' => 0, 'sent' => 0];
+            if ($tokens !== [] && $this->fcm->isConfigured()) {
+                $fcmData = array_merge([
+                    'type' => $normalizedType,
+                    'campaign_id' => (string) $campaignId,
+                    'click_action' => $data['click_action'] ?? $data['url'] ?? '/',
+                ], $data ?? []);
+                $result = $this->fcm->sendBatch($tokens, $title, $body, $fcmData);
+            }
+
+            $failureCount = $result['attempted'] - $result['sent'];
+            $this->completeCampaign($campaignId, count($tokens), $result['sent'], $failureCount);
+
+            return [
+                'campaign_id' => $campaignId,
+                'status' => 'COMPLETED',
+                'recipient_customer_count' => count($customerIds),
+                'token_count' => count($tokens),
+                'success_count' => $result['sent'],
+                'failure_count' => $failureCount,
+            ];
+        } catch (\Throwable $e) {
+            error_log('BroadcastService::sendToCustomers error: ' . $e->getMessage());
+
+            return [
+                'campaign_id' => 0,
+                'status' => 'FAILED',
+                'recipient_customer_count' => 0,
+                'token_count' => 0,
+                'success_count' => 0,
+                'failure_count' => 0,
+            ];
+        }
+    }
+
     private function resultMessage(int $tokenCount, int $sent, int $failed, bool $fcmConfigured): string
     {
         if ($tokenCount === 0) {
