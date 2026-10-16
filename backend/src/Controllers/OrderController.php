@@ -68,16 +68,28 @@ final class OrderController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'orders.manage');
 
-        Response::json(['orders' => $this->orders->list($_GET)]);
+        $result = $this->orders->list($_GET);
+        Response::json([
+            'orders' => $result['items'],
+            'total' => $result['total'],
+            'page' => $result['page'],
+            'limit' => $result['limit'],
+        ]);
     }
 
-    /** Customer's own order history (docs section 7, spec2 section 28). */
+    /**
+     * Customer's own order history (docs section 7, spec2 section 28).
+     * Kept as a flat `orders` array (no pagination metadata) — the
+     * storefront reads this as a plain list; admin's own order list
+     * (index() above) is the one that needed real pagination.
+     */
     public function myOrders(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::requireCustomer($claims);
 
-        Response::json(['orders' => $this->orders->list(['customer_id' => $claims['sub']])]);
+        $result = $this->orders->list(['customer_id' => $claims['sub'], 'limit' => 200]);
+        Response::json(['orders' => $result['items']]);
     }
 
     public function show(string $id): void

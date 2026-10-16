@@ -8,6 +8,7 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\ImageUploadService;
 use PDO;
 use PDOException;
 
@@ -18,8 +19,11 @@ use PDOException;
  */
 final class MasterDataController
 {
-    public function __construct(private readonly PDO $pdo)
+    private readonly ImageUploadService $images;
+
+    public function __construct(private readonly PDO $pdo, ?ImageUploadService $images = null)
     {
+        $this->images = $images ?? new ImageUploadService();
     }
 
     private function isStaff(): bool
@@ -39,13 +43,27 @@ final class MasterDataController
     public function indexBrands(): void
     {
         $isStaff = $this->isStaff();
-        $brandSql = $isStaff
-            ? "SELECT * FROM brands WHERE deleted_at IS NULL ORDER BY name"
-            : "SELECT * FROM brands WHERE deleted_at IS NULL AND status = 'ACTIVE' ORDER BY name";
+        $isTopOnly = isset($_GET['is_top_brand']) && ($_GET['is_top_brand'] === '1' || $_GET['is_top_brand'] === 'true');
+
+        $where = ["b.deleted_at IS NULL"];
+        if (!$isStaff) {
+            $where[] = "b.status = 'ACTIVE'";
+        }
+        if ($isTopOnly) {
+            $where[] = "b.is_top_brand = 1";
+        }
+        $whereSql = implode(' AND ', $where);
+        $orderSql = $isTopOnly ? "b.sort_order ASC, b.name ASC" : "b.name ASC";
+
+        $brandSql = "SELECT b.*,
+                     (SELECT COUNT(*) FROM products p WHERE p.brand_id = b.id AND p.deleted_at IS NULL) AS product_count,
+                     (SELECT MIN(v.retail_price) FROM products p JOIN product_variants v ON v.product_id = p.id WHERE p.brand_id = b.id AND p.deleted_at IS NULL AND v.deleted_at IS NULL) AS min_price
+                     FROM brands b WHERE {$whereSql} ORDER BY {$orderSql}";
 
         $brands = $this->pdo->query($brandSql)->fetchAll();
 
         foreach ($brands as &$brand) {
+            $brand['is_top_brand'] = (int) ($brand['is_top_brand'] ?? 0);
             $catSql = $isStaff
                 ? "SELECT c.id, c.name FROM brand_categories bc
                    JOIN categories c ON c.id = bc.category_id
@@ -65,24 +83,75 @@ final class MasterDataController
         Response::json(['brands' => $brands]);
     }
 
+    public function indexTopBrands(): void
+    {
+        $brandSql = "SELECT b.id, b.name, b.description, b.image_path, b.is_top_brand, b.offer_text, b.sort_order,
+                     (SELECT COUNT(*) FROM products p WHERE p.brand_id = b.id AND p.deleted_at IS NULL AND p.is_active = 1) AS product_count,
+                     (SELECT MIN(v.retail_price) FROM products p JOIN product_variants v ON v.product_id = p.id WHERE p.brand_id = b.id AND p.deleted_at IS NULL AND p.is_active = 1 AND v.deleted_at IS NULL AND v.status = 'ACTIVE') AS min_price
+                     FROM brands b
+                     WHERE b.deleted_at IS NULL AND b.status = 'ACTIVE' AND b.is_top_brand = 1
+                     ORDER BY b.sort_order ASC, b.name ASC
+                     LIMIT 12";
+
+        $brands = $this->pdo->query($brandSql)->fetchAll();
+        foreach ($brands as &$brand) {
+            $brand['is_top_brand'] = (int) ($brand['is_top_brand'] ?? 0);
+        }
+        unset($brand);
+
+        Response::json(['brands' => $brands]);
+    }
+
     public function storeBrand(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
-        $body = Request::json();
+        $isMultipart = !empty($_POST) || !empty($_FILES);
+        $body = $isMultipart ? $_POST : Request::json();
+
         $name = trim((string) ($body['name'] ?? ''));
         $description = trim((string) ($body['description'] ?? ''));
-        $categoryIds = (array) ($body['category_ids'] ?? []);
+        $isTopBrand = !empty($body['is_top_brand']) && ($body['is_top_brand'] === '1' || $body['is_top_brand'] === 1 || $body['is_top_brand'] === true || $body['is_top_brand'] === 'true') ? 1 : 0;
+        $offerText = trim((string) ($body['offer_text'] ?? ''));
+        $sortOrder = (int) ($body['sort_order'] ?? 0);
+
+        $rawCatIds = $body['category_ids'] ?? [];
+        if (is_string($rawCatIds)) {
+            $decoded = json_decode($rawCatIds, true);
+            $categoryIds = is_array($decoded) ? $decoded : array_filter(array_map('intval', explode(',', $rawCatIds)));
+        } else {
+            $categoryIds = (array) $rawCatIds;
+        }
 
         if ($name === '') {
             Response::error('Name is required', 422);
         }
 
+        $imagePath = null;
+        $file = $_FILES['image'] ?? $_FILES['file'] ?? null;
+        if ($file !== null && is_array($file) && !empty($file['tmp_name'])) {
+            try {
+                $stored = $this->images->store($file, 'brands');
+                $imagePath = $stored['path'];
+            } catch (\Throwable $e) {
+                Response::error($e->getMessage(), 422);
+            }
+        } elseif (!empty($body['image_path'])) {
+            $imagePath = trim((string) $body['image_path']);
+        }
+
         try {
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare('INSERT INTO brands (name, description) VALUES (:name, :desc)');
-            $stmt->execute(['name' => $name, 'desc' => $description ?: null]);
+            $stmt = $this->pdo->prepare('INSERT INTO brands (name, description, image_path, is_top_brand, offer_text, sort_order) VALUES (:name, :desc, :img, :top, :offer, :sort)');
+            $stmt->execute([
+                'name' => $name,
+                'desc' => $description ?: null,
+                'img' => $imagePath ?: null,
+                'top' => $isTopBrand,
+                'offer' => $offerText ?: null,
+                'sort' => $sortOrder,
+            ]);
             $brandId = (int) $this->pdo->lastInsertId();
 
             if (!empty($categoryIds)) {
@@ -93,7 +162,7 @@ final class MasterDataController
             }
 
             $this->pdo->commit();
-            Response::json(['id' => $brandId], 201);
+            Response::json(['id' => $brandId, 'image_path' => $imagePath, 'message' => 'Brand created successfully'], 201);
         } catch (PDOException $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -110,38 +179,167 @@ final class MasterDataController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
-        $body = Request::json();
-        $name = trim((string) ($body['name'] ?? ''));
-        $description = trim((string) ($body['description'] ?? ''));
-        $categoryIds = (array) ($body['category_ids'] ?? []);
+        $stmt = $this->pdo->prepare('SELECT * FROM brands WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => (int) $id]);
+        $existing = $stmt->fetch();
+        if (!$existing) {
+            Response::error('Brand not found', 404);
+        }
+
+        $isMultipart = !empty($_POST) || !empty($_FILES);
+        $body = $isMultipart ? $_POST : Request::json();
+
+        $name = trim((string) ($body['name'] ?? $existing['name']));
+        $description = trim((string) ($body['description'] ?? $existing['description'] ?? ''));
+        $isTopBrand = isset($body['is_top_brand'])
+            ? (!empty($body['is_top_brand']) && ($body['is_top_brand'] === '1' || $body['is_top_brand'] === 1 || $body['is_top_brand'] === true || $body['is_top_brand'] === 'true') ? 1 : 0)
+            : (int) $existing['is_top_brand'];
+        $offerText = isset($body['offer_text']) ? trim((string) $body['offer_text']) : (string) ($existing['offer_text'] ?? '');
+        $sortOrder = isset($body['sort_order']) ? (int) $body['sort_order'] : (int) ($existing['sort_order'] ?? 0);
+
+        $rawCatIds = $body['category_ids'] ?? null;
+        if ($rawCatIds !== null) {
+            if (is_string($rawCatIds)) {
+                $decoded = json_decode($rawCatIds, true);
+                $categoryIds = is_array($decoded) ? $decoded : array_filter(array_map('intval', explode(',', $rawCatIds)));
+            } else {
+                $categoryIds = (array) $rawCatIds;
+            }
+        } else {
+            $categoryIds = null;
+        }
 
         if ($name === '') {
             Response::error('Name is required', 422);
         }
 
+        $imagePath = $existing['image_path'];
+        $file = $_FILES['image'] ?? $_FILES['file'] ?? null;
+        if ($file !== null && is_array($file) && !empty($file['tmp_name'])) {
+            try {
+                $stored = $this->images->store($file, 'brands');
+                $imagePath = $stored['path'];
+                if (!empty($existing['image_path']) && $existing['image_path'] !== $imagePath) {
+                    $this->images->delete($existing['image_path']);
+                }
+            } catch (\Throwable $e) {
+                Response::error($e->getMessage(), 422);
+            }
+        } elseif (!empty($body['remove_image'])) {
+            if (!empty($existing['image_path'])) {
+                $this->images->delete($existing['image_path']);
+            }
+            $imagePath = null;
+        } elseif (array_key_exists('image_path', $body)) {
+            $imagePath = $body['image_path'] ? trim((string) $body['image_path']) : null;
+        }
+
         try {
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare('UPDATE brands SET name = :name, description = :desc WHERE id = :id');
-            $stmt->execute(['name' => $name, 'desc' => $description ?: null, 'id' => (int) $id]);
+            $stmt = $this->pdo->prepare('UPDATE brands SET name = :name, description = :desc, image_path = :img, is_top_brand = :top, offer_text = :offer, sort_order = :sort WHERE id = :id');
+            $stmt->execute([
+                'name' => $name,
+                'desc' => $description ?: null,
+                'img' => $imagePath ?: null,
+                'top' => $isTopBrand,
+                'offer' => $offerText ?: null,
+                'sort' => $sortOrder,
+                'id' => (int) $id,
+            ]);
 
-            // Sync brand_categories
-            $this->pdo->prepare('DELETE FROM brand_categories WHERE brand_id = :id')->execute(['id' => (int) $id]);
-
-            if (!empty($categoryIds)) {
-                $insCat = $this->pdo->prepare('INSERT INTO brand_categories (brand_id, category_id) VALUES (:b_id, :c_id)');
-                foreach ($categoryIds as $catId) {
-                    $insCat->execute(['b_id' => (int) $id, 'c_id' => (int) $catId]);
+            // Sync brand_categories if provided
+            if ($categoryIds !== null) {
+                $this->pdo->prepare('DELETE FROM brand_categories WHERE brand_id = :id')->execute(['id' => (int) $id]);
+                if (!empty($categoryIds)) {
+                    $insCat = $this->pdo->prepare('INSERT INTO brand_categories (brand_id, category_id) VALUES (:b_id, :c_id)');
+                    foreach ($categoryIds as $catId) {
+                        $insCat->execute(['b_id' => (int) $id, 'c_id' => (int) $catId]);
+                    }
                 }
             }
 
             $this->pdo->commit();
-            Response::json(['message' => 'Brand updated successfully']);
+            Response::json(['message' => 'Brand updated successfully', 'image_path' => $imagePath]);
         } catch (PDOException $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
+            if ((int) $e->getCode() === 23000) {
+                Response::error('A brand with this name already exists', 409);
+            }
             throw $e;
         }
+    }
+
+    public function uploadBrandImage(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $file = $_FILES['file'] ?? $_FILES['image'] ?? null;
+        if (!isset($file) || !is_array($file) || empty($file['tmp_name'])) {
+            Response::error('A file upload named "file" or "image" is required', 422);
+        }
+
+        $stmt = $this->pdo->prepare('SELECT * FROM brands WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => (int) $id]);
+        $brand = $stmt->fetch();
+        if (!$brand) {
+            Response::error('Brand not found', 404);
+        }
+
+        try {
+            $stored = $this->images->store($file, 'brands');
+            $this->pdo->prepare('UPDATE brands SET image_path = :path WHERE id = :id')
+                ->execute(['path' => $stored['path'], 'id' => (int) $id]);
+
+            if (!empty($brand['image_path']) && $brand['image_path'] !== $stored['path']) {
+                $this->images->delete($brand['image_path']);
+            }
+
+            Response::json(['image_path' => $stored['path']]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function removeBrandImage(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $stmt = $this->pdo->prepare('SELECT * FROM brands WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => (int) $id]);
+        $brand = $stmt->fetch();
+        if (!$brand) {
+            Response::error('Brand not found', 404);
+        }
+
+        if (!empty($brand['image_path'])) {
+            $this->images->delete($brand['image_path']);
+        }
+
+        $this->pdo->prepare('UPDATE brands SET image_path = NULL WHERE id = :id')->execute(['id' => (int) $id]);
+        Response::json(['message' => 'Brand image removed successfully']);
+    }
+
+    public function toggleTopBrand(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'catalog.manage');
+
+        $stmt = $this->pdo->prepare('SELECT id, is_top_brand FROM brands WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => (int) $id]);
+        $brand = $stmt->fetch();
+        if (!$brand) {
+            Response::error('Brand not found', 404);
+        }
+
+        $newVal = ((int) $brand['is_top_brand'] === 1) ? 0 : 1;
+        $this->pdo->prepare('UPDATE brands SET is_top_brand = :top WHERE id = :id')
+            ->execute(['top' => $newVal, 'id' => (int) $id]);
+
+        Response::json(['id' => (int) $id, 'is_top_brand' => $newVal]);
     }
 
     public function destroyBrand(string $id): void

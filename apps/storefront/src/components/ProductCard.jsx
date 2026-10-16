@@ -48,11 +48,11 @@ export default function ProductCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)]/50 hover:shadow-lg transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full select-none"
+      className="bg-white rounded-xl p-3 border border-slate-200/90 hover:border-[#c4b5fd] hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full select-none"
     >
       <div>
-        {/* Product Image & Badges (Consistent aspect ratio with contain-fit styling) */}
-        <div className="relative rounded-xl overflow-hidden bg-[var(--color-bg-main)] aspect-square mb-2.5 flex items-center justify-center p-2.5 border border-[var(--color-border-subtle)]/60">
+        {/* Product Image & Badges */}
+        <div className="relative rounded-lg overflow-hidden bg-[#faf5ff] aspect-square mb-2.5 flex items-center justify-center p-2 border border-[#f5f3ff]">
           <img
             src={imgSrc}
             alt={product.name}
@@ -61,9 +61,9 @@ export default function ProductCard({
             loading="lazy"
           />
 
-          {/* Discount % Badge from DB pricing */}
+          {/* Discount % Badge in Pastel Purple */}
           {discountPercent > 0 && showDiscount && (
-            <span className="absolute top-2 left-2 bg-[var(--color-brand)] text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-xs z-10 tracking-wide">
+            <span className="absolute top-1.5 left-1.5 bg-[#ede9fe] text-[#6d28d9] border border-[#ddd6fe] font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded shadow-2xs z-10 tracking-wide">
               {discountPercent}% OFF
             </span>
           )}
@@ -73,15 +73,15 @@ export default function ProductCard({
             <button
               type="button"
               onClick={(e) => onToggleWishlist(product.id, e)}
-              className="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 hover:bg-white text-[var(--color-text-muted)] hover:text-[var(--color-brand)] flex items-center justify-center shadow-xs transition-all hover:scale-110 active:scale-95 cursor-pointer border border-[var(--color-border-subtle)]/80 z-10"
+              className="absolute top-1.5 right-1.5 w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-full bg-white/95 hover:bg-white text-slate-400 hover:text-[#7c3aed] flex items-center justify-center shadow-2xs transition-all hover:scale-110 active:scale-95 cursor-pointer border border-slate-200/80 z-10"
               title="Save to Wishlist"
               aria-label="Save to Wishlist"
             >
               <svg
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                className="w-3.5 h-3.5"
                 viewBox="0 0 24 24"
-                fill={isWishlist ? 'var(--color-brand)' : 'none'}
-                stroke={isWishlist ? 'var(--color-brand)' : 'currentColor'}
+                fill={isWishlist ? '#7c3aed' : 'none'}
+                stroke={isWishlist ? '#7c3aed' : 'currentColor'}
                 strokeWidth="2.2"
               >
                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -93,16 +93,16 @@ export default function ProductCard({
         {/* Brand / Product Code & Stock Status Badge */}
         <div className="flex items-center justify-between gap-1 text-[10px] mb-1">
           {product.brand_name ? (
-            <span className="text-[10px] font-bold text-[var(--color-brand)] uppercase tracking-wider truncate max-w-[120px]">
+            <span className="text-[10px] font-bold text-[#6d28d9] uppercase tracking-wider truncate max-w-[120px]">
               {product.brand_name}
             </span>
           ) : (
-            <span className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider truncate max-w-[120px]">
+            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate max-w-[120px]">
               {product.product_code || ''}
             </span>
           )}
           {isUnavailable ? (
-            <span className="text-[var(--color-text-muted)] font-bold bg-[var(--color-bg-main)] px-1.5 py-0.5 rounded text-[9px] border border-[var(--color-border-subtle)]">
+            <span className="text-slate-500 font-semibold bg-slate-100 px-1.5 py-0.5 rounded text-[9px]">
               Unavailable
             </span>
           ) : isOutOfStock ? (
@@ -117,38 +117,33 @@ export default function ProductCard({
         </div>
 
         {/* Product Name from DB */}
-        <h3 className="text-xs sm:text-[13px] font-bold text-[var(--color-text-main)] line-clamp-2 leading-snug min-h-[34px] group-hover:text-[var(--color-brand)] transition-colors">
+        <h3 className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug min-h-[32px] group-hover:text-[#6d28d9] transition-colors">
           {product.name}
         </h3>
 
         {/* Unit / Weight Tag */}
         {unitWeight && (
-          <div className="mt-1">
-            <span className="inline-block text-[10px] sm:text-[11px] font-semibold text-[var(--color-text-muted)] bg-[var(--color-bg-main)] px-2 py-0.5 rounded border border-[var(--color-border-subtle)]">
+          <div className="mt-0.5">
+            <span className="inline-block text-[10px] font-medium text-slate-500">
               {unitWeight}
             </span>
           </div>
         )}
 
         {/* Price display: Selling Price, MRP & Savings */}
-        <div className="flex items-baseline flex-wrap gap-1.5 sm:gap-2 mt-2">
+        <div className="flex items-baseline flex-wrap gap-1.5 mt-1.5">
           {isUnavailable ? (
-            <span className="text-xs sm:text-sm font-bold text-[var(--color-text-muted)]">
+            <span className="text-xs font-bold text-slate-400">
               Unavailable
             </span>
           ) : (
             <>
-              <span className="text-sm sm:text-base font-black text-[var(--color-brand)]">
+              <span className="text-sm font-black text-black">
                 ₹{retailPrice}
               </span>
               {showDiscount && mrp > retailPrice && (
-                <span className="text-[10px] sm:text-xs text-[var(--color-text-muted)] line-through font-medium">
+                <span className="text-[11px] text-slate-400 line-through font-normal">
                   ₹{mrp}
-                </span>
-              )}
-              {showDiscount && mrp > retailPrice && (
-                <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600">
-                  Save ₹{Math.round(mrp - retailPrice)}
                 </span>
               )}
             </>
@@ -156,17 +151,17 @@ export default function ProductCard({
         </div>
       </div>
 
-      {/* Action: Add to Cart button */}
-      <div className="mt-2.5 pt-2 border-t border-[var(--color-border-subtle)]">
+      {/* Action: Add to Cart button (Black button with white text) */}
+      <div className="mt-2.5 pt-2 border-t border-slate-100">
         {onAddToCart && (
           <button
             type="button"
             disabled={isOutOfStock || isUnavailable}
             onClick={(e) => onAddToCart(product, e)}
-            className={`w-full py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 min-h-[38px] active:scale-95 ${
+            className={`w-full py-1.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 active:scale-95 ${
               isOutOfStock || isUnavailable
-                ? 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/50 border border-[var(--color-border-subtle)] cursor-not-allowed'
-                : 'bg-[var(--color-primary-tint)] hover:bg-[var(--color-brand)] text-[var(--color-brand)] hover:text-white cursor-pointer shadow-xs'
+                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                : 'bg-black hover:bg-neutral-800 text-white cursor-pointer shadow-2xs'
             }`}
             title={isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
           >

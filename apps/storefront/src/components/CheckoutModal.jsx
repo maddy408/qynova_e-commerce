@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { FiLock, FiAlertCircle, FiX, FiArrowRight, FiDollarSign, FiSmartphone, FiCreditCard } from 'react-icons/fi'
 import { api, getCustomerToken, fetchCustomerAddresses, resolveImageUrl } from '../lib/api'
 import { clearCart } from '../lib/cart'
 import { ROUTES } from '../routes/routes'
@@ -202,7 +203,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
             className="w-9 h-9 rounded-full bg-white hover:bg-gray-100 border border-[var(--color-border-subtle)] text-gray-600 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
             title="Close"
           >
-            ✕
+            <FiX className="w-4 h-4" />
           </button>
         </div>
 
@@ -257,16 +258,17 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
             <div className="pt-3">
               <button
                 onClick={onClose}
-                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
+                className="w-full sm:w-auto px-8 py-3 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
               >
-                Continue Shopping →
+                <span>Continue Shopping</span>
+                <FiArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         ) : !getCustomerToken() ? (
           <div className="p-8 sm:p-12 text-center space-y-6 overflow-y-auto">
             <div className="w-16 h-16 mx-auto rounded-3xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-3xl shadow-inner">
-              🔒
+              <FiLock className="w-8 h-8 text-[var(--color-brand)]" />
             </div>
             <div className="space-y-2">
               <span className="text-xs font-black uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full">
@@ -283,9 +285,10 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
               <Link
                 to={ROUTES.LOGIN}
                 onClick={onClose}
-                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer"
+                className="w-full sm:w-auto flex-1 px-8 py-3.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all text-center cursor-pointer flex items-center justify-center gap-1.5"
               >
-                Sign In / Register →
+                <span>Sign In / Register</span>
+                <FiArrowRight className="w-4 h-4" />
               </Link>
               <button
                 type="button"
@@ -302,14 +305,15 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
             {submissionError && (
               <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs font-semibold flex items-center justify-between shadow-xs">
                 <span className="flex items-center gap-2">
-                  <span className="text-base">⚠️</span> {submissionError}
+                  <FiAlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  <span>{submissionError}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => setSubmissionError('')}
                   className="text-red-500 hover:text-red-700 text-sm font-bold ml-2 cursor-pointer"
                 >
-                  ✕
+                  <FiX className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -480,8 +484,9 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)]">
-                            💵 Cash on Delivery (COD)
+                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)] flex items-center gap-1.5">
+                            <FiDollarSign className="w-4 h-4 text-emerald-600" />
+                            <span>Cash on Delivery (COD)</span>
                           </span>
                           <span className="text-[10px] font-bold text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-2 py-0.5 rounded">
                             Recommended
@@ -509,8 +514,9 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)]">
-                            📱 UPI (GPay / PhonePe / Paytm)
+                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)] flex items-center gap-1.5">
+                            <FiSmartphone className="w-4 h-4 text-blue-600" />
+                            <span>UPI (GPay / PhonePe / Paytm)</span>
                           </span>
                           <span className="text-[10px] font-bold text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-2 py-0.5 rounded">
                             Instant
@@ -537,8 +543,9 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                         className="w-4 h-4 text-[var(--color-brand)] focus:ring-[var(--color-brand)]"
                       />
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)]">
-                          💳 Debit / Credit Card & Net Banking
+                        <span className="text-xs sm:text-sm font-bold text-[var(--color-text-main)] flex items-center gap-1.5">
+                          <FiCreditCard className="w-4 h-4 text-purple-600" />
+                          <span>Debit / Credit Card & Net Banking</span>
                         </span>
                         <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Visa, Mastercard, RuPay & All Major Banks</p>
                       </div>
@@ -623,13 +630,17 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                     ) : (
                       <>
                         <span>Place Order Now</span>
-                        <span className="text-white/90 font-black">₹{grandTotal} →</span>
+                        <span className="text-white/90 font-black flex items-center gap-1">
+                          <span>₹{grandTotal}</span>
+                          <FiArrowRight className="w-4 h-4" />
+                        </span>
                       </>
                     )}
                   </button>
 
-                  <p className="text-[10px] text-[var(--color-text-muted)] text-center">
-                    🔒 Guaranteed Safe & Secure Checkout • 7-Day Easy Returns
+                  <p className="text-[10px] text-[var(--color-text-muted)] text-center flex items-center justify-center gap-1">
+                    <FiLock className="w-3 h-3 text-emerald-600 inline" />
+                    <span>Guaranteed Safe & Secure Checkout • 7-Day Easy Returns</span>
                   </p>
                 </div>
               </div>

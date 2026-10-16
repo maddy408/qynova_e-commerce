@@ -31,4 +31,9 @@ final class Request
     {
         return $_SERVER['REMOTE_ADDR'] ?? null;
     }
+
+    public static function userAgent(): ?string
+    {
+        return $_SERVER['HTTP_USER_AGENT'] ?? null;
+    }
 }

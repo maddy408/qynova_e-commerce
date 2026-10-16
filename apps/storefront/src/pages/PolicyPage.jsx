@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { FiFileText, FiArrowLeft, FiMail } from 'react-icons/fi'
 import { fetchPage, fetchStoreSettings } from '../lib/api'
 import Navbar from '../components/Navbar'
 import CartDrawer from '../components/CartDrawer'
@@ -48,7 +49,7 @@ export default function PolicyPage() {
             </div>
           ) : !page ? (
             <div className="text-center py-16 bg-white rounded-3xl border border-[var(--color-border-subtle)] p-8 shadow-sm">
-              <span className="text-4xl mb-3 block">📄</span>
+              <FiFileText className="w-12 h-12 text-[var(--color-brand)] mx-auto mb-3" />
               <h1 className="text-2xl font-black text-[var(--color-text-main)] mb-2">Page Not Found</h1>
               <p className="text-sm text-[var(--color-text-muted)] mb-6">
                 The policy or information page you are looking for is currently unavailable.
@@ -57,7 +58,8 @@ export default function PolicyPage() {
                 to={ROUTES.HOME}
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[var(--color-brand)] text-white font-bold text-xs shadow-md hover:bg-[var(--color-brand-hover)] transition-all"
               >
-                ← Return to Home
+                <FiArrowLeft className="w-3.5 h-3.5" />
+                <span>Return to Home</span>
               </Link>
             </div>
           ) : (
@@ -85,9 +87,10 @@ export default function PolicyPage() {
                 {storeSettings?.email && (
                   <a
                     href={`mailto:${storeSettings.email}`}
-                    className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] underline"
+                    className="font-bold text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] underline flex items-center gap-1.5"
                   >
-                    ✉️ {storeSettings.email}
+                    <FiMail className="w-3.5 h-3.5" />
+                    <span>{storeSettings.email}</span>
                   </a>
                 )}
               </div>

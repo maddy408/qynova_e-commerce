@@ -14,17 +14,20 @@ require_once dirname(__DIR__) . '/config/database.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\BannerController;
+use App\Controllers\BroadcastController;
 use App\Controllers\CartController;
 use App\Controllers\CategoryController;
 use App\Controllers\CouponController;
 use App\Controllers\CustomerAuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\DeliveryController;
+use App\Controllers\DeviceTokenController;
 use App\Controllers\HomeSectionController;
 use App\Controllers\HoldBillController;
 use App\Controllers\InventoryController;
 use App\Controllers\InvoiceController;
 use App\Controllers\MasterDataController;
+use App\Controllers\NotificationController;
 use App\Controllers\OrderController;
 use App\Controllers\ProductController;
 use App\Controllers\ProductExportController;
@@ -36,6 +39,7 @@ use App\Controllers\RefundController;
 use App\Controllers\ReportExportController;
 use App\Controllers\SettingsController;
 use App\Controllers\SubcategoryController;
+use App\Controllers\TopOfferController;
 use App\Controllers\UserController;
 use App\Controllers\VariantController;
 use App\Controllers\VariantImageController;
@@ -77,6 +81,8 @@ $router->post('/api/referrals/validate', fn () => $customerAuth->validateReferra
 // Staff auth (docs/DOCUMENTATION.md section 5)
 $auth = new AuthController($pdo);
 $router->post('/api/auth/login', fn () => $auth->login());
+$router->post('/api/auth/refresh', fn () => $auth->refresh());
+$router->post('/api/auth/logout', fn () => $auth->logout());
 $router->get('/api/auth/me', fn () => $auth->me());
 
 // Referral settings & report (ECOMMERCE_POS_ADMIN_SPEC.md sections 3-4)
@@ -108,8 +114,12 @@ $router->post('/api/subcategories/{id}/image', fn ($id) => $subcategories->uploa
 $router->delete('/api/subcategories/{id}/image', fn ($id) => $subcategories->removeImage($id));
 
 $masters = new MasterDataController($pdo);
+$router->get('/api/brands/top', fn () => $masters->indexTopBrands());
 $router->get('/api/brands', fn () => $masters->indexBrands());
 $router->post('/api/brands', fn () => $masters->storeBrand());
+$router->post('/api/brands/{id}/image', fn ($id) => $masters->uploadBrandImage($id));
+$router->delete('/api/brands/{id}/image', fn ($id) => $masters->removeBrandImage($id));
+$router->patch('/api/brands/{id}/toggle-top', fn ($id) => $masters->toggleTopBrand($id));
 $router->put('/api/brands/{id}', fn ($id) => $masters->updateBrand($id));
 $router->delete('/api/brands/{id}', fn ($id) => $masters->destroyBrand($id));
 $router->get('/api/units', fn () => $masters->indexUnits());
@@ -186,6 +196,7 @@ $router->post('/api/variant-attributes/{id}/values', fn ($id) => $variants->stor
 $router->post('/api/products/{id}/variants', fn ($id) => $variants->store($id));
 $router->post('/api/products/{id}/variants/generate', fn ($id) => $variants->generateCombinations($id));
 $router->put('/api/variants/{id}', fn ($id) => $variants->update($id));
+$router->put('/api/variants/{id}/price', fn ($id) => $products->updateVariantPrice($id));
 $router->get('/api/variants/lookup', fn () => $variants->lookup());
 
 // Variant images — each variant's own gallery, never mixed with another
@@ -263,6 +274,28 @@ $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPa
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 
+// Notifications + FCM device tokens — shared by admin-pos (staff) and
+// storefront (customer); the recipient is always derived from the
+// caller's own JWT, never a request parameter (see both controllers).
+$notifications = new NotificationController($pdo);
+$router->get('/api/notifications', fn () => $notifications->index());
+$router->get('/api/notifications/unread-count', fn () => $notifications->unreadCount());
+$router->post('/api/notifications/{id}/read', fn ($id) => $notifications->markRead($id));
+$router->post('/api/notifications/{id}/unread', fn ($id) => $notifications->markUnread($id));
+$router->delete('/api/notifications/{id}', fn ($id) => $notifications->destroy($id));
+$router->post('/api/notifications/read-all', fn () => $notifications->markAllRead());
+
+
+$deviceTokens = new DeviceTokenController($pdo);
+$router->post('/api/device-tokens', fn () => $deviceTokens->register());
+$router->delete('/api/device-tokens', fn () => $deviceTokens->remove());
+
+// Admin -> all-customers broadcast push notifications (requires
+// 'notifications.broadcast' — see BroadcastController).
+$broadcasts = new BroadcastController($pdo);
+$router->post('/api/notifications/broadcast', fn () => $broadcasts->send());
+$router->get('/api/notifications/broadcast-history', fn () => $broadcasts->history());
+
 // TODO: Razorpay implementation — RazorpayController/RazorpayWebhookController
 // exist as empty placeholders (src/Controllers/). Not wired in yet:
 // $razorpay = new RazorpayController($pdo);
@@ -277,7 +310,10 @@ $invoices = new InvoiceController($pdo);
 $router->get('/api/invoices', fn () => $invoices->index());
 $router->get('/api/invoices/{id}', fn ($id) => $invoices->show($id));
 $router->post('/api/invoices/pos-sale', fn () => $invoices->storePosSale());
-$router->put('/api/invoices/{id}', fn ($id) => $invoices->update($id));
+$router->put('/api/invoices/{id}/payment-method', fn ($id) => $invoices->updatePaymentMethod($id));
+$router->get('/api/invoices/{id}/payments', fn ($id) => $invoices->listPayments($id));
+$router->post('/api/invoices/{id}/payments', fn ($id) => $invoices->collectPayment($id));
+$router->post('/api/invoices/{id}/payments/{paymentId}/reverse', fn ($id, $paymentId) => $invoices->reversePayment($id, $paymentId));
 $router->post('/api/invoices/{id}/cancel', fn ($id) => $invoices->cancel($id));
 $router->delete('/api/invoices/{id}', fn ($id) => $invoices->destroy($id));
 
@@ -355,8 +391,21 @@ $router->post('/api/home-sections/{id}/image', fn ($id) => $homeSections->upload
 $router->delete('/api/home-sections/{id}/image', fn ($id) => $homeSections->removeImage($id));
 $router->delete('/api/home-sections/{id}', fn ($id) => $homeSections->destroy($id));
 
+// Top Offers (Top Offers for You section)
+$topOffers = new TopOfferController($pdo);
+$router->get('/api/top-offers', fn () => $topOffers->index());
+$router->get('/api/admin/top-offers', fn () => $topOffers->adminIndex());
+$router->get('/api/admin/top-offers/{id}', fn ($id) => $topOffers->show($id));
+$router->post('/api/admin/top-offers', fn () => $topOffers->store());
+$router->put('/api/admin/top-offers/{id}', fn ($id) => $topOffers->update($id));
+$router->post('/api/admin/top-offers/{id}/image', fn ($id) => $topOffers->uploadImage($id));
+$router->delete('/api/admin/top-offers/{id}/image', fn ($id) => $topOffers->removeImage($id));
+$router->patch('/api/admin/top-offers/{id}/toggle', fn ($id) => $topOffers->toggle($id));
+$router->delete('/api/admin/top-offers/{id}', fn ($id) => $topOffers->destroy($id));
+
 // Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)
 $dashboard = new DashboardController($pdo);
+
 $router->get('/api/dashboard/summary', fn () => $dashboard->summary());
 $router->get('/api/dashboard/sales-chart', fn () => $dashboard->salesChart());
 $router->get('/api/dashboard/product-analytics', fn () => $dashboard->productAnalytics());

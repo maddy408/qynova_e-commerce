@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FiX } from 'react-icons/fi'
+import { TbSparkles } from 'react-icons/tb'
 import { resolveImageUrl } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
@@ -71,7 +73,7 @@ export default function PopupBannerModal({ banner }) {
           className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center text-sm font-bold backdrop-blur-sm cursor-pointer transition-colors"
           aria-label="Close promotion"
         >
-          ×
+          <FiX className="w-4 h-4" />
         </button>
 
         {/* Media */}
@@ -86,7 +88,7 @@ export default function PopupBannerModal({ banner }) {
           {banner.discount_text && (
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-xs font-black uppercase tracking-wider">
-                <span>🔥</span>
+                <TbSparkles className="w-3.5 h-3.5 text-amber-500" />
                 <span>{banner.discount_text}</span>
               </span>
             </div>

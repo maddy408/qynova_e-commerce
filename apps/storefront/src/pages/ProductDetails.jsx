@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
+  FiStar,
+  FiTag,
+  FiTruck,
+  FiZap,
+  FiHeart,
+  FiShield,
+  FiRefreshCw,
+  FiBox,
+  FiDollarSign,
+  FiLock,
+  FiCheck,
+  FiX,
+  FiChevronLeft,
+  FiChevronRight,
+} from 'react-icons/fi'
+import {
   api,
   getCustomerToken,
   clearCustomerSession,
@@ -363,7 +379,7 @@ export default function ProductDetails() {
     try {
       const added = await toggleWishlist(idToToggle)
       setWishlistIds(getWishlistIds())
-      showToast(added ? 'Saved to Wishlist ❤️' : 'Removed from Wishlist')
+      showToast(added ? 'Saved to Wishlist' : 'Removed from Wishlist')
     } catch {
       showToast('Could not update wishlist')
     }
@@ -402,7 +418,7 @@ export default function ProductDetails() {
         addQty
       )
       setCartCount(getCartCount())
-      showToast(`Added ${addQty > 1 ? addQty + ' × ' : ''}"${prodToAdd.name}" to Cart! 🛍️`)
+      showToast(`Added ${addQty > 1 ? addQty + ' × ' : ''}"${prodToAdd.name}" to Cart!`)
       setIsCartOpen(true)
     } catch {
       showToast('Could not add item to cart. Please try again.')
@@ -515,7 +531,7 @@ export default function ProductDetails() {
   const handleCopyCoupon = (code) => {
     try {
       navigator.clipboard.writeText(code)
-      showToast(`Coupon "${code}" copied to clipboard! 🎟️`)
+      showToast(`Coupon "${code}" copied to clipboard!`)
     } catch {
       showToast(`Coupon Code: ${code}`)
     }
@@ -774,7 +790,7 @@ export default function ProductDetails() {
                   {/* Ratings & Quality Trust Notice */}
                   <div className="flex items-center gap-3 text-xs mb-4 flex-wrap">
                     <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md text-amber-900 font-bold">
-                      <span className="text-amber-500 text-sm">★</span>
+                      <FiStar className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                       <span>4.8</span>
                     </div>
                     <span className="text-gray-400">•</span>
@@ -926,7 +942,8 @@ export default function ProductDetails() {
                   <div className="border border-[var(--color-border-subtle)] rounded-2xl p-4 bg-white shadow-2xs mb-5">
                     <div className="flex items-center justify-between mb-2.5">
                       <h3 className="text-xs sm:text-sm font-extrabold text-[var(--color-text-main)] uppercase tracking-wider flex items-center gap-1.5">
-                        <span>🏷️</span> Available Offers
+                        <FiTag className="w-4 h-4 text-[var(--color-brand)]" />
+                        <span>Available Offers</span>
                       </h3>
                       {availableCoupons.length > 0 && (
                         <span className="text-[11px] font-bold text-[var(--color-brand)]">
@@ -970,7 +987,7 @@ export default function ProductDetails() {
 
                         {/* Free Delivery Offer */}
                         <div className="flex items-start gap-2 text-xs text-gray-700 pt-1">
-                          <span className="text-emerald-600 font-bold">✓</span>
+                          <FiCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                           <span>
                             <strong>Free Delivery:</strong> On all orders above ₹499 across India.
                           </span>
@@ -986,7 +1003,8 @@ export default function ProductDetails() {
                   {/* DELIVERY / PINCODE CHECKER */}
                   <div className="border border-[var(--color-border-subtle)] rounded-2xl p-4 bg-white shadow-2xs mb-6">
                     <h3 className="text-xs sm:text-sm font-extrabold text-[var(--color-text-main)] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <span>🚚</span> Delivery Availability
+                      <FiTruck className="w-4 h-4 text-[var(--color-brand)]" />
+                      <span>Delivery Availability</span>
                     </h3>
 
                     <form onSubmit={handleCheckPincode} className="flex gap-2 mb-2">
@@ -1086,7 +1104,14 @@ export default function ProductDetails() {
                         disabled={isOutOfStock || isUnavailable}
                         className="w-full py-3.5 px-6 rounded-2xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] hover:brightness-105 text-white font-black text-sm tracking-wide shadow-lg shadow-black/15 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
-                        <span>{isUnavailable ? 'Unavailable' : '⚡ Buy Now'}</span>
+                        {isUnavailable ? (
+                          <span>Unavailable</span>
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            <FiZap className="w-4 h-4 fill-white" />
+                            <span>Buy Now</span>
+                          </span>
+                        )}
                       </button>
                     </div>
 
@@ -1097,13 +1122,20 @@ export default function ProductDetails() {
                         onClick={() => handleToggleWishlist(product.id)}
                         className="font-bold text-[var(--color-brand)] hover:text-[var(--color-text-main)] flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <span>{isWishlisted ? '♥ Saved in Wishlist' : '♡ Add to Wishlist'}</span>
+                        <FiHeart className={`w-3.5 h-3.5 ${isWishlisted ? 'text-red-500 fill-red-500' : ''}`} />
+                        <span>{isWishlisted ? 'Saved in Wishlist' : 'Add to Wishlist'}</span>
                       </button>
 
                       <div className="flex items-center gap-3 text-gray-500 text-[11px]">
-                        <span>🛡️ Secure Checkout</span>
+                        <span className="flex items-center gap-1">
+                          <FiShield className="w-3 h-3 text-emerald-600" />
+                          <span>Secure Checkout</span>
+                        </span>
                         <span>•</span>
-                        <span>🔄 Easy Returns</span>
+                        <span className="flex items-center gap-1">
+                          <FiRefreshCw className="w-3 h-3 text-purple-600" />
+                          <span>Easy Returns</span>
+                        </span>
                       </div>
                     </div>
 
@@ -1266,7 +1298,7 @@ export default function ProductDetails() {
             {activeTab === 'delivery' && (
               <div className="max-w-3xl space-y-4 text-xs sm:text-sm text-gray-700">
                 <div className="p-4 rounded-2xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] flex items-start gap-3">
-                  <span className="text-xl">📦</span>
+                  <FiBox className="w-5 h-5 text-[var(--color-brand)] shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-[var(--color-text-main)] mb-1">Standard Shipping & Delivery</h4>
                     <p className="text-gray-600">
@@ -1276,7 +1308,7 @@ export default function ProductDetails() {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] flex items-start gap-3">
-                  <span className="text-xl">💵</span>
+                  <FiDollarSign className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-[var(--color-text-main)] mb-1">Cash on Delivery (COD)</h4>
                     <p className="text-gray-600">
@@ -1288,7 +1320,7 @@ export default function ProductDetails() {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] flex items-start gap-3">
-                  <span className="text-xl">🔄</span>
+                  <FiRefreshCw className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-[var(--color-text-main)] mb-1">7-Day Return / Replacement Guarantee</h4>
                     <p className="text-gray-600">
@@ -1352,13 +1384,26 @@ export default function ProductDetails() {
                 <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] mb-6">
                   <div className="text-center sm:text-left">
                     <div className="text-4xl font-black text-[var(--color-text-main)]">4.8</div>
-                    <div className="text-amber-500 text-sm font-bold my-1">★★★★★</div>
+                    <div className="flex items-center gap-1 text-amber-500 my-1 justify-center sm:justify-start">
+                      {[...Array(5)].map((_, i) => (
+                        <FiStar key={i} className="w-4 h-4 fill-amber-500" />
+                      ))}
+                    </div>
                     <p className="text-xs text-gray-500">Overall Customer Satisfaction</p>
                   </div>
                   <div className="w-full border-t sm:border-t-0 sm:border-l border-[var(--color-border-subtle)] pt-4 sm:pt-0 sm:pl-6 text-xs text-gray-600 space-y-1.5">
-                    <p>✓ 100% verified customer purchase guarantee</p>
-                    <p>✓ Quality checked before dispatch</p>
-                    <p>✓ Fast delivery across India</p>
+                    <p className="flex items-center gap-1.5">
+                      <FiCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>100% verified customer purchase guarantee</span>
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <FiCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Quality checked before dispatch</span>
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <FiCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Fast delivery across India</span>
+                    </p>
                   </div>
                 </div>
 
@@ -1501,7 +1546,10 @@ export default function ProductDetails() {
                 disabled={isOutOfStock}
                 className="py-2.5 px-4 sm:px-6 rounded-xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] hover:brightness-105 text-white font-bold text-xs sm:text-sm shadow-md transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
-                ⚡ Buy Now
+                <span className="flex items-center gap-1.5">
+                  <FiZap className="w-3.5 h-3.5 fill-white" />
+                  <span>Buy Now</span>
+                </span>
               </button>
 
             </div>
@@ -1529,7 +1577,7 @@ export default function ProductDetails() {
               onClick={() => setIsFullscreenOpen(false)}
               className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xl font-bold transition-colors cursor-pointer"
             >
-              ✕
+              <FiX className="w-5 h-5" />
             </button>
           </div>
 
@@ -1543,7 +1591,7 @@ export default function ProductDetails() {
                 }
                 className="absolute left-2 sm:left-4 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-2xl font-black shadow-lg transition-colors cursor-pointer"
               >
-                ‹
+                <FiChevronLeft className="w-6 h-6" />
               </button>
             )}
 
@@ -1561,7 +1609,7 @@ export default function ProductDetails() {
                 }
                 className="absolute right-2 sm:right-4 z-10 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center text-2xl font-black shadow-lg transition-colors cursor-pointer"
               >
-                ›
+                <FiChevronRight className="w-6 h-6" />
               </button>
             )}
           </div>
@@ -1663,9 +1711,15 @@ export default function ProductDetails() {
                   : 'Fast and reliable shipping across India.'}
               </p>
               <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-                <span>🔒 SSL Encrypted</span>
+                <span className="flex items-center gap-1">
+                  <FiLock className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>SSL Encrypted</span>
+                </span>
                 <span>•</span>
-                <span>💵 COD Available</span>
+                <span className="flex items-center gap-1">
+                  <FiDollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>COD Available</span>
+                </span>
               </div>
             </div>
           </div>

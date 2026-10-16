@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { TbSparkles } from 'react-icons/tb'
 import { resolveImageUrl } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
@@ -211,7 +213,7 @@ export default function PromotionalBannerCarousel({
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${theme.badge} backdrop-blur-md border text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-xs`}
                   >
-                    <span>🔥</span>
+                    <TbSparkles className="w-3.5 h-3.5 text-amber-300" />
                     <span>{activeBanner.discount_text}</span>
                   </span>
                 </div>
@@ -291,7 +293,7 @@ export default function PromotionalBannerCarousel({
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/35 hover:bg-black/60 text-white backdrop-blur-md flex items-center justify-center pointer-events-auto transition-transform active:scale-90 cursor-pointer shadow-md"
                 aria-label="Previous Slide"
               >
-                ‹
+                <FiChevronLeft className="w-5 h-5" />
               </button>
               <button
                 type="button"
@@ -299,7 +301,7 @@ export default function PromotionalBannerCarousel({
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/35 hover:bg-black/60 text-white backdrop-blur-md flex items-center justify-center pointer-events-auto transition-transform active:scale-90 cursor-pointer shadow-md"
                 aria-label="Next Slide"
               >
-                ›
+                <FiChevronRight className="w-5 h-5" />
               </button>
             </div>
           )}

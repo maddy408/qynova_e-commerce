@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FiCalendar, FiGlobe, FiBox, FiHeart, FiMapPin, FiUser, FiGift, FiCheck, FiEdit2, FiX } from 'react-icons/fi'
 import { api, getCustomerToken, clearCustomerToken, clearCustomerSession, setCustomerSession, fetchStoreSettings, resolveImageUrl } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
 
@@ -11,6 +12,51 @@ export default function Profile() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Edit Profile modal state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState('')
+
+  const handleOpenEdit = () => {
+    setEditName(customer?.name || '')
+    setEditEmail(customer?.email || '')
+    setSaveError('')
+    setSaveSuccess('')
+    setIsEditing(true)
+  }
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault()
+    if (!editName.trim()) {
+      setSaveError('Name cannot be empty')
+      return
+    }
+    setIsSaving(true)
+    setSaveError('')
+    try {
+      const res = await api.put('/customers/me', {
+        name: editName.trim(),
+        email: editEmail.trim() || null,
+      })
+      if (res.data?.customer) {
+        setCustomer(res.data.customer)
+        setCustomerSession(getCustomerToken(), res.data.customer)
+        setSaveSuccess('Profile updated successfully!')
+        setTimeout(() => {
+          setIsEditing(false)
+          setSaveSuccess('')
+        }, 800)
+      }
+    } catch (err) {
+      setSaveError(err.response?.data?.error || 'Failed to update profile. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   useEffect(() => {
     const token = getCustomerToken()
@@ -190,6 +236,15 @@ export default function Profile() {
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-border-subtle)]">
                       {customer.customer_type || 'RETAIL'}
                     </span>
+                    <button
+                      type="button"
+                      onClick={handleOpenEdit}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 hover:bg-purple-100 text-[var(--color-brand)] border border-purple-200 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ml-auto sm:ml-0"
+                      title="Edit Profile Details"
+                    >
+                      <FiEdit2 className="w-3.5 h-3.5" />
+                      <span>Edit Profile</span>
+                    </button>
                   </div>
 
                   <p className="text-xs sm:text-sm text-[var(--color-text-muted)] font-medium break-all">
@@ -198,12 +253,12 @@ export default function Profile() {
 
                   <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] sm:text-xs text-[var(--color-text-muted)]">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-alt)] rounded-full border border-[var(--color-border-subtle)]">
-                      <span>📅</span>
+                      <FiCalendar className="w-3.5 h-3.5 text-[var(--color-brand)]" />
                       <span>Member since <strong>{formatDate(customer.created_at)}</strong></span>
                     </span>
                     {customer.profile_photo_path && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-800 rounded-full border border-blue-200 font-medium text-[11px]">
-                        <span>🌐</span>
+                        <FiGlobe className="w-3.5 h-3.5 text-blue-600" />
                         <span>Google Linked</span>
                       </span>
                     )}
@@ -219,8 +274,8 @@ export default function Profile() {
                 to={ROUTES.ORDERS}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">
-                  📦
+                <div className="w-10 h-10 rounded-xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                  <FiBox className="w-5 h-5" />
                 </div>
                 <span className="text-xs font-bold text-[var(--color-text-main)]">My Orders</span>
                 <span className="text-[10px] text-[var(--color-text-muted)]">Track & history</span>
@@ -230,8 +285,8 @@ export default function Profile() {
                 to={ROUTES.HOME}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
-                <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">
-                  ❤️
+                <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                  <FiHeart className="w-5 h-5 fill-pink-500" />
                 </div>
                 <span className="text-xs font-bold text-[var(--color-text-main)]">Wishlist</span>
                 <span className="text-[10px] text-[var(--color-text-muted)]">Saved items</span>
@@ -241,8 +296,8 @@ export default function Profile() {
                 to={ROUTES.HOME}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-lg mb-1.5 group-hover:scale-110 transition-transform">
-                  📍
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                  <FiMapPin className="w-5 h-5 text-amber-600" />
                 </div>
                 <span className="text-xs font-bold text-[var(--color-text-main)]">Addresses</span>
                 <span className="text-[10px] text-[var(--color-text-muted)]">Manage delivery</span>
@@ -256,7 +311,7 @@ export default function Profile() {
               <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[var(--color-border-subtle)] shadow-xs space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
                   <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center font-bold text-sm">
-                    🪪
+                    <FiUser className="w-4 h-4" />
                   </div>
                   <h2 className="text-sm font-extrabold text-[var(--color-text-main)]">Personal Information</h2>
                 </div>
@@ -290,7 +345,7 @@ export default function Profile() {
               <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[var(--color-border-subtle)] shadow-xs space-y-4">
                 <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
                   <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center font-bold text-sm">
-                    🎁
+                    <FiGift className="w-4 h-4 text-pink-600" />
                   </div>
                   <h2 className="text-sm font-extrabold text-[var(--color-text-main)]">Referral Program</h2>
                 </div>
@@ -313,7 +368,14 @@ export default function Profile() {
                             }}
                             className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-tint)] hover:bg-[var(--color-extra-040)] text-[var(--color-brand)] text-xs font-bold transition-colors cursor-pointer"
                           >
-                            {copiedCode ? '✓ Copied' : 'Copy'}
+                            {copiedCode ? (
+                              <span className="flex items-center gap-1">
+                                <FiCheck className="w-3.5 h-3.5" />
+                                <span>Copied</span>
+                              </span>
+                            ) : (
+                              'Copy'
+                            )}
                           </button>
                         )}
                       </div>
@@ -363,6 +425,105 @@ export default function Profile() {
               </button>
             </div>
 
+          </div>
+        )}
+
+        {/* Edit Profile Modal */}
+        {isEditing && customer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-[var(--color-border-subtle)] relative animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+                <div>
+                  <h3 className="text-lg font-black text-[var(--color-text-main)]">
+                    Edit Profile
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    Update your account name and email address
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {saveError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 border border-red-200 rounded-xl text-xs font-semibold">
+                  {saveError}
+                </div>
+              )}
+
+              {saveSuccess && (
+                <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-2">
+                  <FiCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{saveSuccess}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:border-[var(--color-brand)] focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:border-[var(--color-brand)] focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1.5">
+                    Mobile Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={customer.phone ? `+91 ${customer.phone}` : 'Verified via Google / OTP'}
+                    className="w-full px-3.5 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium text-gray-500 cursor-not-allowed"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Phone number is bound to authentication and cannot be changed here.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2.5 rounded-full border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-black transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

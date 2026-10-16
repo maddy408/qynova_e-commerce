@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { HomeSection, HomeSectionType } from '../lib/types'
 
@@ -17,6 +18,7 @@ export function HomeSectionsPage() {
   const [sections, setSections] = useState<HomeSection[] | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingSection, setEditingSection] = useState<HomeSection | null>(null)
+  const [deletingSection, setDeletingSection] = useState<HomeSection | null>(null)
 
   const [type, setType] = useState<HomeSectionType>('FEATURED')
   const [title, setTitle] = useState('')
@@ -147,9 +149,10 @@ export function HomeSectionsPage() {
     load()
   }
 
-  async function remove(id: number) {
-    if (!window.confirm('Delete this home section?')) return
-    await api.delete(`/home-sections/${id}`)
+  async function remove() {
+    if (!deletingSection) return
+    await api.delete(`/home-sections/${deletingSection.id}`)
+    setDeletingSection(null)
     load()
   }
 
@@ -268,7 +271,7 @@ export function HomeSectionsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => remove(s.id)}
+                        onClick={() => setDeletingSection(s)}
                         className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                         title="Delete Section"
                       >
@@ -393,6 +396,15 @@ export function HomeSectionsPage() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingSection !== null}
+        title="Delete Home Section"
+        message={<>Are you sure you want to delete home section <strong className="text-slate-900">"{deletingSection?.title ?? deletingSection?.type}"</strong>?</>}
+        confirmLabel="Delete Section"
+        onConfirm={remove}
+        onCancel={() => setDeletingSection(null)}
+      />
     </div>
   )
 }

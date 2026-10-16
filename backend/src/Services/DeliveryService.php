@@ -193,7 +193,13 @@ final class DeliveryService
         return $this->updateStatus((int) $deliveryId, $newStatus, 'SHIPPING_WEBHOOK', $note, null);
     }
 
-    /** @param array<string, mixed> $filters */
+    /**
+     * G6: server-side search + pagination (previously a flat, unfiltered
+     * LIMIT 200, same gap as OrderService::list() had).
+     *
+     * @param array<string, mixed> $filters
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
     public function list(array $filters): array
     {
         $where = [];
@@ -204,17 +210,41 @@ final class DeliveryService
             $params['status'] = $filters['status'];
         }
 
+        if (!empty($filters['search'])) {
+            $where[] = '(o.order_no LIKE :search1 OR o.shipping_name LIKE :search2 OR d.awb LIKE :search3)';
+            $needle = '%' . $filters['search'] . '%';
+            $params['search1'] = $needle;
+            $params['search2'] = $needle;
+            $params['search3'] = $needle;
+        }
+
         $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
+
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $limit = min(200, max(1, (int) ($filters['limit'] ?? 50)));
+        $offset = ($page - 1) * $limit;
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM deliveries d JOIN orders o ON o.id = d.order_id WHERE {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->pdo->prepare(
             "SELECT d.*, o.order_no, o.shipping_name AS customer_name, o.shipping_phone AS customer_phone,
                     o.shipping_line1, o.shipping_line2, o.shipping_city_district, o.shipping_state, o.shipping_pincode
              FROM deliveries d JOIN orders o ON o.id = d.order_id
-             WHERE {$whereSql} ORDER BY d.created_at DESC LIMIT 200"
+             WHERE {$whereSql} ORDER BY d.created_at DESC, d.id DESC
+             LIMIT :limit OFFSET :offset"
         );
-        $stmt->execute($params);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
 
-        return $stmt->fetchAll();
+        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
     /** @return array<string, mixed>|null */

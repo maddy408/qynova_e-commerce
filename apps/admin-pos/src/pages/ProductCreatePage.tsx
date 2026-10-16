@@ -465,8 +465,22 @@ export function ProductCreatePage() {
           sku,
           barcode: barcode || null,
           mrp: mrp || 0,
-          retail_price: sellingPrice || 0, // Mapped to primary POS sale selling price
-          customer_price: retailPrice || null, // Mapped to Retail price
+          // PricingService.php checks retail_price first for the default
+          // 'RETAIL' customer type every walk-in sale uses, so "Selling
+          // Price" is retail_price — the previous code sent it as
+          // retail_price too, that part was right. The bug was the
+          // distinct "Retail Price" field below: it used to be sent as
+          // customer_price, a column PricingService only ever reads for
+          // the rare CUSTOMER_WISE type — so a deliberately-entered
+          // Retail Price silently never affected what any customer paid.
+          // It now overrides retail_price itself (falling back to Selling
+          // Price when left blank, since the column is NOT NULL).
+          // normal_price mirrors Selling Price as the edge-case fallback
+          // PricingService uses when retail_price is 0/unset.
+          // customer_price has no field here; it's set later via the
+          // dedicated Customer Price Adjustment page.
+          normal_price: sellingPrice || 0,
+          retail_price: retailPrice || sellingPrice || 0,
           wholesale_price: wholesalePrice || null,
           purchase_price: costPrice || null,
           manufacturing_date: manufacturingDate || null,
@@ -494,8 +508,8 @@ export function ProductCreatePage() {
           const variantRes = await api.post(`/products/${productId}/variants`, {
             sku: row.sku,
             mrp: row.mrp || mrp || 0,
-            retail_price: row.sellingPrice || sellingPrice || 0,
-            customer_price: row.retailPrice || retailPrice || null,
+            normal_price: row.sellingPrice || sellingPrice || 0,
+            retail_price: row.retailPrice || retailPrice || row.sellingPrice || sellingPrice || 0,
             wholesale_price: row.wholesalePrice || wholesalePrice || null,
             manufacturing_date: row.manufacturingDate || manufacturingDate || null,
             expiry_date: row.expiryDate || expiryDate || null,

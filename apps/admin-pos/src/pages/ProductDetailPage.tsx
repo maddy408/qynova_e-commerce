@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Spinner, TextField } from '../components/ui'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
-import type { ProductDetail, ProductVariant, VariantAttribute } from '../lib/types'
+import type { Brand, Category, ProductDetail, ProductVariant, Subcategory, VariantAttribute } from '../lib/types'
 import { ROUTES } from '../routes/routes'
 
 function imageUrl(path: string) {
@@ -37,6 +37,7 @@ export function ProductDetailPage() {
   const [attributes, setAttributes] = useState<VariantAttribute[]>([])
   const [error, setError] = useState('')
   const [managingVariant, setManagingVariant] = useState<ProductVariant | null>(null)
+  const [togglingActive, setTogglingActive] = useState(false)
 
   const load = useCallback(() => {
     api.get(`/products/${id}`).then((res) => setProduct(res.data.product))
@@ -51,20 +52,54 @@ export function ProductDetailPage() {
     return <Spinner />
   }
 
+  async function handleToggleActive() {
+    if (!product) return
+    const nextStatus = product.is_active ? 0 : 1
+    setTogglingActive(true)
+    setError('')
+    try {
+      await api.put(`/products/${product.id}`, { is_active: nextStatus })
+      load()
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to toggle product status'))
+    } finally {
+      setTogglingActive(false)
+    }
+  }
+
   const isVariable = product.variants.length > 1 || product.variants.some((v) => v.attribute_values.length > 0)
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <button onClick={() => navigate(ROUTES.PRODUCTS)} className="text-xs font-medium text-slate-400 hover:text-slate-700">
-            ← Products
+            ← Back to Products
           </button>
-          <h1 className="mt-1 text-xl font-semibold text-slate-900">{product.name}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {product.product_code && <span className="mr-2">{product.product_code}</span>}
+          <h1 className="mt-1 text-xl font-bold text-slate-900">{product.name}</h1>
+          <div className="mt-1 flex items-center gap-2">
+            {product.product_code && <span className="text-xs font-mono text-slate-500">{product.product_code}</span>}
             <Badge tone={product.is_active ? 'green' : 'slate'}>{product.is_active ? 'Active' : 'Inactive'}</Badge>
-          </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={handleToggleActive}
+            disabled={togglingActive}
+          >
+            {product.is_active ? 'Deactivate Product' : 'Activate Product'}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onClick={() => navigate(ROUTES.PRODUCTS)}
+            className="flex items-center gap-1.5"
+          >
+            <span>✕</span>
+            <span>Close</span>
+          </Button>
         </div>
       </div>
 
@@ -75,6 +110,8 @@ export function ProductDetailPage() {
       )}
 
       <div className="space-y-6">
+        <ProductInformationSection product={product} onError={setError} onChange={load} />
+
         <ProductImagesSection product={product} onError={setError} onChange={load} />
 
         {isVariable ? (
@@ -96,6 +133,351 @@ export function ProductDetailPage() {
         <VariantImageModal variant={managingVariant} onClose={() => setManagingVariant(null)} onChange={load} onError={setError} />
       )}
     </div>
+  )
+}
+
+function ProductInformationSection({
+  product,
+  onError,
+  onChange,
+}: {
+  product: ProductDetail
+  onError: (msg: string) => void
+  onChange: () => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState(product.name || '')
+  const [productCode, setProductCode] = useState(product.product_code || '')
+  const [brandId, setBrandId] = useState<string>(product.brand_id ? String(product.brand_id) : '')
+  const [categoryIds, setCategoryIds] = useState<number[]>(product.categories?.map((c) => c.id) || [])
+  const [subcategoryIds, setSubcategoryIds] = useState<number[]>(product.subcategories?.map((s) => s.id) || [])
+  const [shortDesc, setShortDesc] = useState(product.short_description || '')
+  const [description, setDescription] = useState(product.description || '')
+  const [tags, setTags] = useState(product.tags || '')
+  const [expiryDate, setExpiryDate] = useState((product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : '')
+  const [isActive, setIsActive] = useState(Boolean(product.is_active))
+  const [isPosEnabled, setIsPosEnabled] = useState(Boolean(product.is_pos_enabled))
+  const [isEcommerceEnabled, setIsEcommerceEnabled] = useState(Boolean(product.is_ecommerce_enabled))
+  const [isFeatured, setIsFeatured] = useState(Boolean(product.is_featured))
+  const [isTrending, setIsTrending] = useState(Boolean(product.is_trending))
+  const [isDeal, setIsDeal] = useState(Boolean(product.is_deal))
+  const [returnable, setReturnable] = useState(Boolean(product.returnable))
+  const [returnDays, setReturnDays] = useState(String(product.return_window_days || '7'))
+
+  const [allCategories, setAllCategories] = useState<Category[]>([])
+  const [allSubcategories, setAllSubcategories] = useState<Subcategory[]>([])
+  const [allBrands, setAllBrands] = useState<Brand[]>([])
+
+  useEffect(() => {
+    api.get('/categories').then((res) => setAllCategories(res.data?.categories || [])).catch(() => {})
+    api.get('/subcategories').then((res) => setAllSubcategories(res.data?.subcategories || [])).catch(() => {})
+    api.get('/brands').then((res) => setAllBrands(res.data?.brands || [])).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    setName(product.name || '')
+    setProductCode(product.product_code || '')
+    setBrandId(product.brand_id ? String(product.brand_id) : '')
+    setCategoryIds(product.categories?.map((c) => c.id) || [])
+    setSubcategoryIds(product.subcategories?.map((s) => s.id) || [])
+    setShortDesc(product.short_description || '')
+    setDescription(product.description || '')
+    setTags(product.tags || '')
+    setExpiryDate((product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : '')
+    setIsActive(Boolean(product.is_active))
+    setIsPosEnabled(Boolean(product.is_pos_enabled))
+    setIsEcommerceEnabled(Boolean(product.is_ecommerce_enabled))
+    setIsFeatured(Boolean(product.is_featured))
+    setIsTrending(Boolean(product.is_trending))
+    setIsDeal(Boolean(product.is_deal))
+    setReturnable(Boolean(product.returnable))
+    setReturnDays(String(product.return_window_days || '7'))
+  }, [product])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    onError('')
+    try {
+      await api.put(`/products/${product.id}`, {
+        name: name.trim(),
+        product_code: productCode.trim() || null,
+        brand_id: brandId ? Number(brandId) : null,
+        category_ids: categoryIds,
+        subcategory_ids: subcategoryIds,
+        short_description: shortDesc.trim() || null,
+        description: description.trim() || null,
+        tags: tags.trim() || null,
+        expiry_date: expiryDate || null,
+        expiry_applicable: expiryDate ? 1 : 0,
+        is_active: isActive ? 1 : 0,
+        is_pos_enabled: isPosEnabled ? 1 : 0,
+        is_ecommerce_enabled: isEcommerceEnabled ? 1 : 0,
+        is_featured: isFeatured ? 1 : 0,
+        is_trending: isTrending ? 1 : 0,
+        is_deal: isDeal ? 1 : 0,
+        returnable: returnable ? 1 : 0,
+        return_window_days: returnable ? Number(returnDays) || 7 : null,
+      })
+      setIsEditing(false)
+      onChange()
+    } catch (err) {
+      onError(apiErrorMessage(err, 'Failed to update product details'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const brandName = allBrands.find((b) => String(b.id) === String(product.brand_id))?.name || (product as any).brand_name || 'None'
+
+  return (
+    <Card className="p-5 border border-slate-200 shadow-2xs rounded-2xl bg-white space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Product Details & Settings</h2>
+          <p className="text-xs text-slate-500">Base information, brand, categories, descriptions, and channel status.</p>
+        </div>
+        {!isEditing ? (
+          <Button size="sm" variant="secondary" onClick={() => setIsEditing(true)}>
+            Edit Details
+          </Button>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={() => setIsEditing(false)}>
+            Cancel
+          </Button>
+        )}
+      </div>
+
+      {!isEditing ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Product Name</span>
+            <span className="font-semibold text-slate-900 text-sm">{product.name}</span>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Product Code / SKU</span>
+            <span className="font-mono font-semibold text-slate-800">{product.product_code || '—'}</span>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Brand</span>
+            <span className="font-semibold text-slate-900">{brandName}</span>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Categories</span>
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {product.categories && product.categories.length > 0 ? (
+                product.categories.map((c) => (
+                  <span key={c.id} className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-semibold text-[11px]">
+                    {c.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-slate-400">None</span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Subcategories</span>
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {product.subcategories && product.subcategories.length > 0 ? (
+                product.subcategories.map((s) => (
+                  <span key={s.id} className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">
+                    {s.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-slate-400">None</span>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Expiry Date</span>
+            <span className="font-semibold text-slate-800">
+              {(product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : 'Not Applicable'}
+            </span>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-3">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Short Description</span>
+            <p className="text-slate-700 mt-0.5">{product.short_description || '—'}</p>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-3">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Detailed Description</span>
+            <p className="text-slate-700 mt-0.5 whitespace-pre-wrap">{product.description || '—'}</p>
+          </div>
+
+          <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Tags</span>
+            <span className="text-slate-700">{product.tags || '—'}</span>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-3 pt-2 border-t border-slate-100 flex flex-wrap gap-2">
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${product.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+              ● {product.is_active ? 'Active' : 'Deactivated'}
+            </span>
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${product.is_pos_enabled ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-500'}`}>
+              POS Enabled
+            </span>
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${product.is_ecommerce_enabled ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-500'}`}>
+              Online Store Enabled
+            </span>
+            {product.is_featured ? (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                ★ Featured
+              </span>
+            ) : null}
+            {product.is_trending ? (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                🔥 Trending
+              </span>
+            ) : null}
+            {product.is_deal ? (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                % Deal
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <TextField label="Product Name *" value={name} onChange={(e) => setName(e.target.value)} required />
+            <TextField label="Product Code" value={productCode} onChange={(e) => setProductCode(e.target.value)} />
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Brand</label>
+              <select
+                value={brandId}
+                onChange={(e) => setBrandId(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-hidden"
+              >
+                <option value="">None / No Brand</option>
+                {allBrands.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Categories</label>
+              <div className="max-h-32 overflow-y-auto rounded-xl border border-slate-200 p-2 space-y-1 bg-slate-50">
+                {allCategories.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white p-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.includes(c.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setCategoryIds([...categoryIds, c.id])
+                        else setCategoryIds(categoryIds.filter((id) => id !== c.id))
+                      }}
+                      className="rounded border-slate-300 text-purple-600"
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Subcategories</label>
+              <div className="max-h-32 overflow-y-auto rounded-xl border border-slate-200 p-2 space-y-1 bg-slate-50">
+                {allSubcategories.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-white p-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={subcategoryIds.includes(s.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSubcategoryIds([...subcategoryIds, s.id])
+                        else setSubcategoryIds(subcategoryIds.filter((id) => id !== s.id))
+                      }}
+                      className="rounded border-slate-300 text-purple-600"
+                    />
+                    <span>{s.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Short Description</label>
+              <textarea
+                value={shortDesc}
+                onChange={(e) => setShortDesc(e.target.value)}
+                rows={2}
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 focus:outline-hidden"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Detailed Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 focus:outline-hidden"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <TextField label="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} />
+            <TextField label="Expiry Date" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+            {returnable && (
+              <TextField label="Return Window (Days)" type="number" value={returnDays} onChange={(e) => setReturnDays(e.target.value)} />
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-100">
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded" />
+              <span>Active Product</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={isPosEnabled} onChange={(e) => setIsPosEnabled(e.target.checked)} className="rounded" />
+              <span>POS Enabled</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={isEcommerceEnabled} onChange={(e) => setIsEcommerceEnabled(e.target.checked)} className="rounded" />
+              <span>Online Store Enabled</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} className="rounded" />
+              <span>Featured</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={isTrending} onChange={(e) => setIsTrending(e.target.checked)} className="rounded" />
+              <span>Trending</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={isDeal} onChange={(e) => setIsDeal(e.target.checked)} className="rounded" />
+              <span>Deal</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">
+              <input type="checkbox" checked={returnable} onChange={(e) => setReturnable(e.target.checked)} className="rounded" />
+              <span>Returnable</span>
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      )}
+    </Card>
   )
 }
 
@@ -224,7 +606,17 @@ function SimpleVariantSection({
   const variant = product.variants[0];
   const [sku, setSku] = useState(variant?.sku ?? '');
   const [mrp, setMrp] = useState(variant?.mrp ?? '');
-  const [retailPrice, setRetailPrice] = useState(variant?.retail_price ?? '');
+  // "Selling Price" shown here initializes from retail_price — the column
+  // PricingService.php actually reads first for a RETAIL-type customer,
+  // which every walk-in sale defaults to (InvoiceService::createPosSale
+  // defaults customerType to 'RETAIL'). Saving writes BOTH normal_price
+  // and retail_price together so the edit takes effect at checkout
+  // immediately and the fallback column doesn't go stale. The one
+  // accepted trade-off: if a distinct Retail-tier override was set via
+  // the Retail Price Adjustment page, editing this field resets it back
+  // to match the base price — deliberate, not silent, since this is the
+  // only place a SIMPLE product's base price can be edited post-creation.
+  const [sellingPrice, setSellingPrice] = useState(variant?.retail_price ?? '');
   const [lowStockThreshold, setLowStockThreshold] = useState(variant?.low_stock_threshold ?? '5');
   const [saving, setSaving] = useState(false);
 
@@ -242,7 +634,7 @@ function SimpleVariantSection({
     setSaving(true);
     onError('');
     try {
-      await api.put(`/variants/${variant.id}`, { sku, mrp, retail_price: retailPrice });
+      await api.put(`/variants/${variant.id}`, { sku, mrp, normal_price: sellingPrice, retail_price: sellingPrice });
       if (lowStockThreshold.trim() !== '' && lowStockThreshold !== variant.low_stock_threshold) {
         await api.put(`/inventory/${variant.id}/threshold`, { low_stock_threshold: Number(lowStockThreshold) });
       }
@@ -263,7 +655,7 @@ function SimpleVariantSection({
       <div className="grid grid-cols-5 gap-4">
         <TextField label="SKU" value={sku} onChange={(e) => setSku(e.target.value)} />
         <TextField label="MRP" type="number" step="0.01" value={mrp} onChange={(e) => setMrp(e.target.value)} />
-        <TextField label="Selling Price" type="number" step="0.01" value={retailPrice} onChange={(e) => setRetailPrice(e.target.value)} />
+        <TextField label="Selling Price" type="number" step="0.01" value={sellingPrice} onChange={(e) => setSellingPrice(e.target.value)} />
         <div>
           <span className="mb-1 block text-sm font-medium text-slate-700">Stock on hand</span>
           <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">{variant.on_hand ?? '0'}</p>
@@ -454,13 +846,18 @@ function VariantsSection({
   }
 
   function startEdit(v: ProductVariant) {
+    // "Price" is retail_price — see the comment on SimpleVariantSection's
+    // sellingPrice state above for why saveEdit() below also writes
+    // normal_price alongside it.
     setEditing((prev) => ({ ...prev, [v.id]: { mrp: v.mrp, retail_price: v.retail_price } }));
   }
 
   async function saveEdit(variantId: number) {
     const values = editing[variantId];
     if (!values) return;
-    await api.put(`/variants/${variantId}`, values);
+    // normal_price too, so the base-price fallback doesn't go stale — see
+    // the comment on SimpleVariantSection's sellingPrice state above.
+    await api.put(`/variants/${variantId}`, { ...values, normal_price: values.retail_price });
     setEditing((prev) => {
       const next = { ...prev };
       delete next[variantId];

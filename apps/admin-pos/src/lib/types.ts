@@ -61,8 +61,14 @@ export interface Brand {
   id: number
   name: string
   description?: string | null
+  image_path?: string | null
+  is_top_brand?: boolean | number
+  offer_text?: string | null
+  sort_order?: number
   categories?: { id: number; name: string }[]
   category_ids?: number[]
+  product_count?: number
+  min_price?: string | number | null
 }
 
 export interface Customer {
@@ -154,8 +160,10 @@ export interface ProductVariant {
   sku: string
   barcode: string | null
   mrp: string
+  normal_price: string
   retail_price: string
   wholesale_price: string | null
+  customer_price: string | null
   purchase_price: string | null
   variant_description: string | null
   status: 'ACTIVE' | 'INACTIVE'
@@ -165,6 +173,21 @@ export interface ProductVariant {
   low_stock_threshold: string | null
   attribute_values: VariantAttributeValueLink[]
   images: ProductImage[]
+}
+
+/** Row shape from GET /products/price-settings, backing the 3 Price Adjustment pages. */
+export interface PriceVariant {
+  variant_id: number
+  product_id: number
+  sku: string
+  barcode: string | null
+  product_name: string
+  unit_name?: string | null
+  mrp: string | number
+  normal_price: string | number
+  retail_price: string | number
+  wholesale_price: string | number | null
+  customer_price: string | number | null
 }
 
 export interface ProductSpecification {

@@ -43,6 +43,9 @@ backend/public/uploads/*
 # Scratch scripts
 scratch/
 
+# Local DB backups (real customer/business data — never commit)
+database/backups/
+
 # OS / editor
 .DS_Store
 .idea/

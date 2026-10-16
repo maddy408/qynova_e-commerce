@@ -21,7 +21,7 @@ return [
     ],
     'jwt' => [
         'secret' => $_ENV['JWT_SECRET'] ?? '',
-        'access_ttl' => (int) ($_ENV['JWT_ACCESS_TTL'] ?? 900),
+        'access_ttl' => (int) ($_ENV['JWT_ACCESS_TTL'] ?? 86400),
         'refresh_ttl' => (int) ($_ENV['JWT_REFRESH_TTL'] ?? 1209600),
     ],
     'google' => [
