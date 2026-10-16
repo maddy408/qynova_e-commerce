@@ -8,6 +8,7 @@ interface DashboardSummary {
   orders: { total_orders: number; pending_orders: string; cancelled_orders: string }
   customers: { total_customers: number; new_customers_today: string }
   products: { total_products: number; low_stock_products: number; out_of_stock_products: number }
+  finance: { total_income: string; total_expense: string; net_profit: string }
 }
 
 interface PopularProduct {
@@ -248,6 +249,51 @@ export function DashboardPage() {
                 </div>
               </div>
               <div className="text-[10px] font-medium text-slate-500">Zero inventory</div>
+            </div>
+          </div>
+
+          {/* Net Profit / Income / Expenses — from finance_transactions
+              (Phase 7: previously omitted entirely on the premise that no
+              expenses/income module existed, which stopped being true once
+              FinancePage/FinanceController shipped). */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Total Income</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-100/80 text-xs text-emerald-800 shadow-2xs">💰</span>
+              </div>
+              <div className="my-2 font-serif text-xl xl:text-2xl font-black text-emerald-900 tracking-tight">
+                {formatCurrency(summary.finance.total_income)}
+              </div>
+              <div className="text-[10px] font-medium text-emerald-700">All recorded income entries</div>
+            </div>
+
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4 shadow-2xs flex flex-col justify-between">
+              <div className="flex items-start justify-between">
+                <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Total Expense</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-100/80 text-xs text-rose-800 shadow-2xs">🧾</span>
+              </div>
+              <div className="my-2 font-serif text-xl xl:text-2xl font-black text-rose-900 tracking-tight">
+                {formatCurrency(summary.finance.total_expense)}
+              </div>
+              <div className="text-[10px] font-medium text-rose-700">All recorded expense entries</div>
+            </div>
+
+            <div className={`rounded-2xl border p-4 shadow-2xs flex flex-col justify-between ${
+              Number(summary.finance.net_profit) >= 0
+                ? 'border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] via-white to-white'
+                : 'border-rose-200 bg-rose-50/50'
+            }`}>
+              <div className="flex items-start justify-between">
+                <span className="text-[10px] font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">Net Profit</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-primary)] shadow-2xs">📊</span>
+              </div>
+              <div className={`my-2 font-serif text-xl xl:text-2xl font-black tracking-tight ${
+                Number(summary.finance.net_profit) >= 0 ? 'text-[var(--color-primary)]' : 'text-rose-900'
+              }`}>
+                {formatCurrency(summary.finance.net_profit)}
+              </div>
+              <div className="text-[10px] font-medium text-slate-500">Income − Expense</div>
             </div>
           </div>
 

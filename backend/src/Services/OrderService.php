@@ -24,13 +24,75 @@ final class OrderService
     private const FREE_SHIPPING_ABOVE = '500.00';
     private const RESERVATION_MINUTES = 20;
 
+    /**
+     * Fulfillment pipeline order, used by updateStatus() to reject
+     * backward moves and to gate anything past PENDING on payment
+     * actually being captured. Mirrors FORWARD_STATUSES in
+     * OrderDetailPage.tsx and DELIVERY_TO_ORDER_STATUS's targets in
+     * DeliveryService.php.
+     */
+    private const STATUS_RANK = [
+        'PENDING' => 0,
+        'CONFIRMED' => 1,
+        'PROCESSING' => 2,
+        'PACKED' => 3,
+        'SHIPPED' => 4,
+        'OUT_FOR_DELIVERY' => 5,
+        'DELIVERED' => 6,
+    ];
+
+    private readonly NotificationDispatcher $notifications;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
         private readonly CouponService $coupons,
         private readonly InvoiceService $invoices,
         private readonly RefundService $refunds,
+        ?NotificationDispatcher $notifications = null,
     ) {
+        $this->notifications = $notifications ?? new NotificationDispatcher($pdo);
+    }
+
+    /**
+     * Staff who should hear about new orders / customer-initiated
+     * cancellations: the ADMIN role (bypasses permission checks
+     * everywhere else in this app, same rule here) plus anyone whose
+     * role explicitly holds `orders.manage` — mirrors exactly what
+     * PermissionMiddleware::require('orders.manage') itself allows, so
+     * "who gets notified" never drifts from "who is allowed to act on
+     * it". Inactive/soft-deleted staff are excluded.
+     *
+     * @return list<int>
+     */
+    private function orderManagerUserIds(): array
+    {
+        return $this->pdo->query(
+            "SELECT DISTINCT u.id FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.status = 'ACTIVE' AND u.deleted_at IS NULL
+               AND (
+                    r.code = 'ADMIN'
+                    OR EXISTS (
+                        SELECT 1 FROM role_permissions rp
+                        JOIN permissions p ON p.id = rp.permission_id
+                        WHERE rp.role_id = r.id AND p.code = 'orders.manage'
+                    )
+               )"
+        )->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /** Human-readable fulfillment message per status, for the customer-facing notification body. */
+    private function statusNotificationCopy(string $status): ?array
+    {
+        return match ($status) {
+            'PROCESSING' => ['type' => 'ORDER_PROCESSING', 'title' => 'Order is being processed', 'body' => 'is now being processed.'],
+            'PACKED' => ['type' => 'ORDER_PACKED', 'title' => 'Order packed', 'body' => 'has been packed and will ship soon.'],
+            'SHIPPED' => ['type' => 'ORDER_SHIPPED', 'title' => 'Order shipped', 'body' => 'has shipped.'],
+            'OUT_FOR_DELIVERY' => ['type' => 'ORDER_OUT_FOR_DELIVERY', 'title' => 'Out for delivery', 'body' => 'is out for delivery.'],
+            'DELIVERED' => ['type' => 'ORDER_DELIVERED', 'title' => 'Order delivered', 'body' => 'has been delivered. Thank you for shopping with us!'],
+            default => null,
+        };
     }
 
     /**
@@ -215,7 +277,24 @@ final class OrderService
             throw $e;
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order created but could not be reloaded');
+        $newOrder = $this->find($orderId) ?? throw new RuntimeException('Order created but could not be reloaded');
+
+        // Fired AFTER commit(), outside the transaction and outside any
+        // try/catch that could roll back the order itself — a push/DB
+        // failure here must never undo an order the customer was already
+        // told succeeded (see NotificationDispatcher's docblock).
+        $this->notifications->notifyMany(
+            recipientType: 'USER',
+            recipientIds: $this->orderManagerUserIds(),
+            type: 'NEW_ORDER',
+            title: 'New order received',
+            body: "Order #{$orderNo} for ₹{$totals['grand_total']} was just placed.",
+            referenceType: 'ORDER',
+            referenceId: $orderId,
+            data: ['order_id' => $orderId, 'order_no' => $orderNo],
+        );
+
+        return $newOrder;
     }
 
     /**
@@ -270,7 +349,20 @@ final class OrderService
             throw $e;
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order not found after confirmation');
+        $confirmed = $this->find($orderId) ?? throw new RuntimeException('Order not found after confirmation');
+
+        $this->notifications->notify(
+            recipientType: 'CUSTOMER',
+            recipientId: (int) $order['customer_id'],
+            type: 'ORDER_CONFIRMED',
+            title: 'Order confirmed',
+            body: "Your order #{$order['order_no']} is confirmed and payment was received.",
+            referenceType: 'ORDER',
+            referenceId: $orderId,
+            data: ['order_id' => $orderId, 'order_no' => $order['order_no']],
+        );
+
+        return $confirmed;
     }
 
     public function cancel(int $orderId, string $reason, ?int $actorUserId): array
@@ -362,7 +454,35 @@ final class OrderService
             throw $e;
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order not found after cancellation');
+        $cancelled = $this->find($orderId) ?? throw new RuntimeException('Order not found after cancellation');
+
+        if ($actorUserId === null) {
+            // Customer cancelled their own order — tell the people who can act on it.
+            $this->notifications->notifyMany(
+                recipientType: 'USER',
+                recipientIds: $this->orderManagerUserIds(),
+                type: 'ORDER_CANCELLED',
+                title: 'Order cancelled by customer',
+                body: "Order #{$order['order_no']} was cancelled by the customer." . ($wasPaid ? ' A refund has been initiated.' : ''),
+                referenceType: 'ORDER',
+                referenceId: $orderId,
+                data: ['order_id' => $orderId, 'order_no' => $order['order_no']],
+            );
+        } else {
+            // Staff cancelled it on the customer's behalf — tell the customer.
+            $this->notifications->notify(
+                recipientType: 'CUSTOMER',
+                recipientId: (int) $order['customer_id'],
+                type: 'ORDER_CANCELLED',
+                title: 'Order cancelled',
+                body: "Your order #{$order['order_no']} has been cancelled." . ($wasPaid ? ' A refund has been initiated.' : ''),
+                referenceType: 'ORDER',
+                referenceId: $orderId,
+                data: ['order_id' => $orderId, 'order_no' => $order['order_no']],
+            );
+        }
+
+        return $cancelled;
     }
 
     public function updateStatus(int $orderId, string $newStatus, ?int $actorUserId, ?string $note): array
@@ -377,10 +497,23 @@ final class OrderService
             throw new RuntimeException("Order is {$order['status']} and its status can no longer be changed here");
         }
 
-        $allowed = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'];
-
-        if (!in_array($newStatus, $allowed, true)) {
+        if (!array_key_exists($newStatus, self::STATUS_RANK)) {
             throw new RuntimeException('Use the dedicated cancel endpoint to cancel an order');
+        }
+
+        // This endpoint is the manual fulfillment-stage updater — the
+        // payment-and-confirm step is confirmPayment()'s job, which sets
+        // status and payment_status together atomically. Without this
+        // check, an admin could pick DELIVERED straight off a PENDING,
+        // never-paid order (OrderDetailPage.tsx's dropdown lists every
+        // status with no filtering), creating an invoice via the branch
+        // below for goods that were never actually paid for.
+        if (self::STATUS_RANK[$newStatus] >= self::STATUS_RANK['CONFIRMED'] && $order['payment_status'] !== 'PAID') {
+            throw new RuntimeException('Order must be paid before it can move past PENDING');
+        }
+
+        if (self::STATUS_RANK[$newStatus] <= self::STATUS_RANK[$order['status']]) {
+            throw new RuntimeException("Status can only move forward — order is already {$order['status']}");
         }
 
         $this->pdo->prepare('UPDATE orders SET status = :status WHERE id = :id')
@@ -399,10 +532,35 @@ final class OrderService
             }
         }
 
-        return $this->find($orderId) ?? throw new RuntimeException('Order not found after status update');
+        $updated = $this->find($orderId) ?? throw new RuntimeException('Order not found after status update');
+
+        $copy = $this->statusNotificationCopy($newStatus);
+        if ($copy !== null) {
+            $this->notifications->notify(
+                recipientType: 'CUSTOMER',
+                recipientId: (int) $order['customer_id'],
+                type: $copy['type'],
+                title: $copy['title'],
+                body: "Your order #{$order['order_no']} {$copy['body']}",
+                referenceType: 'ORDER',
+                referenceId: $orderId,
+                data: ['order_id' => $orderId, 'order_no' => $order['order_no'], 'status' => $newStatus],
+            );
+        }
+
+        return $updated;
     }
 
-    /** @param array<string, mixed> $filters */
+    /**
+     * G6: server-side search + pagination. Previously a flat, unfiltered
+     * LIMIT 200 with no page/limit params read at all — OrdersPage.tsx
+     * had no way to reach anything past the 200 most recent orders, and
+     * its status dropdown was the only filter despite `search` already
+     * being supported here and simply never wired up.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
     public function list(array $filters): array
     {
         $where = [];
@@ -431,15 +589,31 @@ final class OrderService
 
         $whereSql = $where === [] ? '1=1' : implode(' AND ', $where);
 
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $limit = min(200, max(1, (int) ($filters['limit'] ?? 50)));
+        $offset = ($page - 1) * $limit;
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
         $stmt = $this->pdo->prepare(
             "SELECT o.id, o.order_no, o.customer_id, c.name AS customer_name, o.status, o.payment_status,
                     o.grand_total, o.created_at
              FROM orders o JOIN customers c ON c.id = o.customer_id
-             WHERE {$whereSql} ORDER BY o.created_at DESC LIMIT 200"
+             WHERE {$whereSql} ORDER BY o.created_at DESC, o.id DESC
+             LIMIT :limit OFFSET :offset"
         );
-        $stmt->execute($params);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
 
-        return $stmt->fetchAll();
+        return ['items' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
     /** @return array<string, mixed>|null */

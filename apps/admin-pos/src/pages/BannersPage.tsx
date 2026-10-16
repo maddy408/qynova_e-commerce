@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ImageIcon, PencilIcon, PlusIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Button, Modal, PageHeader, Select, Spinner, TextArea, TextField } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Banner, BannerItem, BannerPosition, BannerTargetType, Category, ProductListItem, Subcategory } from '../lib/types'
 
@@ -269,6 +270,7 @@ export function BannersPage() {
   // Modals
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState<Banner | null>(null)
+  const [deletingBanner, setDeletingBanner] = useState<Banner | null>(null)
   const [reordering, setReordering] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -291,9 +293,10 @@ export function BannersPage() {
     load()
   }
 
-  async function removeBanner(id: number) {
-    if (!window.confirm('Delete this banner? This cannot be undone.')) return
-    await api.delete(`/banners/${id}`)
+  async function removeBanner() {
+    if (!deletingBanner) return
+    await api.delete(`/banners/${deletingBanner.id}`)
+    setDeletingBanner(null)
     load()
   }
 
@@ -811,7 +814,7 @@ export function BannersPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => removeBanner(b.id)}
+                          onClick={() => setDeletingBanner(b)}
                           className="p-1.5 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
                           title="Delete Banner"
                         >
@@ -865,6 +868,15 @@ export function BannersPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={deletingBanner !== null}
+        title="Delete Banner"
+        message={<>Are you sure you want to delete banner <strong className="text-slate-900">"{deletingBanner?.title}"</strong>? This cannot be undone.</>}
+        confirmLabel="Delete Banner"
+        onConfirm={removeBanner}
+        onCancel={() => setDeletingBanner(null)}
+      />
     </div>
   )
 }
@@ -1462,6 +1474,9 @@ function BannerManageModal({
 }) {
   const [activeTab, setActiveTab] = useState<'details' | 'images' | 'products'>('details')
 
+  const [currentBanner, setCurrentBanner] = useState<Banner>(banner)
+  const [imageVersion, setImageVersion] = useState<number>(Date.now())
+
   // Edit fields
   const [title, setTitle] = useState(banner.title)
   const [subtitle, setSubtitle] = useState(banner.subtitle ?? '')
@@ -1509,8 +1524,16 @@ function BannerManageModal({
   }
 
   async function refresh() {
-    const res = await api.get(`/banners/${banner.id}`)
-    onChanged(res.data.banner)
+    try {
+      const res = await api.get(`/banners/${banner.id}`)
+      if (res.data?.banner) {
+        setCurrentBanner(res.data.banner)
+        setImageVersion(Date.now())
+        onChanged(res.data.banner)
+      }
+    } catch {
+      // ignore
+    }
   }
 
   async function saveMeta(e: FormEvent) {
@@ -1538,7 +1561,7 @@ function BannerManageModal({
         discount_text: discountText || `FLAT ${discountPercent}% OFF`,
         cta_text: ctaText || null,
         target_type: targetType,
-        target_id: targetId || null,
+        target_id: targetId ? Number(targetId) : null,
         target_url: targetType === 'EXTERNAL_URL' ? targetUrl : null,
         starts_at: formattedStarts,
         ends_at: formattedEnds,
@@ -1546,6 +1569,23 @@ function BannerManageModal({
         is_active: isActive ? 1 : 0,
       })
       onSaved?.(title)
+      onChanged({
+        ...currentBanner,
+        title,
+        subtitle: subtitle || null,
+        description: description || null,
+        position,
+        color_theme: colorTheme || 'purple',
+        discount_text: discountText || `FLAT ${discountPercent}% OFF`,
+        cta_text: ctaText || null,
+        target_type: targetType,
+        target_id: targetId ? Number(targetId) : null,
+        target_url: targetType === 'EXTERNAL_URL' ? targetUrl : null,
+        starts_at: formattedStarts,
+        ends_at: formattedEnds,
+        sort_order: Number(sortOrder) || 0,
+        is_active: isActive ? 1 : 0,
+      })
       onClose()
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not save changes'))
@@ -1599,8 +1639,8 @@ function BannerManageModal({
   }
 
   const selectedTheme = COLOR_THEMES.find((t) => t.value === colorTheme) || COLOR_THEMES[0]
-  const currentDesktop = imageUrl(banner.image_desktop_path)
-  const currentMobile = imageUrl(banner.image_mobile_path)
+  const currentDesktop = currentBanner.image_desktop_path ? `${imageUrl(currentBanner.image_desktop_path)}?t=${imageVersion}` : null
+  const currentMobile = currentBanner.image_mobile_path ? `${imageUrl(currentBanner.image_mobile_path)}?t=${imageVersion}` : null
 
   // Pricing preview for the item about to be added
   const pendingProduct = newItemProductId
@@ -1797,7 +1837,10 @@ function BannerManageModal({
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="hidden"
-                  onChange={(e) => uploadImage('desktop', e.target.files?.[0])}
+                  onChange={(e) => {
+                    uploadImage('desktop', e.target.files?.[0])
+                    e.target.value = ''
+                  }}
                 />
                 <Button
                   type="button"
@@ -1829,7 +1872,10 @@ function BannerManageModal({
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   className="hidden"
-                  onChange={(e) => uploadImage('mobile', e.target.files?.[0])}
+                  onChange={(e) => {
+                    uploadImage('mobile', e.target.files?.[0])
+                    e.target.value = ''
+                  }}
                 />
                 <Button
                   type="button"

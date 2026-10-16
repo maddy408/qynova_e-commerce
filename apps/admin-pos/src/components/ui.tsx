@@ -194,11 +194,32 @@ export function Spinner({ className = 'h-6 w-6' }: { className?: string }) {
   )
 }
 
-export function Alert({ tone = 'red', children }: { tone?: 'red' | 'green' | 'amber'; children: ReactNode }) {
+export function Alert({
+  tone = 'red',
+  onClose,
+  children,
+}: {
+  tone?: 'red' | 'green' | 'amber'
+  onClose?: () => void
+  children: ReactNode
+}) {
   const tones = {
     red: 'bg-rose-50 text-rose-900 border-rose-200',
     green: 'bg-emerald-50 text-emerald-900 border-emerald-200',
     amber: 'bg-amber-50 text-amber-900 border-amber-200',
   }
-  return <div className={`rounded-2xl border px-3.5 py-2.5 text-xs font-semibold shadow-2xs ${tones[tone]}`}>{children}</div>
+  return (
+    <div className={`rounded-2xl border px-3.5 py-2.5 text-xs font-semibold shadow-2xs flex items-center justify-between gap-2 ${tones[tone]}`}>
+      <span className="flex-1">{children}</span>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1 rounded-lg hover:bg-black/5 transition-colors shrink-0"
+        >
+          <XMarkIcon className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  )
 }

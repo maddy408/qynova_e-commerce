@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Modal, Spinner } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 import type { GstRate, HsnCode } from '../lib/types'
 
@@ -12,6 +13,8 @@ export function TaxPage() {
 
   const [editingGstRate, setEditingGstRate] = useState<GstRate | null>(null)
   const [editingHsnCode, setEditingHsnCode] = useState<HsnCode | null>(null)
+  const [deletingGstRate, setDeletingGstRate] = useState<GstRate | null>(null)
+  const [deletingHsnCode, setDeletingHsnCode] = useState<HsnCode | null>(null)
 
   // GST Form State
   const [gstName, setGstName] = useState('')
@@ -66,14 +69,11 @@ export function TaxPage() {
     setShowGstForm(true)
   }
 
-  async function handleDeleteGstRate(id: number, name: string) {
-    if (!window.confirm(`Are you sure you want to delete GST rate slab "${name}"?`)) return
-    try {
-      await api.delete(`/gst-rates/${id}`)
-      loadGstRates()
-    } catch (err) {
-      alert(apiErrorMessage(err, 'Failed to delete GST rate'))
-    }
+  async function handleDeleteGstRate() {
+    if (!deletingGstRate) return
+    await api.delete(`/gst-rates/${deletingGstRate.id}`)
+    setDeletingGstRate(null)
+    loadGstRates()
   }
 
   async function toggleGstStatus(rate: GstRate) {
@@ -99,9 +99,10 @@ export function TaxPage() {
     setShowHsnForm(true)
   }
 
-  async function removeHsnCode(id: number) {
-    if (!window.confirm('Delete this HSN code?')) return
-    await api.delete(`/hsn-codes/${id}`)
+  async function removeHsnCode() {
+    if (!deletingHsnCode) return
+    await api.delete(`/hsn-codes/${deletingHsnCode.id}`)
+    setDeletingHsnCode(null)
     loadHsnCodes()
   }
 
@@ -255,7 +256,7 @@ export function TaxPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteGstRate(r.id, r.name)}
+                          onClick={() => setDeletingGstRate(r)}
                           className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
                           title="Delete GST Rate"
                         >
@@ -320,7 +321,7 @@ export function TaxPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => removeHsnCode(h.id)}
+                          onClick={() => setDeletingHsnCode(h)}
                           className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
                           title="Delete HSN Code"
                         >
@@ -525,6 +526,24 @@ export function TaxPage() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingGstRate !== null}
+        title="Delete GST Rate"
+        message={<>Are you sure you want to delete GST rate slab <strong className="text-slate-900">"{deletingGstRate?.name}"</strong>?</>}
+        confirmLabel="Delete GST Rate"
+        onConfirm={handleDeleteGstRate}
+        onCancel={() => setDeletingGstRate(null)}
+      />
+
+      <ConfirmDialog
+        open={deletingHsnCode !== null}
+        title="Delete HSN Code"
+        message={<>Are you sure you want to delete HSN code <strong className="text-slate-900">"{deletingHsnCode?.code}"</strong>?</>}
+        confirmLabel="Delete HSN Code"
+        onConfirm={removeHsnCode}
+        onCancel={() => setDeletingHsnCode(null)}
+      />
     </div>
   )
 }

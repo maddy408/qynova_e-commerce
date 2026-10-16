@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { EyeIcon, ImageIcon, PencilIcon, PowerIcon, TrashIcon } from '../components/Icons'
 import { Alert, Button, Modal, Spinner } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category, Subcategory } from '../lib/types'
 
@@ -16,6 +17,7 @@ export function SubcategoriesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null)
   const [viewingSubcategory, setViewingSubcategory] = useState<Subcategory | null>(null)
+  const [deletingSubcategory, setDeletingSubcategory] = useState<Subcategory | null>(null)
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('')
@@ -195,14 +197,11 @@ export function SubcategoriesPage() {
     }
   }
 
-  async function handleDelete(subcategory: Subcategory) {
-    if (!confirm(`Are you sure you want to delete subcategory "${subcategory.name}"? It will be soft-deleted.`)) return
-    try {
-      await api.delete(`/subcategories/${subcategory.id}`)
-      load()
-    } catch (err) {
-      alert(apiErrorMessage(err, 'Could not delete subcategory'))
-    }
+  async function handleDelete() {
+    if (!deletingSubcategory) return
+    await api.delete(`/subcategories/${deletingSubcategory.id}`)
+    setDeletingSubcategory(null)
+    load()
   }
 
   async function toggleStatus(subcategory: Subcategory) {
@@ -699,7 +698,7 @@ export function SubcategoriesPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDelete(s)}
+                            onClick={() => setDeletingSubcategory(s)}
                             className="p-2 rounded-lg text-rose-600 hover:bg-rose-100 hover:text-rose-800 transition-colors"
                             title="Soft Delete"
                           >
@@ -937,6 +936,15 @@ export function SubcategoriesPage() {
           </div>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingSubcategory !== null}
+        title="Delete Subcategory"
+        message={<>Are you sure you want to delete subcategory <strong className="text-slate-900">"{deletingSubcategory?.name}"</strong>? It will be soft-deleted.</>}
+        confirmLabel="Delete Subcategory"
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingSubcategory(null)}
+      />
     </div>
   )
 }

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Badge, Card, PageHeader, Select, Spinner } from '../components/ui'
+import { Badge, Card, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { api } from '../lib/api'
 import { ROUTES } from '../routes/routes'
+
+const PAGE_SIZE = 20
 
 interface OrderListItem {
   id: number
@@ -28,11 +30,31 @@ const STATUS_TONE: Record<string, 'green' | 'red' | 'amber' | 'slate'> = {
 export function OrdersPage() {
   const navigate = useNavigate()
   const [orders, setOrders] = useState<OrderListItem[] | null>(null)
+  const [total, setTotal] = useState(0)
   const [status, setStatus] = useState('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
-    api.get('/orders', { params: status ? { status } : {} }).then((res) => setOrders(res.data.orders))
-  }, [status])
+    api
+      .get('/orders', { params: { status: status || undefined, search: search || undefined, page, limit: PAGE_SIZE } })
+      .then((res) => {
+        setOrders(res.data.orders)
+        setTotal(res.data.total ?? res.data.orders.length)
+      })
+  }, [status, search, page])
+
+  function handleStatusChange(value: string) {
+    setStatus(value)
+    setPage(1)
+  }
+
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setPage(1)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <div>
@@ -40,14 +62,22 @@ export function OrdersPage() {
         title="Orders"
         description="E-commerce orders. POS sales are invoices, not orders — see Invoices."
         actions={
-          <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-48">
-            <option value="">All statuses</option>
-            {['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((s) => (
-              <option key={s} value={s}>
-                {s.replace(/_/g, ' ')}
-              </option>
-            ))}
-          </Select>
+          <div className="flex items-center gap-3">
+            <TextField
+              placeholder="Search order # or customer…"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-56 text-xs"
+            />
+            <Select value={status} onChange={(e) => handleStatusChange(e.target.value)} className="w-48">
+              <option value="">All statuses</option>
+              {['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, ' ')}
+                </option>
+              ))}
+            </Select>
+          </div>
         }
       />
 
@@ -92,6 +122,33 @@ export function OrdersPage() {
               )}
             </tbody>
           </table>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-[var(--color-border-muted)] px-6 py-4 text-xs">
+              <span className="text-slate-600 font-medium">
+                Page <span className="font-extrabold text-slate-950">{page}</span> of{' '}
+                <span className="font-extrabold text-slate-950">{totalPages}</span> ({total} total)
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs"
+                >
+                  ← Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-3 py-1 rounded-full border border-[var(--color-border)] bg-white text-slate-700 font-medium disabled:opacity-40 hover:bg-[var(--color-surface)] transition-colors text-xs"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
     </div>

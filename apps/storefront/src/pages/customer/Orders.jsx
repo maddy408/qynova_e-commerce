@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FiUser, FiAlertCircle, FiBox, FiArrowRight } from 'react-icons/fi'
 import { api, getCustomerToken, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
 
@@ -152,7 +153,7 @@ export default function Orders() {
               to={ROUTES.PROFILE}
               className="text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] px-3 py-2 rounded-full hover:bg-[var(--color-bg-alt)] transition-colors flex items-center gap-1.5"
             >
-              <span>👤</span>
+              <FiUser className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">My Profile</span>
             </Link>
             <Link
@@ -223,7 +224,7 @@ export default function Orders() {
         {/* Error State */}
         {!isLoading && error && (
           <div className="p-6 bg-red-50 border border-red-200 rounded-3xl text-center space-y-3 max-w-lg mx-auto">
-            <span className="text-3xl">⚠️</span>
+            <FiAlertCircle className="w-10 h-10 text-red-500 mx-auto" />
             <p className="text-sm font-bold text-red-800">{error}</p>
             <button
               onClick={() => window.location.reload()}
@@ -237,8 +238,8 @@ export default function Orders() {
         {/* Empty State */}
         {!isLoading && !error && filteredOrders.length === 0 && (
           <div className="bg-white rounded-3xl p-8 sm:p-14 border border-[var(--color-border-subtle)] shadow-xs text-center max-w-md mx-auto space-y-4 my-8">
-            <div className="w-20 h-20 rounded-3xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center text-4xl mx-auto shadow-inner">
-              📦
+            <div className="w-20 h-20 rounded-3xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center mx-auto shadow-inner">
+              <FiBox className="w-9 h-9" />
             </div>
             <div className="space-y-1">
               <h3 className="text-lg sm:text-xl font-black text-[var(--color-text-main)]">
@@ -256,7 +257,7 @@ export default function Orders() {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--color-brand)] text-white font-extrabold text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
               >
                 <span>Start Shopping</span>
-                <span>→</span>
+                <FiArrowRight className="w-4 h-4" />
               </Link>
             </div>
           </div>

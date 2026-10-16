@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FiHeart, FiKey, FiGift } from 'react-icons/fi'
+import { LuSparkles } from 'react-icons/lu'
 import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
@@ -297,8 +299,8 @@ export default function Register() {
               </div>
 
               <div className="absolute -top-1.5 right-2 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-sm border border-emerald-100/80 rotate-[2deg] flex flex-col items-center">
-                <span className="text-[11px] font-extrabold text-[var(--color-success)] tracking-tight">
-                  Good Food <span className="text-red-500">♡</span> Better Life
+                <span className="text-[11px] font-extrabold text-[var(--color-success)] tracking-tight flex items-center gap-1">
+                  Good Food <FiHeart className="text-red-500 w-3 h-3 fill-red-500" /> Better Life
                 </span>
                 <div className="w-8 h-0.5 bg-emerald-500 rounded-full mt-0.5"></div>
               </div>
@@ -670,8 +672,9 @@ export default function Register() {
 
               {/* Dev convenience badge */}
               {debugOtp && (
-                <div className="mt-2 inline-block px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] font-mono">
-                  🔑 Dev OTP: <strong>{debugOtp}</strong>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] font-mono">
+                  <FiKey className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Dev OTP: <strong>{debugOtp}</strong></span>
                 </div>
               )}
             </div>
@@ -757,8 +760,8 @@ export default function Register() {
       {referralPopupData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-[var(--color-border-subtle)] overflow-hidden p-6 sm:p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center text-3xl shadow-inner">
-              🎉
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center shadow-inner">
+              <LuSparkles className="w-8 h-8 text-purple-600" />
             </div>
             
             <div className="space-y-1">
@@ -772,11 +775,11 @@ export default function Register() {
 
             <div className="bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] rounded-2xl p-4 sm:p-5 space-y-2 text-left shadow-xs">
               <div className="flex items-center gap-2 text-[var(--color-text-main)] font-extrabold text-sm sm:text-base">
-                <span className="text-lg">✨</span>
+                <LuSparkles className="w-4 h-4 text-amber-500 shrink-0" />
                 <span>You received <span className="text-[var(--color-brand)] font-black">{referralPopupData.referred_discount_percent}% OFF</span></span>
               </div>
               <div className="flex items-center gap-2 text-[var(--color-text-muted)] font-semibold text-xs sm:text-sm pt-1 border-t border-[var(--color-border-subtle)]">
-                <span className="text-lg">🎁</span>
+                <FiGift className="w-4 h-4 text-purple-600 shrink-0" />
                 <span>Your friend ({referralPopupData.referrer_name}) received <span className="text-[var(--color-brand)] font-bold">{referralPopupData.referrer_discount_percent}% OFF</span></span>
               </div>
             </div>

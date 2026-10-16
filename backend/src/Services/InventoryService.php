@@ -16,8 +16,13 @@ use RuntimeException;
  */
 final class InventoryService
 {
-    public function __construct(private readonly PDO $pdo)
-    {
+    private readonly NotificationService $notifications;
+
+    public function __construct(
+        private readonly PDO $pdo,
+        ?NotificationService $notifications = null,
+    ) {
+        $this->notifications = $notifications ?? new NotificationService($pdo);
     }
 
     /**
@@ -69,13 +74,14 @@ final class InventoryService
         )->execute(['variant_id' => $variantId, 'product_id' => $productId]);
 
         $stmt = $this->pdo->prepare(
-            'SELECT on_hand, reserved FROM inventory WHERE variant_id = :variant_id FOR UPDATE'
+            'SELECT on_hand, reserved, low_stock_threshold FROM inventory WHERE variant_id = :variant_id FOR UPDATE'
         );
         $stmt->execute(['variant_id' => $variantId]);
         $row = $stmt->fetch();
 
         $onHandBefore = (string) $row['on_hand'];
         $reservedBefore = (string) $row['reserved'];
+        $lowStockThreshold = (string) $row['low_stock_threshold'];
         $onHandAfter = bcadd($onHandBefore, $onHandDelta, 3);
         $reservedAfter = bcadd($reservedBefore, $reservedDelta, 3);
 
@@ -128,11 +134,90 @@ final class InventoryService
             'idempotency_key' => $idempotencyKey,
         ]);
 
+        // Two INDEPENDENT crossings, each alerted once, not on every
+        // subsequent decrement that stays on the same side of the line
+        // (which would otherwise raise a new alert for every single
+        // sale): "just dropped below the low-stock threshold" and
+        // "just ran out entirely" are different severities an admin
+        // cares about separately — e.g. stock can sit below threshold
+        // for days (one LOW_STOCK alert) before a later, unrelated sale
+        // actually empties it (its own OUT_OF_STOCK alert). A single
+        // decrement that jumps straight from above-threshold to zero
+        // only raises the more severe OUT_OF_STOCK, not both.
+        //
+        // In-app record only (NotificationService, not the
+        // NotificationDispatcher used elsewhere): apply() runs inside
+        // the caller's open transaction with this row FOR UPDATE locked,
+        // so an outbound FCM HTTP call here would hold that lock for the
+        // duration of a network request — a real deadlock/latency risk
+        // across the many call sites that use this method. The in-app
+        // bell/badge still picks it up; it just isn't pushed.
+        $crossedOutOfStock = bccomp($onHandBefore, '0', 3) > 0 && bccomp($onHandAfter, '0', 3) === 0;
+        $crossedLowStock = bccomp($onHandBefore, $lowStockThreshold, 3) >= 0 && bccomp($onHandAfter, $lowStockThreshold, 3) < 0;
+
+        if ($crossedOutOfStock) {
+            $this->notifications->createForMany(
+                recipientType: 'USER',
+                recipientIds: $this->lowStockRecipientUserIds(),
+                type: 'OUT_OF_STOCK',
+                title: 'Product out of stock',
+                body: $this->lowStockMessage($variantId, $onHandAfter),
+                referenceType: 'PRODUCT_VARIANT',
+                referenceId: $variantId,
+                data: ['variant_id' => $variantId, 'product_id' => $productId, 'on_hand' => $onHandAfter],
+            );
+        } elseif ($crossedLowStock) {
+            $this->notifications->createForMany(
+                recipientType: 'USER',
+                recipientIds: $this->lowStockRecipientUserIds(),
+                type: 'LOW_STOCK',
+                title: 'Low stock alert',
+                body: $this->lowStockMessage($variantId, $onHandAfter),
+                referenceType: 'PRODUCT_VARIANT',
+                referenceId: $variantId,
+                data: ['variant_id' => $variantId, 'product_id' => $productId, 'on_hand' => $onHandAfter],
+            );
+        }
+
         return [
             'on_hand' => $onHandAfter,
             'reserved' => $reservedAfter,
             'available' => bcsub($onHandAfter, $reservedAfter, 3),
         ];
+    }
+
+    /** @return list<int> staff who can view inventory — same audience as InventoryController's own 'inventory.view' gate */
+    private function lowStockRecipientUserIds(): array
+    {
+        return $this->pdo->query(
+            "SELECT DISTINCT u.id FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.status = 'ACTIVE' AND u.deleted_at IS NULL
+               AND (
+                    r.code = 'ADMIN'
+                    OR EXISTS (
+                        SELECT 1 FROM role_permissions rp
+                        JOIN permissions p ON p.id = rp.permission_id
+                        WHERE rp.role_id = r.id AND p.code = 'inventory.view'
+                    )
+               )"
+        )->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    private function lowStockMessage(int $variantId, string $onHand): string
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT p.name AS product_name, v.sku FROM product_variants v
+             JOIN products p ON p.id = v.product_id WHERE v.id = :id"
+        );
+        $stmt->execute(['id' => $variantId]);
+        $row = $stmt->fetch();
+
+        $label = $row !== false ? "{$row['product_name']} ({$row['sku']})" : "variant #{$variantId}";
+
+        return bccomp($onHand, '0', 3) === 0
+            ? "{$label} is now out of stock."
+            : "{$label} is low on stock — only {$onHand} left.";
     }
 
     /**
@@ -345,6 +430,7 @@ final class InventoryService
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN inventory i ON i.variant_id = v.id
+             LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
              LEFT JOIN (
                  SELECT b1.*
                  FROM inventory_batches b1
@@ -392,14 +478,61 @@ final class InventoryService
         )->fetchAll();
     }
 
-    /** @return list<array<string, mixed>> */
-    public function listAdjustments(): array
+    /**
+     * G6: server-side search + pagination, one row per adjustment event
+     * (not per line item) to match how the Recent Adjustment Logs page
+     * groups a multi-item adjustment under one row. Previously hard-
+     * capped at the 200 most recent with no search — older history
+     * became permanently invisible once a store crossed 200 adjustments,
+     * with no indication there was more.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
+    public function listAdjustments(?string $search = null, int $page = 1, int $limit = 20): array
     {
-        $adjustments = $this->pdo->query(
+        $page = max(1, $page);
+        $limit = min(100, max(1, $limit));
+        $offset = ($page - 1) * $limit;
+
+        $where = [];
+        $params = [];
+        $searchTrimmed = $search !== null ? trim($search) : '';
+        if ($searchTrimmed !== '') {
+            $where[] = '(sa.adjustment_no LIKE :s1 OR sa.reason LIKE :s2 OR u.name LIKE :s3 OR EXISTS (
+                SELECT 1 FROM stock_adjustment_items sai2
+                JOIN product_variants v2 ON v2.id = sai2.variant_id
+                JOIN products p2 ON p2.id = v2.product_id
+                WHERE sai2.adjustment_id = sa.id AND (p2.name LIKE :s4 OR v2.sku LIKE :s5)
+            ))';
+            $needle = '%' . $searchTrimmed . '%';
+            $params['s1'] = $needle;
+            $params['s2'] = $needle;
+            $params['s3'] = $needle;
+            $params['s4'] = $needle;
+            $params['s5'] = $needle;
+        }
+        $whereSql = $where === [] ? '' : ('WHERE ' . implode(' AND ', $where));
+
+        $countStmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM stock_adjustments sa JOIN users u ON u.id = sa.created_by {$whereSql}"
+        );
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare(
             "SELECT sa.*, u.name AS created_by_name
              FROM stock_adjustments sa JOIN users u ON u.id = sa.created_by
-             ORDER BY sa.created_at DESC LIMIT 200"
-        )->fetchAll();
+             {$whereSql}
+             ORDER BY sa.created_at DESC, sa.id DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(":{$key}", $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $adjustments = $stmt->fetchAll();
 
         foreach ($adjustments as &$adjustment) {
             $items = $this->pdo->prepare(
@@ -414,7 +547,7 @@ final class InventoryService
         }
         unset($adjustment);
 
-        return $adjustments;
+        return ['items' => $adjustments, 'total' => $total, 'page' => $page, 'limit' => $limit];
     }
 
     /**

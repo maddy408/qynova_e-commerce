@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { FiShoppingBag, FiPhone, FiMail } from 'react-icons/fi'
 import { api, fetchStoreSettings, fetchDeliverySettings, resolveImageUrl } from '../lib/api'
 import Navbar from '../components/Navbar'
 import ProductCard from '../components/ProductCard'
@@ -281,7 +282,7 @@ export default function Shop() {
     try {
       const added = await toggleWishlist(productId)
       setWishlistIds(getWishlistIds())
-      showToast(added ? 'Saved to Wishlist ❤️' : 'Removed from Wishlist')
+      showToast(added ? 'Saved to Wishlist' : 'Removed from Wishlist')
     } catch {
       showToast('Could not update wishlist')
     }
@@ -292,7 +293,7 @@ export default function Shop() {
     if (e) e.stopPropagation()
     try {
       await addToCart(product, 1)
-      showToast(`Added "${product.name}" to Cart! 🛍️`)
+      showToast(`Added "${product.name}" to Cart!`)
     } catch {
       showToast('Could not add item to cart. Please try again.')
     }
@@ -467,7 +468,7 @@ export default function Shop() {
             </div>
           </div>
 
-          {/* Category Quick Chips Filter (Only main categories) */}
+          {/* Category Quick Chips Filter (Top 5 Categories) */}
           <div className="py-3.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-2">
             <button
               type="button"
@@ -480,7 +481,7 @@ export default function Shop() {
             >
               All Categories
             </button>
-            {categories.map((cat) => {
+            {categories.slice(0, 5).map((cat) => {
               const isSelected = String(cat.id) === String(categoryIdParam)
               return (
                 <button
@@ -499,6 +500,43 @@ export default function Shop() {
             })}
           </div>
 
+          {/* Subcategory Quick Chips Filter (Top 5 Subcategories) */}
+          {relevantSubcategories.length > 0 && (
+            <div className="pb-3 flex flex-nowrap overflow-x-auto no-scrollbar gap-2 items-center">
+              <span className="text-[11px] font-black uppercase text-gray-400 shrink-0 mr-1">
+                Subcategories:
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSubcategoryChange('')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  !subcategoryIdParam
+                    ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                    : 'bg-white border border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-gray-50'
+                }`}
+              >
+                All
+              </button>
+              {relevantSubcategories.slice(0, 5).map((subcat) => {
+                const isSelected = String(subcat.id) === String(subcategoryIdParam)
+                return (
+                  <button
+                    key={subcat.id}
+                    type="button"
+                    onClick={() => handleSubcategoryChange(subcat.id)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                        : 'bg-white border border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-gray-50'
+                    }`}
+                  >
+                    {subcat.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           {/* Products Grid or Loading / Empty */}
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 py-4">
@@ -516,7 +554,7 @@ export default function Shop() {
             </div>
           ) : products.length === 0 ? (
             <div className="py-16 text-center bg-white rounded-3xl border border-[var(--color-border-subtle)] shadow-xs my-6 p-8 max-w-lg mx-auto space-y-4">
-              <span className="text-5xl block">🛍️</span>
+              <FiShoppingBag className="w-14 h-14 text-[var(--color-brand)] mx-auto mb-2" />
               <h2 className="text-xl font-black text-[var(--color-text-main)]">
                 No products found in this category
               </h2>
@@ -649,8 +687,18 @@ export default function Shop() {
             </div>
             <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
               <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Contact</h4>
-              {storeSettings?.phone && <p>📞 {storeSettings.phone}</p>}
-              {storeSettings?.email && <p>✉️ {storeSettings.email}</p>}
+              {storeSettings?.phone && (
+                <p className="flex items-center gap-1.5">
+                  <FiPhone className="w-3.5 h-3.5 text-[#7c3aed]" />
+                  <span>{storeSettings.phone}</span>
+                </p>
+              )}
+              {storeSettings?.email && (
+                <p className="flex items-center gap-1.5">
+                  <FiMail className="w-3.5 h-3.5 text-[#7c3aed]" />
+                  <span>{storeSettings.email}</span>
+                </p>
+              )}
             </div>
           </div>
           <p className="pt-6 text-center text-[11px] text-[var(--color-text-muted)]">

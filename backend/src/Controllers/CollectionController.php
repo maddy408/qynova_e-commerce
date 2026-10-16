@@ -171,6 +171,24 @@ final class CollectionController
                 $payAmount = array_reduce($unpaidInvoices, fn (float $sum, array $inv) => $sum + (float) $inv['pending_amount'], 0.0);
             }
 
+            // G1/G9: the receipt we are about to write is a ledger fact, not
+            // a client-supplied number. Previously, if $payAmount exceeded the
+            // real outstanding balance (stale client data, or a mismatched
+            // SELECTED_INVOICES total), the allocation loop below would stop
+            // once invoices were fully paid and silently drop the excess —
+            // but the receipt was still recorded with the full, inflated
+            // amount, so collection_receipts.amount would not reconcile with
+            // what was actually applied to any invoice. Reject instead of
+            // silently truncating, so the receipt always equals what gets applied.
+            $totalPending = array_reduce($unpaidInvoices, fn (float $sum, array $inv) => $sum + (float) $inv['pending_amount'], 0.0);
+            if ($payAmount - $totalPending > 0.01) {
+                throw new RuntimeException(sprintf(
+                    'Payment amount (%.2f) exceeds the total outstanding balance (%.2f) for the selected invoices',
+                    $payAmount,
+                    $totalPending
+                ));
+            }
+
             // Insert Collection Receipt
             $rcptStmt = $this->pdo->prepare(
                 "INSERT INTO collection_receipts (receipt_no, customer_id, amount, payment_method, mode, collected_by)

@@ -7,7 +7,7 @@
  */
 import { env } from '../config/env'
 
-export { api, apiErrorMessage, clearToken, getToken, setToken } from '../api/axiosInstance'
+export { api, apiErrorMessage, clearToken, getToken, setToken, getRefreshToken, setRefreshToken, clearRefreshToken } from '../api/axiosInstance'
 
 export function getApiBaseUrl(): string {
   return env.API_BASE_URL

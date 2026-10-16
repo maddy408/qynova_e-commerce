@@ -19,6 +19,10 @@ final class PermissionMiddleware
             Response::error('Forbidden', 403);
         }
 
+        if (strtoupper((string) ($claims['role'] ?? '')) === 'ADMIN') {
+            return;
+        }
+
         $permissions = (array) ($claims['permissions'] ?? []);
 
         if (!in_array($permissionCode, $permissions, true)) {
@@ -37,7 +41,15 @@ final class PermissionMiddleware
     /** @param array<string, mixed> $claims */
     public static function requireRole(array $claims, string ...$roles): void
     {
-        if (($claims['type'] ?? null) !== 'staff' || !in_array($claims['role'] ?? null, $roles, true)) {
+        if (($claims['type'] ?? null) !== 'staff') {
+            Response::error('Forbidden', 403);
+        }
+
+        if (strtoupper((string) ($claims['role'] ?? '')) === 'ADMIN') {
+            return;
+        }
+
+        if (!in_array($claims['role'] ?? null, $roles, true)) {
             Response::error('Forbidden', 403);
         }
     }

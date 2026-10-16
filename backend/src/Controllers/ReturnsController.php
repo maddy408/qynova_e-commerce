@@ -53,8 +53,7 @@ final class ReturnsController
         PermissionMiddleware::require($claims, 'pos.returns.process');
 
         $body = Request::json();
-        $orderId = !empty($body['order_id']) ? (int) $body['order_id'] : null;
-        $invoiceId = !empty($body['invoice_id']) ? (int) $body['invoice_id'] : (!empty($body['order_id']) ? (int) $body['order_id'] : null);
+        $invoiceId = !empty($body['invoice_id']) ? (int) $body['invoice_id'] : null;
         $customerId = !empty($body['customer_id']) ? (int) $body['customer_id'] : null;
         $reason = trim((string) ($body['reason'] ?? 'Customer Return'));
         $notes = trim((string) ($body['notes'] ?? ''));
@@ -64,22 +63,41 @@ final class ReturnsController
             Response::error('At least one return item is required', 422);
         }
 
-        // If an invoice is referenced, fetch invoice details and items for allocation-aware refund
-        $invoice = null;
-        $invoiceItemsMap = [];
-        if ($invoiceId !== null) {
-            $stmtInv = $this->pdo->prepare('SELECT id, grand_total, amount_paid, bill_discount_amount FROM invoices WHERE id = :id');
-            $stmtInv->execute(['id' => $invoiceId]);
-            $invoice = $stmtInv->fetch(PDO::FETCH_ASSOC);
+        // A sale return must reference the real invoice it's returning
+        // against — previously invoice_id was optional and the frontend
+        // never sent one at all, so item quantity/price came straight
+        // from a free-text form with no link to any actual sale. Both
+        // the refund-amount cap below and the quantity cap now depend on
+        // this, so there is no return without a real invoice behind it.
+        $stmtInv = $this->pdo->prepare('SELECT id, grand_total, amount_paid FROM invoices WHERE id = :id AND deleted_at IS NULL');
+        $stmtInv->execute(['id' => $invoiceId]);
+        $invoice = $stmtInv->fetch(PDO::FETCH_ASSOC);
 
-            if ($invoice) {
-                $stmtInvItems = $this->pdo->prepare('SELECT id, variant_id, quantity, unit_price, discount_amount, bill_discount_amount, tax_amount, line_total FROM invoice_items WHERE invoice_id = :id');
-                $stmtInvItems->execute(['id' => $invoiceId]);
-                foreach ($stmtInvItems->fetchAll(PDO::FETCH_ASSOC) as $ii) {
-                    $invoiceItemsMap[(int) $ii['variant_id']] = $ii;
-                }
-            }
+        if ($invoiceId === null || $invoice === false) {
+            Response::error('A valid invoice is required to process a sale return', 422);
+            return;
         }
+
+        $stmtInvItems = $this->pdo->prepare('SELECT id, variant_id, quantity, line_total FROM invoice_items WHERE invoice_id = :id');
+        $stmtInvItems->execute(['id' => $invoiceId]);
+        $invoiceItemsMap = [];
+        foreach ($stmtInvItems->fetchAll(PDO::FETCH_ASSOC) as $ii) {
+            $invoiceItemsMap[(int) $ii['variant_id']] = $ii;
+        }
+
+        // Quantity already returned per variant, across every non-empty
+        // prior return against this same invoice — without this, the
+        // same units could be "returned" (and their stock credited back)
+        // over and over across multiple separate return requests.
+        $alreadyReturnedStmt = $this->pdo->prepare(
+            "SELECT sri.variant_id, COALESCE(SUM(sri.qty), 0) AS qty
+             FROM sale_return_items sri
+             JOIN sale_returns sr ON sr.id = sri.return_id
+             WHERE sr.invoice_id = :invoice_id
+             GROUP BY sri.variant_id"
+        );
+        $alreadyReturnedStmt->execute(['invoice_id' => $invoiceId]);
+        $alreadyReturned = array_column($alreadyReturnedStmt->fetchAll(PDO::FETCH_ASSOC), 'qty', 'variant_id');
 
         $this->pdo->beginTransaction();
 
@@ -91,18 +109,27 @@ final class ReturnsController
             foreach ($items as $item) {
                 $variantId = (int) ($item['variant_id'] ?? 0);
                 $qty = (int) ($item['qty'] ?? 0);
-                $unitPrice = (float) ($item['unit_price'] ?? 0);
                 if ($variantId <= 0 || $qty <= 0) continue;
 
-                // If invoice exists, use the net discounted rate for the item
-                if ($invoice && isset($invoiceItemsMap[$variantId])) {
-                    $invItem = $invoiceItemsMap[$variantId];
-                    $invQty = (int) $invItem['quantity'];
-                    if ($invQty > 0) {
-                        $effectiveNetUnitPrice = (float) $invItem['line_total'] / $invQty;
-                        // Never refund more than the discounted line unit value
-                        $unitPrice = min($unitPrice > 0 ? $unitPrice : $effectiveNetUnitPrice, $effectiveNetUnitPrice);
-                    }
+                if (!isset($invoiceItemsMap[$variantId])) {
+                    $this->pdo->rollBack();
+                    Response::error("Variant {$variantId} was not part of invoice #{$invoiceId}", 422);
+                    return;
+                }
+
+                $invItem = $invoiceItemsMap[$variantId];
+                $invQty = (int) $invItem['quantity'];
+                // The real, discounted per-unit price actually charged —
+                // never the client-supplied unit_price, which previously
+                // was trusted outright whenever no invoice match was found.
+                $unitPrice = $invQty > 0 ? (float) $invItem['line_total'] / $invQty : 0.0;
+
+                $returnedSoFar = (int) ($alreadyReturned[$variantId] ?? 0);
+                $remaining = $invQty - $returnedSoFar;
+                if ($qty > $remaining) {
+                    $this->pdo->rollBack();
+                    Response::error("Cannot return {$qty} of variant {$variantId} — only {$remaining} remain returnable on invoice #{$invoiceId}", 422);
+                    return;
                 }
 
                 $itemTotal = round($qty * $unitPrice, 2);
@@ -115,27 +142,31 @@ final class ReturnsController
                 ];
             }
 
-            // Ensure cumulative refunds for this invoice do not exceed amount paid
-            if ($invoice) {
-                $stmtPastRefunds = $this->pdo->prepare('SELECT COALESCE(SUM(total_amount), 0) FROM sale_returns WHERE order_id = :inv_id');
-                $stmtPastRefunds->execute(['inv_id' => $invoiceId]);
-                $pastRefundTotal = (float) $stmtPastRefunds->fetchColumn();
-                $maxRefundAllowed = (float) $invoice['amount_paid'];
+            if ($processedItems === []) {
+                $this->pdo->rollBack();
+                Response::error('At least one valid return item is required', 422);
+                return;
+            }
 
-                if (($pastRefundTotal + $totalAmount) > ($maxRefundAllowed + 0.001)) {
-                    $this->pdo->rollBack();
-                    Response::error("Total refund cannot exceed paid amount of Rs. " . number_format($maxRefundAllowed, 2), 422);
-                    return;
-                }
+            // Ensure cumulative refunds for this invoice do not exceed amount paid
+            $stmtPastRefunds = $this->pdo->prepare('SELECT COALESCE(SUM(total_amount), 0) FROM sale_returns WHERE invoice_id = :invoice_id');
+            $stmtPastRefunds->execute(['invoice_id' => $invoiceId]);
+            $pastRefundTotal = (float) $stmtPastRefunds->fetchColumn();
+            $maxRefundAllowed = (float) $invoice['amount_paid'];
+
+            if (($pastRefundTotal + $totalAmount) > ($maxRefundAllowed + 0.001)) {
+                $this->pdo->rollBack();
+                Response::error("Total refund cannot exceed paid amount of Rs. " . number_format($maxRefundAllowed, 2), 422);
+                return;
             }
 
             $stmt = $this->pdo->prepare(
-                "INSERT INTO sale_returns (return_no, order_id, customer_id, total_amount, refund_status, reason, notes, created_by)
-                 VALUES (:return_no, :order_id, :customer_id, :total_amount, 'REFUNDED', :reason, :notes, :created_by)"
+                "INSERT INTO sale_returns (return_no, invoice_id, customer_id, total_amount, refund_status, reason, notes, created_by)
+                 VALUES (:return_no, :invoice_id, :customer_id, :total_amount, 'REFUNDED', :reason, :notes, :created_by)"
             );
             $stmt->execute([
                 'return_no' => $returnNo,
-                'order_id' => $orderId,
+                'invoice_id' => $invoiceId,
                 'customer_id' => $customerId,
                 'total_amount' => $totalAmount,
                 'reason' => $reason,

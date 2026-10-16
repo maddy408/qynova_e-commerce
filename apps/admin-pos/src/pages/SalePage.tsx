@@ -562,7 +562,12 @@ export function SalePage() {
         }
       }
 
-      // If no matches by file name, populate first 3 top products as suggestions from photo
+      // Nothing actually matched the photo — show a few catalog items as
+      // unchecked suggestions rather than silently pre-selecting them.
+      // These used to come back labeled "Visual Item Match" and
+      // pre-checked like a real match, so a cashier clicking "Add
+      // Selected" without reading the fine print could add and charge
+      // for products that were never scanned.
       if (detectedList.length === 0 && (products ?? []).length > 0) {
         for (const p of (products ?? []).slice(0, 3)) {
           detectedList.push({
@@ -572,8 +577,8 @@ export function SalePage() {
             price: resolveVariantPrice(p, priceType),
             available: parseFloat(p.available) || 0,
             qty: 1,
-            selected: true,
-            matchedBy: 'Visual Item Match',
+            selected: false,
+            matchedBy: 'No match found — pick manually if intended',
           })
         }
       }
@@ -756,9 +761,13 @@ export function SalePage() {
     } else {
       api.get('/pos/products', { params: { search: clean, limit: 10 } }).then((res) => {
         const items = res.data?.items || []
+        // Only an exact barcode/SKU match counts as a real scan — falling
+        // back to items[0] (just the top name-search hit) would silently
+        // add whatever product happened to rank first to the cart and
+        // charge for it, even though the scanned code matched nothing.
         const item = items.find(
           (p: PosProduct) => (p.barcode && p.barcode.trim().toLowerCase() === clean.toLowerCase()) || p.sku.toLowerCase() === clean.toLowerCase()
-        ) || items[0]
+        )
         if (item) {
           addToCart(item)
           playBeepSound('success')
@@ -1023,7 +1032,7 @@ export function SalePage() {
   const activeCategoryLabel = useMemo(() => {
     if (activeCategory === ALL_ITEMS) return 'All Items'
     if (activeCategory === TOP_SELLING) return 'Top Selling'
-    const found = categories.find((c) => c.id === activeCategory)
+    const found = categories.find((c) => String(c.id) === String(activeCategory))
     return found ? found.name : 'Category'
   }, [activeCategory, categories])
 
@@ -1184,8 +1193,14 @@ export function SalePage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && search.trim()) {
-                        handleBarcodeScanned(search.trim())
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const trimmed = search.trim()
+                        if (/^\d{6,14}$/.test(trimmed)) {
+                          handleBarcodeScanned(trimmed)
+                        } else {
+                          fetchProducts(1, true)
+                        }
                       }
                     }}
                     placeholder="Search product by name, SKU or barcode (Press Enter)..."
@@ -1288,13 +1303,13 @@ export function SalePage() {
                   type="button"
                   onClick={() => setShowCategoriesDropdown((prev) => !prev)}
                   className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    typeof activeCategory === 'number' || showCategoriesDropdown
+                    (activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING) || showCategoriesDropdown
                       ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
                   <span>
-                    {typeof activeCategory === 'number' ? activeCategoryLabel : `All Categories (${categories.length})`}
+                    {activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING ? activeCategoryLabel : `All Categories (${categories.length})`}
                   </span>
                   <span>{showCategoriesDropdown ? '▲' : '▼'}</span>
                 </button>
@@ -1340,7 +1355,7 @@ export function SalePage() {
                       setShowCategoriesDropdown(false)
                     }}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                      activeCategory === cat.id
+                      String(activeCategory) === String(cat.id)
                         ? 'bg-[var(--color-sale-accent)] text-white font-bold shadow-xs'
                         : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}

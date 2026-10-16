@@ -47,7 +47,7 @@ interface OrderDetail {
   status_history: StatusHistoryRow[]
 }
 
-const FORWARD_STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED']
+const STATUS_PIPELINE = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED']
 
 export function OrderDetailPage() {
   const { id } = useParams()
@@ -118,6 +118,14 @@ export function OrderDetailPage() {
   }
 
   const canModify = !['CANCELLED', 'DELIVERED', 'REFUNDED'].includes(order.status)
+  // Mirrors OrderService::updateStatus()'s backend rules: forward-only,
+  // and nothing past PENDING without payment captured — the dropdown
+  // used to list every status regardless of where the order actually
+  // was, so an admin could pick DELIVERED on an order that was never
+  // paid (which also silently created an invoice for it).
+  const currentRank = STATUS_PIPELINE.indexOf(order.status)
+  const availableStatuses =
+    order.payment_status === 'PAID' ? STATUS_PIPELINE.slice(currentRank + 1) : []
 
   return (
     <div>
@@ -254,17 +262,25 @@ export function OrderDetailPage() {
           {canModify && (
             <Card className="space-y-3 p-5">
               <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
-              <Select label="Update status" value={nextStatus} onChange={(e) => setNextStatus(e.target.value)}>
-                <option value="">Select status…</option>
-                {FORWARD_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s.replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </Select>
-              <Button size="sm" onClick={updateStatus} disabled={busy || !nextStatus}>
-                Update Status
-              </Button>
+              {order.payment_status !== 'PAID' ? (
+                <p className="text-xs text-slate-500">
+                  Status can&apos;t move past PENDING until this order is paid.
+                </p>
+              ) : (
+                <>
+                  <Select label="Update status" value={nextStatus} onChange={(e) => setNextStatus(e.target.value)}>
+                    <option value="">Select status…</option>
+                    {availableStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button size="sm" onClick={updateStatus} disabled={busy || !nextStatus}>
+                    Update Status
+                  </Button>
+                </>
+              )}
               <div className="border-t border-slate-200 pt-3">
                 <Button size="sm" variant="danger" onClick={cancelOrder} disabled={busy}>
                   Cancel Order

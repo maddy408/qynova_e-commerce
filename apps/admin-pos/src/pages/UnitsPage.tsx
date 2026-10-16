@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { PencilIcon, TrashIcon } from '../components/Icons'
 import { Alert, Modal, Spinner } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Unit } from '../lib/types'
 
@@ -8,6 +9,7 @@ export function UnitsPage() {
   const [units, setUnits] = useState<Unit[] | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
+  const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
 
   const [name, setName] = useState('')
   const [shortCode, setShortCode] = useState('')
@@ -39,14 +41,11 @@ export function UnitsPage() {
     setShowModal(true)
   }
 
-  async function handleDelete(id: number, unitName: string) {
-    if (!window.confirm(`Are you sure you want to delete unit "${unitName}"?`)) return
-    try {
-      await api.delete(`/units/${id}`)
-      load()
-    } catch (err) {
-      alert(apiErrorMessage(err, 'Failed to delete unit'))
-    }
+  async function handleDelete() {
+    if (!deletingUnit) return
+    await api.delete(`/units/${deletingUnit.id}`)
+    setDeletingUnit(null)
+    load()
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -163,7 +162,7 @@ export function UnitsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(u.id, u.name)}
+                          onClick={() => setDeletingUnit(u)}
                           className="p-1.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
                           title="Delete Unit"
                         >
@@ -240,6 +239,15 @@ export function UnitsPage() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingUnit !== null}
+        title="Delete Unit"
+        message={<>Are you sure you want to delete unit <strong className="text-slate-900">"{deletingUnit?.name}"</strong>?</>}
+        confirmLabel="Delete Unit"
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingUnit(null)}
+      />
     </div>
   )
 }

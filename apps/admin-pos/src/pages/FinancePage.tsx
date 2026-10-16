@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, TextField } from '../components/ui'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 
 interface FinanceTransaction {
@@ -26,6 +27,7 @@ export function FinancePage() {
 
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingTransaction, setDeletingTransaction] = useState<FinanceTransaction | null>(null)
 
   // Form state
   const [type, setType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE')
@@ -96,14 +98,11 @@ export function FinancePage() {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm('Are you sure you want to delete this financial record?')) return
-    try {
-      await api.delete(`/finance/${id}`)
-      load()
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Failed to delete transaction'))
-    }
+  async function handleDelete() {
+    if (!deletingTransaction) return
+    await api.delete(`/finance/${deletingTransaction.id}`)
+    setDeletingTransaction(null)
+    load()
   }
 
   const CATEGORIES = {
@@ -215,7 +214,7 @@ export function FinancePage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => handleDelete(t.id)}
+                        onClick={() => setDeletingTransaction(t)}
                         className="rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
                       >
                         Delete
@@ -325,6 +324,15 @@ export function FinancePage() {
           </form>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deletingTransaction !== null}
+        title="Delete Financial Record"
+        message="Are you sure you want to delete this financial record?"
+        confirmLabel="Delete Record"
+        onConfirm={handleDelete}
+        onCancel={() => setDeletingTransaction(null)}
+      />
     </div>
   )
 }

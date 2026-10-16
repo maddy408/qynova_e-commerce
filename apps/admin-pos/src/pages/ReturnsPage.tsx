@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, TextField } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
-import type { Customer, Supplier } from '../lib/types'
+import type { Supplier } from '../lib/types'
 
 interface ReturnItemInput {
   variant_id: number
@@ -15,7 +15,6 @@ export function ReturnsPage() {
   const [activeTab, setActiveTab] = useState<'SALE' | 'PURCHASE'>('SALE')
   const [saleReturns, setSaleReturns] = useState<any[]>([])
   const [purchaseReturns, setPurchaseReturns] = useState<any[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
 
   const [loading, setLoading] = useState(true)
@@ -31,12 +30,24 @@ export function ReturnsPage() {
   const [notes, setNotes] = useState('')
   const [stagedItems, setStagedItems] = useState<ReturnItemInput[]>([])
 
-  // Item picker states
+  // Item picker states (PURCHASE tab only — free product/qty/price entry
+  // is fine for a supplier return; a SALE return needs the real invoice,
+  // see below)
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [itemQty, setItemQty] = useState('1')
   const [itemUnitPrice, setItemUnitPrice] = useState('0')
 
   const [posProducts, setPosProducts] = useState<any[]>([])
+
+  // SALE tab: pick a real invoice, then qty-cap its own items — replaces
+  // a free-text product/qty/price picker that had no link to any actual
+  // sale, so a return could fabricate stock and refund amount out of
+  // thin air (Phase 6 audit finding).
+  const [invoiceSearch, setInvoiceSearch] = useState('')
+  const [invoiceResults, setInvoiceResults] = useState<any[]>([])
+  const [searchingInvoices, setSearchingInvoices] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null)
+  const [returnQtyDraft, setReturnQtyDraft] = useState<Record<number, string>>({})
 
   function load() {
     setLoading(true)
@@ -44,14 +55,12 @@ export function ReturnsPage() {
       api.get('/returns/sales'),
       api.get('/returns/purchases'),
       api.get('/pos/products', { params: { limit: 500 } }),
-      api.get('/customers'),
       api.get('/suppliers'),
     ])
-      .then(([srRes, prRes, posRes, custRes, suppRes]) => {
+      .then(([srRes, prRes, posRes, suppRes]) => {
         setSaleReturns(srRes.data.sale_returns || [])
         setPurchaseReturns(prRes.data.purchase_returns || [])
         setPosProducts(posRes.data.items || [])
-        setCustomers(custRes.data.customers || [])
         setSuppliers(suppRes.data.suppliers || [])
       })
       .catch((err) => setError(apiErrorMessage(err, 'Failed to load returns data')))
@@ -81,8 +90,65 @@ export function ReturnsPage() {
     setSelectedVariantId('')
     setItemQty('1')
     setItemUnitPrice('0')
+    setInvoiceSearch('')
+    setInvoiceResults([])
+    setSelectedInvoice(null)
+    setReturnQtyDraft({})
     setError('')
     setShowModal(true)
+  }
+
+  async function searchInvoices() {
+    if (!invoiceSearch.trim()) return
+    setSearchingInvoices(true)
+    setError('')
+    try {
+      const res = await api.get('/invoices', { params: { search: invoiceSearch.trim(), limit: 10 } })
+      setInvoiceResults(res.data.invoices || [])
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to search invoices'))
+    } finally {
+      setSearchingInvoices(false)
+    }
+  }
+
+  async function selectInvoice(invoiceId: number) {
+    setError('')
+    try {
+      const res = await api.get(`/invoices/${invoiceId}`)
+      setSelectedInvoice(res.data.invoice)
+      setReturnQtyDraft({})
+      setStagedItems([])
+      if (res.data.invoice.customer_id) {
+        setSelectedCustomerId(String(res.data.invoice.customer_id))
+      }
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to load invoice'))
+    }
+  }
+
+  function handleReturnQtyChange(item: any, value: string) {
+    setReturnQtyDraft((prev) => ({ ...prev, [item.variant_id]: value }))
+
+    const qty = Number(value)
+    const invoicedQty = Number(item.quantity)
+    const unitPrice = invoicedQty > 0 ? Number(item.line_total) / invoicedQty : 0
+
+    setStagedItems((prev) => {
+      const withoutThis = prev.filter((i) => i.variant_id !== item.variant_id)
+      if (!qty || qty <= 0) return withoutThis
+      const cappedQty = Math.min(qty, invoicedQty)
+      return [
+        ...withoutThis,
+        {
+          variant_id: item.variant_id,
+          variant_label: `${item.product_name_snapshot} (${item.sku_snapshot})`,
+          sku: item.sku_snapshot,
+          qty: cappedQty,
+          unit_price: unitPrice,
+        },
+      ]
+    })
   }
 
   function handleAddVariantItem() {
@@ -137,7 +203,13 @@ export function ReturnsPage() {
 
     try {
       if (activeTab === 'SALE') {
+        if (!selectedInvoice) {
+          setError('Search for and select the invoice being returned against')
+          setSubmitting(false)
+          return
+        }
         await api.post('/returns/sales', {
+          invoice_id: selectedInvoice.id,
           customer_id: selectedCustomerId ? Number(selectedCustomerId) : null,
           reason,
           notes,
@@ -309,20 +381,7 @@ export function ReturnsPage() {
           width="lg"
         >
           <form onSubmit={handleSubmit} className="space-y-4">
-            {activeTab === 'SALE' ? (
-              <Select
-                label="Customer (Optional)"
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
-              >
-                <option value="">— Walk-in / Unlinked Customer —</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.phone})
-                  </option>
-                ))}
-              </Select>
-            ) : (
+            {activeTab === 'PURCHASE' && (
               <Select
                 label="Supplier (Optional)"
                 value={selectedSupplierId}
@@ -345,51 +404,158 @@ export function ReturnsPage() {
               placeholder="e.g. Damaged product, incorrect size"
             />
 
-            {/* Item Selector Box */}
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
-              <span className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
-                Add Products to Return
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_90px_110px_80px] gap-2 items-end">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">Select Variant</label>
-                  <select
-                    value={selectedVariantId}
-                    onChange={(e) => {
-                      const vId = Number(e.target.value)
-                      setSelectedVariantId(e.target.value)
-                      const found = allVariants.find((v) => v.id === vId)
-                      if (found) setItemUnitPrice(String(found.retail_price))
-                    }}
-                    className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] focus:outline-none"
-                  >
-                    <option value="">Choose item to return…</option>
-                    {allVariants.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.label}
-                      </option>
-                    ))}
-                  </select>
+            {activeTab === 'SALE' ? (
+              <div className="space-y-3">
+                {/* Invoice Lookup — a sale return must reference the real
+                    invoice it's returning against, so qty/price come from
+                    what was actually sold, not a free-text form. */}
+                <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+                  <span className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
+                    Find Invoice to Return Against
+                  </span>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <TextField
+                        label="Invoice No. or Customer Name"
+                        value={invoiceSearch}
+                        onChange={(e) => setInvoiceSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            searchInvoices()
+                          }
+                        }}
+                        placeholder="e.g. INV-14"
+                      />
+                    </div>
+                    <Button type="button" size="sm" onClick={searchInvoices} disabled={searchingInvoices}>
+                      {searchingInvoices ? 'Searching…' : 'Search'}
+                    </Button>
+                  </div>
+
+                  {invoiceResults.length > 0 && !selectedInvoice && (
+                    <div className="rounded-xl border border-[var(--color-border)] bg-white divide-y divide-[var(--color-border)] max-h-40 overflow-y-auto">
+                      {invoiceResults.map((inv) => (
+                        <button
+                          type="button"
+                          key={inv.id}
+                          onClick={() => selectInvoice(inv.id)}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-[var(--color-surface)]/60 flex items-center justify-between"
+                        >
+                          <span className="font-bold text-[var(--color-primary)]">{inv.invoice_no}</span>
+                          <span className="text-slate-600">{inv.customer_name ?? 'Walk-in'}</span>
+                          <span className="font-semibold text-slate-900">₹{inv.grand_total}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedInvoice && (
+                    <div className="rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900">
+                          {selectedInvoice.invoice_no} · {selectedInvoice.customer_name ?? 'Walk-in'} · Paid ₹{selectedInvoice.amount_paid}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedInvoice(null)
+                            setInvoiceResults([])
+                            setReturnQtyDraft({})
+                            setStagedItems([])
+                          }}
+                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
+                        >
+                          Change Invoice
+                        </button>
+                      </div>
+
+                      <table className="w-full text-left text-xs">
+                        <thead className="text-[10px] uppercase text-slate-500 font-bold">
+                          <tr>
+                            <th className="py-1">Item</th>
+                            <th className="py-1">Sold Qty</th>
+                            <th className="py-1">Unit Price</th>
+                            <th className="py-1 w-24">Return Qty</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--color-border)]">
+                          {(selectedInvoice.items || []).map((item: any) => {
+                            const unitPrice = item.quantity > 0 ? Number(item.line_total) / item.quantity : 0
+                            return (
+                              <tr key={item.id}>
+                                <td className="py-1.5 font-semibold text-slate-900">
+                                  {item.product_name_snapshot}
+                                  <span className="block text-[10px] font-mono text-slate-400">{item.sku_snapshot}</span>
+                                </td>
+                                <td className="py-1.5">{item.quantity}</td>
+                                <td className="py-1.5">₹{unitPrice.toFixed(2)}</td>
+                                <td className="py-1.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={item.quantity}
+                                    value={returnQtyDraft[item.variant_id] ?? ''}
+                                    onChange={(e) => handleReturnQtyChange(item, e.target.value)}
+                                    className="w-16 rounded-lg border border-[var(--color-border)] px-2 py-1 text-xs"
+                                  />
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-                <TextField
-                  label="Qty"
-                  type="number"
-                  min="1"
-                  value={itemQty}
-                  onChange={(e) => setItemQty(e.target.value)}
-                />
-                <TextField
-                  label="Unit Price (₹)"
-                  type="number"
-                  step="0.01"
-                  value={itemUnitPrice}
-                  onChange={(e) => setItemUnitPrice(e.target.value)}
-                />
-                <Button type="button" size="sm" onClick={handleAddVariantItem}>
-                  + Add
-                </Button>
               </div>
-            </div>
+            ) : (
+              /* PURCHASE tab: free product/qty/price entry (unchanged) */
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/60 p-4 space-y-3">
+                <span className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
+                  Add Products to Return
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_90px_110px_80px] gap-2 items-end">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Select Variant</label>
+                    <select
+                      value={selectedVariantId}
+                      onChange={(e) => {
+                        const vId = Number(e.target.value)
+                        setSelectedVariantId(e.target.value)
+                        const found = allVariants.find((v) => v.id === vId)
+                        if (found) setItemUnitPrice(String(found.retail_price))
+                      }}
+                      className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] focus:outline-none"
+                    >
+                      <option value="">Choose item to return…</option>
+                      {allVariants.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <TextField
+                    label="Qty"
+                    type="number"
+                    min="1"
+                    value={itemQty}
+                    onChange={(e) => setItemQty(e.target.value)}
+                  />
+                  <TextField
+                    label="Unit Price (₹)"
+                    type="number"
+                    step="0.01"
+                    value={itemUnitPrice}
+                    onChange={(e) => setItemUnitPrice(e.target.value)}
+                  />
+                  <Button type="button" size="sm" onClick={handleAddVariantItem}>
+                    + Add
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {stagedItems.length > 0 && (
               <div className="space-y-2">

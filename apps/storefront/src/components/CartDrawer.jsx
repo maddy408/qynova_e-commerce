@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { FiX, FiShoppingBag, FiTag, FiTrash2, FiArrowRight } from 'react-icons/fi'
+import { LuSparkles } from 'react-icons/lu'
 import {
   getCartItems,
   fetchCart,
@@ -87,7 +89,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
       setCouponDiscountAmount(discount)
       setAppliedCoupon(code)
       setCouponCode(code)
-      onShowToast?.(`Coupon "${code}" applied! Saved ₹${discount.toFixed(2)} 🎉`)
+      onShowToast?.(`Coupon "${code}" applied! Saved ₹${discount.toFixed(2)}`)
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || 'Invalid coupon code'
       setCouponError(msg)
@@ -144,7 +146,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
             className="w-9 h-9 rounded-full bg-white hover:bg-[var(--color-primary-tint)] border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
             title="Close Cart"
           >
-            ✕
+            <FiX className="w-4 h-4" />
           </button>
         </div>
 
@@ -153,7 +155,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
           <div className="px-4 sm:px-6 py-2.5 bg-[var(--color-bg-alt)] border-b border-[var(--color-border-subtle)] shrink-0">
             {subtotal >= freeThreshold ? (
               <p className="text-[11px] sm:text-xs font-bold text-emerald-700 flex items-center gap-1.5">
-                <span>🎉</span>
+                <LuSparkles className="w-3.5 h-3.5 text-emerald-600" />
                 <span><strong>Congratulations!</strong> You get FREE Delivery</span>
               </p>
             ) : (
@@ -178,7 +180,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
           {cartItems.length === 0 ? (
             <div className="h-full min-h-[260px] flex flex-col items-center justify-center text-center p-6 space-y-4">
               <div className="w-20 h-20 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-3xl shadow-inner">
-                🛍️
+                <FiShoppingBag className="w-9 h-9" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-lg font-black text-[var(--color-text-main)]">Your Cart is Empty</h3>
@@ -188,9 +190,10 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
               </div>
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer"
+                className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
               >
-                Start Shopping Now →
+                <span>Start Shopping Now</span>
+                <FiArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
@@ -223,7 +226,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                       className="text-gray-400 hover:text-red-500 p-1 rounded-md transition-colors text-xs font-bold cursor-pointer shrink-0"
                       title="Remove item"
                     >
-                      ✕
+                      <FiTrash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
@@ -279,7 +282,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
               {appliedCoupon ? (
                 <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800">
                   <div className="flex items-center gap-1.5 font-bold">
-                    <span>🏷️</span>
+                    <FiTag className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Coupon <strong>{appliedCoupon}</strong> Applied (-₹{discountAmount.toFixed(2)})</span>
                   </div>
                   <button
@@ -329,7 +332,8 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                             className="px-2 py-0.5 rounded-md bg-[var(--color-bg-alt)] hover:bg-[var(--color-primary-tint)] border border-[var(--color-border-subtle)] text-[var(--color-text-main)] font-extrabold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
                             title={`Apply ${c.code}: ${c.description || c.name}`}
                           >
-                            <span>🏷️ {c.code}</span>
+                            <FiTag className="w-3 h-3 text-[#7c3aed]" />
+                            <span>{c.code}</span>
                             <span className="text-[var(--color-brand)] font-medium">
                               ({c.discount_type === 'PERCENTAGE' ? `${c.discount_value}%` : `₹${c.discount_value}`})
                             </span>
@@ -384,7 +388,10 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
               className="w-full h-12 rounded-2xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] active:scale-98 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-black/15 flex items-center justify-center gap-2 cursor-pointer transition-all"
             >
               <span>Proceed to Checkout</span>
-              <span className="text-[var(--color-primary-tint)] font-black">₹{grandTotal} →</span>
+              <span className="text-[var(--color-primary-tint)] font-black flex items-center gap-1">
+                <span>₹{grandTotal}</span>
+                <FiArrowRight className="w-4 h-4" />
+              </span>
             </button>
           </div>
         )}

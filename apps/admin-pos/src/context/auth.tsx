@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, clearToken, getToken, setToken } from '../lib/api'
+import { api, clearToken, getToken, setToken, setRefreshToken } from '../lib/api'
 import type { StaffUser } from '../lib/types'
+import { removeDeviceToken, syncDeviceToken } from '../hooks/useDeviceToken'
 
 interface AuthContextValue {
   user: StaffUser | null
@@ -25,7 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     api
       .get('/auth/me')
-      .then((res) => setUser(res.data.user))
+      .then((res) => {
+        setUser(res.data.user)
+        syncDeviceToken()
+      })
       .catch(() => clearToken())
       .finally(() => setLoading(false))
   }, [])
@@ -33,10 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const res = await api.post('/auth/login', { email, password })
     setToken(res.data.token)
+    if (res.data.refresh_token) {
+      setRefreshToken(res.data.refresh_token)
+    }
     setUser(res.data.user)
+    syncDeviceToken()
   }
 
   function logout() {
+    // Revoke the refresh token server-side so the cookie can't silently
+    // mint new access tokens after this — but clear local state
+    // immediately either way, since the user should appear logged out
+    // even if this network call fails.
+    api.post('/auth/logout').catch(() => {})
+    removeDeviceToken()
     clearToken()
     setUser(null)
   }
