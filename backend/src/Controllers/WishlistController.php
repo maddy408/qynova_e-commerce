@@ -66,7 +66,8 @@ final class WishlistController
              FROM wishlist w
              JOIN products p ON p.id = w.product_id
              LEFT JOIN brands b ON b.id = p.brand_id
-             WHERE {$where} AND p.deleted_at IS NULL
+             WHERE {$where} AND p.deleted_at IS NULL AND p.is_active = 1 AND p.is_ecommerce_enabled = 1
+               AND (p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())
              ORDER BY w.created_at DESC"
         );
         $stmt->execute(['id' => $id]);

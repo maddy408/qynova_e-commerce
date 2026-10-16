@@ -44,7 +44,14 @@ final class BroadcastService
      *   message: string, duplicate: bool
      * }
      */
-    public function send(string $title, string $body, int $sentByUserId, ?string $idempotencyKey): array
+    public function send(
+        string $title,
+        string $body,
+        int $sentByUserId,
+        ?string $idempotencyKey,
+        string $type = 'OFFER',
+        ?array $data = null,
+    ): array
     {
         $title = trim($title);
         $body = trim($body);
@@ -106,6 +113,11 @@ final class BroadcastService
             ];
         }
 
+        $normalizedType = trim(strtoupper($type));
+        if ($normalizedType === '') {
+            $normalizedType = 'OFFER';
+        }
+
         // In-app record first, for every eligible customer, regardless of
         // whether they have a push token — this is what their own
         // notification bell shows, independent of push delivery (see
@@ -113,11 +125,12 @@ final class BroadcastService
         $this->notifications->createForMany(
             recipientType: 'CUSTOMER',
             recipientIds: $customerIds,
-            type: 'BROADCAST',
+            type: $normalizedType,
             title: $title,
             body: $body,
             referenceType: 'BROADCAST_CAMPAIGN',
             referenceId: $campaignId,
+            data: $data,
         );
 
         $tokenRows = $this->deviceTokens->activeTokensForMany('CUSTOMER', $customerIds);
@@ -125,11 +138,12 @@ final class BroadcastService
 
         $result = ['attempted' => 0, 'sent' => 0];
         if ($tokens !== [] && $this->fcm->isConfigured()) {
-            $result = $this->fcm->sendBatch($tokens, $title, $body, [
-                'type' => 'BROADCAST',
+            $fcmData = array_merge([
+                'type' => $normalizedType,
                 'campaign_id' => (string) $campaignId,
-                'click_action' => '/',
-            ]);
+                'click_action' => $data['url'] ?? '/',
+            ], $data ?? []);
+            $result = $this->fcm->sendBatch($tokens, $title, $body, $fcmData);
         }
 
         $failureCount = $result['attempted'] - $result['sent'];
@@ -173,17 +187,20 @@ final class BroadcastService
     private function assertNotRateLimited(int $sentByUserId): void
     {
         $stmt = $this->pdo->prepare(
-            'SELECT created_at FROM broadcast_campaigns WHERE sent_by_user_id = :user_id ORDER BY id DESC LIMIT 1'
+            'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) AS seconds_since
+             FROM broadcast_campaigns
+             WHERE sent_by_user_id = :user_id
+             ORDER BY id DESC LIMIT 1'
         );
         $stmt->execute(['user_id' => $sentByUserId]);
-        $lastCreatedAt = $stmt->fetchColumn();
+        $secondsSince = $stmt->fetchColumn();
 
-        if ($lastCreatedAt === false) {
+        if ($secondsSince === false || $secondsSince === null) {
             return;
         }
 
-        $secondsSince = time() - strtotime((string) $lastCreatedAt);
-        if ($secondsSince < self::MIN_SECONDS_BETWEEN_CAMPAIGNS) {
+        $secondsSince = (int) $secondsSince;
+        if ($secondsSince >= 0 && $secondsSince < self::MIN_SECONDS_BETWEEN_CAMPAIGNS) {
             $wait = self::MIN_SECONDS_BETWEEN_CAMPAIGNS - $secondsSince;
             throw new RuntimeException("Please wait {$wait} more second(s) before sending another broadcast notification.");
         }

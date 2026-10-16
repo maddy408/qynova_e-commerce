@@ -87,17 +87,32 @@ final class SettingsController
         Response::json(['page' => $page]);
     }
 
-    /** GET /api/offers - Active promotions & offers */
+    /** GET /api/offers - Active promotions, offers & coupons from database */
     public function getOffers(): void
     {
         $stmt = $this->pdo->query(
             "SELECT * FROM offers
              WHERE is_active = 1
-               AND start_datetime <= NOW()
-               AND end_datetime >= NOW()
+               AND (start_datetime IS NULL OR start_datetime <= NOW())
+               AND (end_datetime IS NULL OR end_datetime >= NOW())
              ORDER BY id DESC"
         );
-        Response::json(['offers' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        $offers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $couponStmt = $this->pdo->query(
+            "SELECT id, code, name, description, discount_type, discount_value, min_order_amount, max_discount_amount
+             FROM coupons
+             WHERE status = 'ACTIVE'
+               AND (start_at IS NULL OR start_at <= NOW())
+               AND (end_at IS NULL OR end_at >= NOW())
+             ORDER BY id DESC"
+        );
+        $coupons = $couponStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        Response::json([
+            'offers' => $offers,
+            'coupons' => $coupons,
+        ]);
     }
 
     /** GET /api/offers/flash-deal - Current active flash deal with real end_datetime */

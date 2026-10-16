@@ -61,8 +61,14 @@ export interface Brand {
   id: number
   name: string
   description?: string | null
+  image_path?: string | null
+  is_top_brand?: boolean | number
+  offer_text?: string | null
+  sort_order?: number
   categories?: { id: number; name: string }[]
   category_ids?: number[]
+  product_count?: number
+  min_price?: string | number | null
 }
 
 export interface Customer {

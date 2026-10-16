@@ -43,6 +43,8 @@ final class CartService
              LEFT JOIN brands b ON b.id = p.brand_id
              LEFT JOIN inventory i ON i.variant_id = v.id
              WHERE ci.cart_id = :cart_id
+               AND (p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())
+               AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())
              ORDER BY ci.id DESC'
         );
         $stmt->execute(['cart_id' => $cartId]);
@@ -105,6 +107,22 @@ final class CartService
 
         if ($variantId <= 0) {
             throw new RuntimeException('Invalid product or variant ID');
+        }
+
+        $checkStmt = $this->pdo->prepare(
+            'SELECT p.expiry_date AS product_expiry, v.expiry_date AS variant_expiry
+             FROM product_variants v
+             JOIN products p ON p.id = v.product_id
+             WHERE v.id = :id AND p.deleted_at IS NULL AND v.deleted_at IS NULL'
+        );
+        $checkStmt->execute(['id' => $variantId]);
+        $expiryRow = $checkStmt->fetch();
+        if ($expiryRow) {
+            $today = date('Y-m-d');
+            if ((!empty($expiryRow['product_expiry']) && $expiryRow['product_expiry'] < $today) ||
+                (!empty($expiryRow['variant_expiry']) && $expiryRow['variant_expiry'] < $today)) {
+                throw new RuntimeException('This product has expired and cannot be added to cart');
+            }
         }
 
         $cartId = $this->findOrCreateCartId($customerId, $sessionId);

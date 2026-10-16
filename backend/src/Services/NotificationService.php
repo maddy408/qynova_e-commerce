@@ -93,25 +93,34 @@ final class NotificationService
     /**
      * @return array{items: list<array<string, mixed>>, total: int, unread_count: int}
      */
-    public function listForRecipient(string $recipientType, int $recipientId, int $page = 1, int $limit = 20): array
-    {
+    public function listForRecipient(
+        string $recipientType,
+        int $recipientId,
+        int $page = 1,
+        int $limit = 20,
+        ?bool $isRead = null,
+    ): array {
         $page = max(1, $page);
         $limit = max(1, min(100, $limit));
         $offset = ($page - 1) * $limit;
 
-        $totalStmt = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM notifications WHERE recipient_type = :type AND recipient_id = :id'
-        );
+        $countSql = 'SELECT COUNT(*) FROM notifications WHERE recipient_type = :type AND recipient_id = :id';
+        if ($isRead !== null) {
+            $countSql .= ' AND is_read = ' . ($isRead ? '1' : '0');
+        }
+        $totalStmt = $this->pdo->prepare($countSql);
         $totalStmt->execute(['type' => $recipientType, 'id' => $recipientId]);
         $total = (int) $totalStmt->fetchColumn();
 
-        $stmt = $this->pdo->prepare(
-            'SELECT id, type, title, body, reference_type, reference_id, data, is_read, read_at, created_at
-             FROM notifications
-             WHERE recipient_type = :type AND recipient_id = :id
-             ORDER BY created_at DESC, id DESC
-             LIMIT :limit OFFSET :offset'
-        );
+        $sql = 'SELECT id, type, title, body, reference_type, reference_id, data, is_read, read_at, created_at
+                FROM notifications
+                WHERE recipient_type = :type AND recipient_id = :id';
+        if ($isRead !== null) {
+            $sql .= ' AND is_read = ' . ($isRead ? '1' : '0');
+        }
+        $sql .= ' ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset';
+
+        $stmt = $this->pdo->prepare($sql);
         $stmt->bindValue('type', $recipientType);
         $stmt->bindValue('id', $recipientId, PDO::PARAM_INT);
         $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
@@ -168,6 +177,26 @@ final class NotificationService
         }
     }
 
+    /**
+     * Marks one notification as unread.
+     */
+    public function markUnread(string $recipientType, int $recipientId, int $notificationId): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE notifications SET is_read = 0, read_at = NULL
+             WHERE id = :id AND recipient_type = :type AND recipient_id = :recipient_id AND is_read = 1"
+        );
+        $stmt->execute(['id' => $notificationId, 'type' => $recipientType, 'recipient_id' => $recipientId]);
+
+        if ($stmt->rowCount() === 0) {
+            $existsStmt = $this->pdo->prepare('SELECT 1 FROM notifications WHERE id = :id AND recipient_type = :type AND recipient_id = :recipient_id');
+            $existsStmt->execute(['id' => $notificationId, 'type' => $recipientType, 'recipient_id' => $recipientId]);
+            if ($existsStmt->fetchColumn() === false) {
+                throw new RuntimeException('Notification not found');
+            }
+        }
+    }
+
     public function markAllRead(string $recipientType, int $recipientId): int
     {
         $stmt = $this->pdo->prepare(
@@ -178,4 +207,24 @@ final class NotificationService
 
         return $stmt->rowCount();
     }
+
+    /**
+     * Deletes one notification belonging to the recipient.
+     */
+    public function destroy(string $recipientType, int $recipientId, int $notificationId): void
+    {
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM notifications WHERE id = :id AND recipient_type = :type AND recipient_id = :recipient_id'
+        );
+        $stmt->execute(['id' => $notificationId, 'type' => $recipientType, 'recipient_id' => $recipientId]);
+
+        if ($stmt->rowCount() === 0) {
+            $existsStmt = $this->pdo->prepare('SELECT 1 FROM notifications WHERE id = :id AND recipient_type = :type AND recipient_id = :recipient_id');
+            $existsStmt->execute(['id' => $notificationId, 'type' => $recipientType, 'recipient_id' => $recipientId]);
+            if ($existsStmt->fetchColumn() === false) {
+                throw new RuntimeException('Notification not found');
+            }
+        }
+    }
 }
+

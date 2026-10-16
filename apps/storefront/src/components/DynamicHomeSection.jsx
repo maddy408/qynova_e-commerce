@@ -35,22 +35,22 @@ function getDefaultTitle(section) {
 function getDefaultBadge(section) {
   switch (section.type) {
     case 'BEST_SELLERS':
-      return '⭐ CUSTOMER FAVORITES'
+      return 'CUSTOMER FAVORITES'
     case 'NEW_ARRIVALS':
-      return '✨ FRESH DROPS'
+      return 'FRESH DROPS'
     case 'FEATURED':
-      return '💎 CURATED SELECTION'
+      return 'CURATED SELECTION'
     case 'DEALS':
-      return '🔥 SPECIAL DISCOUNTS'
+      return 'SPECIAL DISCOUNTS'
     case 'COMBOS':
-      return '📦 VALUE PACKS'
+      return 'VALUE PACKS'
     case 'CATEGORIES':
-      return '📂 COLLECTIONS'
+      return 'COLLECTIONS'
     case 'BANNER':
-      return '🏷️ PROMOTIONS'
+      return 'PROMOTIONS'
     case 'CUSTOM':
     default:
-      return '📈 POPULAR PICKS'
+      return 'POPULAR PICKS'
   }
 }
 
@@ -76,22 +76,7 @@ function getDefaultViewAllLink(section) {
 }
 
 function getBadgeBg(type) {
-  switch (type) {
-    case 'BEST_SELLERS':
-      return 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
-    case 'NEW_ARRIVALS':
-      return 'bg-emerald-100 text-emerald-800'
-    case 'FEATURED':
-      return 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
-    case 'DEALS':
-      return 'bg-amber-100 text-amber-800'
-    case 'COMBOS':
-      return 'bg-blue-100 text-blue-800'
-    case 'CUSTOM':
-      return 'bg-rose-100 text-rose-800'
-    default:
-      return 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
-  }
+  return 'bg-[#ede9fe] text-[#6d28d9] border border-[#ddd6fe]'
 }
 
 export default function DynamicHomeSection({

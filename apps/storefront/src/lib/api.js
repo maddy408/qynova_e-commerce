@@ -40,6 +40,16 @@ export function getSessionId() {
   return memorySessionId
 }
 
+export function resetSessionId() {
+  memorySessionId = null
+  try {
+    document.cookie = 'storefront_session_id=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+  } catch {
+    // ignore
+  }
+  return getSessionId()
+}
+
 // Customer Auth token management (Session cookie and memory only; NO localStorage or sessionStorage)
 let memoryCustomerToken = null
 
@@ -77,15 +87,22 @@ export function clearCustomerSession() {
     // ignore
   }
   delete window.__customer_jwt
+  resetSessionId()
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('customer-session-changed', { detail: { customer: null } }))
+  }
 }
 
 export function clearCustomerToken() {
   clearCustomerSession()
 }
 
-export function setCustomerSession(token) {
+export function setCustomerSession(token, customer = null) {
   if (token) {
     setCustomerToken(token)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('customer-session-changed', { detail: { customer } }))
+    }
   }
 }
 

@@ -1032,7 +1032,7 @@ export function SalePage() {
   const activeCategoryLabel = useMemo(() => {
     if (activeCategory === ALL_ITEMS) return 'All Items'
     if (activeCategory === TOP_SELLING) return 'Top Selling'
-    const found = categories.find((c) => c.id === activeCategory)
+    const found = categories.find((c) => String(c.id) === String(activeCategory))
     return found ? found.name : 'Category'
   }, [activeCategory, categories])
 
@@ -1193,8 +1193,14 @@ export function SalePage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && search.trim()) {
-                        handleBarcodeScanned(search.trim())
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const trimmed = search.trim()
+                        if (/^\d{6,14}$/.test(trimmed)) {
+                          handleBarcodeScanned(trimmed)
+                        } else {
+                          fetchProducts(1, true)
+                        }
                       }
                     }}
                     placeholder="Search product by name, SKU or barcode (Press Enter)..."
@@ -1297,13 +1303,13 @@ export function SalePage() {
                   type="button"
                   onClick={() => setShowCategoriesDropdown((prev) => !prev)}
                   className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    typeof activeCategory === 'number' || showCategoriesDropdown
+                    (activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING) || showCategoriesDropdown
                       ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
                   <span>
-                    {typeof activeCategory === 'number' ? activeCategoryLabel : `All Categories (${categories.length})`}
+                    {activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING ? activeCategoryLabel : `All Categories (${categories.length})`}
                   </span>
                   <span>{showCategoriesDropdown ? '▲' : '▼'}</span>
                 </button>
@@ -1349,7 +1355,7 @@ export function SalePage() {
                       setShowCategoriesDropdown(false)
                     }}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
-                      activeCategory === cat.id
+                      String(activeCategory) === String(cat.id)
                         ? 'bg-[var(--color-sale-accent)] text-white font-bold shadow-xs'
                         : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}

@@ -114,8 +114,12 @@ $router->post('/api/subcategories/{id}/image', fn ($id) => $subcategories->uploa
 $router->delete('/api/subcategories/{id}/image', fn ($id) => $subcategories->removeImage($id));
 
 $masters = new MasterDataController($pdo);
+$router->get('/api/brands/top', fn () => $masters->indexTopBrands());
 $router->get('/api/brands', fn () => $masters->indexBrands());
 $router->post('/api/brands', fn () => $masters->storeBrand());
+$router->post('/api/brands/{id}/image', fn ($id) => $masters->uploadBrandImage($id));
+$router->delete('/api/brands/{id}/image', fn ($id) => $masters->removeBrandImage($id));
+$router->patch('/api/brands/{id}/toggle-top', fn ($id) => $masters->toggleTopBrand($id));
 $router->put('/api/brands/{id}', fn ($id) => $masters->updateBrand($id));
 $router->delete('/api/brands/{id}', fn ($id) => $masters->destroyBrand($id));
 $router->get('/api/units', fn () => $masters->indexUnits());
@@ -277,7 +281,10 @@ $notifications = new NotificationController($pdo);
 $router->get('/api/notifications', fn () => $notifications->index());
 $router->get('/api/notifications/unread-count', fn () => $notifications->unreadCount());
 $router->post('/api/notifications/{id}/read', fn ($id) => $notifications->markRead($id));
+$router->post('/api/notifications/{id}/unread', fn ($id) => $notifications->markUnread($id));
+$router->delete('/api/notifications/{id}', fn ($id) => $notifications->destroy($id));
 $router->post('/api/notifications/read-all', fn () => $notifications->markAllRead());
+
 
 $deviceTokens = new DeviceTokenController($pdo);
 $router->post('/api/device-tokens', fn () => $deviceTokens->register());
@@ -398,6 +405,7 @@ $router->delete('/api/admin/top-offers/{id}', fn ($id) => $topOffers->destroy($i
 
 // Admin dashboard (ECOMMERCE_POS_ADMIN_SPEC.md section 24; docs section 6)
 $dashboard = new DashboardController($pdo);
+
 $router->get('/api/dashboard/summary', fn () => $dashboard->summary());
 $router->get('/api/dashboard/sales-chart', fn () => $dashboard->salesChart());
 $router->get('/api/dashboard/product-analytics', fn () => $dashboard->productAnalytics());

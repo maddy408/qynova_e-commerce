@@ -95,6 +95,8 @@ export const ROUTES = {
   HOME_SECTIONS: '/home-sections',
   TOP_OFFERS: '/top-offers',
   BROADCAST_NOTIFICATIONS: '/notifications/broadcast',
+  NOTIFICATIONS: '/notifications',
+  NOTIFICATIONS_CREATE: '/notifications/create',
 
   SETTINGS: '/settings',
   SETTINGS_COMPANY: '/settings/company',
@@ -158,6 +160,8 @@ export const ROUTE_TABLE: RouteDef[] = [
   { path: ROUTES.HOME_SECTIONS, component: HomeSectionsPage, access: 'banners.manage' },
   { path: ROUTES.TOP_OFFERS, component: TopOffersPage, access: 'banners.manage' },
   { path: ROUTES.BROADCAST_NOTIFICATIONS, component: BroadcastNotificationsPage, access: 'notifications.broadcast' },
+  { path: ROUTES.NOTIFICATIONS, component: BroadcastNotificationsPage, access: 'notifications.broadcast' },
+  { path: ROUTES.NOTIFICATIONS_CREATE, component: BroadcastNotificationsPage, access: 'notifications.broadcast' },
 
   { path: ROUTES.SETTINGS_COMPANY, component: SettingsSetupPage, access: 'settings.manage' },
   { path: ROUTES.SETTINGS_PREFIX, component: SettingsSetupPage, access: 'settings.manage' },

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FiHeart, FiKey } from 'react-icons/fi'
 import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
@@ -322,8 +323,8 @@ export default function Login() {
               </div>
 
               <div className="absolute -top-1.5 right-2 bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-sm border border-emerald-100/80 rotate-[2deg] flex flex-col items-center">
-                <span className="text-[11px] font-extrabold text-[var(--color-success)] tracking-tight">
-                  Good Food <span className="text-red-500">♡</span> Better Life
+                <span className="text-[11px] font-extrabold text-[var(--color-success)] tracking-tight flex items-center gap-1">
+                  Good Food <FiHeart className="text-red-500 w-3 h-3 fill-red-500" /> Better Life
                 </span>
                 <div className="w-8 h-0.5 bg-emerald-500 rounded-full mt-0.5"></div>
               </div>
@@ -554,8 +555,9 @@ export default function Login() {
 
               {/* Dev convenience badge */}
               {debugOtp && (
-                <div className="mt-2 inline-block px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] font-mono">
-                  🔑 Dev OTP: <strong>{debugOtp}</strong>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-[11px] font-mono">
+                  <FiKey className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Dev OTP: <strong>{debugOtp}</strong></span>
                 </div>
               )}
             </div>
