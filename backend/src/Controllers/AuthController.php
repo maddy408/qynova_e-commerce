@@ -79,6 +79,7 @@ final class AuthController
 
         Response::json([
             'token' => $this->issueAccessToken($userId, (string) $user['name'], $role),
+            'refresh_token' => $refresh['raw'],
             'user' => [
                 'id' => $userId,
                 'name' => $user['name'],
@@ -98,7 +99,8 @@ final class AuthController
      */
     public function refresh(): void
     {
-        $raw = $_COOKIE[self::REFRESH_COOKIE] ?? null;
+        $input = Request::json();
+        $raw = $_COOKIE[self::REFRESH_COOKIE] ?? ($input['refresh_token'] ?? null);
 
         if ($raw === null || $raw === '') {
             Response::error('No refresh token', 401);
@@ -128,6 +130,7 @@ final class AuthController
 
         Response::json([
             'token' => $this->issueAccessToken($result['user_id'], $name, $result['role']),
+            'refresh_token' => $result['raw'],
             'user' => [
                 'id' => $result['user_id'],
                 'name' => $name,
@@ -203,7 +206,7 @@ final class AuthController
                 // are never byte-identical.
                 'jti' => bin2hex(random_bytes(8)),
             ],
-            (int) Config::get('jwt.access_ttl', 900)
+            (int) Config::get('jwt.access_ttl', 86400)
         );
     }
 
@@ -211,7 +214,7 @@ final class AuthController
     {
         setcookie(self::REFRESH_COOKIE, $raw, [
             'expires' => strtotime($expiresAt),
-            'path' => '/api/auth',
+            'path' => '/',
             'secure' => $this->isHttps(),
             'httponly' => true,
             'samesite' => 'Lax',
@@ -222,7 +225,7 @@ final class AuthController
     {
         setcookie(self::REFRESH_COOKIE, '', [
             'expires' => time() - 3600,
-            'path' => '/api/auth',
+            'path' => '/',
             'secure' => $this->isHttps(),
             'httponly' => true,
             'samesite' => 'Lax',

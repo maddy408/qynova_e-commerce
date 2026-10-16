@@ -43,10 +43,16 @@ final class BroadcastController
         $body = Request::json();
         $title = (string) ($body['title'] ?? '');
         $message = (string) ($body['message'] ?? $body['body'] ?? '');
+        $type = (string) ($body['type'] ?? 'OFFER');
         $idempotencyKey = isset($body['idempotency_key']) ? (string) $body['idempotency_key'] : null;
 
+        $data = isset($body['data']) && is_array($body['data']) ? $body['data'] : [];
+        if (isset($body['url']) && is_string($body['url']) && trim($body['url']) !== '') {
+            $data['url'] = trim($body['url']);
+        }
+
         try {
-            $result = $this->broadcasts->send($title, $message, (int) $claims['sub'], $idempotencyKey);
+            $result = $this->broadcasts->send($title, $message, (int) $claims['sub'], $idempotencyKey, $type, $data);
             Response::json($result);
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);

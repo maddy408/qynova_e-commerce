@@ -3,6 +3,7 @@ import { env } from '../config/env'
 import { ROUTES } from '../routes/routes'
 
 const TOKEN_KEY = 'admin_pos_token'
+const REFRESH_TOKEN_KEY = 'admin_pos_refresh_token'
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -12,8 +13,21 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token)
 }
 
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_KEY)
+}
+
+export function setRefreshToken(token: string): void {
+  localStorage.setItem(REFRESH_TOKEN_KEY, token)
+}
+
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
+export function clearRefreshToken(): void {
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
 }
 
 export const api = axios.create({
@@ -50,16 +64,21 @@ function redirectToLogin() {
 }
 
 async function refreshAccessToken(): Promise<string> {
+  const refreshToken = getRefreshToken()
   const response = await axios.post(
     `${env.API_BASE_URL}/auth/refresh`,
-    {},
+    { refresh_token: refreshToken },
     { withCredentials: true },
   )
   const newToken = response.data?.token as string | undefined
+  const newRefreshToken = response.data?.refresh_token as string | undefined
   if (!newToken) {
     throw new Error('Refresh response had no token')
   }
   setToken(newToken)
+  if (newRefreshToken) {
+    setRefreshToken(newRefreshToken)
+  }
   return newToken
 }
 
@@ -70,18 +89,20 @@ api.interceptors.response.use(
     const config = error.config as RetriableConfig | undefined
 
     if (status !== 401 || !config || config._retry) {
-      if (status === 401) {
+      if (status === 401 && (config?.url?.includes('/auth/refresh') || config?.url?.includes('/auth/login'))) {
         redirectToLogin()
       }
       return Promise.reject(error)
     }
 
-    // Only "Token expired" is worth a silent-refresh attempt — "Invalid
-    // token" (bad signature, malformed) or no refresh cookie at all can
-    // never succeed, so go straight to a full logout instead of wasting
-    // a round trip and showing a confusing flash of retried requests.
-    const serverMessage = error.response?.data?.error
-    if (serverMessage !== 'Token expired') {
+    // If the 401 itself is on refresh or login, don't retry - redirect to login
+    if (config.url?.includes('/auth/refresh') || config.url?.includes('/auth/login')) {
+      redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    // If there is no token at all, redirect to login
+    if (!getToken() && !getRefreshToken()) {
       redirectToLogin()
       return Promise.reject(error)
     }

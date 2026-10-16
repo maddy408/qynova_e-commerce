@@ -9,12 +9,17 @@ import {
   resolveImageUrl,
 } from '../lib/api'
 import { ROUTES } from '../routes/routes'
-import { getCategoryPalette } from '../lib/catalogData'
 import Navbar from '../components/Navbar'
-import PromotionalBannerCarousel from '../components/PromotionalBannerCarousel'
+import GroceryHeroBanner from '../components/GroceryHeroBanner'
+import CircularCategoriesRow from '../components/CircularCategoriesRow'
+import TopOffersSection from '../components/TopOffersSection'
+import TopBrandsSection from '../components/TopBrandsSection'
 import LowerPromotionalBanners from '../components/LowerPromotionalBanners'
 import DynamicHomeSection from '../components/DynamicHomeSection'
 import HorizontalProductSection from '../components/HorizontalProductSection'
+import TrustValueBar from '../components/TrustValueBar'
+import NewsletterBar from '../components/NewsletterBar'
+import GroceryFooter from '../components/GroceryFooter'
 import PopupBannerModal from '../components/PopupBannerModal'
 import ReferralModal from '../components/ReferralModal'
 import CartDrawer from '../components/CartDrawer'
@@ -25,7 +30,7 @@ import { getWishlistIds, fetchWishlist, toggleWishlist } from '../lib/wishlist'
 export default function Home() {
   const navigate = useNavigate()
 
-  // Dynamic Store Data State (All from Database via PHP API)
+  // Dynamic Store Data State (All from Database via PHP API - NO MOCK DATA)
   const [storeSettings, setStoreSettings] = useState(null)
   const [deliverySettings, setDeliverySettings] = useState(null)
   const [flashDeal, setFlashDeal] = useState(null)
@@ -33,11 +38,16 @@ export default function Home() {
   const [middleBanners, setMiddleBanners] = useState([])
   const [isBannersLoading, setIsBannersLoading] = useState(true)
   const [categories, setCategories] = useState([])
+  const [bestSellers, setBestSellers] = useState([])
+  const [topBrands, setTopBrands] = useState([])
+  const [isTopBrandsLoading, setIsTopBrandsLoading] = useState(true)
 
   // Dynamic Homepage Sections (All from Database via Home Sections API)
   const [sections, setSections] = useState([])
   const [sectionProductsMap, setSectionProductsMap] = useState({})
   const [isLoadingSections, setIsLoadingSections] = useState(true)
+  const [availableOffers, setAvailableOffers] = useState([])
+  const [topOffers, setTopOffers] = useState([])
   const [popupBanner, setPopupBanner] = useState(null)
   const [recentlyViewed, setRecentlyViewed] = useState([])
 
@@ -90,13 +100,34 @@ export default function Home() {
       fetchDeliverySettings().then((d) => d && setDeliverySettings(d))
       fetchFlashDeal().then((fd) => fd && setFlashDeal(fd.deal || fd))
 
+      // Fetch Best Sellers dynamically from database
+      api.get('/products?section=best_sellers&limit=10')
+        .then((res) => {
+          const prods = res.data?.items || res.data?.data || []
+          if (prods.length > 0) {
+            setBestSellers(prods)
+          } else {
+            api.get('/products?limit=10')
+              .then((r) => setBestSellers(r.data?.items || r.data?.data || []))
+              .catch(() => {})
+          }
+        })
+        .catch(() => {
+          api.get('/products?limit=10')
+            .then((r) => setBestSellers(r.data?.items || r.data?.data || []))
+            .catch(() => {})
+        })
+
       try {
-        const [catRes, heroBannerRes, middleBannerRes, popupBannerRes, sectionsRes] = await Promise.all([
+        const [catRes, heroBannerRes, middleBannerRes, popupBannerRes, sectionsRes, offersRes, topOffersRes, topBrandsRes] = await Promise.all([
           api.get('/categories').catch(() => ({ data: { categories: [] } })),
           api.get('/banners?position=HOME_HERO&is_active=1').catch(() => ({ data: { banners: [] } })),
           api.get('/banners?position=HOME_MIDDLE&is_active=1').catch(() => ({ data: { banners: [] } })),
           api.get('/banners?position=POPUP&is_active=1').catch(() => ({ data: { banners: [] } })),
           fetchHomeSections().catch(() => []),
+          api.get('/offers').catch(() => ({ data: { offers: [], coupons: [] } })),
+          api.get('/top-offers').catch(() => ({ data: { top_offers: [] } })),
+          api.get('/brands/top').catch(() => ({ data: { brands: [] } })),
         ])
 
         const loadedCats = catRes.data?.categories || []
@@ -109,7 +140,15 @@ export default function Home() {
         setBanners(heroBanners)
         setMiddleBanners(midBanners)
         setPopupBanner(popBanners[0] || null)
+
+        const liveOffers = offersRes.data?.offers || []
+        const liveCoupons = offersRes.data?.coupons || []
+        setAvailableOffers([...liveOffers, ...liveCoupons])
+        setTopOffers(topOffersRes.data?.top_offers || [])
+        setTopBrands(topBrandsRes.data?.brands || [])
+
         setIsBannersLoading(false)
+        setIsTopBrandsLoading(false)
 
         const rawSections = Array.isArray(sectionsRes) ? sectionsRes : (sectionsRes?.sections || [])
         const activeSections = rawSections.filter((s) => s.is_active !== 0 && s.is_active !== false)
@@ -201,35 +240,13 @@ export default function Home() {
     setTimeout(() => setToastMessage(''), 2500)
   }
 
-  // Handle Banner CTA Click
-  const handleBannerAction = (banner) => {
-    if (!banner) return
-
-    if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
-      return
-    }
-
-    if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
-      return
-    }
-
-    if (banner.target_type === 'EXTERNAL_URL' && banner.target_url) {
-      window.open(banner.target_url, '_blank', 'noopener,noreferrer')
-      return
-    }
-
-    navigate(ROUTES.PRODUCTS)
-  }
-
   // Wishlist Heart Toggle (Persisted in MySQL via PHP API)
   const handleToggleWishlist = async (productId, e) => {
     if (e) e.stopPropagation()
     try {
       const added = await toggleWishlist(productId)
       setWishlistIds(getWishlistIds())
-      showToast(added ? 'Saved to Wishlist ❤️' : 'Removed from Wishlist')
+      showToast(added ? 'Saved to Wishlist' : 'Removed from Wishlist')
     } catch {
       showToast('Could not update wishlist')
     }
@@ -240,24 +257,24 @@ export default function Home() {
     if (e) e.stopPropagation()
     try {
       await addToCart(product, 1)
-      showToast(`Added "${product.name}" to Cart! 🛍️`)
+      showToast(`Added "${product.name}" to Cart!`)
     } catch {
       showToast('Could not add item to cart. Please try again.')
     }
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-brand)] overflow-x-hidden flex flex-col justify-between">
+    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[#ede9fe] selection:text-[#6d28d9] overflow-x-hidden flex flex-col justify-between w-full">
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[var(--color-text-main)] text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[var(--color-brand)]/30 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-black text-white px-5 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-[#7c3aed]/40 animate-bounce">
           <span>{toastMessage}</span>
         </div>
       )}
 
-      <div>
-        {/* ONE Reusable Global Sticky Production Navbar */}
+      <div className="w-full">
+        {/* 1. GLOBAL STICKY PRODUCTION NAVBAR */}
         <Navbar
           onOpenCart={() => setIsCartOpen(true)}
           onOpenReferral={() => setIsReferralOpen(true)}
@@ -265,15 +282,52 @@ export default function Home() {
           activeNav="home"
         />
 
-        {/* 1. HERO PROMOTIONAL BANNER CAROUSEL (Real MySQL Data via PHP REST API) */}
-        <PromotionalBannerCarousel
+        {/* 2. GROCERY HERO BANNER (100% Width NatureCart Design with 60 Mins Badge) */}
+        <GroceryHeroBanner
+          storeSettings={storeSettings}
+          deliverySettings={deliverySettings}
           banners={banners}
           isLoading={isBannersLoading}
-          autoPlayInterval={5500}
-          storeSettings={storeSettings}
         />
 
-        {/* 2. DYNAMIC DATABASE-DRIVEN HOME SECTIONS */}
+        {/* 3. CIRCULAR CATEGORIES ROW ("Shop by Category" Round Avatars) */}
+        <CircularCategoriesRow
+          categories={categories}
+          isLoading={isBannersLoading}
+        />
+
+        {/* 4. TOP OFFERS FOR YOU (Dynamic Promo Cards from MySQL Database) */}
+        <TopOffersSection
+          topOffers={topOffers}
+          deliverySettings={deliverySettings}
+          activeOffers={availableOffers}
+          isLoading={isBannersLoading}
+        />
+
+        {/* 5. BEST SELLING PRODUCTS (100% Width Carousel from MySQL Database) */}
+        <HorizontalProductSection
+          id="best-sellers-section"
+          badgeText="BEST SELLERS"
+          badgeBg="bg-[#ede9fe] text-[#6d28d9]"
+          title="Best Selling Products"
+          subtitle="Top rated groceries and customer favourites"
+          products={bestSellers}
+          viewAllLink="/products?section=best_sellers"
+          isLoading={isLoadingSections}
+          wishlistIds={wishlistIds}
+          onToggleWishlist={handleToggleWishlist}
+          onAddToCart={handleAddToCart}
+        />
+
+        {/* 5.5. MOST LOVED BRANDS (Top Brands from Database via PHP API) */}
+        <TopBrandsSection
+          brands={topBrands}
+          isLoading={isTopBrandsLoading}
+          title="Most Loved Brands"
+          subtitle="Top verified brands with exclusive offers"
+        />
+
+        {/* 6. DYNAMIC DATABASE-DRIVEN HOME SECTIONS (Configured in MySQL home_sections) */}
         {sections.map((section, index) => (
           <React.Fragment key={section.id}>
             <DynamicHomeSection
@@ -287,7 +341,7 @@ export default function Home() {
               onToggleWishlist={handleToggleWishlist}
               onAddToCart={handleAddToCart}
             />
-            {/* If no BANNER section was explicitly configured in home_sections, place middle banners midway between sections */}
+            {/* If middle banners exist, place between sections */}
             {!sections.some((s) => s.type === 'BANNER') &&
               middleBanners.length > 0 &&
               index === Math.min(1, sections.length - 1) && (
@@ -299,46 +353,15 @@ export default function Home() {
           </React.Fragment>
         ))}
 
-        {/* Fallback if no sections are active in database but middle banners exist */}
-        {!sections.some((s) => s.type === 'BANNER') && sections.length === 0 && middleBanners.length > 0 && (
-          <LowerPromotionalBanners
-            banners={middleBanners}
-            isLoading={isBannersLoading}
-          />
-        )}
-
-        {/* Loading Skeletons when sections are loading */}
-        {isLoadingSections && sections.length === 0 && (
-          <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 space-y-8">
-            {[1, 2].map((idx) => (
-              <div key={idx} className="space-y-4">
-                <div className="h-6 w-48 bg-[var(--color-primary-tint)]/60 rounded-lg animate-pulse" />
-                <div className="flex gap-4 overflow-hidden py-2">
-                  {[1, 2, 3, 4].map((c) => (
-                    <div
-                      key={c}
-                      className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse h-64 space-y-3"
-                    >
-                      <div className="bg-[var(--color-primary-tint)]/60 aspect-square rounded-xl w-full" />
-                      <div className="h-3 bg-[var(--color-primary-tint)]/70 rounded w-2/3" />
-                      <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-1/2" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 4. POPUP BANNER MODAL (Real MySQL Data via PHP REST API) */}
+        {/* 7. POPUP BANNER MODAL (Real MySQL Data via PHP REST API) */}
         {popupBanner && <PopupBannerModal banner={popupBanner} />}
 
-        {/* 9. RECENTLY VIEWED PRODUCTS (T16) */}
+        {/* 8. RECENTLY VIEWED PRODUCTS */}
         {recentlyViewed.length > 0 && (
           <HorizontalProductSection
             id="recently-viewed-section"
-            badgeText="👁️ RECENTLY VIEWED"
-            badgeBg="bg-[var(--color-primary-tint)] text-[var(--color-brand)]"
+            badgeText="RECENTLY VIEWED"
+            badgeBg="bg-[#ede9fe] text-[#6d28d9]"
             title="Recently Viewed Products"
             subtitle="Products you browsed during recent visits"
             products={recentlyViewed}
@@ -350,114 +373,18 @@ export default function Home() {
           />
         )}
 
+        {/* 9. VALUE PROPOSITION BAR (100% Genuine, Secure Payments, Easy Returns, 24/7 Support) */}
+        <TrustValueBar />
 
-        {/* 10. CUSTOMER SUPPORT & WHATSAPP */}
-        <section id="support-section" className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-8">
-          <div className="bg-white border border-[var(--color-border-subtle)] rounded-3xl p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-6 shadow-sm">
-            <div className="space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>24/7 CUSTOMER CARE</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-[var(--color-text-main)]">
-                Need Help with Orders or Custom Gifts?
-              </h3>
-              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] leading-relaxed">
-                Our customer care team is available on WhatsApp and phone to assist with product inquiries, bulk orders, return requests, and gift customization.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {(storeSettings?.whatsapp_number || storeSettings?.phone) && (
-                <a
-                  href={`https://wa.me/${(storeSettings.whatsapp_number || storeSettings.phone).replace(/[^0-9]/g, '')}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20products`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 rounded-full bg-[var(--color-whatsapp)] hover:bg-[var(--color-extra-041)] text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-green-700/15 active:scale-95 transition-all cursor-pointer"
-                >
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                    <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.353.101.173.448.74 0.961 1.196.662.589 1.22.771 1.393.858.173.086.274.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
-                  </svg>
-                  <span>Chat on WhatsApp</span>
-                </a>
-              )}
-
-              {storeSettings?.phone && (
-                <a
-                  href={`tel:${storeSettings.phone.replace(/[^0-9+]/g, '')}`}
-                  className="px-5 py-3 rounded-full bg-[var(--color-bg-main)] hover:bg-[var(--color-primary-tint)] border border-[var(--color-border-subtle)] text-[var(--color-text-main)] font-bold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-                >
-                  <span>📞 {storeSettings.phone}</span>
-                </a>
-              )}
-            </div>
-          </div>
-        </section>
+        {/* 10. NEWSLETTER / STAY UPDATED BAR */}
+        <NewsletterBar />
       </div>
 
-      {/* 11. FOOTER (Burgundy & White Aesthetic) */}
-      <footer className="bg-white text-[var(--color-text-main)] pt-12 pb-8 border-t border-[var(--color-border-subtle)] mt-12">
-        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-[var(--color-border-subtle)]">
-            <div className="lg:col-span-2 space-y-3.5">
-              <div className="flex items-center gap-2.5">
-                {storeSettings?.logo ? (
-                  <img src={resolveImageUrl(storeSettings.logo)} alt={storeSettings.store_name} className="w-9 h-9 rounded-xl object-cover shadow-md" />
-                ) : (
-                  <div className="w-9 h-9 rounded-xl bg-[var(--color-brand)] flex items-center justify-center text-white shadow-md font-black text-sm">
-                    {storeSettings?.store_name ? storeSettings.store_name.charAt(0) : 'S'}
-                  </div>
-                )}
-                <div>
-                  <div className="flex items-baseline leading-none">
-                    <span className="text-xl font-black text-[var(--color-brand)]">{storeSettings?.store_name || 'Store'}</span>
-                  </div>
-                  {storeSettings?.tagline && (
-                    <p className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest mt-0.5">
-                      {storeSettings.tagline}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed max-w-sm">
-                {storeSettings?.description || 'Your trusted online shopping destination.'}
-              </p>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
-              <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Collections</h4>
-              <ul className="space-y-1.5">
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')} className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')} className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('featured')} className="hover:text-[var(--color-brand)] transition-colors">Featured Selections</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('deals')} className="hover:text-[var(--color-brand)] transition-colors">Flash Deals</Link></li>
-              </ul>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
-              <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Customer Care</h4>
-              <ul className="space-y-1.5">
-                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-[var(--color-brand)] transition-colors">Shipping Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-[var(--color-brand)] transition-colors">Returns & Exchange</Link></li>
-                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-[var(--color-brand)] transition-colors">Terms of Service</Link></li>
-              </ul>
-            </div>
-
-            <div className="space-y-2.5 text-xs text-[var(--color-text-muted)]">
-              <h4 className="font-black uppercase tracking-wider text-[var(--color-text-main)] text-[11px]">Get in Touch</h4>
-              {storeSettings?.address && <p>📍 {storeSettings.address}</p>}
-              {storeSettings?.phone && <p>📞 {storeSettings.phone}</p>}
-              {storeSettings?.email && <p>✉️ {storeSettings.email}</p>}
-            </div>
-          </div>
-
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--color-text-muted)] gap-3">
-            <p>© {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}</p>
-            <p>100% Secure Checkout • Express Shipping • Quality Assured</p>
-          </div>
-        </div>
-      </footer>
+      {/* 11. FOOTER (Full width modern grocery store footer) */}
+      <GroceryFooter
+        storeSettings={storeSettings}
+        categories={categories}
+      />
 
       {/* Cart Drawer, Checkout & Referral Modals */}
       <CartDrawer

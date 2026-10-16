@@ -1,5 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { TbSparkles } from 'react-icons/tb'
 import { resolveImageUrl } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
@@ -92,7 +93,7 @@ export default function CategoryBanner({ banner, onScrollToProducts }) {
         <div className="w-full md:flex-1 space-y-2">
           {banner.discount_text && (
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md shadow-xs border border-white/30 bg-white/20">
-              <span>🔥</span>
+              <TbSparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>{banner.discount_text}</span>
             </div>
           )}

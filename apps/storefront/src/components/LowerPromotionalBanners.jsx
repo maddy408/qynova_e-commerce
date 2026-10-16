@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { TbSparkles } from 'react-icons/tb'
 import { resolveImageUrl } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
@@ -194,7 +195,7 @@ export default function LowerPromotionalBanners({
                   {banner.discount_text && (
                     <div className="mb-2">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-md shadow-xs ${theme.badgeBg}`}>
-                        <span>🔥</span>
+                        <TbSparkles className="w-3.5 h-3.5 text-amber-300" />
                         <span>{banner.discount_text}</span>
                       </span>
                     </div>

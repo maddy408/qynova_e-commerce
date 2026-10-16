@@ -188,7 +188,25 @@ export async function mergeGuestCart() {
   }
 }
 
+/** Resets in-memory cart state (used on logout/session switch) */
+export function resetCartMemory() {
+  memoryCart = {
+    items: [],
+    subtotal: '0.00',
+    item_count: 0,
+  }
+  notifyCartUpdated()
+}
+
 // Initial eager cart load from MySQL on script evaluation
 if (typeof window !== 'undefined') {
   fetchCart()
+
+  // Auto-refresh cart whenever customer session changes (login or logout)
+  window.addEventListener('customer-session-changed', (event) => {
+    if (!event.detail?.customer) {
+      resetCartMemory()
+    }
+    fetchCart(true)
+  })
 }

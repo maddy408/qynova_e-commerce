@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
+import { FiAlertCircle, FiInfo, FiTruck, FiExternalLink, FiMapPin, FiX } from 'react-icons/fi'
 import { api, getCustomerToken, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
 
@@ -213,7 +214,7 @@ export default function OrderDetail() {
         {/* Error State */}
         {!isLoading && error && (
           <div className="p-8 bg-red-50 border border-red-200 rounded-3xl text-center space-y-4 max-w-md mx-auto my-8">
-            <span className="text-4xl">⚠️</span>
+            <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto" />
             <h3 className="text-lg font-black text-red-950">Could Not Load Order</h3>
             <p className="text-xs font-medium text-red-700">{error}</p>
             <Link
@@ -269,7 +270,7 @@ export default function OrderDetail() {
               {/* Status Banner / Timeline Notice */}
               {order.status === 'CANCELLED' ? (
                 <div className="p-4 bg-rose-50/80 border border-rose-200 rounded-2xl flex items-start gap-3">
-                  <span className="text-lg">ℹ️</span>
+                  <FiInfo className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <p className="font-bold text-rose-900">This order has been cancelled.</p>
                     {order.cancellation_reason && (
@@ -285,7 +286,7 @@ export default function OrderDetail() {
                 <div className="p-4 bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-lg">
-                      🚚
+                      <FiTruck className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="text-xs font-black text-[var(--color-text-main)]">
@@ -307,7 +308,7 @@ export default function OrderDetail() {
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--color-brand)] text-white text-xs font-bold hover:bg-[var(--color-brand)] transition-colors self-start sm:self-auto"
                     >
                       <span>Track Shipment</span>
-                      <span>↗</span>
+                      <FiExternalLink className="w-3.5 h-3.5" />
                     </a>
                   )}
                 </div>
@@ -394,7 +395,8 @@ export default function OrderDetail() {
                 {/* Shipping Address */}
                 <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[var(--color-border-subtle)] shadow-xs space-y-3">
                   <h3 className="text-xs font-black text-[var(--color-text-main)] uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📍 Delivery Address</span>
+                    <FiMapPin className="w-3.5 h-3.5 text-[var(--color-brand)]" />
+                    <span>Delivery Address</span>
                   </h3>
                   <div className="text-xs text-[var(--color-text-muted)] space-y-1">
                     <p className="font-bold text-[var(--color-text-main)] text-sm">{order.shipping_name}</p>
@@ -492,9 +494,9 @@ export default function OrderDetail() {
               <button
                 type="button"
                 onClick={() => setIsCancelModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-sm font-bold cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
               >
-                ✕
+                <FiX className="w-4 h-4" />
               </button>
             </div>
 
@@ -503,8 +505,9 @@ export default function OrderDetail() {
             </p>
 
             {cancelError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold">
-                ⚠️ {cancelError}
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold flex items-center gap-1.5">
+                <FiAlertCircle className="w-4 h-4 shrink-0" />
+                <span>{cancelError}</span>
               </div>
             )}
 

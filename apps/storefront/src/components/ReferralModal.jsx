@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { FiGift, FiCheck, FiX, FiInfo, FiAlertCircle } from 'react-icons/fi'
+import { LuSparkles } from 'react-icons/lu'
 import { api, getErrorMessage } from '../lib/api'
 
 export default function ReferralModal({ isOpen, onClose, onShowToast }) {
@@ -65,7 +67,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
     if (!referralSummary?.referral_code) return
     navigator.clipboard.writeText(referralSummary.referral_code)
     setCopied(true)
-    onShowToast?.('Referral code copied to clipboard! 📋')
+    onShowToast?.('Referral code copied to clipboard!')
     setTimeout(() => setCopied(false), 2500)
   }
 
@@ -112,8 +114,8 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
         {/* SUCCESS POPUP (Renders ONLY on REAL successful response from PHP backend) */}
         {successData ? (
           <div className="p-6 sm:p-8 text-center space-y-5">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-pink-100 text-pink-700 flex items-center justify-center text-3xl shadow-inner">
-              🎉
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-pink-100 text-pink-700 flex items-center justify-center shadow-inner">
+              <LuSparkles className="w-8 h-8 text-pink-600" />
             </div>
             
             <div className="space-y-1">
@@ -127,11 +129,11 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
 
             <div className="bg-purple-50/80 border border-[var(--color-border-subtle)]/80 rounded-2xl p-4 sm:p-5 space-y-2 text-left shadow-xs">
               <div className="flex items-center gap-2 text-[var(--color-text-main)] font-extrabold text-sm sm:text-base">
-                <span className="text-lg">✨</span>
+                <LuSparkles className="w-4 h-4 text-amber-500 shrink-0" />
                 <span>You received <span className="text-[var(--color-extra-031)] font-black">{successData.referred_discount_percent}% OFF</span></span>
               </div>
               <div className="flex items-center gap-2 text-purple-800/90 font-semibold text-xs sm:text-sm pt-1 border-t border-[var(--color-border-subtle)]/60">
-                <span className="text-lg">🎁</span>
+                <FiGift className="w-4 h-4 text-purple-600 shrink-0" />
                 <span>Your friend ({successData.referrer_name}) received <span className="text-[var(--color-referral-dark)] font-bold">{successData.referrer_discount_percent}% OFF</span></span>
               </div>
             </div>
@@ -152,7 +154,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
             {/* Modal Header */}
             <div className="px-6 py-5 bg-gradient-to-r from-[var(--color-extra-033)] to-[var(--color-referral-dark)] text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <span className="text-2xl">🎁</span>
+                <FiGift className="w-6 h-6 text-pink-200" />
                 <div>
                   <h3 className="text-base font-black tracking-tight leading-tight">
                     Refer & Earn
@@ -164,9 +166,9 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-xs font-bold transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
               >
-                ✕
+                <FiX className="w-4 h-4" />
               </button>
             </div>
 
@@ -179,7 +181,7 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
               ) : referralSummary && (referralSummary.is_enabled === 0 || referralSummary.is_enabled === false) ? (
                 <div className="py-8 px-4 text-center space-y-3">
                   <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mx-auto shadow-inner">
-                    ℹ️
+                    <FiInfo className="w-6 h-6 text-amber-600" />
                   </div>
                   <h4 className="text-sm font-black text-purple-950">
                     Referral Program Currently Unavailable
@@ -203,7 +205,14 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                         onClick={handleCopyCode}
                         className="px-4 py-3 rounded-2xl bg-[var(--color-referral-dark)] hover:bg-[var(--color-extra-034)] text-white text-xs font-black shrink-0 transition-all cursor-pointer shadow-sm active:scale-95"
                       >
-                        {copied ? '✓ Copied' : 'Copy'}
+                        {copied ? (
+                          <span className="flex items-center gap-1">
+                            <FiCheck className="w-3.5 h-3.5" />
+                            <span>Copied</span>
+                          </span>
+                        ) : (
+                          'Copy'
+                        )}
                       </button>
                     </div>
                     <p className="text-[11px] text-gray-500">
@@ -237,8 +246,8 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                     </form>
 
                     {applyError && (
-                      <p className="text-xs font-bold text-red-600 pt-1 flex items-center gap-1">
-                        <span>⚠️</span>
+                      <p className="text-xs font-bold text-red-600 pt-1 flex items-center gap-1.5">
+                        <FiAlertCircle className="w-4 h-4 shrink-0" />
                         <span>{applyError}</span>
                       </p>
                     )}
@@ -256,8 +265,9 @@ export default function ReferralModal({ isOpen, onClose, onShowToast }) {
                             key={r.id}
                             className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs font-bold"
                           >
-                            <span className="text-emerald-900">
-                              🎁 {r.discount_percent}% OFF ({r.reward_side})
+                            <span className="text-emerald-900 flex items-center gap-1.5">
+                              <FiGift className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              <span>{r.discount_percent}% OFF ({r.reward_side})</span>
                             </span>
                             <span className="px-2 py-0.5 rounded-md bg-emerald-200 text-emerald-800 text-[10px] font-black uppercase">
                               {r.status}

@@ -129,7 +129,7 @@ export default function CategoriesSection({
       {/* Track */}
       {isLoading ? (
         <div className="flex gap-3.5 sm:gap-4 overflow-hidden py-2">
-          {[1, 2, 3, 4, 5, 6].map((idx) => (
+          {[1, 2, 3, 4, 5].map((idx) => (
             <div
               key={idx}
               className="w-32 sm:w-36 shrink-0 bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse space-y-2.5 flex flex-col items-center text-center"
@@ -149,7 +149,7 @@ export default function CategoriesSection({
             msOverflowStyle: 'none',
           }}
         >
-          {categories.map((cat, idx) => {
+          {(categories || []).slice(0, 5).map((cat, idx) => {
             const img = cat.image_path || cat.thumb_path ? resolveImageUrl(cat.image_path || cat.thumb_path) : null
 
             return (

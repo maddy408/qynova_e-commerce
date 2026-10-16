@@ -18,24 +18,55 @@ import {
 import { ROUTES } from '../routes/routes'
 import { getCartCount, getCartSubtotal, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist } from '../lib/wishlist'
+import { removeDeviceToken, syncDeviceToken } from '../hooks/useDeviceToken'
+import { NotificationBell } from './NotificationBell'
 import BottomCartBar from './BottomCartBar'
+import WishlistDrawer from './WishlistDrawer'
+import {
+  FiShoppingBag,
+  FiGift,
+  FiBox,
+  FiTag,
+  FiShoppingCart,
+  FiHeart,
+  FiTruck,
+  FiMapPin,
+  FiPhone,
+  FiUser,
+  FiLogOut,
+  FiX,
+  FiHome,
+  FiGrid,
+  FiStar,
+  FiShield,
+  FiRefreshCw,
+  FiDollarSign,
+  FiSmartphone,
+  FiSmile,
+  FiSearch,
+  FiMenu,
+  FiChevronDown,
+  FiPercent,
+} from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa6'
+import { LuSparkles } from 'react-icons/lu'
+import { TbSparkles } from 'react-icons/tb'
 
 function getCategoryIcon(cat) {
-  if (!cat) return '🛍️'
-  if (cat.icon) return cat.icon
+  if (!cat) return <FiShoppingBag className="w-5 h-5" />
   const slug = (cat.slug || cat.name || '').toLowerCase()
-  if (slug.includes('hair')) return '🎀'
-  if (slug.includes('jewel') || slug.includes('fashion')) return '💍'
-  if (slug.includes('gift')) return '🎁'
-  if (slug.includes('toy')) return '🧸'
-  if (slug.includes('bag') || slug.includes('pouch')) return '👜'
-  if (slug.includes('beauty')) return '💄'
-  if (slug.includes('storage') || slug.includes('utility')) return '📦'
-  if (slug.includes('combo') || slug.includes('offer')) return '🏷️'
-  if (slug.includes('luxury') || slug.includes('living') || slug.includes('home')) return '🛋️'
-  if (slug.includes('grocery') || slug.includes('food')) return '🛒'
-  if (slug.includes('electr')) return '📱'
-  return '✨'
+  if (slug.includes('hair')) return <FiHeart className="w-5 h-5" />
+  if (slug.includes('jewel') || slug.includes('fashion')) return <LuSparkles className="w-5 h-5" />
+  if (slug.includes('gift')) return <FiGift className="w-5 h-5" />
+  if (slug.includes('toy')) return <FiSmile className="w-5 h-5" />
+  if (slug.includes('bag') || slug.includes('pouch')) return <FiShoppingBag className="w-5 h-5" />
+  if (slug.includes('beauty')) return <LuSparkles className="w-5 h-5" />
+  if (slug.includes('storage') || slug.includes('utility')) return <FiBox className="w-5 h-5" />
+  if (slug.includes('combo') || slug.includes('offer')) return <FiTag className="w-5 h-5" />
+  if (slug.includes('luxury') || slug.includes('living') || slug.includes('home')) return <FiHome className="w-5 h-5" />
+  if (slug.includes('grocery') || slug.includes('food')) return <FiShoppingCart className="w-5 h-5" />
+  if (slug.includes('electr')) return <FiSmartphone className="w-5 h-5" />
+  return <LuSparkles className="w-5 h-5" />
 }
 
 export default function Navbar({
@@ -66,8 +97,13 @@ export default function Navbar({
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false)
   const [localSearch, setLocalSearch] = useState(searchQuery)
-  const [searchSuggestions, setSearchSuggestions] = useState([])
+  const [searchSuggestions, setSearchSuggestions] = useState({
+    products: [],
+    categories: [],
+    subcategories: [],
+  })
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [allProductsCache, setAllProductsCache] = useState([])
 
@@ -173,14 +209,31 @@ export default function Navbar({
     }
   }, [])
 
-  // Live search filtering
+  // Live search filtering: supports 1-letter search across products, categories, and subcategories
   useEffect(() => {
     const q = localSearch.trim().toLowerCase()
-    if (!q || q.length < 2 || allProductsCache.length === 0) {
-      setSearchSuggestions([])
+    if (!q || q.length < 1) {
+      setSearchSuggestions({ products: [], categories: [], subcategories: [] })
       return
     }
-    const matched = allProductsCache
+
+    const matchedCats = (categoryList || [])
+      .filter((c) => {
+        const name = (c.name || '').toLowerCase()
+        const desc = (c.description || '').toLowerCase()
+        return name.includes(q) || desc.includes(q)
+      })
+      .slice(0, 4)
+
+    const matchedSubs = (subcategoryList || [])
+      .filter((s) => {
+        const name = (s.name || '').toLowerCase()
+        const desc = (s.description || '').toLowerCase()
+        return name.includes(q) || desc.includes(q)
+      })
+      .slice(0, 4)
+
+    const matchedProds = (allProductsCache || [])
       .filter((p) => {
         const nameMatch = p.name && p.name.toLowerCase().includes(q)
         const descMatch = p.short_description && p.short_description.toLowerCase().includes(q)
@@ -189,8 +242,13 @@ export default function Navbar({
         return nameMatch || descMatch || codeMatch || brandMatch
       })
       .slice(0, 5)
-    setSearchSuggestions(matched)
-  }, [localSearch, allProductsCache])
+
+    setSearchSuggestions({
+      products: matchedProds,
+      categories: matchedCats,
+      subcategories: matchedSubs,
+    })
+  }, [localSearch, allProductsCache, categoryList, subcategoryList])
 
   // Active Category Object in Mega Menu
   const activeCategoryObj = useMemo(() => {
@@ -268,6 +326,7 @@ export default function Navbar({
         if (res.data?.customer) {
           setCustomer(res.data.customer)
           setCustomerSession(token, res.data.customer)
+          syncDeviceToken()
           // Fetch saved customer address for location badge
           fetchCustomerAddresses()
             .then((addrRes) => {
@@ -352,6 +411,7 @@ export default function Navbar({
   }
 
   const handleLogout = () => {
+    removeDeviceToken()
     clearCustomerSession()
     setCustomer(null)
     setCustomerAddress(null)
@@ -372,7 +432,7 @@ export default function Navbar({
   const storeLogo = storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : null
   const whatsappClean = (storeSettings?.whatsapp_number || storeSettings?.phone || '').replace(/[^0-9]/g, '')
   const whatsappUrl = whatsappClean ? `https://wa.me/${whatsappClean}` : '#'
-  const helplineText = storeSettings?.phone ? `📞 ${storeSettings.phone}` : null
+  const helplineText = storeSettings?.phone ? storeSettings.phone : null
   const freeThreshold = deliverySettings?.free_delivery_threshold != null ? Number(deliverySettings.free_delivery_threshold) : null
   const estDeliveryText = deliverySettings?.estimated_delivery_text || '2–4 Business Days'
 
@@ -392,122 +452,80 @@ export default function Navbar({
   }, [customerAddress, storeSettings])
 
   return (
-    <div className="sticky top-0 z-40 w-full shadow-xs bg-white">
-      {/* 1. TOP PROMOTIONAL STRIP (Burgundy Theme) */}
-      <div className="bg-[var(--color-primary-tint)] text-[var(--color-text-main)] text-[11px] sm:text-xs py-1.5 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-[var(--color-border-subtle)]">
+    <div className="sticky top-0 z-40 w-full shadow-md bg-white">
+      {/* 1. TOP ANNOUNCEMENT STRIP (Royal Purple & White Theme matching screenshot) */}
+      <div className="bg-[#581c87] text-white text-[11px] sm:text-xs py-1.5 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-purple-900/40">
         <div className="w-full flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-2.5 truncate">
-            {promoOffer ? (
-              <>
-                <span className="bg-[var(--color-brand)] text-white text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-xs">
-                  {promoOffer.badge_text || 'Offer'}
-                </span>
-                <span className="font-medium text-[var(--color-text-main)] truncate text-[10px] sm:text-xs">
-                  {promoOffer.title}{' '}
-                  {promoOffer.code ? (
-                    <>
-                      Code: <strong className="text-[var(--color-brand)] font-black tracking-wide">{promoOffer.code}</strong>
-                    </>
-                  ) : null}
-                </span>
-              </>
-            ) : freeThreshold !== null && freeThreshold > 0 ? (
-              <span className="font-medium text-[var(--color-text-main)] truncate text-[10px] sm:text-xs">
-                ✨ Free Express Shipping on orders above{' '}
-                <strong className="text-[var(--color-brand)] font-black">₹{freeThreshold}</strong>
-              </span>
-            ) : (
-              <span className="font-medium text-[var(--color-text-main)] truncate text-[10px] sm:text-xs">
-                🚚 Express Delivery: <strong className="text-[var(--color-brand)] font-black">{estDeliveryText}</strong>
-              </span>
-            )}
+          <div className="flex items-center gap-2 truncate">
+            <FiTruck className="w-3.5 h-3.5 text-white shrink-0" />
+            <span className="font-bold text-white truncate text-[11px] sm:text-xs tracking-tight">
+              Free Delivery on orders above <span className="font-black">₹{freeThreshold || 499}</span>
+            </span>
           </div>
-          <div className="hidden md:flex items-center gap-4 lg:gap-6 text-[var(--color-text-muted)] text-xs shrink-0 font-medium">
-            {freeThreshold !== null && freeThreshold > 0 && (
-              <span className="flex items-center gap-1.5">
-                <span>🚚 Free Delivery on ₹{freeThreshold}+</span>
-              </span>
-            )}
-            {helplineText && (
-              <>
-                {freeThreshold !== null && freeThreshold > 0 && <span>•</span>}
-                <span className="flex items-center gap-1.5 font-bold text-[var(--color-text-main)]">
-                  <span>{helplineText}</span>
-                </span>
-              </>
-            )}
+          <div className="hidden sm:flex items-center gap-4 text-white/95 text-[11px] sm:text-xs shrink-0 font-medium">
+            <span className="flex items-center gap-1.5">
+              <FiMapPin className="w-3.5 h-3.5 text-white shrink-0" />
+              <span>Delivering Happiness to {storeSettings?.city ? `${storeSettings.city} and nearby` : 'Jaipur and nearby'}</span>
+            </span>
+            <span className="text-white/40">|</span>
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <FiPhone className="w-3 h-3 text-white shrink-0" />
+              <span>{helplineText || '+91 98765 01234'}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 2. FIRST ROW: JIOMART-INSPIRED MAIN NAVBAR */}
-      <header className="bg-white border-b border-[var(--color-border-subtle)]">
+      {/* 2. FIRST ROW: NEUMORPHISM MAIN NAVBAR */}
+      <header className="neumorph-surface border-b border-[#e9d5ff]/60">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-6">
           {/* LEFT: Logo + Location Selection */}
           <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             {/* Brand Logo & Name */}
-            <Link to={ROUTES.HOME} className="flex items-center gap-2 sm:gap-2.5 group select-none">
+            <Link to={ROUTES.HOME} className="flex items-center gap-2.5 sm:gap-3 group select-none">
               {storeLogo ? (
                 <img
                   src={storeLogo}
                   alt={storeName}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl object-cover shadow-xs group-hover:scale-105 transition-transform"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover neumorph-circle group-hover:scale-105 transition-transform"
                 />
               ) : (
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand)] flex items-center justify-center text-white shadow-md shadow-black/15 group-hover:scale-105 transition-transform">
-                  <svg
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="8" cy="21" r="1" />
-                    <circle cx="19" cy="21" r="1" />
-                    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                    <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="var(--color-primary-tint)" stroke="none" />
-                  </svg>
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-white via-[#f3edf9] to-[#ede9fe] neumorph-circle flex items-center justify-center text-[#581c87] font-black text-xl font-serif shrink-0 border border-white group-hover:scale-105 transition-transform">
+                  <span>{(storeName || 'K').charAt(0)}</span>
                 </div>
               )}
-              <div>
-                <div className="flex items-baseline leading-none">
-                  <span className="text-lg sm:text-2xl font-black tracking-tight text-[var(--color-brand)]">
+              <div className="leading-tight">
+                <div className="flex items-baseline">
+                  <span className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
                     {storeName}
                   </span>
                 </div>
-                {storeTagline && (
-                  <p className="text-[8px] sm:text-[10px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase mt-0.5 truncate max-w-[140px] sm:max-w-[200px]">
-                    {storeTagline}
-                  </p>
-                )}
+                <p className="text-[8px] sm:text-[9.5px] font-black tracking-widest text-[#7c3aed] uppercase mt-0.5 truncate max-w-[140px] sm:max-w-[210px]">
+                  {storeTagline || 'YOUR TRUSTED NEIGHBORHOOD SUPERMARKET'}
+                </p>
               </div>
             </Link>
 
-            {/* JioMart Delivery Location Widget */}
+            {/* Neumorphic Delivery Location Widget */}
             <div className="relative" ref={locationDropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsLocationModalOpen((prev) => !prev)}
-                className="hidden sm:flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-[var(--color-bg-main)] border border-transparent hover:border-[var(--color-border-subtle)] transition-all cursor-pointer text-left select-none group"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl neumorph-card hover:bg-white transition-all cursor-pointer text-left select-none group"
                 title="Delivery Location & Estimates"
               >
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center shrink-0 group-hover:bg-[var(--color-brand)] group-hover:text-white transition-colors">
-                  <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
+                <div className="w-7 h-7 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
+                  <FiMapPin className="w-3.5 h-3.5" />
                 </div>
                 <div className="leading-tight">
-                  <span className="block text-[9px] sm:text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
-                    Deliver to
+                  <span className="block text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                    DELIVER TO
                   </span>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs sm:text-[13px] font-extrabold text-[var(--color-text-main)] truncate max-w-[120px] lg:max-w-[160px]">
+                    <span className="text-xs sm:text-[13px] font-black text-slate-900 truncate max-w-[110px] lg:max-w-[150px]">
                       {deliveryLocationDisplay}
                     </span>
-                    <span className="text-[9px] text-[var(--color-brand)] transition-transform duration-200">
+                    <span className="text-[8px] text-[#7c3aed] font-bold">
                       ▼
                     </span>
                   </div>
@@ -519,7 +537,7 @@ export default function Navbar({
                 <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-[var(--color-text-main)]">
                   <div className="flex items-start justify-between pb-2 border-b border-[var(--color-border-subtle)]">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">📍</span>
+                      <FiMapPin className="text-lg text-[#7c3aed]" />
                       <div>
                         <h4 className="text-xs font-black text-[var(--color-text-main)]">Delivery Location</h4>
                         <p className="text-[11px] font-semibold text-[var(--color-brand)]">{deliveryLocationDisplay}</p>
@@ -530,13 +548,13 @@ export default function Navbar({
                       onClick={() => setIsLocationModalOpen(false)}
                       className="text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
                     >
-                      ✕
+                      <FiX className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   <div className="mt-3 space-y-2 text-xs text-[var(--color-text-muted)]">
                     <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)]">
-                      <span className="text-base">🚚</span>
+                      <FiTruck className="text-base text-[#7c3aed]" />
                       <div>
                         <p className="font-bold text-[var(--color-text-main)] text-[11px]">Estimated Timeline</p>
                         <p className="text-[10px] text-[var(--color-text-muted)]">{estDeliveryText}</p>
@@ -545,7 +563,7 @@ export default function Navbar({
 
                     {freeThreshold !== null && freeThreshold > 0 && (
                       <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)]">
-                        <span className="text-base">✨</span>
+                        <LuSparkles className="text-base text-[#7c3aed]" />
                         <div>
                           <p className="font-bold text-[var(--color-text-main)] text-[11px]">Free Shipping</p>
                           <p className="text-[10px] text-[var(--color-text-muted)]">Eligible on orders above ₹{freeThreshold}</p>
@@ -581,18 +599,8 @@ export default function Navbar({
           {/* CENTER: JioMart-Style Wide Search Bar (Desktop / Tablet) */}
           <div className="flex-1 max-w-2xl mx-2 lg:mx-6 hidden md:block" ref={searchContainerRef}>
             <form onSubmit={handleSearchSubmit} className="relative">
-              <div className="relative flex items-center">
-                <button
-                  type="submit"
-                  className="absolute left-3.5 text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors cursor-pointer"
-                  title="Search"
-                  aria-label="Search"
-                >
-                  <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                </button>
+              <div className="relative flex items-center h-10 sm:h-11 rounded-full neumorph-inset bg-white px-3.5">
+                <FiSearch className="w-4.5 h-4.5 text-[#7c3aed] shrink-0 mr-2" />
 
                 <input
                   type="text"
@@ -602,8 +610,8 @@ export default function Navbar({
                     setLocalSearch(e.target.value)
                     if (onSearchChange) onSearchChange(e.target.value)
                   }}
-                  placeholder="Search products, jewellery, accessories, gifts, toys..."
-                  className="w-full h-10.5 pl-11 pr-10 rounded-full bg-[var(--color-bg-main)] hover:bg-[var(--color-bg-alt)]/40 border border-[var(--color-border-subtle)] text-xs sm:text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand)] focus:bg-white focus:ring-2 focus:ring-[var(--color-brand)]/15 transition-all shadow-2xs"
+                  placeholder="Search for products, groceries, daily essentials..."
+                  className="w-full h-full bg-transparent border-none pl-1 pr-24 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
                 />
 
                 {localSearch && (
@@ -613,138 +621,176 @@ export default function Navbar({
                       setLocalSearch('')
                       if (onSearchChange) onSearchChange('')
                     }}
-                    className="absolute right-3.5 text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 cursor-pointer"
+                    className="absolute right-24 text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 cursor-pointer"
                     title="Clear search"
                   >
-                    ✕
+                    <FiX className="w-3.5 h-3.5" />
                   </button>
                 )}
+
+                <button
+                  type="submit"
+                  className="absolute right-1 top-1 bottom-1 px-5 rounded-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-black tracking-wide transition-all shadow-[2px_2px_6px_rgba(124,58,237,0.3)] cursor-pointer flex items-center justify-center active:scale-95"
+                >
+                  Search
+                </button>
               </div>
 
               {/* Instant Search Suggestions Dropdown */}
-              {isSearchFocused && searchSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                  <div className="p-2 border-b border-gray-100 flex items-center justify-between bg-[var(--color-bg-main)]">
-                    <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider px-2">
-                      Matching Products
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSearchSubmit}
-                      className="text-[11px] font-bold text-[var(--color-brand)] hover:underline px-2 cursor-pointer"
-                    >
-                      View all results →
-                    </button>
-                  </div>
-                  <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-                    {searchSuggestions.map((prod) => (
-                      <Link
-                        key={prod.id}
-                        to={ROUTES.PRODUCT_DETAIL(prod.id)}
-                        onClick={() => setIsSearchFocused(false)}
-                        className="flex items-center gap-3 p-2.5 hover:bg-[var(--color-bg-alt)] transition-colors"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
-                          {prod.primary_image ? (
-                            <img
-                              src={resolveImageUrl(prod.primary_image)}
-                              alt={prod.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                              🛍️
+              {isSearchFocused && (searchSuggestions.products?.length > 0 || searchSuggestions.categories?.length > 0 || searchSuggestions.subcategories?.length > 0) && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150 max-h-96 overflow-y-auto">
+                  
+                  {/* Matching Categories */}
+                  {searchSuggestions.categories?.length > 0 && (
+                    <div className="p-3 border-b border-gray-100 bg-[var(--color-bg-main)]">
+                      <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider block mb-2">
+                        Categories ({searchSuggestions.categories.length})
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {searchSuggestions.categories.map((cat) => (
+                          <Link
+                            key={cat.id}
+                            to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
+                            onClick={() => setIsSearchFocused(false)}
+                            className="px-2.5 py-1 bg-white hover:bg-[var(--color-primary-tint)] border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] rounded-full text-xs font-bold text-[var(--color-text-main)] transition-colors inline-flex items-center gap-1.5"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-brand)]" />
+                            <span>{cat.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Matching Subcategories */}
+                  {searchSuggestions.subcategories?.length > 0 && (
+                    <div className="p-3 border-b border-gray-100 bg-[var(--color-bg-alt)]/40">
+                      <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider block mb-2">
+                        Subcategories ({searchSuggestions.subcategories.length})
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {searchSuggestions.subcategories.map((sub) => {
+                          const catId = Array.isArray(sub.category_ids) ? sub.category_ids[0] : (sub.category_id || '')
+                          const targetUrl = catId
+                            ? ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(catId, sub.id)
+                            : ROUTES.PRODUCTS_BY_SUBCATEGORY(sub.id)
+                          return (
+                            <Link
+                              key={sub.id}
+                              to={targetUrl}
+                              onClick={() => setIsSearchFocused(false)}
+                              className="px-2.5 py-1 bg-white hover:bg-purple-100 border border-purple-200 rounded-full text-xs font-bold text-purple-900 transition-colors inline-flex items-center gap-1.5"
+                            >
+                              <span>{sub.name}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Matching Products */}
+                  {searchSuggestions.products?.length > 0 && (
+                    <div>
+                      <div className="p-2 border-b border-gray-100 flex items-center justify-between bg-[var(--color-bg-main)]">
+                        <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider px-2">
+                          Matching Products
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleSearchSubmit}
+                          className="text-[11px] font-bold text-[var(--color-brand)] hover:underline px-2 cursor-pointer"
+                        >
+                          View all results →
+                        </button>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                        {searchSuggestions.products.map((prod) => (
+                          <Link
+                            key={prod.id}
+                            to={ROUTES.PRODUCT_DETAIL(prod.id)}
+                            onClick={() => setIsSearchFocused(false)}
+                            className="flex items-center gap-3 p-2.5 hover:bg-[var(--color-bg-alt)] transition-colors"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                              {prod.primary_image ? (
+                                <img
+                                  src={resolveImageUrl(prod.primary_image)}
+                                  alt={prod.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <FiShoppingBag className="w-5 h-5 text-gray-400" />
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-[var(--color-text-main)] truncate">{prod.name}</p>
-                          <p className="text-[10px] text-gray-400 truncate">
-                            {prod.brand_name || 'In Stock'}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-[var(--color-brand)]">
-                            ₹{prod.min_price || prod.mrp || '—'}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-[var(--color-text-main)] truncate">{prod.name}</p>
+                              <p className="text-[10px] text-gray-400 truncate">
+                                {prod.brand_name || 'In Stock'}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-black text-[var(--color-brand)]">
+                                ₹{prod.min_price || prod.mrp || '—'}
+                              </span>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </form>
           </div>
 
-          {/* RIGHT: JioMart-Style Standalone Icons (Offers, Wishlist, Cart, Account, Mobile Toggle) */}
-          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+          {/* RIGHT: Standalone Neumorphic Icons (Offers, Wishlist, Cart, Account, Mobile Toggle) */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* 1. Offers / Rewards Standalone Button */}
-            {onOpenReferral && isReferralActive && (
-              <button
-                type="button"
-                onClick={onOpenReferral}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer"
-                title={`Offers & Rewards (${referralPercentText})`}
-                aria-label="Offers and Rewards"
-              >
-                <div className="w-5.5 h-5.5 rounded-full border-[1.8px] border-current flex items-center justify-center font-black text-[11px] leading-none">
-                  %
-                </div>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onOpenReferral || (() => navigate(ROUTES.PRODUCTS_BY_SECTION('deals')))}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer select-none"
+              title="Offers & Discounts"
+              aria-label="Offers and Discounts"
+            >
+              <span className="font-black text-xs leading-none">%</span>
+            </button>
 
-            {/* 2. Standalone Wishlist Icon with Live Count Badge */}
-            <Link
-              to={ROUTES.PRODUCTS_WISHLIST}
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer group"
+            {/* 2. Standalone Wishlist Icon with Live Count Badge (Opens Slide-out Drawer) */}
+            <button
+              type="button"
+              onClick={() => setIsWishlistOpen(true)}
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer group"
               title="Saved Wishlist"
               aria-label="Saved Wishlist"
             >
-              <svg
-                className="w-5.5 h-5.5 sm:w-6 sm:h-6 transition-transform group-hover:scale-105"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-              </svg>
+              <FiHeart className="w-5 h-5 transition-transform group-hover:scale-105" />
               {wishlistCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[var(--color-brand)] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#7c3aed] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
                   {wishlistCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* 3. Standalone Shopping Cart Icon with Live Count Badge */}
             <button
               type="button"
               onClick={handleCartClick}
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer group select-none"
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer group select-none"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <svg
-                className="w-5.5 h-5.5 sm:w-6 sm:h-6 transition-transform group-hover:scale-105"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-              </svg>
+              <FiShoppingCart className="w-5 h-5 transition-transform group-hover:scale-105" />
               {cartCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[var(--color-brand)] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#7c3aed] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
                   {cartCount}
                 </span>
               )}
             </button>
+
+            {/* Notification Bell — only shown for a logged-in customer, same icon-button style as wishlist/cart above */}
+            {customer && <NotificationBell />}
 
             {/* 4. Standalone Customer Account Icon & Dropdown */}
             {customer ? (
@@ -752,7 +798,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsAccountDropdownOpen((prev) => !prev)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer select-none"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer select-none"
                   title={`Account (${customer.name || 'Customer'})`}
                   aria-label="Customer Account Menu"
                 >
@@ -808,7 +854,7 @@ export default function Navbar({
                       onClick={() => setIsAccountDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)] hover:text-[var(--color-brand)] transition-colors"
                     >
-                      <span>👤</span>
+                      <FiUser className="w-4 h-4 text-[#7c3aed]" />
                       <span>My Profile</span>
                     </Link>
 
@@ -817,7 +863,7 @@ export default function Navbar({
                       onClick={() => setIsAccountDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-[var(--color-text-main)] hover:bg-[var(--color-bg-alt)] hover:text-[var(--color-brand)] transition-colors"
                     >
-                      <span>📦</span>
+                      <FiBox className="w-4 h-4 text-[#7c3aed]" />
                       <span>My Orders</span>
                     </Link>
 
@@ -830,7 +876,7 @@ export default function Navbar({
                         }}
                         className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-pink-600 hover:bg-pink-50 transition-colors text-left cursor-pointer"
                       >
-                        <span>🎁</span>
+                        <FiGift className="w-4 h-4 text-pink-600" />
                         <span>Refer & Earn ({referralPercentText})</span>
                       </button>
                     )}
@@ -842,7 +888,7 @@ export default function Navbar({
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left cursor-pointer"
                     >
-                      <span>🚪</span>
+                      <FiLogOut className="w-4 h-4 text-red-600" />
                       <span>Logout</span>
                     </button>
                   </div>
@@ -851,14 +897,11 @@ export default function Navbar({
             ) : (
               <Link
                 to={ROUTES.LOGIN}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-[var(--color-text-main)] hover:text-[var(--color-brand)] transition-colors cursor-pointer select-none"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer select-none"
                 title="Customer Sign In"
                 aria-label="Customer Sign In"
               >
-                <svg className="w-5.5 h-5.5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
+                <FiUser className="w-5 h-5" />
               </Link>
             )}
 
@@ -871,7 +914,7 @@ export default function Navbar({
               aria-label="Navigation menu"
             >
               {isMobileMenuOpen ? (
-                <span className="text-base font-black">✕</span>
+                <FiX className="w-5 h-5" />
               ) : (
                 <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                   <line x1="3" y1="6" x2="21" y2="6" />
@@ -915,7 +958,7 @@ export default function Navbar({
                 }}
                 className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 cursor-pointer"
               >
-                ✕
+                <FiX className="w-3.5 h-3.5" />
               </button>
             )}
           </form>
@@ -924,115 +967,30 @@ export default function Navbar({
         {/* 3. SECOND ROW: JIOMART HORIZONTAL NAVIGATION ROW (Navigation on left, All Categories on far right) */}
         <nav className="hidden md:block bg-white text-[var(--color-text-main)] border-t border-[var(--color-border-subtle)] shadow-xs relative z-30">
           <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between py-1.5 sm:py-2">
-            {/* LEFT: Horizontal Navigation Links */}
-            <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 text-xs sm:text-sm font-bold flex-wrap">
-              {/* Home */}
-              <Link
-                to={ROUTES.HOME}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                  location.pathname === '/' && activeNav === 'home'
-                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
-                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
-                }`}
-              >
-                <span>🏠 Home</span>
-              </Link>
-
-              {/* All Products */}
-              <Link
-                to={ROUTES.PRODUCTS}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                  location.pathname === '/products' && !location.search
-                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
-                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
-                }`}
-              >
-                <span>🛍️ All Products</span>
-              </Link>
-
-              {/* Best Sellers */}
-              <Link
-                to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  location.search.includes('best_sellers')
-                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
-                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
-                }`}
-              >
-                ⭐ Best Sellers
-              </Link>
-
-              {/* New Arrivals */}
-              <Link
-                to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  location.search.includes('new_arrivals')
-                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
-                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
-                }`}
-              >
-                ✨ New Arrivals
-              </Link>
-
-              {/* Featured Products */}
-              <Link
-                to={ROUTES.PRODUCTS_BY_SECTION('featured')}
-                className={`px-3 py-1.5 rounded-xl transition-all ${
-                  location.search.includes('featured')
-                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
-                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
-                }`}
-              >
-                💎 Featured Products
-              </Link>
-
-              {/* Offers & Deals */}
-              <Link
-                to={ROUTES.PRODUCTS_BY_SECTION('deals')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
-                  location.search.includes('deals')
-                    ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] shadow-xs font-extrabold'
-                    : 'text-[var(--color-text-main)] hover:text-[var(--color-brand)] hover:bg-[var(--color-bg-main)]'
-                }`}
-              >
-                <span>🔥 Offers & Deals</span>
-              </Link>
-
-              {/* WhatsApp Support */}
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-whatsapp)] transition-colors text-xs flex items-center gap-1 font-semibold"
-              >
-                <span>💬 WhatsApp Support</span>
-              </a>
-            </div>
-
-            {/* FAR RIGHT: ALL CATEGORIES BUTTON (JioMart Style Mega Menu Trigger) */}
-            <div className="relative shrink-0 ml-4">
+            {/* LEFT: Shop by Category Button + Links */}
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 text-xs font-bold flex-wrap">
+              {/* Black "Shop by Category" Button */}
               <button
                 ref={allCategoriesBtnRef}
                 type="button"
                 onClick={() => setIsMegaMenuOpen((prev) => !prev)}
-                className={`px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-2 cursor-pointer font-black shadow-xs select-none text-xs sm:text-sm ${
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-2 cursor-pointer font-bold shadow-2xs select-none text-xs ${
                   isMegaMenuOpen
-                    ? 'bg-[var(--color-brand)] text-white shadow-md'
-                    : 'bg-[var(--color-primary-tint)] hover:bg-[var(--color-primary-tint)] text-[var(--color-brand)] hover:shadow-xs'
+                    ? 'bg-neutral-900 text-white shadow-xs'
+                    : 'bg-black hover:bg-neutral-800 text-white'
                 }`}
                 aria-haspopup="true"
                 aria-expanded={isMegaMenuOpen}
-                aria-label="All Categories Navigation"
+                aria-label="Shop by Category"
               >
-                <svg className="w-4 h-4 text-current shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <svg className="w-4 h-4 text-white shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
                 </svg>
-                <span>All Categories</span>
+                <span>Shop by Category</span>
                 <svg
-                  className={`w-3.5 h-3.5 text-current transition-transform duration-200 shrink-0 ${
+                  className={`w-3.5 h-3.5 text-white transition-transform duration-200 shrink-0 ${
                     isMegaMenuOpen ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -1043,11 +1001,76 @@ export default function Navbar({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+
+              {/* Home */}
+              <Link
+                to={ROUTES.HOME}
+                className={`px-2.5 py-1.5 rounded-lg transition-all text-xs font-semibold ${
+                  location.pathname === '/' && activeNav === 'home'
+                    ? 'text-black font-extrabold bg-[#ede9fe]'
+                    : 'text-slate-800 hover:text-black hover:bg-[#f5f3ff]'
+                }`}
+              >
+                Home
+              </Link>
+
+              {/* Categories */}
+              <Link
+                to={ROUTES.PRODUCTS}
+                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+              >
+                Categories
+              </Link>
+
+              {/* Offers */}
+              <Link
+                to={ROUTES.PRODUCTS_BY_SECTION('deals')}
+                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+              >
+                Offers
+              </Link>
+
+              {/* Combo Store */}
+              <Link
+                to={ROUTES.PRODUCTS_BY_CATEGORY(8)}
+                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+              >
+                Combo Store
+              </Link>
+
+              {/* Best Sellers */}
+              <Link
+                to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
+                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+              >
+                Best Sellers
+              </Link>
+
+              {/* New Arrivals */}
+              <Link
+                to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
+                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+              >
+                New Arrivals
+              </Link>
+            </div>
+
+            {/* RIGHT: WhatsApp Support */}
+            <div className="shrink-0 flex items-center gap-2 text-xs text-slate-600 font-semibold">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-black transition-colors flex items-center gap-1.5 py-1"
+              >
+                <FaWhatsapp className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Support</span>
+              </a>
             </div>
           </div>
         </nav>
 
-        {/* 🌟 JIOMART-INSPIRED CATEGORY MEGA MENU DROPDOWN PANEL */}
+        {/* JIOMART-INSPIRED CATEGORY MEGA MENU DROPDOWN PANEL */}
         {isMegaMenuOpen && (
           <>
             {/* Backdrop Dimmer overlay */}
@@ -1069,16 +1092,21 @@ export default function Navbar({
                 <div className="w-full md:w-36 lg:w-44 bg-[var(--color-bg-main)] border-r border-[var(--color-border-subtle)] flex flex-col shrink-0">
                   <div className="px-3 py-2.5 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-[var(--color-bg-alt)]/60">
                     <span className="text-[10px] font-black uppercase tracking-wider text-[var(--color-brand)]">
-                      Departments
+                      Top Categories
                     </span>
-                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
-                      {categoryList.length}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsMegaMenuOpen(false)}
+                      className="md:hidden p-1 rounded-full hover:bg-gray-200 text-gray-500 cursor-pointer"
+                      title="Close"
+                    >
+                      <FiX className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  {/* Vertical scrollable list of categories */}
+                  {/* Vertical scrollable list of categories (Top 5) */}
                   <div className="overflow-y-auto flex-1 divide-y divide-[var(--color-border-subtle)]/40 py-1">
-                    {categoryList.map((cat) => {
+                    {categoryList.slice(0, 5).map((cat) => {
                       const isSelected = String(cat.id) === String(selectedCategoryId)
                       return (
                         <button
@@ -1135,7 +1163,7 @@ export default function Navbar({
                 <div className="flex-1 min-w-0 bg-white flex flex-col overflow-hidden">
                   {activeCategoryObj ? (
                     <>
-                      {/* Category Header */}
+                      {/* Category Header with explicit Close button */}
                       <div className="p-4 sm:p-5 border-b border-[var(--color-border-subtle)] bg-gradient-to-r from-white to-[var(--color-bg-main)] flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -1154,14 +1182,25 @@ export default function Navbar({
                           </p>
                         </div>
 
-                        <Link
-                          to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
-                          onClick={() => setIsMegaMenuOpen(false)}
-                          className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
-                        >
-                          <span>View All in {activeCategoryObj.name}</span>
-                          <span>→</span>
-                        </Link>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Link
+                            to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
+                            onClick={() => setIsMegaMenuOpen(false)}
+                            className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
+                          >
+                            <span>View All</span>
+                            <span>→</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setIsMegaMenuOpen(false)}
+                            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer border border-gray-200"
+                            title="Close categories drawer"
+                            aria-label="Close categories drawer"
+                          >
+                            <FiX className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Subcategories Grid or Direct Browse */}
@@ -1170,7 +1209,7 @@ export default function Navbar({
                           <div>
                             <div className="flex items-center justify-between mb-3.5">
                               <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)]">
-                                Subcategories ({selectedCategorySubcategories.length})
+                                Top Subcategories ({Math.min(5, selectedCategorySubcategories.length)})
                               </span>
                               <span className="text-xs text-gray-400">
                                 Click a subcategory to browse targeted items
@@ -1178,7 +1217,7 @@ export default function Navbar({
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                              {selectedCategorySubcategories.map((subcat) => (
+                              {selectedCategorySubcategories.slice(0, 5).map((subcat) => (
                                 <Link
                                   key={subcat.id}
                                   to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(activeCategoryObj.id, subcat.id)}
@@ -1226,7 +1265,7 @@ export default function Navbar({
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                              {activeCategoryProducts.map((prod) => (
+                              {activeCategoryProducts.slice(0, 5).map((prod) => (
                                 <Link
                                   key={prod.id}
                                   to={ROUTES.PRODUCT_DETAIL(prod.id)}
@@ -1322,7 +1361,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-8 h-8 rounded-full bg-white text-gray-500 flex items-center justify-center text-sm shadow-xs cursor-pointer"
               >
-                ✕
+                <FiX className="w-4 h-4" />
               </button>
             </div>
 
@@ -1345,7 +1384,7 @@ export default function Navbar({
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-black text-[var(--color-text-main)] truncate">
-                      Hello, {customer.name?.split(' ')[0]} 👋
+                      Hello, {customer.name?.split(' ')[0]}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Link
@@ -1388,7 +1427,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
-                <span>🏠</span>
+                <FiHome className="w-4 h-4 text-[#7c3aed]" />
                 <span>Home Catalog</span>
               </Link>
 
@@ -1397,7 +1436,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
-                <span>🛍️</span>
+                <FiGrid className="w-4 h-4 text-[#7c3aed]" />
                 <span>All Products</span>
               </Link>
 
@@ -1406,7 +1445,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
-                <span>⭐</span>
+                <FiStar className="w-4 h-4 text-amber-500" />
                 <span>Best Sellers</span>
               </Link>
 
@@ -1415,7 +1454,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
-                <span>✨</span>
+                <LuSparkles className="w-4 h-4 text-[#7c3aed]" />
                 <span>New Arrivals</span>
               </Link>
 
@@ -1424,7 +1463,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors"
               >
-                <span>💎</span>
+                <FiTag className="w-4 h-4 text-purple-600" />
                 <span>Featured Selections</span>
               </Link>
 
@@ -1433,7 +1472,7 @@ export default function Navbar({
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-[var(--color-primary-tint)] transition-colors text-pink-700"
               >
-                <span>🔥</span>
+                <TbSparkles className="w-4 h-4 text-orange-500" />
                 <span>Flash Deals & Offers</span>
               </Link>
 
@@ -1469,7 +1508,7 @@ export default function Navbar({
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <span>{cat.icon || '✨'}</span>
+                                  <LuSparkles className="w-4 h-4 text-[#7c3aed]" />
                                 )}
                               </div>
                               <span className="text-xs font-bold text-[var(--color-text-main)] truncate">
@@ -1545,24 +1584,27 @@ export default function Navbar({
                     }}
                     className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-pink-50 text-[var(--color-extra-029)] font-bold"
                   >
-                    <span>🎁</span>
+                    <FiGift className="w-4 h-4 text-pink-600" />
                     <span>Refer & Earn ({referralPercentText})</span>
                   </button>
                 )}
 
-                <Link
-                  to={ROUTES.PRODUCTS_WISHLIST}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[var(--color-primary-tint)] font-bold"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false)
+                    setIsWishlistOpen(true)
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[var(--color-primary-tint)] font-bold cursor-pointer"
                 >
                   <span className="flex items-center gap-3">
-                    <span>❤️</span>
+                    <FiHeart className="w-4 h-4 text-red-500" />
                     <span>Saved Wishlist</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 text-xs font-black">
                     {wishlistCount}
                   </span>
-                </Link>
+                </button>
 
                 <button
                   type="button"
@@ -1573,7 +1615,7 @@ export default function Navbar({
                   className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center justify-between hover:bg-[var(--color-primary-tint)] font-bold text-[var(--color-text-main)]"
                 >
                   <span className="flex items-center gap-3">
-                    <span>🛍️</span>
+                    <FiShoppingCart className="w-4 h-4 text-emerald-600" />
                     <span>Shopping Cart</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] text-xs font-black">
@@ -1591,14 +1633,15 @@ export default function Navbar({
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-xl bg-[var(--color-whatsapp)] text-white font-extrabold flex items-center justify-center gap-2 shadow-xs"
               >
-                <span>💬 WhatsApp Support</span>
+                <FaWhatsapp className="w-4 h-4" />
+                <span>WhatsApp Support</span>
               </a>
               <div className="flex items-center justify-between text-[11px] pt-1 text-[var(--color-brand)] font-semibold">
-                <span>🛡️ 100% Quality</span>
+                <span className="flex items-center gap-1"><FiShield className="w-3.5 h-3.5" /> 100% Quality</span>
                 <span>•</span>
-                <span>📦 7-Day Return</span>
+                <span className="flex items-center gap-1"><FiRefreshCw className="w-3.5 h-3.5" /> 7-Day Return</span>
                 <span>•</span>
-                <span>💵 COD Available</span>
+                <span className="flex items-center gap-1"><FiDollarSign className="w-3.5 h-3.5" /> COD Available</span>
               </div>
             </div>
           </div>
@@ -1607,6 +1650,13 @@ export default function Navbar({
 
       {/* 5. JIOMART BOTTOM CART BAR (renders when cart has items) */}
       <BottomCartBar onOpenCart={handleCartClick} />
+
+      {/* 6. WISHLIST SLIDE-OUT DRAWER */}
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        onOpenCart={handleCartClick}
+      />
     </div>
   )
 }

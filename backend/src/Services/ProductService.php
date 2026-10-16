@@ -56,6 +56,8 @@ final class ProductService
         } elseif (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') {
             $where[] = 'p.is_ecommerce_enabled = 1';
             $where[] = 'p.is_active = 1';
+            $where[] = '(p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())';
+            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE()))";
         }
 
         if (($filters['is_featured'] ?? null) !== null) {
@@ -90,7 +92,7 @@ final class ProductService
             }
         }
 
-        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE'" : "";
+        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
 
         if (!empty($filters['min_price'])) {
             $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price >= :min_price)";
@@ -104,9 +106,24 @@ final class ProductService
 
         if (!empty($filters['search'])) {
             $searchTerm = trim((string) $filters['search']);
-            $where[] = '(MATCH(p.name, p.tags, p.short_description) AGAINST (:search IN NATURAL LANGUAGE MODE) OR p.name LIKE :search_like OR p.product_code LIKE :search_like)';
-            $params['search'] = $searchTerm;
-            $params['search_like'] = '%' . $searchTerm . '%';
+            $needle = '%' . $searchTerm . '%';
+            $where[] = '(
+                p.name LIKE :search_like 
+                OR p.product_code LIKE :search_like 
+                OR p.tags LIKE :search_like 
+                OR p.short_description LIKE :search_like
+                OR EXISTS (
+                    SELECT 1 FROM product_categories pc 
+                    JOIN categories c ON c.id = pc.category_id 
+                    WHERE pc.product_id = p.id AND c.name LIKE :search_like AND c.status = "ACTIVE" AND c.deleted_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1 FROM product_subcategories ps 
+                    JOIN subcategories s ON s.id = ps.subcategory_id 
+                    WHERE ps.product_id = p.id AND s.name LIKE :search_like AND s.status = "ACTIVE" AND s.deleted_at IS NULL
+                )
+            )';
+            $params['search_like'] = $needle;
         }
 
         $whereSql = implode(' AND ', $where);
@@ -220,6 +237,12 @@ final class ProductService
             return null;
         }
 
+        if (!$isStaff) {
+            if (!empty($product['expiry_date']) && strtotime((string) $product['expiry_date']) < strtotime(date('Y-m-d'))) {
+                return null;
+            }
+        }
+
         $realId = (int) $product['id'];
 
         $product['bullet_points'] = $product['bullet_points'] !== null ? json_decode((string) $product['bullet_points'], true) : [];
@@ -254,7 +277,7 @@ final class ProductService
              FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
              WHERE v.product_id = :id AND v.deleted_at IS NULL';
         if (!$isStaff) {
-            $varSql .= ' AND v.status = "ACTIVE"';
+            $varSql .= ' AND v.status = "ACTIVE" AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())';
         }
         $varSql .= ' ORDER BY v.is_default DESC, v.id';
         $variants = $this->pdo->prepare($varSql);
@@ -403,7 +426,7 @@ final class ProductService
             'short_description', 'description', 'tags', 'material',
             'length_cm', 'width_cm', 'height_cm', 'weight_grams', 'manufacturer', 'country_of_origin',
             'meta_title', 'meta_description', 'seo_keywords',
-            'expiry_applicable', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
+            'expiry_applicable', 'expiry_date', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
             'returnable', 'return_window_days', 'replacement_available', 'refund_available',
             'shipping_required', 'cod_available',
             'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
