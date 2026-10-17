@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { resolveImageUrl } from '../lib/api'
 import { FiHeart, FiPlus, FiCheck } from 'react-icons/fi'
-import { FaStar } from 'react-icons/fa6'
 
 export default function ProductCard({
   product,
@@ -50,34 +49,35 @@ export default function ProductCard({
     '1 Unit'
 
   const handleAddClick = (e) => {
+    e.stopPropagation()
     if (isOutOfStock || isUnavailable || !onAddToCart) return
     onAddToCart(product, e)
     setJustAdded(true)
     setTimeout(() => setJustAdded(false), 1800)
   }
 
-  // Restrained luxury badge label
+  // Compact discount badge label
   const badgeLabel = product.badge || (discountPercent > 0 ? `${discountPercent}% OFF` : product.is_featured ? 'BESTSELLER' : null)
 
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-[24px] p-6 sm:p-7 border border-[#E9DFFF] shadow-[0_10px_30px_rgba(108,78,255,0.05)] hover:shadow-[0_20px_40px_rgba(108,78,255,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full select-none"
+      className="bg-white rounded-2xl p-2.5 sm:p-3 border border-gray-200 hover:border-[#6C4EFF]/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full select-none"
     >
       <div>
-        {/* 1. PRODUCT IMAGE AREA: 280-300px height with soft lavender radial glow & contain sizing */}
-        <div className="relative rounded-[18px] overflow-hidden bg-[radial-gradient(circle_at_center,#FAF8FF_0%,#E9DFFF_100%)] h-[280px] sm:h-[300px] flex items-center justify-center p-6 border border-[#E9DFFF]/40">
+        {/* 1. PRODUCT IMAGE AREA: Compact JioMart-style clean container without wasted space */}
+        <div className="relative rounded-xl overflow-hidden bg-[#FBFBFC] h-[145px] sm:h-[160px] md:h-[170px] flex items-center justify-center p-2 border border-gray-100 group-hover:border-purple-100 transition-colors">
           <img
             src={imgSrc}
             alt={product.name}
             onError={() => setImgSrc('/placeholder-product.svg')}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 ease-out"
             loading="lazy"
           />
 
-          {/* Small Restrained Badge (Do not obscure image) */}
+          {/* Discount Badge */}
           {badgeLabel && (
-            <span className="absolute top-3.5 left-3.5 bg-white/95 backdrop-blur-sm text-[#4B2AC5] border border-[#E9DFFF] font-sans font-bold text-[10px] tracking-[0.1em] px-2.5 py-1 rounded-full shadow-xs uppercase z-10">
+            <span className="absolute top-2 left-2 bg-[#FAF8FF] text-[#6C4EFF] border border-[#E9DFFF] font-sans font-extrabold text-[9px] sm:text-[10px] tracking-wide px-1.5 py-0.5 rounded shadow-2xs uppercase z-10">
               {badgeLabel}
             </span>
           )}
@@ -86,114 +86,102 @@ export default function ProductCard({
           {onToggleWishlist && (
             <button
               type="button"
-              onClick={(e) => onToggleWishlist(product.id, e)}
-              className={`absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-xs backdrop-blur-sm border border-[#E9DFFF] transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer z-10 ${
-                isWishlist ? 'text-[#6C4EFF] border-[#BFA2FF]' : 'text-[#666666] hover:text-[#6C4EFF]'
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleWishlist(product.id, e)
+              }}
+              className={`absolute top-2 right-2 w-7 h-7 rounded-full bg-white/95 hover:bg-white flex items-center justify-center shadow-xs border border-gray-200 hover:border-purple-300 transition-all active:scale-95 cursor-pointer z-10 ${
+                isWishlist ? 'text-[#6C4EFF]' : 'text-gray-400 hover:text-red-500'
               }`}
               title="Save to Wishlist"
               aria-label="Save to Wishlist"
             >
               <FiHeart
-                className={`w-4 h-4 transition-transform ${isWishlist ? 'fill-[#6C4EFF] stroke-[#6C4EFF]' : ''}`}
+                className={`w-3.5 h-3.5 transition-transform ${isWishlist ? 'fill-[#6C4EFF] stroke-[#6C4EFF]' : ''}`}
               />
             </button>
           )}
 
+          {/* Veg Indicator Dot (Standard JioMart Grocery Tag) */}
+          <div
+            className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 bg-white border border-emerald-600 rounded-xs flex items-center justify-center shadow-2xs z-10"
+            title="Vegetarian / Grocery Item"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+          </div>
+
           {/* Out of Stock overlay watermark */}
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-[#FAF8FF]/75 backdrop-blur-[2px] flex items-center justify-center z-10">
-              <span className="bg-white text-[#1B133F] px-4 py-1.5 rounded-full text-xs font-sans font-bold border border-[#E9DFFF] shadow-xs tracking-wider uppercase">
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] flex items-center justify-center z-10">
+              <span className="bg-gray-900 text-white px-2.5 py-1 rounded text-[10px] font-sans font-bold shadow-xs tracking-wider uppercase">
                 {isUnavailable ? 'Unavailable' : 'Sold Out'}
               </span>
             </div>
           )}
         </div>
 
-        {/* 2. SPACING RHYTHM: ~20px gap before details */}
-        <div className="mt-5">
-          {/* Star Rating in Accent Gold #FFB800 */}
-          <div className="flex items-center gap-1.5 mb-2 text-[#FFB800]">
-            <div className="flex items-center gap-0.5">
-              {[...Array(5)].map((_, i) => (
-                <FaStar key={i} className="w-3 h-3 fill-[#FFB800]" />
-              ))}
-            </div>
-            <span className="text-[11px] font-sans font-medium text-[#666666] ml-1">
-              5.0 (24)
-            </span>
-          </div>
+        {/* 2. UNIT WEIGHT & COMPACT ADD BUTTON ROW (JioMart Style) */}
+        <div className="flex items-center justify-between gap-1.5 mt-2.5">
+          <span className="text-[11px] sm:text-xs text-gray-500 font-medium truncate max-w-[95px] sm:max-w-[110px]">
+            {unitWeight}
+          </span>
 
-          {/* Category / Brand Eyebrow: 12px uppercase with letter spacing */}
-          <div className="mb-1.5">
-            <span className="text-[12px] uppercase tracking-[0.18em] font-semibold text-[#6C4EFF]">
-              {product.brand_name || product.category_name || (product.product_code ? `SKU: ${product.product_code}` : 'Grocery')}
-            </span>
-          </div>
-
-          {/* Product Title: ~22px Playfair Display Semibold #1B133F */}
-          <h3 className="font-serif text-[20px] sm:text-[22px] font-semibold text-[#1B133F] line-clamp-2 leading-snug group-hover:text-[#6C4EFF] transition-colors min-h-[56px]">
-            {product.name}
-          </h3>
-
-          {/* Size / Volume Text: Inter ~14px, #666666, line-height 1.6 */}
-          {unitWeight && (
-            <p className="mt-1.5 text-sm font-sans text-[#666666] leading-[1.6]">
-              {unitWeight}
-            </p>
+          {onAddToCart && (
+            <button
+              type="button"
+              disabled={isOutOfStock || isUnavailable}
+              onClick={handleAddClick}
+              className={`px-3 py-1 rounded-lg font-sans text-xs font-bold transition-all duration-150 flex items-center gap-1 active:scale-95 shrink-0 ${
+                isOutOfStock || isUnavailable
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                  : justAdded
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-white hover:bg-[#6C4EFF] text-[#6C4EFF] hover:text-white border border-[#6C4EFF] shadow-2xs cursor-pointer'
+              }`}
+              title={isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+            >
+              {justAdded ? (
+                <>
+                  <FiCheck className="w-3 h-3 stroke-[2.5]" />
+                  <span>Added</span>
+                </>
+              ) : (
+                <>
+                  <FiPlus className="w-3 h-3 stroke-[2.5]" />
+                  <span>Add</span>
+                </>
+              )}
+            </button>
           )}
         </div>
-      </div>
 
-      {/* 3. BOTTOM PRICE & ADD-TO-CART ACTION */}
-      <div className="mt-5 pt-4 border-t border-[#E9DFFF]/70 flex items-center justify-between gap-3">
-        {/* Price Display */}
-        <div className="flex flex-col">
+        {/* 3. PRICE ROW */}
+        <div className="flex items-baseline gap-1.5 mt-1">
           {isUnavailable ? (
-            <span className="text-xs font-sans font-semibold text-[#666666]">
+            <span className="text-xs font-sans font-semibold text-gray-500">
               Price on request
             </span>
           ) : (
-            <div className="flex items-baseline gap-2">
-              <span className="font-serif text-xl sm:text-2xl font-bold text-[#1B133F]">
+            <>
+              <span className="font-sans text-sm sm:text-base font-extrabold text-gray-900">
                 ₹{retailPrice}
               </span>
               {showDiscount && mrp > retailPrice && (
-                <span className="text-xs font-sans text-[#999999] line-through font-normal">
+                <span className="text-[11px] sm:text-xs font-sans text-gray-400 line-through font-normal">
                   ₹{mrp}
                 </span>
               )}
-            </div>
+            </>
           )}
         </div>
 
-        {/* Add to Cart Luxury Pill Action */}
-        {onAddToCart && (
-          <button
-            type="button"
-            disabled={isOutOfStock || isUnavailable}
-            onClick={handleAddClick}
-            className={`px-4 sm:px-5 py-2.5 rounded-full font-sans text-xs font-semibold tracking-wide transition-all duration-200 flex items-center gap-1.5 active:scale-95 shrink-0 ${
-              isOutOfStock || isUnavailable
-                ? 'bg-[#E9DFFF]/60 text-[#666666] cursor-not-allowed border border-[#E9DFFF]'
-                : justAdded
-                ? 'bg-[#10B981] text-white shadow-sm'
-                : 'bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white shadow-[0_4px_14px_rgba(108,78,255,0.3)] hover:shadow-[0_6px_20px_rgba(75,42,197,0.4)] cursor-pointer'
-            }`}
-            title={isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-          >
-            {justAdded ? (
-              <>
-                <FiCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Added</span>
-              </>
-            ) : (
-              <>
-                <FiPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Add</span>
-              </>
-            )}
-          </button>
-        )}
+        {/* 4. PRODUCT TITLE (Clean Sans-Serif font, small size, line-clamp-2) */}
+        <h3
+          className="font-sans text-xs sm:text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug group-hover:text-[#6C4EFF] transition-colors mt-1 min-h-[34px] sm:min-h-[38px]"
+          title={product.name}
+        >
+          {product.name}
+        </h3>
       </div>
     </div>
   )
