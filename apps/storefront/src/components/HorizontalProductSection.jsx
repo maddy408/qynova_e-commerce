@@ -157,35 +157,37 @@ export default function HorizontalProductSection({
           </div>
         </div>
 
-        {/* 2. PRODUCT CAROUSEL / GRID: 4 CARDS PER ROW ON DESKTOP */}
+        {/* 2. PRODUCT CAROUSEL / GRID: COMPACT 5 CARDS PER ROW (JioMart Style) */}
         {isLoading ? (
-          /* Loading Skeletons: 4 per row */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
-            {[1, 2, 3, 4].map((idx) => (
+          /* Loading Skeletons */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5].map((idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-[24px] p-6 border border-[#E9DFFF] shadow-xs animate-pulse space-y-4"
+                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-xs animate-pulse space-y-2.5"
               >
-                <div className="h-[280px] bg-[#FAF8FF] rounded-[18px] w-full" />
-                <div className="h-4 bg-[#F3EDFF] rounded w-1/3" />
-                <div className="h-6 bg-[#F3EDFF] rounded w-3/4" />
-                <div className="h-4 bg-[#F3EDFF] rounded w-1/2" />
-                <div className="h-10 bg-[#FAF8FF] rounded-full w-full mt-4" />
+                <div className="h-[150px] bg-gray-100 rounded-xl w-full" />
+                <div className="flex justify-between items-center pt-1">
+                  <div className="h-3 bg-gray-100 rounded w-1/3" />
+                  <div className="h-6 bg-gray-100 rounded w-12" />
+                </div>
+                <div className="h-4 bg-gray-100 rounded w-1/2" />
+                <div className="h-3 bg-gray-100 rounded w-full" />
               </div>
             ))}
           </div>
         ) : !hasProducts ? (
           /* Empty State */
-          <div className="py-12 text-center bg-white rounded-[24px] border border-[#E9DFFF] p-8 space-y-2">
-            <p className="font-sans text-sm font-medium text-[#666666]">
+          <div className="py-12 text-center bg-white rounded-2xl border border-gray-200 p-8 space-y-2">
+            <p className="font-sans text-sm font-medium text-gray-500">
               {emptyMessage}
             </p>
           </div>
         ) : (
-          /* Responsive Product Track: 4 columns desktop (lg), 3 tablet (md), 2 mobile (sm) */
+          /* Responsive Product Track: 5 columns desktop (lg), 4 tablet (md), 2-3 mobile (sm) */
           <div
             ref={scrollRef}
-            className="flex flex-nowrap overflow-x-auto scroll-smooth no-scrollbar gap-4 sm:gap-5 lg:gap-6 py-2 px-1 select-none"
+            className="flex flex-nowrap overflow-x-auto scroll-smooth no-scrollbar gap-3 sm:gap-4 lg:gap-4.5 py-2 px-1 select-none"
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
@@ -195,7 +197,7 @@ export default function HorizontalProductSection({
             {products.map((product) => (
               <div
                 key={product.id}
-                className="w-[calc(100%-24px)] min-w-[240px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-14px)] lg:w-[calc(25%-18px)] shrink-0"
+                className="w-[165px] sm:w-[185px] md:w-[205px] lg:w-[218px] xl:w-[230px] shrink-0"
               >
                 <ProductCard
                   product={product}
