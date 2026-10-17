@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiUser, FiAlertCircle, FiBox, FiArrowRight } from 'react-icons/fi'
-import { api, getCustomerToken, clearCustomerSession } from '../../lib/api'
+import { api, getCustomerToken, isTokenExpired, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
 
 export default function Orders() {
@@ -14,8 +14,7 @@ export default function Orders() {
   useEffect(() => {
     const token = getCustomerToken()
     if (!token) {
-      clearCustomerSession()
-      navigate(ROUTES.LOGIN)
+      navigate(ROUTES.LOGIN, { replace: true })
       return
     }
 
@@ -33,11 +32,14 @@ export default function Orders() {
       })
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
-          clearCustomerSession()
-          navigate(ROUTES.LOGIN)
-        } else {
-          setError(err.response?.data?.error || 'Failed to load order history from server')
+          const currentToken = getCustomerToken()
+          if (!currentToken || isTokenExpired(currentToken)) {
+            clearCustomerSession()
+            navigate(ROUTES.LOGIN)
+            return
+          }
         }
+        setError(err.response?.data?.error || 'Failed to load order history from server')
       })
       .finally(() => {
         setIsLoading(false)

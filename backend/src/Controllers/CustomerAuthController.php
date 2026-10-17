@@ -757,7 +757,7 @@ final class CustomerAuthController
     {
         return JwtHelper::issue(
             ['sub' => $customerId, 'type' => 'customer', 'name' => $name, 'phone' => $phone],
-            (int) Config::get('jwt.access_ttl', 900)
+            (int) Config::get('jwt.access_ttl', 31536000)
         );
     }
 

@@ -122,21 +122,21 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
       <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-right duration-300">
         
         {/* Header */}
-        <div className="px-4 sm:px-6 py-4 border-b border-[var(--color-border-subtle)] bg-gradient-to-r from-[var(--color-bg-main)] to-[var(--color-bg-alt)] flex items-center justify-between shrink-0">
+        <div className="px-4 sm:px-6 py-4 border-b border-[#E9DFFF] bg-[#FAF8FF] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[var(--color-brand)] text-white flex items-center justify-center shadow-xs">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <div className="w-9 h-9 rounded-full bg-[#6C4EFF] text-white flex items-center justify-center shadow-xs">
+              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-[var(--color-text-main)]">
-                Shopping Cart
+              <h2 className="font-serif text-base sm:text-lg font-bold text-[#1B133F]">
+                Your Shopping Cart
               </h2>
-              <p className="text-[11px] text-[var(--color-text-muted)] font-medium">
-                {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your bag
+              <p className="font-sans text-[11px] text-[#666666] font-medium">
+                {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in cart
               </p>
             </div>
           </div>
@@ -385,10 +385,10 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
                   grandTotal,
                 })
               }}
-              className="w-full h-12 rounded-2xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] active:scale-98 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-black/15 flex items-center justify-center gap-2 cursor-pointer transition-all"
+              className="w-full h-12 rounded-full bg-[#6C4EFF] hover:bg-[#4B2AC5] active:scale-98 text-white font-sans font-semibold text-xs sm:text-sm shadow-[0_8px_25px_rgba(108,78,255,0.35)] flex items-center justify-center gap-2 cursor-pointer transition-all"
             >
               <span>Proceed to Checkout</span>
-              <span className="text-[var(--color-primary-tint)] font-black flex items-center gap-1">
+              <span className="text-[#E9DFFF] font-bold flex items-center gap-1">
                 <span>₹{grandTotal}</span>
                 <FiArrowRight className="w-4 h-4" />
               </span>

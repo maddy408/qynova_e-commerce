@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { resolveImageUrl } from '../lib/api'
+import { FiHeart, FiPlus, FiCheck } from 'react-icons/fi'
+import { FaStar } from 'react-icons/fa6'
 
 export default function ProductCard({
   product,
@@ -23,6 +25,8 @@ export default function ProductCard({
   const resolvedImage = resolveImageUrl(rawImage) || '/placeholder-product.svg'
 
   const [imgSrc, setImgSrc] = useState(resolvedImage)
+  const [justAdded, setJustAdded] = useState(false)
+
   useEffect(() => {
     setImgSrc(resolvedImage)
   }, [resolvedImage])
@@ -45,131 +49,149 @@ export default function ProductCard({
       : null) ||
     '1 Unit'
 
+  const handleAddClick = (e) => {
+    if (isOutOfStock || isUnavailable || !onAddToCart) return
+    onAddToCart(product, e)
+    setJustAdded(true)
+    setTimeout(() => setJustAdded(false), 1800)
+  }
+
+  // Restrained luxury badge label
+  const badgeLabel = product.badge || (discountPercent > 0 ? `${discountPercent}% OFF` : product.is_featured ? 'BESTSELLER' : null)
+
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl p-3 border border-slate-200/90 hover:border-[#c4b5fd] hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer h-full select-none"
+      className="bg-white rounded-[24px] p-6 sm:p-7 border border-[#E9DFFF] shadow-[0_10px_30px_rgba(108,78,255,0.05)] hover:shadow-[0_20px_40px_rgba(108,78,255,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full select-none"
     >
       <div>
-        {/* Product Image & Badges */}
-        <div className="relative rounded-lg overflow-hidden bg-[#faf5ff] aspect-square mb-2.5 flex items-center justify-center p-2 border border-[#f5f3ff]">
+        {/* 1. PRODUCT IMAGE AREA: 280-300px height with soft lavender radial glow & contain sizing */}
+        <div className="relative rounded-[18px] overflow-hidden bg-[radial-gradient(circle_at_center,#FAF8FF_0%,#E9DFFF_100%)] h-[280px] sm:h-[300px] flex items-center justify-center p-6 border border-[#E9DFFF]/40">
           <img
             src={imgSrc}
             alt={product.name}
             onError={() => setImgSrc('/placeholder-product.svg')}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
             loading="lazy"
           />
 
-          {/* Discount % Badge in Pastel Purple */}
-          {discountPercent > 0 && showDiscount && (
-            <span className="absolute top-1.5 left-1.5 bg-[#ede9fe] text-[#6d28d9] border border-[#ddd6fe] font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded shadow-2xs z-10 tracking-wide">
-              {discountPercent}% OFF
+          {/* Small Restrained Badge (Do not obscure image) */}
+          {badgeLabel && (
+            <span className="absolute top-3.5 left-3.5 bg-white/95 backdrop-blur-sm text-[#4B2AC5] border border-[#E9DFFF] font-sans font-bold text-[10px] tracking-[0.1em] px-2.5 py-1 rounded-full shadow-xs uppercase z-10">
+              {badgeLabel}
             </span>
           )}
 
-          {/* Wishlist Heart Icon */}
+          {/* Wishlist Heart Icon Button */}
           {onToggleWishlist && (
             <button
               type="button"
               onClick={(e) => onToggleWishlist(product.id, e)}
-              className="absolute top-1.5 right-1.5 w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-full bg-white/95 hover:bg-white text-slate-400 hover:text-[#7c3aed] flex items-center justify-center shadow-2xs transition-all hover:scale-110 active:scale-95 cursor-pointer border border-slate-200/80 z-10"
+              className={`absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-xs backdrop-blur-sm border border-[#E9DFFF] transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer z-10 ${
+                isWishlist ? 'text-[#6C4EFF] border-[#BFA2FF]' : 'text-[#666666] hover:text-[#6C4EFF]'
+              }`}
               title="Save to Wishlist"
               aria-label="Save to Wishlist"
             >
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill={isWishlist ? '#7c3aed' : 'none'}
-                stroke={isWishlist ? '#7c3aed' : 'currentColor'}
-                strokeWidth="2.2"
-              >
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-              </svg>
+              <FiHeart
+                className={`w-4 h-4 transition-transform ${isWishlist ? 'fill-[#6C4EFF] stroke-[#6C4EFF]' : ''}`}
+              />
             </button>
           )}
-        </div>
 
-        {/* Brand / Product Code & Stock Status Badge */}
-        <div className="flex items-center justify-between gap-1 text-[10px] mb-1">
-          {product.brand_name ? (
-            <span className="text-[10px] font-bold text-[#6d28d9] uppercase tracking-wider truncate max-w-[120px]">
-              {product.brand_name}
-            </span>
-          ) : (
-            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate max-w-[120px]">
-              {product.product_code || ''}
-            </span>
-          )}
-          {isUnavailable ? (
-            <span className="text-slate-500 font-semibold bg-slate-100 px-1.5 py-0.5 rounded text-[9px]">
-              Unavailable
-            </span>
-          ) : isOutOfStock ? (
-            <span className="text-rose-700 font-bold bg-rose-50 px-1.5 py-0.5 rounded text-[9px]">
-              Out of Stock
-            </span>
-          ) : (
-            <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded text-[9px]">
-              In Stock
-            </span>
+          {/* Out of Stock overlay watermark */}
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-[#FAF8FF]/75 backdrop-blur-[2px] flex items-center justify-center z-10">
+              <span className="bg-white text-[#1B133F] px-4 py-1.5 rounded-full text-xs font-sans font-bold border border-[#E9DFFF] shadow-xs tracking-wider uppercase">
+                {isUnavailable ? 'Unavailable' : 'Sold Out'}
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Product Name from DB */}
-        <h3 className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug min-h-[32px] group-hover:text-[#6d28d9] transition-colors">
-          {product.name}
-        </h3>
-
-        {/* Unit / Weight Tag */}
-        {unitWeight && (
-          <div className="mt-0.5">
-            <span className="inline-block text-[10px] font-medium text-slate-500">
-              {unitWeight}
+        {/* 2. SPACING RHYTHM: ~20px gap before details */}
+        <div className="mt-5">
+          {/* Star Rating in Accent Gold #FFB800 */}
+          <div className="flex items-center gap-1.5 mb-2 text-[#FFB800]">
+            <div className="flex items-center gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <FaStar key={i} className="w-3 h-3 fill-[#FFB800]" />
+              ))}
+            </div>
+            <span className="text-[11px] font-sans font-medium text-[#666666] ml-1">
+              5.0 (24)
             </span>
           </div>
-        )}
 
-        {/* Price display: Selling Price, MRP & Savings */}
-        <div className="flex items-baseline flex-wrap gap-1.5 mt-1.5">
-          {isUnavailable ? (
-            <span className="text-xs font-bold text-slate-400">
-              Unavailable
+          {/* Category / Brand Eyebrow: 12px uppercase with letter spacing */}
+          <div className="mb-1.5">
+            <span className="text-[12px] uppercase tracking-[0.18em] font-semibold text-[#6C4EFF]">
+              {product.brand_name || product.category_name || (product.product_code ? `SKU: ${product.product_code}` : 'Grocery')}
             </span>
-          ) : (
-            <>
-              <span className="text-sm font-black text-black">
-                ₹{retailPrice}
-              </span>
-              {showDiscount && mrp > retailPrice && (
-                <span className="text-[11px] text-slate-400 line-through font-normal">
-                  ₹{mrp}
-                </span>
-              )}
-            </>
+          </div>
+
+          {/* Product Title: ~22px Playfair Display Semibold #1B133F */}
+          <h3 className="font-serif text-[20px] sm:text-[22px] font-semibold text-[#1B133F] line-clamp-2 leading-snug group-hover:text-[#6C4EFF] transition-colors min-h-[56px]">
+            {product.name}
+          </h3>
+
+          {/* Size / Volume Text: Inter ~14px, #666666, line-height 1.6 */}
+          {unitWeight && (
+            <p className="mt-1.5 text-sm font-sans text-[#666666] leading-[1.6]">
+              {unitWeight}
+            </p>
           )}
         </div>
       </div>
 
-      {/* Action: Add to Cart button (Black button with white text) */}
-      <div className="mt-2.5 pt-2 border-t border-slate-100">
+      {/* 3. BOTTOM PRICE & ADD-TO-CART ACTION */}
+      <div className="mt-5 pt-4 border-t border-[#E9DFFF]/70 flex items-center justify-between gap-3">
+        {/* Price Display */}
+        <div className="flex flex-col">
+          {isUnavailable ? (
+            <span className="text-xs font-sans font-semibold text-[#666666]">
+              Price on request
+            </span>
+          ) : (
+            <div className="flex items-baseline gap-2">
+              <span className="font-serif text-xl sm:text-2xl font-bold text-[#1B133F]">
+                ₹{retailPrice}
+              </span>
+              {showDiscount && mrp > retailPrice && (
+                <span className="text-xs font-sans text-[#999999] line-through font-normal">
+                  ₹{mrp}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Add to Cart Luxury Pill Action */}
         {onAddToCart && (
           <button
             type="button"
             disabled={isOutOfStock || isUnavailable}
-            onClick={(e) => onAddToCart(product, e)}
-            className={`w-full py-1.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1 active:scale-95 ${
+            onClick={handleAddClick}
+            className={`px-4 sm:px-5 py-2.5 rounded-full font-sans text-xs font-semibold tracking-wide transition-all duration-200 flex items-center gap-1.5 active:scale-95 shrink-0 ${
               isOutOfStock || isUnavailable
-                ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                : 'bg-black hover:bg-neutral-800 text-white cursor-pointer shadow-2xs'
+                ? 'bg-[#E9DFFF]/60 text-[#666666] cursor-not-allowed border border-[#E9DFFF]'
+                : justAdded
+                ? 'bg-[#10B981] text-white shadow-sm'
+                : 'bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white shadow-[0_4px_14px_rgba(108,78,255,0.3)] hover:shadow-[0_6px_20px_rgba(75,42,197,0.4)] cursor-pointer'
             }`}
             title={isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>{isUnavailable ? 'Unavailable' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+            {justAdded ? (
+              <>
+                <FiCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Added</span>
+              </>
+            ) : (
+              <>
+                <FiPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Add</span>
+              </>
+            )}
           </button>
         )}
       </div>

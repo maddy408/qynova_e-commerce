@@ -9,11 +9,13 @@ import Profile from './pages/customer/Profile'
 import Orders from './pages/customer/Orders'
 import OrderDetail from './pages/customer/OrderDetail'
 import PolicyPage from './pages/PolicyPage'
+import LocationPromptModal from './components/LocationPromptModal'
 import { ROUTES, ROUTE_PATTERNS } from './routes/routes'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <LocationPromptModal />
       <Routes>
         <Route path={ROUTES.HOME} element={<Home />} />
         <Route path={ROUTES.PRODUCTS} element={<Shop />} />
