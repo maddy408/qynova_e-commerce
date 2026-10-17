@@ -179,16 +179,54 @@ final class FcmSenderService
     /** @param array<string, string> $data @return array<int, mixed> */
     private function curlOptionsFor(string $token, string $title, string $body, array $data, string $accessToken): array
     {
+        $clickAction = (string) ($data['click_action'] ?? $data['url'] ?? '/');
+        $imageUrl = !empty($data['image']) ? (string) $data['image'] : null;
+
+        $notification = [
+            'title' => $title,
+            'body' => $body,
+        ];
+        if ($imageUrl !== null) {
+            $notification['image'] = $imageUrl;
+        }
+
+        $tag = ($data['type'] ?? 'OFFER') . '-' . ($data['reference_id'] ?? bin2hex(random_bytes(4)));
+
         $payload = [
             'message' => [
                 'token' => $token,
-                'notification' => [
-                    'title' => $title,
-                    'body' => $body,
-                ],
+                'notification' => $notification,
                 'data' => array_map('strval', $data),
+                'android' => [
+                    'priority' => 'HIGH',
+                    'notification' => [
+                        'title' => $title,
+                        'body' => $body,
+                        'sound' => 'default',
+                        'default_sound' => true,
+                        'default_vibrate_timings' => true,
+                        'default_light_settings' => true,
+                        'notification_priority' => 'PRIORITY_HIGH',
+                        'visibility' => 'PUBLIC',
+                        'click_action' => $clickAction,
+                    ],
+                ],
                 'webpush' => [
-                    'fcm_options' => array_key_exists('click_action', $data) ? ['link' => $data['click_action']] : [],
+                    'headers' => [
+                        'Urgency' => 'high',
+                        'TTL' => '86400',
+                    ],
+                    'notification' => [
+                        'title' => $title,
+                        'body' => $body,
+                        'icon' => '/favicon.ico',
+                        'badge' => '/favicon.ico',
+                        'requireInteraction' => true,
+                        'tag' => $tag,
+                    ],
+                    'fcm_options' => [
+                        'link' => $clickAction,
+                    ],
                 ],
             ],
         ];

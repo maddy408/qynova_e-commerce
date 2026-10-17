@@ -26,25 +26,33 @@ firebase.initializeApp({
 const messaging = firebase.messaging()
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || payload.data?.title || 'Order update'
-  const body = payload.notification?.body || payload.data?.body || ''
+  const title = payload.notification?.title || payload.data?.title || 'Exclusive Offer'
+  const body = payload.notification?.body || payload.data?.body || 'New exclusive deal! Tap to view details.'
+  const icon = payload.notification?.icon || payload.data?.image || '/favicon.ico'
+  const tag = payload.data?.reference_id
+    ? `${payload.data?.type || 'notification'}-${payload.data.reference_id}`
+    : `notify-${Date.now()}`
 
   self.registration.showNotification(title, {
     body,
-    icon: '/favicon.ico',
+    icon,
+    badge: '/favicon.ico',
     data: payload.data || {},
-    tag: payload.data?.reference_id ? `${payload.data?.type || 'notification'}-${payload.data.reference_id}` : undefined,
+    tag,
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
+    renotify: true,
   })
 })
 
 // Clicking the notification focuses an existing tab if one is open,
-// otherwise opens a new one — and routes to the referenced order's
-// detail page when the payload names one.
+// otherwise opens a new one — and routes to the referenced order, offer,
+// or coupon URL when the payload names one.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
   const data = event.notification.data || {}
-  const path = data.reference_type === 'ORDER' && data.order_id ? `/orders/${data.order_id}` : '/'
+  const path = data.click_action || data.url || (data.reference_type === 'ORDER' && data.order_id ? `/orders/${data.order_id}` : '/')
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

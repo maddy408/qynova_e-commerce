@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { FiHeart, FiKey } from 'react-icons/fi'
-import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
+import { api, getCustomerToken, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
 import { ROUTES } from '../../routes/routes'
@@ -9,21 +9,39 @@ import { env } from '../../config/env'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const redirectTimerRef = useRef(null)
 
   const [mobileNumber, setMobileNumber] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+    }
+  }, [])
+
   // Google Authentication State
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const googleBtnRef = useRef(null)
   const googleClientId = env.GOOGLE_CLIENT_ID
 
-  // Clear previous session on mount so no stale customer data lingers
+  // Direct to Home screen after login, unless redirected specifically from checkout or cart
+  const targetRoute = (location.state?.from && !location.state.from.includes('profile') && !location.state.from.includes('login'))
+    ? location.state.from
+    : ROUTES.HOME
+
+  // If already logged in, redirect straight to home screen
   useEffect(() => {
-    clearCustomerSession()
-  }, [])
+    if (getCustomerToken()) {
+      navigate(targetRoute, { replace: true })
+    }
+  }, [navigate, targetRoute])
 
   // OTP Modal State
   const [showOtpModal, setShowOtpModal] = useState(false)
@@ -66,8 +84,9 @@ export default function Login() {
       setIsGoogleLoading(false)
       setSuccessMessage(`Welcome back, ${res.data.customer?.name || 'Customer'}!`)
 
-      setTimeout(() => {
-        navigate(ROUTES.HOME, { replace: true })
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+      redirectTimerRef.current = setTimeout(() => {
+        navigate(targetRoute, { replace: true })
       }, 700)
     } catch (err) {
       setIsGoogleLoading(false)
@@ -221,9 +240,10 @@ export default function Login() {
       setShowOtpModal(false)
       setSuccessMessage(`Welcome back, ${response.data.customer?.name || 'Customer'}!`)
 
-      setTimeout(() => {
-        navigate(ROUTES.HOME)
-      }, 1200)
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+      redirectTimerRef.current = setTimeout(() => {
+        navigate(targetRoute, { replace: true })
+      }, 700)
     } catch (err) {
       setIsVerifyingOtp(false)
       setOtpError(getErrorMessage(err, 'Invalid or expired OTP. Please try again.'))

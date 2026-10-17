@@ -396,16 +396,16 @@ export default function Shop() {
           activeNav="shop"
         />
 
-        {/* Main Content Area */}
-        <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8">
+        {/* Main Content Area in 1320px Container */}
+        <main className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] mb-3">
-            <Link to={ROUTES.HOME} className="text-[var(--color-brand)] hover:underline">
+          <div className="flex items-center gap-2 text-xs font-sans font-medium text-[#666666] mb-4">
+            <Link to={ROUTES.HOME} className="text-[#6C4EFF] hover:underline">
               Home
             </Link>
             <span>/</span>
-            <span className="text-[var(--color-text-main)]">{pageTitle}</span>
+            <span className="text-[#1B133F] font-semibold">{pageTitle}</span>
           </div>
 
           {/* Dynamic Category Banner: Positioned below breadcrumbs, above category heading (Hidden if no active banner) */}
@@ -420,20 +420,20 @@ export default function Shop() {
           )}
 
           {/* Page Header / Category Heading */}
-          <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-5 border-b border-[var(--color-border-subtle)]">
+          <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E9DFFF] mb-6">
             <div>
-              <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full">
-                {sectionParam ? `Collection: ${sectionParam.replace('_', ' ')}` : currentCategoryObj ? 'Category' : 'Store Catalog'}
+              <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] bg-[#FAF8FF] px-3.5 py-1 rounded-full border border-[#E9DFFF]">
+                {sectionParam ? `Section: ${sectionParam.replace('_', ' ')}` : currentCategoryObj ? currentCategoryObj.name : 'All Groceries & Essentials'}
               </span>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[var(--color-text-main)] tracking-tight mt-1.5">
+              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1B133F] tracking-tight mt-3">
                 {pageTitle}
               </h1>
-              <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">
+              <p className="font-sans text-xs sm:text-sm text-[#666666] mt-2">
                 Showing{' '}
-                <strong className="text-[var(--color-brand)] font-bold">
+                <strong className="text-[#6C4EFF] font-bold">
                   {pagination.total}
                 </strong>{' '}
-                product{pagination.total === 1 ? '' : 's'} available in database
+                fresh item{pagination.total === 1 ? '' : 's'} in store
               </p>
             </div>
 
@@ -578,7 +578,7 @@ export default function Shop() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 py-6">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -654,54 +654,54 @@ export default function Shop() {
         </main>
       </div>
 
-      {/* FOOTER (Burgundy & White Aesthetic) */}
-      <footer className="bg-white text-[var(--color-text-main)] pt-12 pb-8 border-t border-[var(--color-border-subtle)] mt-12">
+      {/* FOOTER (Black & White Aesthetic) */}
+      <footer className="bg-black text-white pt-12 pb-8 border-t border-zinc-800 mt-12">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-[var(--color-border-subtle)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-zinc-800">
             <div className="space-y-3">
               <div className="flex items-baseline leading-none">
-                <span className="text-2xl font-black tracking-tight text-[var(--color-brand)]">
+                <span className="text-2xl font-black tracking-tight text-white">
                   {storeSettings?.store_name || 'Store'}
                 </span>
               </div>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 {storeSettings?.description || 'Your trusted online shopping destination.'}
               </p>
             </div>
-            <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
-              <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Quick Links</h4>
+            <div className="space-y-2 text-xs text-zinc-400">
+              <h4 className="font-black uppercase text-white text-xs">Quick Links</h4>
               <ul className="space-y-1.5">
-                <li><Link to={ROUTES.HOME} className="hover:text-[var(--color-brand)] transition-colors">Home Catalog</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')} className="hover:text-[var(--color-brand)] transition-colors">Best Sellers</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')} className="hover:text-[var(--color-brand)] transition-colors">New Arrivals</Link></li>
+                <li><Link to={ROUTES.HOME} className="hover:text-white transition-colors">Home Catalog</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')} className="hover:text-white transition-colors">Best Sellers</Link></li>
+                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')} className="hover:text-white transition-colors">New Arrivals</Link></li>
               </ul>
             </div>
-            <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
-              <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Customer Care</h4>
+            <div className="space-y-2 text-xs text-zinc-400">
+              <h4 className="font-black uppercase text-white text-xs">Customer Care</h4>
               <ul className="space-y-1.5">
-                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-[var(--color-brand)] transition-colors">Shipping Information</Link></li>
-                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-[var(--color-brand)] transition-colors">Return & Refund Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
+                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-white transition-colors">Shipping Information</Link></li>
+                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-white transition-colors">Return & Refund Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-white transition-colors">Terms and Conditions</Link></li>
               </ul>
             </div>
-            <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
-              <h4 className="font-black uppercase text-[var(--color-text-main)] text-xs">Contact</h4>
+            <div className="space-y-2 text-xs text-zinc-400">
+              <h4 className="font-black uppercase text-white text-xs">Contact</h4>
               {storeSettings?.phone && (
                 <p className="flex items-center gap-1.5">
-                  <FiPhone className="w-3.5 h-3.5 text-[#7c3aed]" />
+                  <FiPhone className="w-3.5 h-3.5 text-purple-400" />
                   <span>{storeSettings.phone}</span>
                 </p>
               )}
               {storeSettings?.email && (
                 <p className="flex items-center gap-1.5">
-                  <FiMail className="w-3.5 h-3.5 text-[#7c3aed]" />
+                  <FiMail className="w-3.5 h-3.5 text-purple-400" />
                   <span>{storeSettings.email}</span>
                 </p>
               )}
             </div>
           </div>
-          <p className="pt-6 text-center text-[11px] text-[var(--color-text-muted)]">
+          <p className="pt-6 text-center text-[11px] text-zinc-500">
             © {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}
           </p>
         </div>

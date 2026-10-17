@@ -50,7 +50,7 @@ export const AppColors = {
 
   // Header / footer
   headerBg: '#FFFFFF',
-  footerBg: '#FFFFFF',
+  footerBg: '#000000',
 
   // "Extra" tokens: every other distinct color this app used before this
   // refactor that doesn't map to a semantic name above — pass-through

@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FiLock, FiAlertCircle, FiX, FiArrowRight, FiDollarSign, FiSmartphone, FiCreditCard } from 'react-icons/fi'
-import { api, getCustomerToken, fetchCustomerAddresses, resolveImageUrl } from '../lib/api'
+import {
+  FiLock,
+  FiAlertCircle,
+  FiX,
+  FiArrowRight,
+  FiDollarSign,
+  FiSmartphone,
+  FiCreditCard,
+  FiMapPin,
+  FiNavigation,
+  FiCheck,
+} from 'react-icons/fi'
+import { api, getCustomerToken, fetchCustomerAddresses, saveCustomerAddress, resolveImageUrl } from '../lib/api'
+import {
+  getCurrentCoordinates,
+  reverseGeocode,
+  getStoredLocation,
+  saveStoredLocation,
+} from '../services/locationService'
 import { clearCart } from '../lib/cart'
 import { ROUTES } from '../routes/routes'
 import { ENDPOINTS } from '../api/endpoints'
@@ -13,7 +30,7 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
     email: '',
     streetAddress: '',
     city: '',
-    state: 'Karnataka',
+    state: 'Rajasthan',
     pincode: '',
     paymentMethod: 'COD',
   })
@@ -23,43 +40,135 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [confirmedOrderId, setConfirmedOrderId] = useState(null)
   const [submissionError, setSubmissionError] = useState('')
 
-  // Prefill authenticated customer details from MySQL
-  useEffect(() => {
-    if (isOpen && getCustomerToken()) {
-      try {
-        const stored = localStorage.getItem('customer_data')
-        if (stored) {
-          const user = JSON.parse(stored)
-          setFormData((prev) => ({
-            ...prev,
-            fullName: user.name || prev.fullName,
-            phone: user.phone || prev.phone,
-            email: user.email || prev.email,
-          }))
-        }
-      } catch {
-        // ignore
-      }
+  // Saved Addresses and GPS state
+  const [savedAddresses, setSavedAddresses] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState(null)
+  const [isDetectingGps, setIsDetectingGps] = useState(false)
+  const [gpsSuccessBadge, setGpsSuccessBadge] = useState(null)
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false)
 
-      fetchCustomerAddresses()
-        .then((res) => {
-          const addresses = res.addresses || res.data || []
-          if (Array.isArray(addresses) && addresses.length > 0) {
-            const def = addresses.find((a) => a.is_default) || addresses[0]
+  // Prefill authenticated customer details from MySQL or stored GPS location
+  useEffect(() => {
+    if (isOpen) {
+      const storedLocation = getStoredLocation()
+
+      if (getCustomerToken()) {
+        try {
+          const stored = localStorage.getItem('customer_data')
+          if (stored) {
+            const user = JSON.parse(stored)
             setFormData((prev) => ({
               ...prev,
-              fullName: def.name || def.recipient_name || prev.fullName,
-              phone: def.phone || prev.phone,
-              streetAddress: def.street_address || def.address_line1 || prev.streetAddress,
-              city: def.city || prev.city,
-              state: def.state || prev.state,
-              pincode: def.pincode || def.postal_code || prev.pincode,
+              fullName: user.name || prev.fullName,
+              phone: user.phone || prev.phone,
+              email: user.email || prev.email,
             }))
           }
-        })
-        .catch(() => {})
+        } catch {
+          // ignore
+        }
+
+        fetchCustomerAddresses()
+          .then((res) => {
+            const addresses = res.addresses || res.data || []
+            if (Array.isArray(addresses) && addresses.length > 0) {
+              setSavedAddresses(addresses)
+              const def = addresses.find((a) => a.is_default) || addresses[0]
+              setSelectedAddressId(def.id)
+              setFormData((prev) => ({
+                ...prev,
+                fullName: def.name || def.recipient_name || prev.fullName,
+                phone: def.phone || prev.phone,
+                streetAddress: def.line1 || def.street_address || def.address_line1 || prev.streetAddress,
+                city: def.city_district || def.city || prev.city,
+                state: def.state || prev.state,
+                pincode: def.pincode || def.postal_code || prev.pincode,
+              }))
+            } else if (storedLocation) {
+              // Fallback to active GPS/stored location if no saved addresses exist
+              setFormData((prev) => ({
+                ...prev,
+                streetAddress: storedLocation.streetAddress || prev.streetAddress,
+                city: storedLocation.city || prev.city,
+                state: storedLocation.state || prev.state,
+                pincode: storedLocation.pincode || prev.pincode,
+              }))
+              if (storedLocation.isGps && storedLocation.latitude) {
+                setGpsSuccessBadge({
+                  latitude: storedLocation.latitude,
+                  longitude: storedLocation.longitude,
+                  shortDisplay: storedLocation.shortDisplay,
+                })
+              }
+            }
+          })
+          .catch(() => {})
+      } else if (storedLocation) {
+        // Guest user: prefill from stored GPS location if available
+        setFormData((prev) => ({
+          ...prev,
+          streetAddress: storedLocation.streetAddress || prev.streetAddress,
+          city: storedLocation.city || prev.city,
+          state: storedLocation.state || prev.state,
+          pincode: storedLocation.pincode || prev.pincode,
+        }))
+        if (storedLocation.isGps && storedLocation.latitude) {
+          setGpsSuccessBadge({
+            latitude: storedLocation.latitude,
+            longitude: storedLocation.longitude,
+            shortDisplay: storedLocation.shortDisplay,
+          })
+        }
+      }
     }
   }, [isOpen])
+
+  // GPS Current Location Detection Handler
+  const handleUseCurrentLocation = async () => {
+    setIsDetectingGps(true)
+    setSubmissionError('')
+    try {
+      const coords = await getCurrentCoordinates()
+      const result = await reverseGeocode(coords.latitude, coords.longitude)
+      setSelectedAddressId('gps')
+      setGpsSuccessBadge({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        shortDisplay: result.shortDisplay,
+      })
+      setFormData((prev) => ({
+        ...prev,
+        streetAddress: result.streetAddress || result.road || prev.streetAddress,
+        city: result.city || prev.city,
+        state: result.state || prev.state,
+        pincode: result.pincode || prev.pincode,
+      }))
+      setErrors((prev) => ({
+        ...prev,
+        streetAddress: '',
+        city: '',
+        pincode: '',
+      }))
+      // Save to localStorage so top nav stays synchronized
+      saveStoredLocation({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        city: result.city,
+        state: result.state,
+        pincode: result.pincode,
+        streetAddress: result.streetAddress,
+        formattedAddress: result.formattedAddress,
+        displayTitle: result.displayTitle,
+        displaySubtitle: result.displaySubtitle,
+        shortDisplay: result.shortDisplay,
+        isGps: true,
+      })
+    } catch (err) {
+      setSubmissionError(err.message || 'Unable to retrieve your GPS location. Please check browser permissions.')
+    } finally {
+      setIsDetectingGps(false)
+    }
+  }
 
   // Reset modal state on open
   useEffect(() => {
@@ -157,6 +266,21 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
 
       setConfirmedOrderId(orderId)
       setOrderConfirmed(true)
+
+      // Optionally persist this new/GPS address to customer profile
+      if (saveAddressToProfile && getCustomerToken() && formData.streetAddress && formData.city && formData.pincode) {
+        saveCustomerAddress({
+          name: formData.fullName,
+          phone: formData.phone.replace(/[^0-9]/g, ''),
+          line1: formData.streetAddress,
+          line2: '',
+          city_district: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+          address_type: 'HOME',
+          is_default: 0,
+        }).catch((e) => console.warn('Could not save address to profile:', e))
+      }
 
       // 3. Clear shopping cart in local storage and database
       clearCart()
@@ -387,9 +511,96 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
 
                 {/* 2. Delivery Address */}
                 <div className="space-y-3 pt-2 border-t border-[var(--color-border-subtle)]">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase text-[var(--color-text-main)] tracking-wider">
-                    <span>2. Delivery Address</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-black uppercase text-[var(--color-text-main)] tracking-wider">
+                      <FiMapPin className="text-[#6C4EFF]" />
+                      <span>2. Delivery Address</span>
+                    </div>
+
+                    {/* USE CURRENT GPS LOCATION BUTTON */}
+                    <button
+                      type="button"
+                      disabled={isDetectingGps}
+                      onClick={handleUseCurrentLocation}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAF8FF] hover:bg-[#6C4EFF] hover:text-white text-[#6C4EFF] border border-[#E9DFFF] text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-60"
+                      title="Auto-fill address using your current GPS coordinates"
+                    >
+                      {isDetectingGps ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          <span>Detecting GPS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiNavigation className="w-3.5 h-3.5" />
+                          <span>Use Current Location</span>
+                        </>
+                      )}
+                    </button>
                   </div>
+
+                  {/* GPS Live Feedback Badge */}
+                  {gpsSuccessBadge && (
+                    <div className="px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center justify-between font-mono">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="font-bold">GPS Location Applied:</span>
+                      </div>
+                      <span>
+                        Lat: {gpsSuccessBadge.latitude.toFixed(4)}, Lng: {gpsSuccessBadge.longitude.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Saved Customer Addresses Quick Pills */}
+                  {savedAddresses.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                        Or select a saved address:
+                      </p>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                        {savedAddresses.map((addr) => {
+                          const isSelected = selectedAddressId === addr.id
+                          return (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedAddressId(addr.id)
+                                setGpsSuccessBadge(null)
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fullName: addr.name || prev.fullName,
+                                  phone: addr.phone || prev.phone,
+                                  streetAddress: addr.line1 || addr.street_address || prev.streetAddress,
+                                  city: addr.city_district || addr.city || prev.city,
+                                  state: addr.state || prev.state,
+                                  pincode: addr.pincode || prev.pincode,
+                                }))
+                                setErrors((prev) => ({
+                                  ...prev,
+                                  streetAddress: '',
+                                  city: '',
+                                  pincode: '',
+                                }))
+                              }}
+                              className={`px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
+                                isSelected
+                                  ? 'border-[#6C4EFF] bg-[#FAF8FF] text-[#6C4EFF] shadow-xs'
+                                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                              }`}
+                            >
+                              <FiMapPin className="w-3 h-3 shrink-0" />
+                              <span className="font-bold">{addr.address_type || 'Address'}:</span>
+                              <span className="text-[11px] truncate max-w-[150px]">
+                                {addr.line1}, {addr.city_district || addr.city}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
@@ -457,6 +668,21 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       {errors.pincode && <p className="text-[10px] text-red-500 mt-1">{errors.pincode}</p>}
                     </div>
                   </div>
+
+                  {/* Save to Profile Checkbox (If Authenticated) */}
+                  {getCustomerToken() && (
+                    <div className="pt-1">
+                      <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={saveAddressToProfile}
+                          onChange={(e) => setSaveAddressToProfile(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#6C4EFF] focus:ring-[#6C4EFF]"
+                        />
+                        <span>Save this delivery address to my account profile</span>
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* 3. Payment Method: Big Touch Tiles */}

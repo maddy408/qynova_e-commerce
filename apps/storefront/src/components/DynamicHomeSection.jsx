@@ -76,7 +76,7 @@ function getDefaultViewAllLink(section) {
 }
 
 function getBadgeBg(type) {
-  return 'bg-[#ede9fe] text-[#6d28d9] border border-[#ddd6fe]'
+  return 'bg-[#FAF8FF] text-[#6C4EFF] border border-[#E9DFFF]'
 }
 
 export default function DynamicHomeSection({

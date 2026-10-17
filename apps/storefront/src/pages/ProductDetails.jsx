@@ -19,8 +19,9 @@ import {
 import {
   api,
   getCustomerToken,
+  getStoredCustomer,
+  isTokenExpired,
   clearCustomerSession,
-  setCustomerSession,
   fetchStoreSettings,
   fetchDeliverySettings,
   fetchCategories,
@@ -142,9 +143,13 @@ export default function ProductDetails() {
   useEffect(() => {
     const token = getCustomerToken()
     if (!token) {
-      clearCustomerSession()
       setCustomer(null)
       return
+    }
+
+    const cached = getStoredCustomer()
+    if (cached) {
+      setCustomer(cached)
     }
 
     api
@@ -152,15 +157,23 @@ export default function ProductDetails() {
       .then((res) => {
         if (res.data?.customer) {
           setCustomer(res.data.customer)
-          setCustomerSession(token, res.data.customer)
+          try {
+            localStorage.setItem('customer_data', JSON.stringify(res.data.customer))
+          } catch {
+            // ignore
+          }
         } else {
-          clearCustomerSession()
           setCustomer(null)
         }
       })
-      .catch(() => {
-        clearCustomerSession()
-        setCustomer(null)
+      .catch((err) => {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          const currentToken = getCustomerToken()
+          if (!currentToken || isTokenExpired(currentToken)) {
+            clearCustomerSession()
+            setCustomer(null)
+          }
+        }
       })
   }, [])
 
@@ -551,20 +564,20 @@ export default function ProductDetails() {
       <Navbar onOpenCart={() => setIsCartOpen(true)} />
 
       {/* BREADCRUMB NAVIGATION */}
-      <nav aria-label="Breadcrumb" className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-3.5 text-xs font-medium text-gray-500 flex items-center gap-2 flex-wrap">
-        <Link to={ROUTES.HOME} className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-bold hover:underline">
+      <nav aria-label="Breadcrumb" className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-4 text-xs font-sans font-medium text-[#666666] flex items-center gap-2 flex-wrap">
+        <Link to={ROUTES.HOME} className="text-[#6C4EFF] hover:text-[#1B133F] font-semibold hover:underline">
           Home
         </Link>
-        <span className="text-gray-300">/</span>
-        <Link to={ROUTES.PRODUCTS} className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline">
+        <span className="text-[#E9DFFF]">/</span>
+        <Link to={ROUTES.PRODUCTS} className="text-[#6C4EFF] hover:text-[#1B133F] font-medium hover:underline">
           Shop
         </Link>
         {primaryCategory && (
           <>
-            <span className="text-gray-300">/</span>
+            <span className="text-[#E9DFFF]">/</span>
             <Link
               to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id)}
-              className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline"
+              className="text-[#6C4EFF] hover:text-[#1B133F] font-medium hover:underline"
             >
               {primaryCategory.name}
             </Link>
@@ -572,23 +585,23 @@ export default function ProductDetails() {
         )}
         {product?.subcategories?.[0] && (
           <>
-            <span className="text-gray-300">/</span>
+            <span className="text-[#E9DFFF]">/</span>
             <Link
               to={ROUTES.PRODUCTS_BY_SUBCATEGORY(product.subcategories[0].id)}
-              className="text-[var(--color-brand)] hover:text-[var(--color-text-main)] font-medium hover:underline"
+              className="text-[#6C4EFF] hover:text-[#1B133F] font-medium hover:underline"
             >
               {product.subcategories[0].name}
             </Link>
           </>
         )}
-        <span className="text-gray-300">/</span>
-        <span className="text-gray-700 font-semibold truncate max-w-[200px] sm:max-w-xs">
+        <span className="text-[#E9DFFF]">/</span>
+        <span className="text-[#1B133F] font-semibold truncate max-w-[200px] sm:max-w-xs">
           {product?.name || 'Product Details'}
         </span>
       </nav>
 
-      {/* MAIN CONTAINER */}
-      <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 pt-2 pb-24 lg:pb-16">
+      {/* MAIN CONTAINER: 1320px */}
+      <main className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-24 lg:pb-16">
         
         {/* LOADING SKELETON */}
         {isLoading && (
@@ -782,8 +795,8 @@ export default function ProductDetails() {
                     )}
                   </div>
 
-                  {/* Product Title */}
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[var(--color-text-main)] tracking-tight leading-snug mb-2.5">
+                  {/* Product Title: Playfair Display */}
+                  <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1B133F] tracking-tight leading-snug mb-3">
                     {product.name}
                   </h1>
 
@@ -1089,7 +1102,7 @@ export default function ProductDetails() {
                         type="button"
                         onClick={() => handleAddToCart()}
                         disabled={isOutOfStock || isAddingToCart || isUnavailable}
-                        className="w-full py-3.5 px-6 rounded-2xl border-2 border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-bg-alt)] font-black text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full py-4 px-6 rounded-full border border-[#6C4EFF] text-[#6C4EFF] hover:bg-[#FAF8FF] font-sans font-semibold text-sm tracking-wide shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -1102,7 +1115,7 @@ export default function ProductDetails() {
                         type="button"
                         onClick={handleBuyNow}
                         disabled={isOutOfStock || isUnavailable}
-                        className="w-full py-3.5 px-6 rounded-2xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] hover:brightness-105 text-white font-black text-sm tracking-wide shadow-lg shadow-black/15 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
+                        className="w-full py-4 px-6 rounded-full bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white font-sans font-semibold text-sm tracking-wide shadow-[0_8px_25px_rgba(108,78,255,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
                         {isUnavailable ? (
                           <span>Unavailable</span>
@@ -1652,81 +1665,81 @@ export default function ProductDetails() {
         cartData={checkoutCartData}
       />
 
-      {/* FOOTER (Burgundy & White Aesthetic) */}
-      <footer className="bg-white text-[var(--color-text-main)] pt-12 pb-8 border-t border-[var(--color-border-subtle)] mt-16">
+      {/* FOOTER (Black & White Aesthetic) */}
+      <footer className="bg-black text-white pt-12 pb-8 border-t border-zinc-800 mt-16">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-[var(--color-border-subtle)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-zinc-800">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
                 {storeSettings?.logo ? (
-                  <img src={resolveImageUrl(storeSettings.logo)} alt={storeSettings.store_name} className="w-9 h-9 rounded-xl object-cover" />
+                  <img src={resolveImageUrl(storeSettings.logo)} alt={storeSettings.store_name} className="w-9 h-9 rounded-xl object-cover border border-zinc-800" />
                 ) : (
-                  <span className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--color-brand)] to-[var(--color-brand)] flex items-center justify-center text-white font-black text-lg">
+                  <span className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-lg">
                     {storeSettings?.store_name ? storeSettings.store_name.charAt(0) : 'S'}
                   </span>
                 )}
-                <span className="text-xl font-extrabold tracking-tight text-[var(--color-brand)]">
+                <span className="text-xl font-extrabold tracking-tight text-white">
                   {storeSettings?.store_name || 'Store'}
                 </span>
               </div>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 {storeSettings?.description || 'Your trusted online shopping destination.'}
               </p>
             </div>
 
             <div>
-              <h4 className="text-xs font-black text-[var(--color-text-main)] uppercase tracking-wider mb-3">Shop Categories</h4>
-              <ul className="space-y-2 text-xs text-[var(--color-text-muted)]">
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Shop Categories</h4>
+              <ul className="space-y-2 text-xs text-zinc-400">
                 {categories.length > 0 ? (
                   categories.slice(0, 6).map((c) => (
                     <li key={c.id}>
-                      <Link to={ROUTES.PRODUCTS_BY_CATEGORY(c.id)} className="hover:text-[var(--color-brand-hover)] transition-colors">
+                      <Link to={ROUTES.PRODUCTS_BY_CATEGORY(c.id)} className="hover:text-white transition-colors">
                         {c.name}
                       </Link>
                     </li>
                   ))
                 ) : (
-                  <li><Link to={ROUTES.PRODUCTS} className="hover:text-[var(--color-brand)] transition-colors">All Products</Link></li>
+                  <li><Link to={ROUTES.PRODUCTS} className="hover:text-white transition-colors">All Products</Link></li>
                 )}
               </ul>
             </div>
 
             <div>
-              <h4 className="text-xs font-black text-[var(--color-text-main)] uppercase tracking-wider mb-3">Customer Service</h4>
-              <ul className="space-y-2 text-xs text-[var(--color-text-muted)]">
-                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-[var(--color-brand)] transition-colors">Shipping & Delivery Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-[var(--color-brand)] transition-colors">Returns & Refunds</Link></li>
-                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-[var(--color-brand)] transition-colors">Privacy Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-[var(--color-brand)] transition-colors">Terms and Conditions</Link></li>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Customer Service</h4>
+              <ul className="space-y-2 text-xs text-zinc-400">
+                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-white transition-colors">Shipping & Delivery Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-white transition-colors">Returns & Refunds</Link></li>
+                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-white transition-colors">Terms and Conditions</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-xs font-black text-[var(--color-text-main)] uppercase tracking-wider mb-3">Fast & Secure Delivery</h4>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed mb-3">
+              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Fast & Secure Delivery</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed mb-3">
                 {deliverySettings?.free_delivery_threshold != null && Number(deliverySettings.free_delivery_threshold) > 0
                   ? `Free shipping on orders above ₹${Number(deliverySettings.free_delivery_threshold).toFixed(0)}.`
                   : deliverySettings?.estimated_delivery_text
                   ? `Express shipping: ${deliverySettings.estimated_delivery_text}.`
                   : 'Fast and reliable shipping across India.'}
               </p>
-              <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
                 <span className="flex items-center gap-1">
-                  <FiLock className="w-3.5 h-3.5 text-emerald-600" />
+                  <FiLock className="w-3.5 h-3.5 text-emerald-400" />
                   <span>SSL Encrypted</span>
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <FiDollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                  <FiDollarSign className="w-3.5 h-3.5 text-emerald-400" />
                   <span>COD Available</span>
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[var(--color-text-muted)] gap-4">
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-400 gap-4">
             <p>© {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}</p>
-            <p>100% Secure Checkout • Express Shipping • Quality Assured</p>
+            <p className="text-zinc-500">100% Secure Checkout • Express Shipping • Quality Assured</p>
           </div>
         </div>
       </footer>

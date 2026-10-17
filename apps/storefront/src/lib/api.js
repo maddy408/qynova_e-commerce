@@ -50,43 +50,124 @@ export function resetSessionId() {
   return getSessionId()
 }
 
-// Customer Auth token management (Session cookie and memory only; NO localStorage or sessionStorage)
+// Customer Auth token management (Multi-tier persistence: Memory, LocalStorage, SessionStorage & Cookie)
 let memoryCustomerToken = null
+
+export function isTokenExpired(token) {
+  if (!token || typeof token !== 'string') return true
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return true
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    const payload = JSON.parse(jsonPayload)
+    if (!payload.exp) return false
+    // Buffer by 10 seconds
+    return Date.now() >= (payload.exp - 10) * 1000
+  } catch {
+    return false
+  }
+}
 
 export function setCustomerToken(token) {
   if (token) {
     memoryCustomerToken = token
+    if (typeof window !== 'undefined') {
+      window.__customer_jwt = token
+    }
     try {
-      document.cookie = `storefront_customer_jwt=${encodeURIComponent(token)}; path=/; SameSite=Lax`
+      localStorage.setItem('storefront_customer_jwt', token)
+      sessionStorage.setItem('storefront_customer_jwt', token)
     } catch {
       // ignore
     }
-    window.__customer_jwt = token
+    try {
+      // Persist for 1 year (365 days)
+      document.cookie = `storefront_customer_jwt=${encodeURIComponent(token)}; path=/; max-age=31536000; SameSite=Lax`
+    } catch {
+      // ignore
+    }
   }
 }
 
 export function getCustomerToken() {
-  if (memoryCustomerToken) return memoryCustomerToken
+  if (memoryCustomerToken && !isTokenExpired(memoryCustomerToken)) {
+    return memoryCustomerToken
+  }
+  if (typeof window !== 'undefined' && window.__customer_jwt && !isTokenExpired(window.__customer_jwt)) {
+    memoryCustomerToken = window.__customer_jwt
+    return memoryCustomerToken
+  }
   try {
-    const match = document.cookie.match(/(?:^|;\s*)storefront_customer_jwt=([^;]+)/)
-    if (match && match[1]) {
-      memoryCustomerToken = decodeURIComponent(match[1])
+    const localToken = localStorage.getItem('storefront_customer_jwt') || localStorage.getItem('customer_jwt')
+    if (localToken && !isTokenExpired(localToken)) {
+      memoryCustomerToken = localToken
+      if (typeof window !== 'undefined') window.__customer_jwt = localToken
       return memoryCustomerToken
     }
   } catch {
     // ignore
   }
-  return window.__customer_jwt || null
+  try {
+    const sessionToken = sessionStorage.getItem('storefront_customer_jwt') || sessionStorage.getItem('customer_jwt')
+    if (sessionToken && !isTokenExpired(sessionToken)) {
+      memoryCustomerToken = sessionToken
+      if (typeof window !== 'undefined') window.__customer_jwt = sessionToken
+      return memoryCustomerToken
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)storefront_customer_jwt=([^;]+)/)
+    if (match && match[1]) {
+      const cookieToken = decodeURIComponent(match[1])
+      if (cookieToken && !isTokenExpired(cookieToken)) {
+        memoryCustomerToken = cookieToken
+        if (typeof window !== 'undefined') window.__customer_jwt = memoryCustomerToken
+        return memoryCustomerToken
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+export function getStoredCustomer() {
+  try {
+    const raw = localStorage.getItem('customer_data')
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // ignore
+  }
+  return null
 }
 
 export function clearCustomerSession() {
   memoryCustomerToken = null
   try {
+    localStorage.removeItem('storefront_customer_jwt')
+    localStorage.removeItem('customer_jwt')
+    localStorage.removeItem('customer_data')
+    sessionStorage.removeItem('storefront_customer_jwt')
+    sessionStorage.removeItem('customer_jwt')
+  } catch {
+    // ignore
+  }
+  try {
     document.cookie = 'storefront_customer_jwt=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
   } catch {
     // ignore
   }
-  delete window.__customer_jwt
+  if (typeof window !== 'undefined') {
+    delete window.__customer_jwt
+  }
   resetSessionId()
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('customer-session-changed', { detail: { customer: null } }))
@@ -100,6 +181,13 @@ export function clearCustomerToken() {
 export function setCustomerSession(token, customer = null) {
   if (token) {
     setCustomerToken(token)
+    if (customer) {
+      try {
+        localStorage.setItem('customer_data', JSON.stringify(customer))
+      } catch {
+        // ignore
+      }
+    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('customer-session-changed', { detail: { customer } }))
     }
@@ -110,11 +198,23 @@ export function setCustomerSession(token, customer = null) {
 api.interceptors.request.use((config) => {
   const token = getCustomerToken()
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    if (config.headers?.set) {
+      config.headers.set('Authorization', `Bearer ${token}`)
+      config.headers.set('X-Authorization', `Bearer ${token}`)
+      config.headers.set('X-Customer-Token', token)
+    } else {
+      config.headers.Authorization = `Bearer ${token}`
+      config.headers['X-Authorization'] = `Bearer ${token}`
+      config.headers['X-Customer-Token'] = token
+    }
   }
   const sessionId = getSessionId()
   if (sessionId) {
-    config.headers['X-Session-ID'] = sessionId
+    if (config.headers?.set) {
+      config.headers.set('X-Session-ID', sessionId)
+    } else {
+      config.headers['X-Session-ID'] = sessionId
+    }
   }
   return config
 })
@@ -227,6 +327,11 @@ export async function fetchCustomerAddresses() {
 
 export async function saveCustomerAddress(data) {
   const res = await api.post(ENDPOINTS.CUSTOMER.ADDRESSES, data)
+  return res.data
+}
+
+export async function updateCustomerAddress(id, data) {
+  const res = await api.put(ENDPOINTS.CUSTOMER.ADDRESS_BY_ID(id), data)
   return res.data
 }
 

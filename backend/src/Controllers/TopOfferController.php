@@ -8,7 +8,11 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\BroadcastService;
+use App\Services\DeviceTokenService;
+use App\Services\FcmSenderService;
 use App\Services\ImageUploadService;
+use App\Services\NotificationService;
 use PDO;
 use RuntimeException;
 
@@ -102,7 +106,45 @@ final class TopOfferController
         ]);
 
         $id = (int) $this->pdo->lastInsertId();
-        Response::json(['id' => $id, 'message' => 'Top offer created successfully'], 201);
+
+        // Automatically dispatch push notification to customers for new top offer
+        try {
+            $notifyTitle = $badge !== '' ? "🔥 {$badge}: {$title}" : "🎉 New Offer: {$title}";
+            $notifyBody = $code !== null
+                ? "Use code '{$code}'! " . ($subtitle ?: 'Check out this exclusive deal today.')
+                : ($subtitle ?: 'New exclusive deal just added! Tap to explore discounts.');
+
+            $notifications = new NotificationService($this->pdo);
+            $deviceTokens = new DeviceTokenService($this->pdo);
+            $fcm = new FcmSenderService($deviceTokens);
+            $broadcastService = new BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+
+            $broadcastService->sendToCustomers(
+                title: $notifyTitle,
+                body: $notifyBody,
+                sentByUserId: (int) ($claims['sub'] ?? 1),
+                targetCustomerIds: [], // All active customers
+                type: 'OFFER',
+                data: [
+                    'type' => 'OFFER',
+                    'reference_type' => 'TOP_OFFER',
+                    'reference_id' => (string) $id,
+                    'code' => (string) ($code ?? ''),
+                    'url' => $link,
+                    'click_action' => $link,
+                    'image' => $imagePath ?: '',
+                ],
+                referenceType: 'TOP_OFFER',
+                referenceId: $id,
+            );
+        } catch (\Throwable $e) {
+            error_log('TopOfferController: automatic push notification failed: ' . $e->getMessage());
+        }
+
+        Response::json([
+            'id' => $id,
+            'message' => 'Top offer created successfully and push notification sent to customers',
+        ], 201);
     }
 
     public function update(string|int $id): void
