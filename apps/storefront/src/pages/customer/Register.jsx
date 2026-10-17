@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiHeart, FiKey, FiGift } from 'react-icons/fi'
 import { LuSparkles } from 'react-icons/lu'
-import { api, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
+import { api, getCustomerToken, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
 import { ROUTES } from '../../routes/routes'
@@ -35,9 +35,12 @@ export default function Register() {
   const [cooldown, setCooldown] = useState(0)
   const [debugOtp, setDebugOtp] = useState(null)
 
+  // If already logged in, redirect straight to home
   useEffect(() => {
-    clearCustomerSession()
-  }, [])
+    if (getCustomerToken()) {
+      navigate(ROUTES.HOME, { replace: true })
+    }
+  }, [navigate])
 
   useEffect(() => {
     let timer

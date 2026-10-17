@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { FiAlertCircle, FiInfo, FiTruck, FiExternalLink, FiMapPin, FiX } from 'react-icons/fi'
-import { api, getCustomerToken, clearCustomerSession } from '../../lib/api'
+import { api, getCustomerToken, isTokenExpired, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
 
 export default function OrderDetail() {
@@ -21,8 +21,7 @@ export default function OrderDetail() {
   const fetchOrderDetails = () => {
     const token = getCustomerToken()
     if (!token) {
-      clearCustomerSession()
-      navigate(ROUTES.LOGIN)
+      navigate(ROUTES.LOGIN, { replace: true })
       return
     }
 
@@ -49,11 +48,14 @@ export default function OrderDetail() {
       })
       .catch((err) => {
         if (err.response?.status === 401 || err.response?.status === 403) {
-          clearCustomerSession()
-          navigate(ROUTES.LOGIN)
-        } else {
-          setError(err.response?.data?.error || 'Order not found')
+          const currentToken = getCustomerToken()
+          if (!currentToken || isTokenExpired(currentToken)) {
+            clearCustomerSession()
+            navigate(ROUTES.LOGIN)
+            return
+          }
         }
+        setError(err.response?.data?.error || 'Order not found')
       })
       .finally(() => {
         setIsLoading(false)
