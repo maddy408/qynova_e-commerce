@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   api,
   getCustomerToken,
+  getStoredCustomer,
+  isTokenExpired,
   clearCustomerSession,
   setCustomerSession,
   fetchStoreSettings,
@@ -19,6 +21,7 @@ import { ROUTES } from '../routes/routes'
 import { getCartCount, getCartSubtotal, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist } from '../lib/wishlist'
 import { removeDeviceToken, syncDeviceToken } from '../hooks/useDeviceToken'
+import { useDeliveryLocation } from '../hooks/useDeliveryLocation'
 import { NotificationBell } from './NotificationBell'
 import BottomCartBar from './BottomCartBar'
 import WishlistDrawer from './WishlistDrawer'
@@ -38,6 +41,8 @@ import {
   FiHome,
   FiGrid,
   FiStar,
+  FiNavigation,
+  FiCheck,
   FiShield,
   FiRefreshCw,
   FiDollarSign,
@@ -80,9 +85,19 @@ export default function Navbar({
   const navigate = useNavigate()
   const location = useLocation()
 
+  // Delivery Location Hook
+  const {
+    location: userDeliveryLocation,
+    detectLocation,
+    isLoading: isDetectingLocation,
+    error: locationError,
+    selectManualLocation,
+  } = useDeliveryLocation()
+
   // State: Customer Auth & Data
-  const [customer, setCustomer] = useState(null)
+  const [customer, setCustomer] = useState(() => (getCustomerToken() ? getStoredCustomer() : null))
   const [customerAddress, setCustomerAddress] = useState(null)
+  const [savedAddresses, setSavedAddresses] = useState([])
   const [cartCount, setCartCount] = useState(() => getCartCount())
   const [cartSubtotal, setCartSubtotal] = useState(() => getCartSubtotal())
   const [wishlistCount, setWishlistCount] = useState(() => getWishlistIds().length)
@@ -311,43 +326,112 @@ export default function Navbar({
     setLocalSearch(searchQuery)
   }, [searchQuery])
 
-  // Customer authentication from backend (JWT is truth)
+  // Customer authentication from backend (JWT is truth) & live event synchronization
   useEffect(() => {
-    const token = getCustomerToken()
-    if (!token) {
-      setCustomer(null)
-      setCustomerAddress(null)
-      return
-    }
+    let mounted = true
+    let isFetchingCustomer = false
 
-    api
-      .get('/customers/me')
-      .then((res) => {
-        if (res.data?.customer) {
-          setCustomer(res.data.customer)
-          setCustomerSession(token, res.data.customer)
-          syncDeviceToken()
-          // Fetch saved customer address for location badge
-          fetchCustomerAddresses()
-            .then((addrRes) => {
-              const addresses = addrRes?.addresses || (Array.isArray(addrRes) ? addrRes : [])
-              if (addresses.length > 0) {
-                const def = addresses.find((a) => a.is_default) || addresses[0]
-                setCustomerAddress(def)
-              }
-            })
-            .catch(() => {})
-        } else {
-          clearCustomerSession()
+    const fetchFreshCustomer = () => {
+      const token = getCustomerToken()
+      if (!token) {
+        if (mounted) {
           setCustomer(null)
           setCustomerAddress(null)
+          setSavedAddresses([])
         }
-      })
-      .catch(() => {
-        clearCustomerSession()
+        return
+      }
+
+      if (isFetchingCustomer) return
+      isFetchingCustomer = true
+
+      api
+        .get('/customers/me')
+        .then((res) => {
+          if (!mounted) return
+          if (res.data?.customer) {
+            setCustomer(res.data.customer)
+            try {
+              localStorage.setItem('customer_data', JSON.stringify(res.data.customer))
+            } catch {
+              // ignore
+            }
+            syncDeviceToken()
+            // Fetch saved customer address for location badge
+            fetchCustomerAddresses()
+              .then((addrRes) => {
+                if (!mounted) return
+                const addresses = addrRes?.addresses || (Array.isArray(addrRes) ? addrRes : [])
+                setSavedAddresses(addresses)
+                if (addresses.length > 0) {
+                  const def = addresses.find((a) => a.is_default) || addresses[0]
+                  setCustomerAddress(def)
+                }
+              })
+              .catch(() => {})
+          } else {
+            setCustomer(null)
+            setCustomerAddress(null)
+            setSavedAddresses([])
+          }
+        })
+        .catch((err) => {
+          if (!mounted) return
+          if (err.response?.status === 401 || err.response?.status === 403) {
+            const currentToken = getCustomerToken()
+            if (!currentToken || isTokenExpired(currentToken)) {
+              clearCustomerSession()
+              setCustomer(null)
+              setCustomerAddress(null)
+              setSavedAddresses([])
+            }
+          }
+        })
+        .finally(() => {
+          isFetchingCustomer = false
+        })
+    }
+
+    // Initialize with stored customer cache immediately
+    const cached = getStoredCustomer()
+    if (cached && mounted) {
+      setCustomer(cached)
+    }
+
+    // Verify token & fetch fresh data from backend
+    if (getCustomerToken()) {
+      fetchFreshCustomer()
+    }
+
+    // Listen for customer login, register, profile update, or logout events
+    const handleCustomerSessionChange = (e) => {
+      if (!mounted) return
+      if (e?.detail?.customer) {
+        setCustomer(e.detail.customer)
+        syncDeviceToken()
+        fetchCustomerAddresses()
+          .then((addrRes) => {
+            if (!mounted) return
+            const addresses = addrRes?.addresses || (Array.isArray(addrRes) ? addrRes : [])
+            setSavedAddresses(addresses)
+            if (addresses.length > 0) {
+              const def = addresses.find((a) => a.is_default) || addresses[0]
+              setCustomerAddress(def)
+            }
+          })
+          .catch(() => {})
+      } else if (e?.detail?.customer === null || !getCustomerToken()) {
         setCustomer(null)
         setCustomerAddress(null)
-      })
+        setSavedAddresses([])
+      }
+    }
+
+    window.addEventListener('customer-session-changed', handleCustomerSessionChange)
+    return () => {
+      mounted = false
+      window.removeEventListener('customer-session-changed', handleCustomerSessionChange)
+    }
   }, [])
 
   // Close dropdowns on outside click
@@ -438,6 +522,11 @@ export default function Navbar({
 
   // Delivery Location display string
   const deliveryLocationDisplay = useMemo(() => {
+    if (userDeliveryLocation) {
+      if (userDeliveryLocation.shortDisplay) return userDeliveryLocation.shortDisplay
+      if (userDeliveryLocation.city && userDeliveryLocation.pincode) return `${userDeliveryLocation.city} ${userDeliveryLocation.pincode}`
+      if (userDeliveryLocation.city) return userDeliveryLocation.city
+    }
     if (customerAddress) {
       const city = customerAddress.city_district || customerAddress.city || ''
       const pin = customerAddress.pincode || ''
@@ -449,36 +538,47 @@ export default function Navbar({
       return `${storeSettings.city} ${storeSettings.pincode}`
     }
     return storeSettings?.city || 'Select Location'
-  }, [customerAddress, storeSettings])
+  }, [userDeliveryLocation, customerAddress, storeSettings])
 
   return (
-    <div className="sticky top-0 z-40 w-full shadow-md bg-white">
-      {/* 1. TOP ANNOUNCEMENT STRIP (Royal Purple & White Theme matching screenshot) */}
-      <div className="bg-[#581c87] text-white text-[11px] sm:text-xs py-1.5 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-purple-900/40">
-        <div className="w-full flex items-center justify-between gap-2">
+    <div className="sticky top-0 z-40 w-full shadow-[0_4px_20px_rgba(27,19,63,0.06)] bg-white">
+      {/* 1. TOP ANNOUNCEMENT STRIP (Tranquil Deep Purple & Soft Lavender) */}
+      <div className="bg-[#1B133F] text-white text-[11px] sm:text-xs py-2 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-[#4B2AC5]/40 select-none">
+        <div className="max-w-[1320px] mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 truncate">
-            <FiTruck className="w-3.5 h-3.5 text-white shrink-0" />
-            <span className="font-bold text-white truncate text-[11px] sm:text-xs tracking-tight">
-              Free Delivery on orders above <span className="font-black">₹{freeThreshold || 499}</span>
+            <FiTruck className="w-3.5 h-3.5 text-[#BFA2FF] shrink-0" />
+            <span className="font-sans font-medium text-white truncate text-[11px] sm:text-xs tracking-tight">
+              Free Express Delivery on orders above <span className="font-bold text-[#E9DFFF]">₹{freeThreshold || 499}</span> • 100% Farm Fresh & Genuine Groceries
             </span>
           </div>
-          <div className="hidden sm:flex items-center gap-4 text-white/95 text-[11px] sm:text-xs shrink-0 font-medium">
-            <span className="flex items-center gap-1.5">
-              <FiMapPin className="w-3.5 h-3.5 text-white shrink-0" />
-              <span>Delivering Happiness to {storeSettings?.city ? `${storeSettings.city} and nearby` : 'Jaipur and nearby'}</span>
-            </span>
-            <span className="text-white/40">|</span>
-            <span className="font-bold text-white flex items-center gap-1.5">
-              <FiPhone className="w-3 h-3 text-white shrink-0" />
+          <div className="flex items-center gap-3 text-white/90 text-[11px] sm:text-xs shrink-0 font-sans">
+            <button
+              type="button"
+              onClick={() => setIsLocationModalOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 hover:text-white transition-colors cursor-pointer bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-full"
+              title="Click to view or detect delivery location"
+            >
+              <FiMapPin className="w-3.5 h-3.5 text-[#BFA2FF] shrink-0" />
+              <span className="truncate max-w-[120px] sm:max-w-none">
+                {userDeliveryLocation?.shortDisplay
+                  ? `Delivering to ${userDeliveryLocation.shortDisplay}`
+                  : storeSettings?.city
+                  ? `Delivering to ${storeSettings.city} and nearby`
+                  : 'Delivering to Jaipur and nearby'}
+              </span>
+            </button>
+            <span className="hidden sm:inline text-white/30">|</span>
+            <span className="hidden sm:flex font-medium text-white items-center gap-1.5">
+              <FiPhone className="w-3 h-3 text-[#BFA2FF] shrink-0" />
               <span>{helplineText || '+91 98765 01234'}</span>
             </span>
           </div>
         </div>
       </div>
 
-      {/* 2. FIRST ROW: NEUMORPHISM MAIN NAVBAR */}
-      <header className="neumorph-surface border-b border-[#e9d5ff]/60">
-        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-6">
+      {/* 2. FIRST ROW: ETHEREAL GLASSMORPHIC MAIN NAVBAR */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-[#E9DFFF]">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-3 sm:gap-6">
           {/* LEFT: Logo + Location Selection */}
           <div className="flex items-center gap-3 sm:gap-5 shrink-0">
             {/* Brand Logo & Name */}
@@ -487,45 +587,48 @@ export default function Navbar({
                 <img
                   src={storeLogo}
                   alt={storeName}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover neumorph-circle group-hover:scale-105 transition-transform"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border border-[#E9DFFF] shadow-xs group-hover:scale-105 transition-transform"
                 />
               ) : (
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-white via-[#f3edf9] to-[#ede9fe] neumorph-circle flex items-center justify-center text-[#581c87] font-black text-xl font-serif shrink-0 border border-white group-hover:scale-105 transition-transform">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#FAF8FF] border border-[#E9DFFF] flex items-center justify-center text-[#6C4EFF] font-bold text-xl font-serif shrink-0 group-hover:scale-105 transition-transform shadow-xs">
                   <span>{(storeName || 'K').charAt(0)}</span>
                 </div>
               )}
               <div className="leading-tight">
                 <div className="flex items-baseline">
-                  <span className="text-lg sm:text-2xl font-black tracking-tight text-slate-900 leading-none">
-                    {storeName}
+                  <span className="font-serif text-lg sm:text-2xl font-bold tracking-tight text-[#1B133F] leading-none group-hover:text-[#6C4EFF] transition-colors">
+                    {storeName || 'KiranaBazaar'}
                   </span>
                 </div>
-                <p className="text-[8px] sm:text-[9.5px] font-black tracking-widest text-[#7c3aed] uppercase mt-0.5 truncate max-w-[140px] sm:max-w-[210px]">
+                <p className="text-[8px] sm:text-[9.5px] font-sans font-bold tracking-[0.2em] text-[#6C4EFF] uppercase mt-0.5 truncate max-w-[140px] sm:max-w-[210px]">
                   {storeTagline || 'YOUR TRUSTED NEIGHBORHOOD SUPERMARKET'}
                 </p>
               </div>
             </Link>
 
-            {/* Neumorphic Delivery Location Widget */}
+            {/* Delivery Location Widget */}
             <div className="relative" ref={locationDropdownRef}>
               <button
                 type="button"
                 onClick={() => setIsLocationModalOpen((prev) => !prev)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl neumorph-card hover:bg-white transition-all cursor-pointer text-left select-none group"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF8FF] hover:bg-white border border-[#E9DFFF] hover:border-[#BFA2FF] transition-all cursor-pointer text-left select-none group shadow-xs"
                 title="Delivery Location & Estimates"
               >
-                <div className="w-7 h-7 rounded-xl bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center shrink-0">
-                  <FiMapPin className="w-3.5 h-3.5" />
+                <div className="relative w-6 h-6 rounded-full bg-white text-[#6C4EFF] flex items-center justify-center shrink-0 border border-[#E9DFFF]">
+                  <FiMapPin className="w-3 h-3" />
+                  {userDeliveryLocation?.isGps && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-white" />
+                  )}
                 </div>
                 <div className="leading-tight">
-                  <span className="block text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-wider">
+                  <span className="block text-[8px] sm:text-[9px] font-sans font-bold text-[#666666] uppercase tracking-wider">
                     DELIVER TO
                   </span>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs sm:text-[13px] font-black text-slate-900 truncate max-w-[110px] lg:max-w-[150px]">
+                    <span className="font-sans text-xs sm:text-[13px] font-semibold text-[#1B133F] truncate max-w-[110px] lg:max-w-[150px]">
                       {deliveryLocationDisplay}
                     </span>
-                    <span className="text-[8px] text-[#7c3aed] font-bold">
+                    <span className="text-[8px] text-[#6C4EFF] font-bold">
                       ▼
                     </span>
                   </div>
@@ -534,27 +637,161 @@ export default function Navbar({
 
               {/* Location Details Popover */}
               {isLocationModalOpen && (
-                <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[var(--color-border-subtle)] p-4 z-50 animate-in fade-in zoom-in-95 duration-150 text-[var(--color-text-main)]">
-                  <div className="flex items-start justify-between pb-2 border-b border-[var(--color-border-subtle)]">
-                    <div className="flex items-center gap-2">
-                      <FiMapPin className="text-lg text-[#7c3aed]" />
-                      <div>
-                        <h4 className="text-xs font-black text-[var(--color-text-main)]">Delivery Location</h4>
-                        <p className="text-[11px] font-semibold text-[var(--color-brand)]">{deliveryLocationDisplay}</p>
+                <div className="absolute left-0 mt-2 w-80 max-w-[calc(100vw-32px)] bg-white rounded-3xl shadow-2xl border border-[#E9DFFF] p-4.5 z-50 animate-in fade-in zoom-in-95 duration-150 text-[var(--color-text-main)]">
+                  <div className="flex items-start justify-between pb-3 border-b border-[#E9DFFF]">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-[#FAF8FF] border border-[#E9DFFF] flex items-center justify-center text-[#6C4EFF] shrink-0">
+                        <FiMapPin className="text-base text-[#6C4EFF]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-black text-[#1B133F]">Delivery Location</h4>
+                        <p className="text-[11px] font-bold text-[#6C4EFF] truncate max-w-[190px]">
+                          {deliveryLocationDisplay}
+                        </p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setIsLocationModalOpen(false)}
-                      className="text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
+                      className="text-gray-400 hover:text-gray-700 text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
                     >
-                      <FiX className="w-3.5 h-3.5" />
+                      <FiX className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="mt-3 space-y-2 text-xs text-[var(--color-text-muted)]">
+                  {/* Active coordinates badge if detected via GPS */}
+                  {userDeliveryLocation?.isGps && userDeliveryLocation?.latitude && (
+                    <div className="mt-2.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-[10.5px] font-mono text-emerald-800">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <span className="font-bold">Live GPS Coordinates:</span>
+                      </div>
+                      <span>
+                        {userDeliveryLocation.latitude.toFixed(4)}, {userDeliveryLocation.longitude.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* DETECT CURRENT LOCATION BUTTON */}
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      disabled={isDetectingLocation}
+                      onClick={async () => {
+                        try {
+                          await detectLocation()
+                        } catch (e) {
+                          // error handled in hook
+                        }
+                      }}
+                      className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-[#6C4EFF] to-[#4B2AC5] hover:from-[#5A3EE0] hover:to-[#3F22AA] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-60"
+                    >
+                      {isDetectingLocation ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                          </svg>
+                          <span>Detecting GPS Location...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiNavigation className="w-3.5 h-3.5" />
+                          <span>Detect Current Location</span>
+                        </>
+                      )}
+                    </button>
+
+                    {locationError && (
+                      <p className="text-[10px] text-red-500 mt-1.5 px-1 leading-tight">
+                        {locationError}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* SAVED CUSTOMER ADDRESSES QUICK PICKER */}
+                  {customer && savedAddresses.length > 0 && (
+                    <div className="mt-3 pt-2.5 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#666666]">
+                          Saved Addresses
+                        </span>
+                        <Link
+                          to={ROUTES.PROFILE}
+                          onClick={() => setIsLocationModalOpen(false)}
+                          className="text-[10px] font-bold text-[#6C4EFF] hover:underline"
+                        >
+                          Manage
+                        </Link>
+                      </div>
+
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">
+                        {savedAddresses.slice(0, 3).map((addr) => {
+                          const isSelected =
+                            userDeliveryLocation?.streetAddress === addr.line1 ||
+                            (!userDeliveryLocation && customerAddress?.id === addr.id)
+                          return (
+                            <button
+                              key={addr.id}
+                              type="button"
+                              onClick={() => {
+                                selectManualLocation({
+                                  latitude: null,
+                                  longitude: null,
+                                  city: addr.city_district || addr.city,
+                                  state: addr.state,
+                                  pincode: addr.pincode,
+                                  streetAddress: addr.line1,
+                                  formattedAddress: [addr.line1, addr.line2, addr.city_district, addr.state, addr.pincode]
+                                    .filter(Boolean)
+                                    .join(', '),
+                                  displayTitle: addr.address_type || 'Saved Address',
+                                  displaySubtitle: `${addr.city_district || addr.city} ${addr.pincode}`,
+                                  shortDisplay: `${addr.city_district || addr.city} ${addr.pincode}`,
+                                  isGps: false,
+                                })
+                                setCustomerAddress(addr)
+                                setIsLocationModalOpen(false)
+                              }}
+                              className={`w-full text-left p-2 rounded-xl border text-xs transition-all flex items-start gap-2 cursor-pointer ${
+                                isSelected
+                                  ? 'border-[#6C4EFF] bg-[#FAF8FF]'
+                                  : 'border-gray-100 hover:border-[#E9DFFF] hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="mt-0.5 shrink-0">
+                                {isSelected ? (
+                                  <FiCheck className="w-3.5 h-3.5 text-[#6C4EFF]" />
+                                ) : (
+                                  <FiMapPin className="w-3.5 h-3.5 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-bold text-[11px] text-[#1B133F]">
+                                    {addr.address_type || 'Address'}
+                                  </span>
+                                  {addr.is_default ? (
+                                    <span className="text-[9px] font-bold bg-[#E9DFFF] text-[#6C4EFF] px-1.5 py-0.2 rounded-full">
+                                      Default
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="text-[10px] text-gray-500 truncate">
+                                  {addr.line1}, {addr.city_district || addr.city} {addr.pincode}
+                                </p>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Delivery Timeline and Shipping info */}
+                  <div className="mt-3 space-y-1.5 text-xs text-[var(--color-text-muted)] pt-2 border-t border-gray-100">
                     <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)]">
-                      <FiTruck className="text-base text-[#7c3aed]" />
+                      <FiTruck className="text-sm text-[#7c3aed] shrink-0" />
                       <div>
                         <p className="font-bold text-[var(--color-text-main)] text-[11px]">Estimated Timeline</p>
                         <p className="text-[10px] text-[var(--color-text-muted)]">{estDeliveryText}</p>
@@ -563,10 +800,12 @@ export default function Navbar({
 
                     {freeThreshold !== null && freeThreshold > 0 && (
                       <div className="flex items-center gap-2 p-2 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)]">
-                        <LuSparkles className="text-base text-[#7c3aed]" />
+                        <LuSparkles className="text-sm text-[#7c3aed] shrink-0" />
                         <div>
                           <p className="font-bold text-[var(--color-text-main)] text-[11px]">Free Shipping</p>
-                          <p className="text-[10px] text-[var(--color-text-muted)]">Eligible on orders above ₹{freeThreshold}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">
+                            Eligible on orders above ₹{freeThreshold}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -596,11 +835,11 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* CENTER: JioMart-Style Wide Search Bar (Desktop / Tablet) */}
+          {/* CENTER: Wide Grocery Search Bar (Desktop / Tablet) */}
           <div className="flex-1 max-w-2xl mx-2 lg:mx-6 hidden md:block" ref={searchContainerRef}>
             <form onSubmit={handleSearchSubmit} className="relative">
-              <div className="relative flex items-center h-10 sm:h-11 rounded-full neumorph-inset bg-white px-3.5">
-                <FiSearch className="w-4.5 h-4.5 text-[#7c3aed] shrink-0 mr-2" />
+              <div className="relative flex items-center h-11 rounded-full border border-[#E9DFFF] focus-within:border-[#6C4EFF] bg-[#FAF8FF] focus-within:bg-white px-4 transition-all shadow-xs">
+                <FiSearch className="w-4 h-4 text-[#6C4EFF] shrink-0 mr-2.5" />
 
                 <input
                   type="text"
@@ -610,8 +849,8 @@ export default function Navbar({
                     setLocalSearch(e.target.value)
                     if (onSearchChange) onSearchChange(e.target.value)
                   }}
-                  placeholder="Search for products, groceries, daily essentials..."
-                  className="w-full h-full bg-transparent border-none pl-1 pr-24 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
+                  placeholder="Search fresh fruits, vegetables, dairy, pulses, snacks..."
+                  className="w-full h-full bg-transparent border-none pl-1 pr-24 text-xs font-sans font-medium text-[#1B133F] placeholder-[#666666]/60 focus:outline-none"
                 />
 
                 {localSearch && (
@@ -621,7 +860,7 @@ export default function Navbar({
                       setLocalSearch('')
                       if (onSearchChange) onSearchChange('')
                     }}
-                    className="absolute right-24 text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 cursor-pointer"
+                    className="absolute right-24 text-gray-400 hover:text-gray-700 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer"
                     title="Clear search"
                   >
                     <FiX className="w-3.5 h-3.5" />
@@ -630,7 +869,7 @@ export default function Navbar({
 
                 <button
                   type="submit"
-                  className="absolute right-1 top-1 bottom-1 px-5 rounded-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs font-black tracking-wide transition-all shadow-[2px_2px_6px_rgba(124,58,237,0.3)] cursor-pointer flex items-center justify-center active:scale-95"
+                  className="absolute right-1 top-1 bottom-1 px-5 rounded-full bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white text-xs font-sans font-semibold tracking-wide transition-all shadow-[0_2px_10px_rgba(108,78,255,0.3)] cursor-pointer flex items-center justify-center active:scale-95"
                 >
                   Search
                 </button>
@@ -744,30 +983,30 @@ export default function Navbar({
             </form>
           </div>
 
-          {/* RIGHT: Standalone Neumorphic Icons (Offers, Wishlist, Cart, Account, Mobile Toggle) */}
+          {/* RIGHT: Standalone Luxury Circular Action Icons (Offers, Wishlist, Cart, Account, Mobile Toggle) */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* 1. Offers / Rewards Standalone Button */}
             <button
               type="button"
               onClick={onOpenReferral || (() => navigate(ROUTES.PRODUCTS_BY_SECTION('deals')))}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer select-none"
+              className="w-10 h-10 rounded-full bg-[#FAF8FF] hover:bg-white border border-[#E9DFFF] hover:border-[#6C4EFF] text-[#6C4EFF] hover:text-[#4B2AC5] transition-all duration-200 cursor-pointer select-none flex items-center justify-center shadow-xs hover:shadow-sm"
               title="Offers & Discounts"
               aria-label="Offers and Discounts"
             >
-              <span className="font-black text-xs leading-none">%</span>
+              <span className="font-bold text-xs leading-none">%</span>
             </button>
 
             {/* 2. Standalone Wishlist Icon with Live Count Badge (Opens Slide-out Drawer) */}
             <button
               type="button"
               onClick={() => setIsWishlistOpen(true)}
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer group"
+              className="relative w-10 h-10 rounded-full bg-[#FAF8FF] hover:bg-white border border-[#E9DFFF] hover:border-[#6C4EFF] text-[#6C4EFF] hover:text-[#4B2AC5] transition-all duration-200 cursor-pointer group flex items-center justify-center shadow-xs hover:shadow-sm"
               title="Saved Wishlist"
               aria-label="Saved Wishlist"
             >
-              <FiHeart className="w-5 h-5 transition-transform group-hover:scale-105" />
+              <FiHeart className="w-4.5 h-4.5 transition-transform group-hover:scale-110" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#7c3aed] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#6C4EFF] text-white text-[10px] font-sans font-bold rounded-full flex items-center justify-center shadow-xs leading-none">
                   {wishlistCount}
                 </span>
               )}
@@ -777,13 +1016,13 @@ export default function Navbar({
             <button
               type="button"
               onClick={handleCartClick}
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer group select-none"
+              className="relative w-10 h-10 rounded-full bg-[#FAF8FF] hover:bg-white border border-[#E9DFFF] hover:border-[#6C4EFF] text-[#6C4EFF] hover:text-[#4B2AC5] transition-all duration-200 cursor-pointer group select-none flex items-center justify-center shadow-xs hover:shadow-sm"
               title="Shopping Cart"
               aria-label="Shopping Cart"
             >
-              <FiShoppingCart className="w-5 h-5 transition-transform group-hover:scale-105" />
+              <FiShoppingCart className="w-4.5 h-4.5 transition-transform group-hover:scale-110" />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#7c3aed] text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs leading-none">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#6C4EFF] text-white text-[10px] font-sans font-bold rounded-full flex items-center justify-center shadow-xs leading-none">
                   {cartCount}
                 </span>
               )}
@@ -798,7 +1037,7 @@ export default function Navbar({
                 <button
                   type="button"
                   onClick={() => setIsAccountDropdownOpen((prev) => !prev)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer select-none"
+                  className="w-10 h-10 rounded-full bg-[#FAF8FF] hover:bg-white border border-[#E9DFFF] hover:border-[#6C4EFF] text-[#6C4EFF] hover:text-[#4B2AC5] transition-all duration-200 cursor-pointer select-none flex items-center justify-center shadow-xs hover:shadow-sm"
                   title={`Account (${customer.name || 'Customer'})`}
                   aria-label="Customer Account Menu"
                 >
@@ -897,11 +1136,11 @@ export default function Navbar({
             ) : (
               <Link
                 to={ROUTES.LOGIN}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full neumorph-circle flex items-center justify-center text-[#7c3aed] hover:text-[#581c87] transition-all cursor-pointer select-none"
+                className="w-10 h-10 rounded-full bg-[#FAF8FF] hover:bg-white border border-[#E9DFFF] hover:border-[#6C4EFF] text-[#6C4EFF] hover:text-[#4B2AC5] transition-all duration-200 cursor-pointer select-none flex items-center justify-center shadow-xs hover:shadow-sm"
                 title="Customer Sign In"
                 aria-label="Customer Sign In"
               >
-                <FiUser className="w-5 h-5" />
+                <FiUser className="w-4.5 h-4.5" />
               </Link>
             )}
 
@@ -936,7 +1175,7 @@ export default function Navbar({
                 setLocalSearch(e.target.value)
                 if (onSearchChange) onSearchChange(e.target.value)
               }}
-              placeholder="Search products, jewellery, gifts..."
+              placeholder="Search fresh fruits, vegetables, dairy, groceries..."
               className="w-full h-10 pl-10 pr-9 rounded-full bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand)] focus:bg-white focus:ring-1 focus:ring-[var(--color-brand)]/20 transition-all"
             />
             <button
@@ -964,20 +1203,20 @@ export default function Navbar({
           </form>
         </div>
 
-        {/* 3. SECOND ROW: JIOMART HORIZONTAL NAVIGATION ROW (Navigation on left, All Categories on far right) */}
-        <nav className="hidden md:block bg-white text-[var(--color-text-main)] border-t border-[var(--color-border-subtle)] shadow-xs relative z-30">
-          <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 flex items-center justify-between py-1.5 sm:py-2">
+        {/* 3. SECOND ROW: LUXURY GROCERY STORE HORIZONTAL NAVIGATION ROW */}
+        <nav className="hidden md:block bg-white text-[#1B133F] border-t border-[#E9DFFF] shadow-xs relative z-30 select-none">
+          <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between py-2 sm:py-2.5">
             {/* LEFT: Shop by Category Button + Links */}
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 text-xs font-bold flex-wrap">
-              {/* Black "Shop by Category" Button */}
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 text-xs font-semibold flex-wrap">
+              {/* Luxury Purple "Shop by Category" Pill Button */}
               <button
                 ref={allCategoriesBtnRef}
                 type="button"
                 onClick={() => setIsMegaMenuOpen((prev) => !prev)}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-2 cursor-pointer font-bold shadow-2xs select-none text-xs ${
+                className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 cursor-pointer font-sans font-semibold shadow-xs select-none text-xs ${
                   isMegaMenuOpen
-                    ? 'bg-neutral-900 text-white shadow-xs'
-                    : 'bg-black hover:bg-neutral-800 text-white'
+                    ? 'bg-[#4B2AC5] text-white shadow-sm'
+                    : 'bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white shadow-[0_2px_10px_rgba(108,78,255,0.3)]'
                 }`}
                 aria-haspopup="true"
                 aria-expanded={isMegaMenuOpen}
@@ -1005,10 +1244,10 @@ export default function Navbar({
               {/* Home */}
               <Link
                 to={ROUTES.HOME}
-                className={`px-2.5 py-1.5 rounded-lg transition-all text-xs font-semibold ${
+                className={`px-3.5 py-1.5 rounded-full transition-all text-xs font-sans ${
                   location.pathname === '/' && activeNav === 'home'
-                    ? 'text-black font-extrabold bg-[#ede9fe]'
-                    : 'text-slate-800 hover:text-black hover:bg-[#f5f3ff]'
+                    ? 'text-[#6C4EFF] font-bold bg-[#FAF8FF] border border-[#E9DFFF]'
+                    : 'text-[#1B133F] hover:text-[#6C4EFF] hover:bg-[#FAF8FF]'
                 }`}
               >
                 Home
@@ -1017,31 +1256,31 @@ export default function Navbar({
               {/* Categories */}
               <Link
                 to={ROUTES.PRODUCTS}
-                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-full text-[#1B133F] hover:text-[#6C4EFF] hover:bg-[#FAF8FF] transition-all text-xs font-sans font-medium"
               >
-                Categories
+                All Groceries
               </Link>
 
               {/* Offers */}
               <Link
                 to={ROUTES.PRODUCTS_BY_SECTION('deals')}
-                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-full text-[#1B133F] hover:text-[#6C4EFF] hover:bg-[#FAF8FF] transition-all text-xs font-sans font-medium"
               >
-                Offers
+                Top Offers
               </Link>
 
               {/* Combo Store */}
               <Link
                 to={ROUTES.PRODUCTS_BY_CATEGORY(8)}
-                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-full text-[#1B133F] hover:text-[#6C4EFF] hover:bg-[#FAF8FF] transition-all text-xs font-sans font-medium"
               >
-                Combo Store
+                Combos & Packs
               </Link>
 
               {/* Best Sellers */}
               <Link
                 to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')}
-                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-full text-[#1B133F] hover:text-[#6C4EFF] hover:bg-[#FAF8FF] transition-all text-xs font-sans font-medium"
               >
                 Best Sellers
               </Link>
@@ -1049,14 +1288,14 @@ export default function Navbar({
               {/* New Arrivals */}
               <Link
                 to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')}
-                className="px-2.5 py-1.5 rounded-lg text-slate-800 hover:text-black hover:bg-[#f5f3ff] transition-all text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-full text-[#1B133F] hover:text-[#6C4EFF] hover:bg-[#FAF8FF] transition-all text-xs font-sans font-medium"
               >
                 New Arrivals
               </Link>
             </div>
 
-            {/* RIGHT: WhatsApp Support */}
-            <div className="shrink-0 flex items-center gap-2 text-xs text-slate-600 font-semibold">
+            {/* RIGHT: WhatsApp Customer Support */}
+            <div className="shrink-0 flex items-center gap-2 text-xs text-[#666666] font-sans font-medium">
               <a
                 href={whatsappUrl}
                 target="_blank"

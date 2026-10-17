@@ -209,8 +209,8 @@ export function CouponsPage() {
         setSuccessMessage(`Coupon "${code}" updated successfully.`)
       } else {
         payload.code = code
-        await api.post('/coupons', payload)
-        setSuccessMessage(`Coupon "${code}" created successfully.`)
+        const res = await api.post('/coupons', payload)
+        setSuccessMessage(res.data?.message || `Coupon "${code}" created successfully and push notification sent to customers.`)
       }
 
       handleCloseModal()
@@ -619,6 +619,15 @@ export function CouponsPage() {
                 Combine with Referral Reward
               </label>
             </div>
+
+            {editingCouponId === null && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+                <span>🔔</span>
+                <span className="font-semibold">
+                  A push notification with coupon code & discount will automatically be sent to customer devices when this coupon is created.
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <Button type="button" variant="secondary" onClick={handleCloseModal}>

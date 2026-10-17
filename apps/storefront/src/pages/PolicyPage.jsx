@@ -99,9 +99,9 @@ export default function PolicyPage() {
         </main>
       </div>
 
-      <footer className="bg-white text-[var(--color-text-muted)] py-8 border-t border-[var(--color-border-subtle)] mt-12">
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 text-center text-xs">
-          <p>© {new Date().getFullYear()} {storeSettings?.store_name || 'Qynova'}. All rights reserved.</p>
+      <footer className="bg-black text-white py-8 border-t border-zinc-800 mt-12">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 text-center text-xs text-zinc-400">
+          <p>© {new Date().getFullYear()} {storeSettings?.store_name || 'Store'}. All rights reserved.</p>
         </div>
       </footer>
 

@@ -8,7 +8,11 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\BroadcastService;
 use App\Services\CouponService;
+use App\Services\DeviceTokenService;
+use App\Services\FcmSenderService;
+use App\Services\NotificationService;
 use PDO;
 use RuntimeException;
 
@@ -45,9 +49,56 @@ final class CouponController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'coupons.manage');
 
+        $input = Request::json();
         try {
-            $id = (new CouponService($this->pdo))->create(Request::json());
-            Response::json(['id' => $id], 201);
+            $id = (new CouponService($this->pdo))->create($input);
+
+            // Automatically dispatch push notification to customers for new coupon
+            try {
+                $code = strtoupper(trim((string) ($input['code'] ?? '')));
+                $name = trim((string) ($input['name'] ?? ''));
+                $discountType = (string) ($input['discount_type'] ?? 'PERCENTAGE');
+                $discountVal = (float) ($input['discount_value'] ?? 0);
+                $minOrder = !empty($input['min_order_amount']) ? (float) $input['min_order_amount'] : null;
+
+                $discountStr = $discountType === 'PERCENTAGE'
+                    ? "{$discountVal}% OFF"
+                    : "Flat ₹{$discountVal} OFF";
+
+                $notifyTitle = "🎟️ New Coupon: {$code} ({$discountStr})";
+                $notifyBody = "Use code {$code} for {$discountStr}" . ($minOrder ? " on orders above ₹{$minOrder}" : "") . "! " . (!empty($input['description']) ? $input['description'] : ($name ?: 'Limited time grocery coupon.'));
+
+                $targetCustomerIds = !empty($input['customer_ids']) && is_array($input['customer_ids'])
+                    ? array_map('intval', $input['customer_ids'])
+                    : [];
+
+                $notifications = new NotificationService($this->pdo);
+                $deviceTokens = new DeviceTokenService($this->pdo);
+                $fcm = new FcmSenderService($deviceTokens);
+                $broadcastService = new BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+
+                $broadcastService->sendToCustomers(
+                    title: $notifyTitle,
+                    body: $notifyBody,
+                    sentByUserId: (int) ($claims['sub'] ?? 1),
+                    targetCustomerIds: $targetCustomerIds,
+                    type: 'COUPON',
+                    data: [
+                        'type' => 'COUPON',
+                        'reference_type' => 'COUPON',
+                        'reference_id' => (string) $id,
+                        'code' => $code,
+                        'url' => '/products',
+                        'click_action' => '/products',
+                    ],
+                    referenceType: 'COUPON',
+                    referenceId: $id,
+                );
+            } catch (\Throwable $ne) {
+                error_log('CouponController: push notification failed: ' . $ne->getMessage());
+            }
+
+            Response::json(['id' => $id, 'message' => 'Coupon created successfully and push notification sent to customers'], 201);
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }

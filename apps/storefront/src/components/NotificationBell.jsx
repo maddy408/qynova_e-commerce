@@ -17,6 +17,11 @@ function timeAgo(iso) {
 
 function targetPathFor(n) {
   if (n.reference_type === 'ORDER' && n.reference_id) return `/orders/${n.reference_id}`
+  const data = typeof n.data === 'string' ? JSON.parse(n.data || '{}') : (n.data || {})
+  if (data?.click_action || data?.url) return data.click_action || data.url
+  if (n.type === 'OFFER' || n.reference_type === 'TOP_OFFER' || n.type === 'COUPON' || n.reference_type === 'COUPON') {
+    return '/products'
+  }
   return null
 }
 

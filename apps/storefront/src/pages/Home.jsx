@@ -304,13 +304,13 @@ export default function Home() {
           isLoading={isBannersLoading}
         />
 
-        {/* 5. BEST SELLING PRODUCTS (100% Width Carousel from MySQL Database) */}
+        {/* 5. BEST SELLING PRODUCTS (1320px Container, 4-Col Desktop Rhythm) */}
         <HorizontalProductSection
           id="best-sellers-section"
           badgeText="BEST SELLERS"
-          badgeBg="bg-[#ede9fe] text-[#6d28d9]"
+          badgeBg="bg-[#FAF8FF] text-[#6C4EFF] border border-[#E9DFFF]"
           title="Best Selling Products"
-          subtitle="Top rated groceries and customer favourites"
+          subtitle="Top rated groceries and customer favourites at unbeatable prices"
           products={bestSellers}
           viewAllLink="/products?section=best_sellers"
           isLoading={isLoadingSections}
@@ -319,12 +319,12 @@ export default function Home() {
           onAddToCart={handleAddToCart}
         />
 
-        {/* 5.5. MOST LOVED BRANDS (Top Brands from Database via PHP API) */}
+        {/* 6. MOST LOVED BRANDS (Top Brands from Database via PHP API) */}
         <TopBrandsSection
           brands={topBrands}
           isLoading={isTopBrandsLoading}
           title="Most Loved Brands"
-          subtitle="Top verified brands with exclusive offers"
+          subtitle="Top verified brands with exclusive offers and daily savings"
         />
 
         {/* 6. DYNAMIC DATABASE-DRIVEN HOME SECTIONS (Configured in MySQL home_sections) */}

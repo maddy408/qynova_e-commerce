@@ -2,16 +2,17 @@ import React, { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import ProductCard from './ProductCard'
 import { ROUTES } from '../routes/routes'
+import { FiChevronLeft, FiChevronRight, FiArrowRight } from 'react-icons/fi'
 
 export default function HorizontalProductSection({
   title,
   subtitle,
-  badgeText,
-  badgeBg = 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]',
+  badgeText = 'CURATED COLLECTION',
+  badgeBg,
   products = [],
   viewAllLink,
   isLoading = false,
-  emptyMessage = 'No products available right now.',
+  emptyMessage = 'No products available at the moment.',
   wishlistIds = [],
   onToggleWishlist,
   onAddToCart,
@@ -23,12 +24,12 @@ export default function HorizontalProductSection({
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
-  // Check scroll boundary to disable/hide arrows
+  // Scroll boundary check
   const checkScrollBounds = () => {
     if (!scrollRef.current) return
     const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
-    setCanScrollLeft(scrollLeft > 8)
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 8)
+    setCanScrollLeft(scrollLeft > 10)
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10)
   }
 
   useEffect(() => {
@@ -45,19 +46,23 @@ export default function HorizontalProductSection({
     }
   }, [products, isLoading])
 
-  // Desktop Carousel Scroll Handler
+  // Desktop Carousel Scroll Handler: scrolls by ~1 card width (4 cards per row on desktop)
   const handleScroll = (direction) => {
     if (!scrollRef.current) return
-    const scrollAmount = scrollRef.current.clientWidth * 0.75
+    const cardWidth = scrollRef.current.clientWidth >= 1024
+      ? scrollRef.current.clientWidth / 4
+      : scrollRef.current.clientWidth >= 768
+      ? scrollRef.current.clientWidth / 3
+      : scrollRef.current.clientWidth / 2
+    const scrollAmount = cardWidth * (direction === 'left' ? -1 : 1)
     scrollRef.current.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      left: scrollAmount,
       behavior: 'smooth',
     })
   }
 
   const hasProducts = Array.isArray(products) && products.length > 0
 
-  // Gracefully hide section if no products are available in MySQL for this section
   if (!isLoading && !hasProducts) {
     return null
   }
@@ -65,137 +70,148 @@ export default function HorizontalProductSection({
   return (
     <section
       id={id}
-      className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 overflow-hidden relative"
-      style={backgroundImage ? {
-        backgroundImage: `linear-gradient(var(--gradient-surface-scrim)), url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      } : undefined}
+      className="w-full py-16 sm:py-20 lg:py-28 overflow-hidden relative bg-[#FAF8FF] border-b border-[#E9DFFF]/60"
+      style={
+        backgroundImage
+          ? {
+              backgroundImage: `linear-gradient(rgba(250, 248, 255, 0.94), rgba(250, 248, 255, 0.98)), url(${backgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }
+          : undefined
+      }
     >
-      
-      {/* 1. SECTION HEADER: Title, Subtitle, Carousel Arrows & View All */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4 sm:mb-5">
-        <div>
-          {badgeText && (
-            <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
-              <span className={`px-2.5 py-0.5 rounded-full ${badgeBg}`}>
-                {badgeText}
-              </span>
-            </div>
-          )}
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
-            {title}
-          </h2>
-          {subtitle && (
-            <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-0.5">
-              {subtitle}
+      {/* Centered Luxury 1320px Main Container */}
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* 1. SECTION HEADER: Eyebrow (~12px) -> Heading (~16px) -> Subtitle (~40-48px before grid) */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-12">
+          <div className="max-w-2xl">
+            {/* Eyebrow Label: approximately 13px, uppercase, bold, letter spacing 0.2em */}
+            {badgeText && (
+              <div className="mb-3">
+                <span className="text-[13px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] inline-block">
+                  {badgeText}
+                </span>
+              </div>
+            )}
+
+            {/* Section Heading: approximately 46px desktop, Playfair Display, #1B133F */}
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-[46px] font-bold text-[#1B133F] tracking-tight leading-[1.15] mb-4">
+              {title}
+            </h2>
+
+            {/* Subtitle: Inter 16-18px, #666666, readable width roughly 640px */}
+            {subtitle && (
+              <p className="font-sans text-base sm:text-[17px] text-[#666666] leading-[1.6] max-w-[640px]">
+                {subtitle}
+              </p>
+            )}
+          </div>
+
+          {/* Right Action Controls: Carousel Arrows + View All Link (16-24px between controls) */}
+          <div className="flex items-center gap-3 sm:gap-4 self-start md:self-end shrink-0">
+            {/* Desktop Left/Right Carousel Controls */}
+            {hasProducts && products.length > 3 && (
+              <div className="hidden sm:flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleScroll('left')}
+                  disabled={!canScrollLeft}
+                  aria-label={`Scroll ${title} left`}
+                  className={`w-11 h-11 rounded-full border border-[#E9DFFF] flex items-center justify-center transition-all ${
+                    canScrollLeft
+                      ? 'bg-white hover:bg-[#F3EDFF] text-[#1B133F] hover:text-[#6C4EFF] shadow-xs cursor-pointer hover:border-[#BFA2FF] active:scale-95'
+                      : 'bg-white/50 text-[#666666]/40 border-[#E9DFFF]/60 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <FiChevronLeft className="w-5 h-5 stroke-[2.2]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleScroll('right')}
+                  disabled={!canScrollRight}
+                  aria-label={`Scroll ${title} right`}
+                  className={`w-11 h-11 rounded-full border border-[#E9DFFF] flex items-center justify-center transition-all ${
+                    canScrollRight
+                      ? 'bg-white hover:bg-[#F3EDFF] text-[#1B133F] hover:text-[#6C4EFF] shadow-xs cursor-pointer hover:border-[#BFA2FF] active:scale-95'
+                      : 'bg-white/50 text-[#666666]/40 border-[#E9DFFF]/60 cursor-not-allowed opacity-50'
+                  }`}
+                >
+                  <FiChevronRight className="w-5 h-5 stroke-[2.2]" />
+                </button>
+              </div>
+            )}
+
+            {/* View All Link */}
+            {viewAllLink && (
+              <Link
+                to={viewAllLink}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#F3EDFF] text-[#6C4EFF] hover:text-[#4B2AC5] border border-[#E9DFFF] hover:border-[#BFA2FF] font-sans text-xs sm:text-sm font-semibold tracking-wide transition-all shadow-xs cursor-pointer"
+              >
+                <span>Explore All</span>
+                <FiArrowRight className="w-4 h-4 stroke-[2.2]" />
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* 2. PRODUCT CAROUSEL / GRID: COMPACT 5 CARDS PER ROW (JioMart Style) */}
+        {isLoading ? (
+          /* Loading Skeletons */
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5].map((idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-xs animate-pulse space-y-2.5"
+              >
+                <div className="h-[150px] bg-gray-100 rounded-xl w-full" />
+                <div className="flex justify-between items-center pt-1">
+                  <div className="h-3 bg-gray-100 rounded w-1/3" />
+                  <div className="h-6 bg-gray-100 rounded w-12" />
+                </div>
+                <div className="h-4 bg-gray-100 rounded w-1/2" />
+                <div className="h-3 bg-gray-100 rounded w-full" />
+              </div>
+            ))}
+          </div>
+        ) : !hasProducts ? (
+          /* Empty State */
+          <div className="py-12 text-center bg-white rounded-2xl border border-gray-200 p-8 space-y-2">
+            <p className="font-sans text-sm font-medium text-gray-500">
+              {emptyMessage}
             </p>
-          )}
-        </div>
-
-        {/* Right Action Bar: Carousel Arrows + View All Link */}
-        <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
-          {/* Desktop Left/Right Carousel Controls */}
-          {hasProducts && (
-            <div className="hidden sm:flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleScroll('left')}
-                disabled={!canScrollLeft}
-                aria-label={`Scroll ${title} left`}
-                className={`w-9 h-9 rounded-full border border-[var(--color-border-subtle)] flex items-center justify-center transition-all ${
-                  canScrollLeft
-                    ? 'bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] shadow-sm cursor-pointer hover:border-[var(--color-brand)] active:scale-95'
-                    : 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/40 border-[var(--color-border-subtle)] cursor-not-allowed opacity-50'
-                }`}
+          </div>
+        ) : (
+          /* Responsive Product Track: 5 columns desktop (lg), 4 tablet (md), 2-3 mobile (sm) */
+          <div
+            ref={scrollRef}
+            className="flex flex-nowrap overflow-x-auto scroll-smooth no-scrollbar gap-3 sm:gap-4 lg:gap-4.5 py-2 px-1 select-none"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {products.map((product) => (
+              <div
+                key={product.id}
+                className="w-[165px] sm:w-[185px] md:w-[205px] lg:w-[218px] xl:w-[230px] shrink-0"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+                <ProductCard
+                  product={product}
+                  isWishlist={wishlistIds.includes(product.id)}
+                  onToggleWishlist={onToggleWishlist}
+                  onAddToCart={onAddToCart}
+                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product.id))}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
-              <button
-                type="button"
-                onClick={() => handleScroll('right')}
-                disabled={!canScrollRight}
-                aria-label={`Scroll ${title} right`}
-                className={`w-9 h-9 rounded-full border border-[var(--color-border-subtle)] flex items-center justify-center transition-all ${
-                  canScrollRight
-                    ? 'bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] shadow-sm cursor-pointer hover:border-[var(--color-brand)] active:scale-95'
-                    : 'bg-[var(--color-bg-main)] text-[var(--color-text-muted)]/40 border-[var(--color-border-subtle)] cursor-not-allowed opacity-50'
-                }`}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          )}
-
-          {/* View All Button (Only shown if section has destination and products/loading) */}
-          {viewAllLink && (hasProducts || isLoading) && (
-            <Link
-              to={viewAllLink}
-              className="inline-flex items-center gap-1 text-xs font-black text-[var(--color-brand)] hover:text-[var(--color-brand-hover)] hover:underline px-3 py-1.5 rounded-full hover:bg-[var(--color-primary-tint)] transition-colors shrink-0"
-            >
-              <span>View All</span>
-              <span className="text-sm">→</span>
-            </Link>
-          )}
-        </div>
       </div>
-
-      {/* 2. PRODUCT CAROUSEL TRACK (Strictly ONE horizontal row, no page overflow) */}
-      {isLoading ? (
-        /* Loading Skeleton */
-        <div className="flex gap-3.5 sm:gap-4 overflow-hidden py-2">
-          {[1, 2, 3, 4, 5, 6].map((idx) => (
-            <div
-              key={idx}
-              className="w-[calc(50%-8px)] min-w-[155px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0 bg-white rounded-2xl p-3 border border-[var(--color-border-subtle)] animate-pulse space-y-3"
-            >
-              <div className="bg-[var(--color-primary-tint)]/60 aspect-square rounded-xl w-full" />
-              <div className="h-3 bg-[var(--color-primary-tint)]/70 rounded w-2/3" />
-              <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-full" />
-              <div className="h-4 bg-[var(--color-primary-tint)]/70 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : !hasProducts ? (
-        /* Empty State */
-        <div className="py-8 text-center bg-[var(--color-bg-main)] rounded-2xl border border-[var(--color-border-subtle)] p-6 space-y-2">
-          <p className="text-sm font-bold text-[var(--color-text-muted)]">
-            {emptyMessage}
-          </p>
-        </div>
-      ) : (
-        /* Products in ONE Horizontal Scrollable Row */
-        <div
-          ref={scrollRef}
-          className="flex flex-nowrap overflow-x-auto scroll-smooth no-scrollbar gap-3 sm:gap-4 py-2 px-0.5 select-none"
-          style={{
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="w-[calc(50%-8px)] min-w-[155px] max-w-[210px] sm:w-[210px] md:w-[220px] lg:w-[230px] shrink-0"
-            >
-              <ProductCard
-                product={product}
-                isWishlist={wishlistIds.includes(product.id)}
-                onToggleWishlist={onToggleWishlist}
-                onAddToCart={onAddToCart}
-                onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product.id))}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
     </section>
   )
 }

@@ -1,138 +1,108 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #0F172A;
-  --brand-burgundy: #000000;
-  --brand-burgundy-hover: #262626;
-  --brand-hover: #F5F3FF;
+  /* KiranaBazaar — Editorial Grocery Supermarket Color System */
+  --primary-purple: #6C4EFF;
+  --deep-purple: #4B2AC5;
+  --lavender: #BFA2FF;
+  --soft-lavender: #E9DFFF;
+  --background: #FAF8FF;
+  --card-background: #FFFFFF;
+  --heading-text: #1B133F;
+  --body-text: #666666;
+  --accent-gold: #FFB800;
+
+  /* Semantic Core Variables */
+  --foreground: #1B133F;
   --surface-card: #FFFFFF;
-  --text-main: #0F172A;
-  --text-muted: #64748B;
-  --bg-main: #FFFFFF;
-  --bg-alt: #FAF5FF;
-  --border-subtle: #E9D5FF;
+  --text-main: #1B133F;
+  --text-muted: #666666;
+  --bg-main: #FAF8FF;
+  --bg-alt: #F3EDFF;
+  --border-subtle: #E9DFFF;
+  --brand-burgundy: #6C4EFF;
+  --brand-burgundy-hover: #4B2AC5;
+  --brand-hover: #F3EDFF;
 }
 
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* Font Families: Playfair Display (Luxury Editorial Serif) & Inter (Clean UI Sans) */
+  --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Modern Black Button & Pastel Purple Brand Tokens */
-  --color-burgundy: #000000;
-  --color-burgundy-hover: #262626;
-  --color-burgundy-light: #F5F3FF;
+  /* KiranaBazaar Editorial Tokens */
+  --color-brand: #6C4EFF;
+  --color-brand-hover: #4B2AC5;
+  --color-brand-primary: #6C4EFF;
+  --color-brand-deep: #4B2AC5;
+  --color-brand-lavender: #BFA2FF;
+  --color-brand-soft-lavender: #E9DFFF;
+  --color-brand-gold: #FFB800;
+
+  --color-text-main: #1B133F;
+  --color-text-muted: #666666;
+  --color-border-subtle: #E9DFFF;
+  --color-bg-main: #FAF8FF;
+  --color-bg-alt: #F3EDFF;
+  --color-bg-hover: #FAF8FF;
+
+  /* Backward Compatibility Aliases for components */
+  --color-burgundy: #6C4EFF;
+  --color-burgundy-hover: #4B2AC5;
+  --color-burgundy-light: #F3EDFF;
   --color-burgundy-surface: #FFFFFF;
-  --color-brand: #000000;
-  --color-brand-hover: #262626;
-  --color-text-main: #0F172A;
-  --color-text-muted: #64748B;
-  --color-border-subtle: #E9D5FF;
-  --color-bg-main: #FFFFFF;
-  --color-bg-alt: #FAF5FF;
-  --color-bg-hover: #F5F3FF;
+  --color-primary-tint: #FAF8FF;
 
-  /* Mapped Tailwind Purple Scale to Soft Pastel Purple / Lavender */
-  --color-purple-50: #FAF5FF;
-  --color-purple-100: #F5F3FF;
-  --color-purple-200: #EDE9FE;
-  --color-purple-300: #DDD6FE;
-  --color-purple-400: #C4B5FD;
-  --color-purple-500: #A78BFA;
-  --color-purple-600: #8B5CF6;
-  --color-purple-700: #7C3AED;
-  --color-purple-800: #6D28D9;
-  --color-purple-900: #5B21B6;
-  --color-purple-950: #4C1D95;
+  --color-purple-50: #FAF8FF;
+  --color-purple-100: #F3EDFF;
+  --color-purple-200: #E9DFFF;
+  --color-purple-300: #D8C8FF;
+  --color-purple-400: #BFA2FF;
+  --color-purple-500: #9373FF;
+  --color-purple-600: #6C4EFF;
+  --color-purple-700: #4B2AC5;
+  --color-purple-800: #381A9E;
+  --color-purple-900: #291275;
+  --color-purple-950: #1B133F;
 
-  /* Backward compatibility aliases */
-  --color-lavender-bg: #FFFFFF;
-  --color-lavender-light: #F5F3FF;
-  --color-lavender-accent: #DDD6FE;
-  --color-lavender-secondary: #EDE9FE;
+  --color-lavender-bg: #FAF8FF;
+  --color-lavender-light: #F3EDFF;
+  --color-lavender-accent: #BFA2FF;
+  --color-lavender-secondary: #E9DFFF;
   --color-lavender-surface: #FFFFFF;
-  --color-brand-purple: #000000;
-  --color-brand-purple-hover: #262626;
+  --color-brand-purple: #6C4EFF;
+  --color-brand-purple-hover: #4B2AC5;
 
   /* Status Tokens */
-  --color-success: #16A34A;
-  --color-warning: #EA580C;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
   --color-error: #EF4444;
-  --color-info: #0284C7;
-  --color-primary-tint: #F5F3FF;
+  --color-info: #6C4EFF;
 
-  /* Referral program accent (distinct violet family, referral modal/badges only) */
-  --color-referral-tint: #EDE5FF;
-  --color-referral: #7042D2;
-  --color-referral-alt: #8B5CF6;
-  --color-referral-strong: #7C3AED;
-  --color-referral-dark: #6B21A8;
+  /* Referral Tokens */
+  --color-referral-tint: #F3EDFF;
+  --color-referral: #6C4EFF;
+  --color-referral-alt: #4B2AC5;
+  --color-referral-strong: #381A9E;
+  --color-referral-dark: #1B133F;
 
-  /* Third-party brand colors used verbatim */
+  /* Third-party Brand Colors */
   --color-whatsapp: #25D366;
   --color-google-blue: #4285F4;
   --color-google-green: #34A853;
   --color-google-yellow: #FBBC05;
   --color-google-red: #EA4335;
 
-  /*
-   * "Extra" tokens: every other distinct color this app used before this
-   * refactor (chart/badge accents, gradient stops, status tints, etc.)
-   * that doesn't map to a semantic name above — pass-through values kept
-   * for a pixel-identical render, not meaningful design tokens. Good
-   * candidates for a future consolidation pass.
-   */
-  --color-extra-001: #0284c7;
-  --color-extra-002: #0d9488;
-  --color-extra-003: #f97316;
-  --color-extra-004: #0369a1;
-  --color-extra-005: #0f766e;
-  --color-extra-006: #c2410c;
-  --color-extra-007: #be123c;
-  --color-extra-008: #7c4de8;
-  --color-extra-009: #0a192f;
-  --color-extra-010: #1e3a8a;
-  --color-extra-011: #06b6d4;
-  --color-extra-012: #38bdf8;
-  --color-extra-013: #431407;
-  --color-extra-014: #9a3412;
-  --color-extra-015: #f59e0b;
-  --color-extra-016: #4c0519;
-  --color-extra-017: #831843;
-  --color-extra-018: #be185d;
-  --color-extra-019: #fb7185;
-  --color-extra-020: #042f2e;
-  --color-extra-021: #115e59;
-  --color-extra-022: #2dd4bf;
-  --color-extra-023: #a78bfa;
-  --color-extra-024: #0ea5e9;
-  --color-extra-025: #e11d48;
-  --color-extra-026: #16a34a;
-  --color-extra-027: #22c55e;
-  --color-extra-028: #5b21b6;
-  --color-extra-029: #db2777;
-  --color-extra-030: #d8c8ff;
-  --color-extra-031: #ec4899;
-  --color-extra-032: #9333ea;
-  --color-extra-033: #3b0764;
-  --color-extra-034: #581c87;
-  --color-extra-035: #e8cedb;
-  --color-extra-036: #d8adc5;
-  --color-extra-037: #9b3e7a;
-  --color-extra-038: #75235a;
-  --color-extra-039: #421332;
-  --color-extra-040: #e0d6ff;
-  --color-extra-041: #20bd5a;
-
-  /* Shadow / gradient tokens (alpha-blended colors — kept as full values
-     since Tailwind's arbitrary shadow syntax takes the whole value) */
-  --shadow-cart-bar: 0 -4px 20px rgba(96, 29, 73, 0.10);
-  --shadow-auth-card: 0 15px 40px rgba(139, 92, 246, 0.08);
-  --shadow-register-card: 0 15px 35px rgba(139, 92, 246, 0.08);
-  --shadow-profile-card: 0 10px 35px rgba(139, 92, 246, 0.05);
-  --gradient-surface-scrim: rgba(248, 243, 246, 0.92), rgba(248, 243, 246, 0.96);
+  /* Luxury Shadows */
+  --shadow-cart-bar: 0 -4px 25px rgba(27, 19, 63, 0.08);
+  --shadow-auth-card: 0 20px 45px rgba(108, 78, 255, 0.08);
+  --shadow-register-card: 0 20px 40px rgba(108, 78, 255, 0.08);
+  --shadow-profile-card: 0 12px 35px rgba(108, 78, 255, 0.06);
+  --gradient-surface-scrim: rgba(250, 248, 255, 0.94), rgba(250, 248, 255, 0.98);
 }
 
 html, body {
@@ -149,12 +119,23 @@ html, body {
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--heading-text);
   font-family: var(--font-sans);
   min-height: 100vh;
 }
 
-/* Prevent unwanted horizontal scrolls and responsive image sizing */
+/* Headings default to Playfair Display where editorial typography applies */
+h1, h2, h3, .font-editorial {
+  font-family: var(--font-serif);
+}
+
+/* Accessible visible focus states */
+:focus-visible {
+  outline: 2px solid #6C4EFF;
+  outline-offset: 2px;
+}
+
+/* Responsive Image and SVG Defaults */
 img, svg, video, canvas, audio, iframe, embed, object {
   display: block;
   max-width: 100%;
@@ -169,20 +150,152 @@ img, svg, video, canvas, audio, iframe, embed, object {
   scrollbar-width: none;
 }
 
-/* Touch friendly minimum tap targets */
+/* Minimum touch target */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
 }
 
-/* Continuous Horizontal Auto-Scroll Marquee for Lower Promotional Banners */
+/* Supermarket Luxury Card & Glassmorphic Utilities */
+.luxury-card {
+  background: #FFFFFF;
+  border-radius: 24px;
+  border: 1px solid #E9DFFF;
+  box-shadow: 0 10px 30px -5px rgba(108, 78, 255, 0.06), 0 2px 8px -2px rgba(27, 19, 63, 0.04);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.luxury-card:hover {
+  transform: translateY(-4px);
+  border-color: #BFA2FF;
+  box-shadow: 0 20px 40px -8px rgba(108, 78, 255, 0.12), 0 4px 12px -2px rgba(27, 19, 63, 0.06);
+}
+
+/* Glassmorphism surfaces for luxury floating elements */
+.glass-nav {
+  background: rgba(250, 248, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(233, 223, 255, 0.7);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(233, 223, 255, 0.8);
+  box-shadow: 0 4px 14px rgba(108, 78, 255, 0.06);
+}
+
+/* Radial product glow backdrop */
+.luxury-product-glow {
+  background: radial-gradient(circle at center, #FAF8FF 0%, #E9DFFF 100%);
+}
+
+/* Luxury Pill Button */
+.btn-luxury-primary {
+  background: #6C4EFF;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 20px -4px rgba(108, 78, 255, 0.35);
+}
+
+.btn-luxury-primary:hover {
+  background: #4B2AC5;
+  box-shadow: 0 12px 26px -4px rgba(75, 42, 197, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-luxury-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-luxury-secondary {
+  background: #FFFFFF;
+  color: #1B133F;
+  border: 1px solid #E9DFFF;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.btn-luxury-secondary:hover {
+  background: #F3EDFF;
+  border-color: #BFA2FF;
+  color: #4B2AC5;
+}
+
+/* Refined Neumorph-Compatible Classes for existing components */
+.neumorph-surface {
+  background-color: #FAF8FF;
+}
+
+.neumorph-nav-surface {
+  background-color: #FAF8FF;
+}
+
+.neumorph-pill {
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(108, 78, 255, 0.06);
+  border: 1px solid #E9DFFF;
+  transition: all 0.25s ease;
+}
+
+.neumorph-pill:hover {
+  border-color: #BFA2FF;
+  box-shadow: 0 6px 18px rgba(108, 78, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.neumorph-pill:active,
+.neumorph-pill-active {
+  background: #F3EDFF;
+  border-color: #BFA2FF;
+}
+
+.neumorph-circle {
+  background: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(108, 78, 255, 0.08);
+  border: 1px solid #E9DFFF;
+  transition: all 0.25s ease;
+}
+
+.neumorph-circle:hover {
+  border-color: #6C4EFF;
+  color: #6C4EFF;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(108, 78, 255, 0.14);
+}
+
+.neumorph-circle:active {
+  transform: scale(0.95);
+}
+
+.neumorph-inset {
+  background: #FFFFFF;
+  border: 1px solid #E9DFFF;
+  box-shadow: inset 0 2px 4px rgba(27, 19, 63, 0.02);
+  transition: all 0.2s ease;
+}
+
+.neumorph-inset:focus-within {
+  border-color: #6C4EFF;
+  box-shadow: 0 0 0 3px rgba(108, 78, 255, 0.15);
+}
+
+.neumorph-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid #E9DFFF;
+  box-shadow: 0 8px 24px rgba(108, 78, 255, 0.06);
+}
+
+/* Continuous Horizontal Auto-Scroll Marquee */
 @keyframes continuousScroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .animate-continuous-scroll {
@@ -196,71 +309,12 @@ img, svg, video, canvas, audio, iframe, embed, object {
   animation-play-state: paused;
 }
 
-/* ==========================================================================
-   NEUMORPHISM DESIGN SYSTEM FOR HEADER & STOREFRONT
-   ========================================================================== */
-.neumorph-surface {
-  background-color: #f4ecf9;
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-
-.neumorph-nav-surface {
-  background-color: #e2d3f5;
-}
-
-/* Extruded Neumorphic Pill (soft 3D raised button) */
-.neumorph-pill {
-  background: #ffffff;
-  box-shadow: 3px 3px 6px rgba(109, 40, 217, 0.1), -3px -3px 6px rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.neumorph-pill:hover {
-  box-shadow: 2px 2px 4px rgba(109, 40, 217, 0.15), -2px -2px 4px rgba(255, 255, 255, 0.9);
-  transform: translateY(-0.5px);
-}
-
-.neumorph-pill:active,
-.neumorph-pill-active {
-  background: #ede9fe;
-  box-shadow: inset 2px 2px 5px rgba(109, 40, 217, 0.18), inset -2px -2px 5px rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(221, 214, 254, 0.8);
-}
-
-/* Neumorphic Circular Icon Button */
-.neumorph-circle {
-  background: #ffffff;
-  box-shadow: 3px 3px 7px rgba(109, 40, 217, 0.12), -3px -3px 7px rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.neumorph-circle:hover {
-  box-shadow: 2px 2px 4px rgba(109, 40, 217, 0.18), -2px -2px 4px rgba(255, 255, 255, 0.9);
-  transform: scale(1.05);
-}
-
-.neumorph-circle:active {
-  box-shadow: inset 2px 2px 4px rgba(109, 40, 217, 0.18), inset -2px -2px 4px rgba(255, 255, 255, 0.9);
-  transform: scale(0.96);
-}
-
-/* Neumorphic Inset Search Input */
-.neumorph-inset {
-  background: #ffffff;
-  box-shadow: inset 2px 2px 5px rgba(109, 40, 217, 0.08), inset -2px -2px 5px rgba(255, 255, 255, 0.9);
-  border: 1px solid #ddd6fe;
-}
-
-.neumorph-inset:focus-within {
-  box-shadow: inset 2px 2px 5px rgba(109, 40, 217, 0.12), inset -2px -2px 5px rgba(255, 255, 255, 0.9), 0 0 0 2px rgba(124, 58, 237, 0.2);
-  border-color: #7c3aed;
-}
-
-/* Neumorphic Card */
-.neumorph-card {
-  background: #ffffff;
-  box-shadow: 4px 4px 10px rgba(109, 40, 217, 0.09), -4px -4px 10px rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-}
-

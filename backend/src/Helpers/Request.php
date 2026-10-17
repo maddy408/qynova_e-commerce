@@ -17,14 +17,45 @@ final class Request
 
     public static function bearerToken(): ?string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        $candidates = [
+            $_SERVER['HTTP_AUTHORIZATION'] ?? null,
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
+            $_SERVER['HTTP_X_AUTHORIZATION'] ?? null,
+            $_SERVER['HTTP_X_CUSTOMER_TOKEN'] ?? null,
+        ];
 
-        if ($header === '' && function_exists('getallheaders')) {
+        if (function_exists('getallheaders')) {
             $headers = getallheaders();
-            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+            $candidates[] = $headers['Authorization'] ?? null;
+            $candidates[] = $headers['authorization'] ?? null;
+            $candidates[] = $headers['X-Authorization'] ?? null;
+            $candidates[] = $headers['x-authorization'] ?? null;
+            $candidates[] = $headers['X-Customer-Token'] ?? null;
+            $candidates[] = $headers['x-customer-token'] ?? null;
         }
 
-        return preg_match('/^Bearer\s+(.+)$/i', $header, $matches) === 1 ? $matches[1] : null;
+        if (!empty($_COOKIE['storefront_customer_jwt'])) {
+            $candidates[] = $_COOKIE['storefront_customer_jwt'];
+        }
+        if (!empty($_COOKIE['customer_jwt'])) {
+            $candidates[] = $_COOKIE['customer_jwt'];
+        }
+
+        foreach ($candidates as $cand) {
+            if (!is_string($cand) || trim($cand) === '') {
+                continue;
+            }
+            $clean = trim($cand);
+            if (preg_match('/^Bearer\s+(.+)$/i', $clean, $matches)) {
+                return trim($matches[1]);
+            }
+            // Direct JWT format: header.payload.signature
+            if (preg_match('/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+$/', $clean)) {
+                return $clean;
+            }
+        }
+
+        return null;
     }
 
     public static function clientIp(): ?string

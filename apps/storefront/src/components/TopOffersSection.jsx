@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
 import { resolveImageUrl } from '../lib/api'
 import { FiTruck, FiArrowRight, FiCopy, FiCheck, FiTag, FiPercent, FiGift, FiZap, FiStar } from 'react-icons/fi'
+import { LuSparkles } from 'react-icons/lu'
 
 export default function TopOffersSection({
   topOffers = [],
@@ -26,23 +27,16 @@ export default function TopOffersSection({
   const renderIcon = (iconType) => {
     switch (iconType) {
       case 'truck':
-        return <FiTruck className="w-5 h-5 text-[#7c3aed]" />
-      case 'tag':
-        return <FiTag className="w-5 h-5 text-[#7c3aed]" />
-      case 'percent':
-        return <FiPercent className="w-5 h-5 text-[#7c3aed]" />
+        return <FiTruck className="w-5 h-5 text-[#6C4EFF]" />
       case 'gift':
-        return <FiGift className="w-5 h-5 text-[#7c3aed]" />
-      case 'zap':
-        return <FiZap className="w-5 h-5 text-[#7c3aed]" />
+        return <FiGift className="w-5 h-5 text-[#6C4EFF]" />
       case 'star':
-        return <FiStar className="w-5 h-5 text-[#7c3aed]" />
+        return <FiStar className="w-5 h-5 text-[#FFB800]" />
       default:
-        return <FiPercent className="w-5 h-5 text-[#7c3aed]" />
+        return <LuSparkles className="w-5 h-5 text-[#6C4EFF]" />
     }
   }
 
-  // If dynamic topOffers are provided from MySQL database (/api/top-offers)
   let displayCards = []
 
   if (Array.isArray(topOffers) && topOffers.length > 0) {
@@ -55,11 +49,9 @@ export default function TopOffersSection({
       imagePath: item.image_path,
       icon: renderIcon(item.icon),
       link: item.link || ROUTES.PRODUCTS_BY_SECTION('deals'),
-      buttonText: item.button_text || 'Shop Deals',
-      gradient: 'from-[#faf5ff] to-[#f5f3ff] border-[#e9d5ff]',
+      buttonText: item.button_text || 'Claim Offer',
     }))
   } else {
-    // Fallback if top_offers table is empty
     const freeMinAmount = deliverySettings?.free_delivery_threshold
       ? Number(deliverySettings.free_delivery_threshold)
       : 499
@@ -68,14 +60,13 @@ export default function TopOffersSection({
       displayCards.push({
         id: 'delivery-threshold-offer',
         badge: 'FREE DELIVERY',
-        title: `Free Delivery Above ₹${freeMinAmount}`,
-        subtitle: `No shipping charge applied on orders over ₹${freeMinAmount}. Fast doorstep delivery.`,
+        title: `Free Delivery on Orders Above ₹${freeMinAmount}`,
+        subtitle: `Enjoy express doorstep grocery delivery directly to your home with zero shipping fee.`,
         code: null,
         imagePath: null,
-        icon: <FiTruck className="w-5 h-5 text-[#7c3aed]" />,
+        icon: <FiTruck className="w-5 h-5 text-[#6C4EFF]" />,
         link: ROUTES.PRODUCTS,
-        buttonText: 'Shop Essentials',
-        gradient: 'from-[#faf5ff] to-[#f5f3ff] border-[#e9d5ff]',
+        buttonText: 'Shop Groceries',
       })
     }
 
@@ -83,37 +74,35 @@ export default function TopOffersSection({
     fallbackCoupons.forEach((coupon) => {
       const isFixed = coupon.discount_type === 'FIXED'
       const discountVal = Math.round(Number(coupon.discount_value) || 0)
-      const discountBadge = isFixed ? `FLAT ₹${discountVal} OFF` : `${discountVal}% OFF`
+      const discountBadge = isFixed ? `FLAT ₹${discountVal} OFF` : `${discountVal}% SPECIAL SAVINGS`
 
       let subtitle = coupon.description
       if (!subtitle) {
         subtitle = coupon.min_order_amount && Number(coupon.min_order_amount) > 0
-          ? `Valid on minimum cart value of ₹${Math.round(coupon.min_order_amount)}`
-          : 'Applicable directly on checkout'
+          ? `Applicable on grocery orders above ₹${Math.round(coupon.min_order_amount)}`
+          : 'Apply at checkout to redeem savings'
       }
 
       displayCards.push({
         id: `coupon-${coupon.id || coupon.code}`,
         badge: discountBadge,
-        title: coupon.name || `Coupon: ${coupon.code}`,
+        title: coupon.name || `Special Voucher: ${coupon.code}`,
         subtitle,
         code: coupon.code,
         imagePath: null,
-        icon: isFixed ? <FiTag className="w-5 h-5 text-[#7c3aed]" /> : <FiPercent className="w-5 h-5 text-[#7c3aed]" />,
+        icon: <LuSparkles className="w-5 h-5 text-[#6C4EFF]" />,
         link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-        buttonText: 'Shop Deals',
-        gradient: 'from-[#faf5ff] to-[#f5f3ff] border-[#e9d5ff]',
+        buttonText: 'Redeem Voucher',
       })
     })
   }
 
-  // Loading skeleton
   if (isLoading) {
     return (
-      <section className="w-full bg-white py-6 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-[#e9d5ff]">
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
+      <section className="w-full bg-[#FAF8FF] py-14 px-4 sm:px-6 lg:px-8 border-b border-[#E9DFFF]">
+        <div className="max-w-[1320px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-32 rounded-2xl bg-slate-100 border border-[#e9d5ff]/50" />
+            <div key={i} className="h-44 rounded-[24px] bg-white border border-[#E9DFFF]" />
           ))}
         </div>
       </section>
@@ -125,99 +114,73 @@ export default function TopOffersSection({
   }
 
   return (
-    <section className="w-full bg-white py-6 sm:py-8 px-3 sm:px-6 lg:px-8 xl:px-12 select-none border-b border-[#e9d5ff]">
-      {/* Section Header */}
-      <div className="w-full flex items-center justify-between mb-4 sm:mb-5">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] animate-pulse" />
-          <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-            Top Offers for You
-          </h2>
+    <section className="w-full bg-[#FAF8FF] py-14 sm:py-20 px-4 sm:px-6 lg:px-8 select-none border-b border-[#E9DFFF]">
+      <div className="max-w-[1320px] mx-auto">
+        
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 sm:mb-10">
+          <div>
+            <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] block mb-2">
+              TOP SAVINGS & OFFERS
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1B133F] tracking-tight">
+              Exclusive Grocery Offers & Vouchers
+            </h2>
+          </div>
+          <Link
+            to={ROUTES.PRODUCTS_BY_SECTION('deals')}
+            className="text-xs sm:text-sm font-sans font-semibold text-[#6C4EFF] hover:text-[#4B2AC5] flex items-center gap-1.5 transition-colors self-start sm:self-end"
+          >
+            <span>View All Vouchers</span>
+            <FiArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-        <Link
-          to={ROUTES.PRODUCTS_BY_SECTION('deals')}
-          className="text-xs font-bold text-[#6d28d9] hover:text-black hover:underline flex items-center gap-1 transition-colors"
-        >
-          <span>View All Deals</span>
-          <FiArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
 
-      {/* Dynamic Promo Cards across 100% width grid */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        {displayCards.slice(0, 4).map((card) => {
-          const isCopied = copiedCode === card.code
-          const hasImage = Boolean(card.imagePath)
+        {/* Offer Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {displayCards.slice(0, 4).map((card) => {
+            const isCopied = copiedCode === card.code
+            const hasImage = Boolean(card.imagePath)
 
-          return (
-            <div
-              key={card.id}
-              className={`relative overflow-hidden rounded-2xl border transition-all duration-300 group hover:shadow-xl hover:-translate-y-0.5 flex flex-col justify-between ${
-                hasImage
-                  ? 'border-white/60 shadow-md bg-slate-900/10'
-                  : `rounded-2xl bg-gradient-to-br ${card.gradient} shadow-2xs hover:shadow-md`
-              }`}
-            >
-              {/* Background Image Container */}
-              {hasImage && (
-                <div className="absolute inset-0 z-0">
-                  <img
-                    src={resolveImageUrl(card.imagePath)}
-                    alt={card.title}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
-                  />
-                  {/* Frosted Glass Overlay: blur + soft translucent light gradient */}
-                  <div className="absolute inset-0 bg-white/70 backdrop-blur-[3.5px] bg-gradient-to-tr from-white/90 via-white/75 to-white/60" />
-                </div>
-              )}
+            return (
+              <div
+                key={card.id}
+                className="bg-white rounded-[24px] p-6 border border-[#E9DFFF] shadow-[0_6px_25px_rgba(108,78,255,0.04)] hover:shadow-[0_16px_35px_rgba(108,78,255,0.1)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group"
+              >
+                {/* Background Subtle Gradient */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#F3EDFF]/60 rounded-full blur-2xl pointer-events-none" />
 
-              {/* Glass UI Content */}
-              <div className="relative z-10 p-4 sm:p-4.5 flex flex-col justify-between h-full min-h-[175px]">
-                <div>
-                  {/* Badge & Icon with Frosted Glass styling */}
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md shadow-2xs tracking-wide border ${
-                        hasImage
-                          ? 'bg-white/85 text-[#6d28d9] border-white/80 backdrop-blur-md'
-                          : 'bg-[#ede9fe] text-[#6d28d9] border-[#ddd6fe]'
-                      }`}
-                    >
+                <div className="relative z-10">
+                  {/* Top Badge & Icon */}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-sans font-bold uppercase px-2.5 py-1 rounded-full bg-[#FAF8FF] text-[#6C4EFF] border border-[#E9DFFF] tracking-wider">
                       {card.badge}
                     </span>
-                    <div
-                      className={`w-8 h-8 flex items-center justify-center rounded-xl border shadow-2xs group-hover:scale-110 transition-transform duration-300 ${
-                        hasImage
-                          ? 'bg-white/85 border-white/80 backdrop-blur-md'
-                          : 'bg-white/80 border-[#e9d5ff]'
-                      }`}
-                    >
+                    <div className="w-8 h-8 rounded-full bg-[#FAF8FF] border border-[#E9DFFF] flex items-center justify-center">
                       {card.icon}
                     </div>
                   </div>
 
-                  {/* Title & Subtitle sitting directly on top of the image */}
-                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight line-clamp-1 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+                  {/* Title & Subtitle */}
+                  <h3 className="font-serif text-base sm:text-lg font-bold text-[#1B133F] leading-snug line-clamp-2 mb-2">
                     {card.title}
                   </h3>
-                  <p className="text-[11px] text-slate-700 font-medium mt-1 line-clamp-2 leading-relaxed">
+                  <p className="font-sans text-xs text-[#666666] leading-relaxed line-clamp-2 mb-4">
                     {card.subtitle}
                   </p>
 
-                  {/* Optional Coupon Code with Copy Button */}
+                  {/* Coupon Code Pill */}
                   {card.code && (
-                    <div className="mt-2.5 flex items-center gap-2">
+                    <div className="mb-4">
                       <button
                         type="button"
                         onClick={() => handleCopyCode(card.code)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold border transition-all cursor-pointer ${
                           isCopied
-                            ? 'bg-emerald-500 text-white border-emerald-600 shadow-2xs'
-                            : hasImage
-                            ? 'bg-white/90 hover:bg-white text-[#6d28d9] border-white/80 shadow-2xs backdrop-blur-md'
-                            : 'bg-white hover:bg-[#ede9fe] text-[#6d28d9] border-[#ddd6fe]'
+                            ? 'bg-emerald-500 text-white border-emerald-600'
+                            : 'bg-[#FAF8FF] hover:bg-[#F3EDFF] text-[#6C4EFF] border-[#E9DFFF]'
                         }`}
-                        title="Click to copy coupon code"
+                        title="Click to copy code"
                       >
                         {isCopied ? (
                           <>
@@ -235,20 +198,21 @@ export default function TopOffersSection({
                   )}
                 </div>
 
-                {/* Action Button: Solid Black Button with White Text */}
-                <div className="pt-3.5">
+                {/* Bottom CTA Button */}
+                <div className="pt-3 border-t border-[#E9DFFF]/60 relative z-10">
                   <Link
                     to={card.link}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-black hover:bg-neutral-800 text-white text-[11px] font-bold shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-full bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white text-xs font-sans font-semibold flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_12px_rgba(108,78,255,0.25)] active:scale-95"
                   >
                     <span>{card.buttonText}</span>
                     <FiArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
+
       </div>
     </section>
   )
