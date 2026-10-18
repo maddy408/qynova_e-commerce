@@ -13,8 +13,11 @@ use Exception;
 
 final class ReturnsController
 {
+    private readonly \App\Services\ReturnService $returnService;
+
     public function __construct(private readonly PDO $pdo)
     {
+        $this->returnService = new \App\Services\ReturnService($pdo);
     }
 
     public function indexSaleReturns(): void
@@ -370,5 +373,222 @@ final class ReturnsController
             $this->pdo->rollBack();
             Response::error($e->getMessage(), 500);
         }
+    }
+
+    public function summary(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        Response::json($this->returnService->summary());
+    }
+
+    public function eligibleOrders(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $search = Request::query('search');
+        Response::json(['orders' => $this->returnService->getEligibleOrders($search)]);
+    }
+
+    public function list(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $filters = [
+            'tab' => Request::query('tab', 'all'),
+            'search' => Request::query('search', ''),
+            'status' => Request::query('status', ''),
+            'reason' => Request::query('reason', ''),
+            'date_from' => Request::query('date_from', ''),
+            'date_to' => Request::query('date_to', ''),
+            'page' => (int) Request::query('page', '1'),
+            'limit' => (int) Request::query('limit', '10'),
+        ];
+
+        Response::json($this->returnService->list($filters));
+    }
+
+    public function show(string|int $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $return = $this->returnService->find((int) $id);
+        if ($return === null) {
+            Response::error('Return not found', 404);
+            return;
+        }
+
+        Response::json(['return' => $return]);
+    }
+
+    public function store(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $actorUserId = (int) $claims['sub'];
+
+        try {
+            $returnId = $this->returnService->createReturn($body, $actorUserId);
+            $return = $this->returnService->find($returnId);
+            Response::json(['return' => $return], 201);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function updateStatus(string|int $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $status = strtoupper(trim((string) ($body['status'] ?? '')));
+        $note = !empty($body['note']) ? trim((string) $body['note']) : null;
+        $actorUserId = (int) $claims['sub'];
+
+        if ($status === '') {
+            Response::error('Status is required', 422);
+            return;
+        }
+
+        try {
+            $updated = $this->returnService->updateStatus((int) $id, $status, $note, $actorUserId, $body);
+            Response::json(['return' => $updated]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function approve(string|int $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $note = !empty($body['note']) ? trim((string) $body['note']) : 'Approved by staff';
+        $actorUserId = (int) $claims['sub'];
+
+        try {
+            $updated = $this->returnService->updateStatus((int) $id, 'APPROVED', $note, $actorUserId, $body);
+            Response::json(['return' => $updated]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function reject(string|int $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $reason = trim((string) ($body['rejection_reason'] ?? $body['reason'] ?? ''));
+        $note = !empty($body['note']) ? trim((string) $body['note']) : null;
+        $actorUserId = (int) $claims['sub'];
+
+        if ($reason === '') {
+            Response::error('A rejection reason is required', 422);
+            return;
+        }
+
+        try {
+            $updated = $this->returnService->updateStatus((int) $id, 'REJECTED', $note, $actorUserId, [
+                'rejection_reason' => $reason,
+            ]);
+            Response::json(['return' => $updated]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function processRefund(string|int $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $method = trim((string) ($body['payment_method'] ?? 'ORIGINAL'));
+        $actorUserId = (int) $claims['sub'];
+
+        try {
+            $updated = $this->returnService->processRefund((int) $id, $actorUserId, $method);
+            Response::json(['return' => $updated]);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function showForOrder(string|int $orderId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+
+        $return = $this->returnService->findByOrder((int) $orderId);
+
+        if (($claims['role'] ?? '') === 'CUSTOMER') {
+            $stmt = $this->pdo->prepare('SELECT customer_id FROM orders WHERE id = :id');
+            $stmt->execute(['id' => (int) $orderId]);
+            $ownerId = $stmt->fetchColumn();
+            if ((int) $ownerId !== (int) $claims['sub']) {
+                Response::error('Forbidden', 403);
+                return;
+            }
+        }
+
+        Response::json(['return' => $return]);
+    }
+
+    public function export(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $filters = [
+            'tab' => Request::query('tab', 'all'),
+            'search' => Request::query('search', ''),
+            'status' => Request::query('status', ''),
+            'reason' => Request::query('reason', ''),
+            'date_from' => Request::query('date_from', ''),
+            'date_to' => Request::query('date_to', ''),
+            'page' => 1,
+            'limit' => 1000,
+        ];
+
+        $data = $this->returnService->list($filters);
+
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="returns_export_' . date('Ymd_His') . '.csv"');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, [
+            'RMA ID', 'Order No', 'Customer Name', 'Customer Phone',
+            'First Product', 'Qty', 'Reason', 'Return Type',
+            'Status', 'Refund Status', 'Refund Amount (Rs)', 'Request Date'
+        ]);
+
+        foreach ($data['items'] as $row) {
+            fputcsv($out, [
+                $row['return_no'],
+                $row['order_no'] ?? '',
+                $row['customer_name'] ?? '',
+                $row['customer_phone'] ?? '',
+                $row['first_item_name'] ?? '',
+                $row['total_returned_qty'] ?? 1,
+                $row['reason'] ?? '',
+                $row['return_type'] ?? 'REFUND',
+                $row['status'],
+                $row['refund_status'],
+                number_format((float) $row['refund_amount'], 2, '.', ''),
+                $row['created_at'],
+            ]);
+        }
+
+        fclose($out);
+        exit;
     }
 }

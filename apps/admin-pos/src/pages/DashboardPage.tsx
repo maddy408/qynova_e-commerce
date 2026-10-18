@@ -76,18 +76,18 @@ export function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8 pb-12">
       {/* Top Header with Store Pulse */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--color-border-muted)]/70">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-cyan-100">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Dashboard
             </h1>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-1 text-[11px] font-bold text-[var(--color-primary)] tracking-wider uppercase shadow-2xs">
-              <span className="h-2 w-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 border border-cyan-200 px-3 py-1 text-[11px] font-bold text-cyan-800 tracking-wider uppercase shadow-2xs">
+              <span className="h-2 w-2 rounded-full bg-cyan-600 animate-pulse" />
               Live Store Overview
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[var(--color-primary-strong)] mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
             Real-time business performance, billing velocity, and store analytics
           </p>
         </div>
@@ -95,10 +95,10 @@ export function DashboardPage() {
 
       {loading ? (
         <div className="flex justify-center py-24">
-          <Spinner className="w-9 h-9 text-[var(--color-primary)]" />
+          <Spinner className="w-9 h-9 text-cyan-700" />
         </div>
       ) : !summary ? (
-        <Card className="p-10 text-center text-sm text-[var(--color-primary-strong)]">
+        <Card className="p-10 text-center text-sm text-slate-600">
           Could not load dashboard data from backend server.
         </Card>
       ) : (
@@ -106,15 +106,15 @@ export function DashboardPage() {
           {/* Top 8 KPI Cards Grid - Elevated Luxury Cards with Icons & Depth */}
           <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-3.5">
             {/* 1. Today's Sales */}
-            <div className="group relative rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] via-white to-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/50 flex flex-col justify-between">
+            <div className="group relative rounded-2xl border border-cyan-200/90 bg-gradient-to-br from-cyan-50/70 via-white to-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-cyan-500 flex flex-col justify-between">
               <div className="flex items-start justify-between">
-                <span className="text-[10px] font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">Today's Sales</span>
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-primary)] shadow-2xs group-hover:scale-110 transition-transform">
+                <span className="text-[10px] font-bold text-cyan-900 uppercase tracking-wider">Today's Sales</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100/80 text-xs text-cyan-800 shadow-2xs group-hover:scale-110 transition-transform">
                   💳
                 </span>
               </div>
               <div className="my-2">
-                <div className="font-serif text-xl xl:text-2xl font-black text-[var(--color-primary)] tracking-tight">
+                <div className="font-serif text-xl xl:text-2xl font-black text-cyan-950 tracking-tight">
                   {formatCurrency(summary.sales.today_sales)}
                 </div>
               </div>
@@ -124,15 +124,15 @@ export function DashboardPage() {
             </div>
 
             {/* 2. This Month */}
-            <div className="group relative rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] via-white to-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/50 flex flex-col justify-between">
+            <div className="group relative rounded-2xl border border-cyan-200/90 bg-gradient-to-br from-cyan-50/70 via-white to-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-cyan-500 flex flex-col justify-between">
               <div className="flex items-start justify-between">
-                <span className="text-[10px] font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">This Month</span>
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-primary)] shadow-2xs group-hover:scale-110 transition-transform">
+                <span className="text-[10px] font-bold text-cyan-900 uppercase tracking-wider">This Month</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100/80 text-xs text-cyan-800 shadow-2xs group-hover:scale-110 transition-transform">
                   📈
                 </span>
               </div>
               <div className="my-2">
-                <div className="font-serif text-xl xl:text-2xl font-black text-[var(--color-primary)] tracking-tight">
+                <div className="font-serif text-xl xl:text-2xl font-black text-cyan-950 tracking-tight">
                   {formatCurrency(summary.sales.this_month_sales)}
                 </div>
               </div>
@@ -140,15 +140,15 @@ export function DashboardPage() {
             </div>
 
             {/* 3. Total Sales */}
-            <div className="group relative rounded-2xl border border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] via-white to-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/50 flex flex-col justify-between">
+            <div className="group relative rounded-2xl border border-cyan-200/90 bg-gradient-to-br from-cyan-50/70 via-white to-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-cyan-500 flex flex-col justify-between">
               <div className="flex items-start justify-between">
-                <span className="text-[10px] font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">Total Sales</span>
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-primary)] shadow-2xs group-hover:scale-110 transition-transform">
+                <span className="text-[10px] font-bold text-cyan-900 uppercase tracking-wider">Total Sales</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100/80 text-xs text-cyan-800 shadow-2xs group-hover:scale-110 transition-transform">
                   🪙
                 </span>
               </div>
               <div className="my-2">
-                <div className="font-serif text-xl xl:text-2xl font-black text-[var(--color-primary)] tracking-tight">
+                <div className="font-serif text-xl xl:text-2xl font-black text-cyan-950 tracking-tight">
                   {formatCurrency(summary.sales.total_sales)}
                 </div>
               </div>
@@ -156,7 +156,7 @@ export function DashboardPage() {
             </div>
 
             {/* 4. Total Orders */}
-            <div className="group relative rounded-2xl border border-[var(--color-border-muted)] bg-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/40 flex flex-col justify-between">
+            <div className="group relative rounded-2xl border border-cyan-100 bg-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-cyan-400 flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Orders</span>
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 text-xs text-slate-700 shadow-2xs group-hover:scale-110 transition-transform">
@@ -168,13 +168,13 @@ export function DashboardPage() {
                   {summary.orders.total_orders}
                 </div>
               </div>
-              <div className="text-[10px] font-semibold text-[var(--color-primary-strong)]">
+              <div className="text-[10px] font-semibold text-cyan-800">
                 {summary.orders.pending_orders} pending
               </div>
             </div>
 
             {/* 5. Total Customers */}
-            <div className="group relative rounded-2xl border border-[var(--color-border-muted)] bg-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/40 flex flex-col justify-between">
+            <div className="group relative rounded-2xl border border-cyan-100 bg-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-cyan-400 flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Customers</span>
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 text-xs text-slate-700 shadow-2xs group-hover:scale-110 transition-transform">
@@ -192,7 +192,7 @@ export function DashboardPage() {
             </div>
 
             {/* 6. Total Products */}
-            <div className="group relative rounded-2xl border border-[var(--color-border-muted)] bg-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/40 flex flex-col justify-between">
+            <div className="group relative rounded-2xl border border-cyan-100 bg-white p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-cyan-400 flex flex-col justify-between">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Products</span>
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-50 text-xs text-slate-700 shadow-2xs group-hover:scale-110 transition-transform">
@@ -211,7 +211,7 @@ export function DashboardPage() {
             <div className={`group relative rounded-2xl border p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between ${
               Number(summary.products.low_stock_products) > 0
                 ? 'border-amber-200 bg-amber-50/50 hover:border-amber-300'
-                : 'border-[var(--color-border-muted)] bg-white hover:border-[var(--color-primary)]/40'
+                : 'border-cyan-100 bg-white hover:border-cyan-400'
             }`}>
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Low Stock</span>
@@ -233,7 +233,7 @@ export function DashboardPage() {
             <div className={`group relative rounded-2xl border p-4 shadow-2xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md flex flex-col justify-between ${
               Number(summary.products.out_of_stock_products) > 0
                 ? 'border-rose-200 bg-rose-50/50 hover:border-rose-300'
-                : 'border-[var(--color-border-muted)] bg-white hover:border-[var(--color-primary)]/40'
+                : 'border-cyan-100 bg-white hover:border-cyan-400'
             }`}>
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Out of Stock</span>
@@ -252,10 +252,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          {/* Net Profit / Income / Expenses — from finance_transactions
-              (Phase 7: previously omitted entirely on the premise that no
-              expenses/income module existed, which stopped being true once
-              FinancePage/FinanceController shipped). */}
+          {/* Net Profit / Income / Expenses */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-3.5">
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 shadow-2xs flex flex-col justify-between">
               <div className="flex items-start justify-between">
@@ -281,15 +278,15 @@ export function DashboardPage() {
 
             <div className={`rounded-2xl border p-4 shadow-2xs flex flex-col justify-between ${
               Number(summary.finance.net_profit) >= 0
-                ? 'border-[var(--color-border)] bg-gradient-to-br from-[var(--color-surface)] via-white to-white'
+                ? 'border-cyan-200/90 bg-gradient-to-br from-cyan-50/70 via-white to-white'
                 : 'border-rose-200 bg-rose-50/50'
             }`}>
               <div className="flex items-start justify-between">
-                <span className="text-[10px] font-bold text-[var(--color-primary-strong)] uppercase tracking-wider">Net Profit</span>
-                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-primary)] shadow-2xs">📊</span>
+                <span className="text-[10px] font-bold text-cyan-900 uppercase tracking-wider">Net Profit</span>
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100/80 text-xs text-cyan-800 shadow-2xs">📊</span>
               </div>
               <div className={`my-2 font-serif text-xl xl:text-2xl font-black tracking-tight ${
-                Number(summary.finance.net_profit) >= 0 ? 'text-[var(--color-primary)]' : 'text-rose-900'
+                Number(summary.finance.net_profit) >= 0 ? 'text-cyan-950' : 'text-rose-900'
               }`}>
                 {formatCurrency(summary.finance.net_profit)}
               </div>
@@ -306,19 +303,19 @@ export function DashboardPage() {
                   <h2 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">
                     Popular Items
                   </h2>
-                  <p className="text-xs text-[var(--color-primary-strong)] font-medium">
+                  <p className="text-xs text-slate-500 font-medium">
                     Top performing catalog products ranked by order volume and sales
                   </p>
                 </div>
 
-                {/* View Mode Toggle Icons with Wine Theme */}
-                <div className="flex items-center space-x-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-2xs">
+                {/* View Mode Toggle Icons with Furnish Ocean Teal Theme */}
+                <div className="flex items-center space-x-1 rounded-full border border-cyan-200 bg-cyan-50/70 p-1 shadow-2xs">
                   <button
                     onClick={() => toggleViewMode('grid')}
-                    className={`flex items-center space-x-1.5 rounded-full px-3.5 py-1 text-xs transition-all ${
+                    className={`flex items-center space-x-1.5 rounded-full px-3.5 py-1 text-xs transition-all cursor-pointer ${
                       viewMode === 'grid'
-                        ? 'bg-[var(--color-primary)] text-white shadow-xs font-bold'
-                        : 'text-[var(--color-primary-strong)] hover:text-[var(--color-primary)] hover:bg-[var(--color-border-muted)] font-semibold'
+                        ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-xs font-bold'
+                        : 'text-cyan-900 hover:text-cyan-950 hover:bg-cyan-100 font-semibold'
                     }`}
                     title="Grid View"
                   >
@@ -327,10 +324,10 @@ export function DashboardPage() {
                   </button>
                   <button
                     onClick={() => toggleViewMode('list')}
-                    className={`flex items-center space-x-1.5 rounded-full px-3.5 py-1 text-xs transition-all ${
+                    className={`flex items-center space-x-1.5 rounded-full px-3.5 py-1 text-xs transition-all cursor-pointer ${
                       viewMode === 'list'
-                        ? 'bg-[var(--color-primary)] text-white shadow-xs font-bold'
-                        : 'text-[var(--color-primary-strong)] hover:text-[var(--color-primary)] hover:bg-[var(--color-border-muted)] font-semibold'
+                        ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-xs font-bold'
+                        : 'text-cyan-900 hover:text-cyan-950 hover:bg-cyan-100 font-semibold'
                     }`}
                     title="List View"
                   >
@@ -341,15 +338,15 @@ export function DashboardPage() {
               </div>
 
               {popularItems.length === 0 ? (
-                <Card className="rounded-3xl border border-[var(--color-border-muted)] bg-white p-12 text-center shadow-2xs flex flex-col items-center justify-center space-y-3">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-border-muted)] border border-[var(--color-border)] text-[var(--color-primary)] text-2xl shadow-xs">
+                <Card className="rounded-3xl border border-cyan-100 bg-white p-12 text-center shadow-2xs flex flex-col items-center justify-center space-y-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-800 text-2xl shadow-xs">
                     🛍️
                   </div>
                   <div>
                     <h3 className="font-serif text-lg font-bold text-slate-900">
                       No Popular Items Recorded Yet
                     </h3>
-                    <p className="text-xs text-[var(--color-primary-strong)] mt-1 max-w-md mx-auto leading-relaxed">
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
                       As POS checkout bills and online customer orders are fulfilled, your highest-selling products will automatically populate and rank here.
                     </p>
                   </div>
@@ -360,18 +357,18 @@ export function DashboardPage() {
                     const badgeText = idx === 0 ? '👑 BESTSELLER' : idx === 1 ? '🔥 TRENDING' : '★ POPULAR'
                     const badgeClass =
                       idx === 0
-                        ? 'bg-[var(--color-surface)] text-[var(--color-primary)] border border-[var(--color-border)] font-bold'
+                        ? 'bg-amber-50 text-amber-900 border border-amber-200 font-bold'
                         : idx === 1
-                        ? 'bg-[var(--color-surface)] text-[var(--color-primary-strong)] border border-[var(--color-border)] font-bold'
+                        ? 'bg-cyan-50 text-cyan-900 border border-cyan-200 font-bold'
                         : 'bg-slate-50 text-slate-700 border border-slate-200 font-semibold'
 
                     return (
                       <div
                         key={item.id}
-                        className="group relative flex flex-col justify-between rounded-2xl bg-white p-5 shadow-2xs border border-[var(--color-border-muted)] transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/40"
+                        className="group relative flex flex-col justify-between rounded-2xl bg-white p-5 shadow-2xs border border-cyan-100/90 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-cyan-500"
                       >
                         <div className="flex items-start justify-between">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-mono font-bold text-[var(--color-primary)]">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-50 border border-cyan-200 text-xs font-mono font-bold text-cyan-900">
                             #{idx + 1}
                           </span>
                           <span className={`rounded-full px-2.5 py-0.5 text-[9px] uppercase tracking-wider ${badgeClass}`}>
@@ -380,16 +377,16 @@ export function DashboardPage() {
                         </div>
 
                         <div className="my-3.5">
-                          <h3 className="text-sm font-bold text-slate-900 font-sans tracking-tight line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors">
+                          <h3 className="text-sm font-bold text-slate-900 font-sans tracking-tight line-clamp-2 group-hover:text-cyan-700 transition-colors">
                             {item.name}
                           </h3>
                         </div>
 
-                        <div className="pt-3 border-t border-[var(--color-border-muted)] flex items-center justify-between text-xs">
-                          <span className="text-[var(--color-primary-strong)] font-semibold bg-[var(--color-surface)] px-2 py-0.5 rounded-md">
+                        <div className="pt-3 border-t border-cyan-100 flex items-center justify-between text-xs">
+                          <span className="text-cyan-900 font-semibold bg-cyan-50 px-2 py-0.5 rounded-md">
                             {item.units_sold} sold
                           </span>
-                          <span className="font-serif font-black text-[var(--color-primary)] text-sm">
+                          <span className="font-serif font-black text-cyan-950 text-sm">
                             {formatCurrency(item.revenue)}
                           </span>
                         </div>
@@ -399,10 +396,10 @@ export function DashboardPage() {
                 </div>
               ) : (
                 /* List View - Text Only Table */
-                <Card className="overflow-hidden p-0 border border-[var(--color-border-muted)] rounded-2xl shadow-2xs">
+                <Card className="overflow-hidden p-0 border border-cyan-100 rounded-2xl shadow-2xs">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-[var(--color-border-muted)] text-left text-xs">
-                      <thead className="bg-[var(--color-surface)]/80 font-bold uppercase text-[10px] tracking-wider text-[var(--color-primary-strong)] border-b border-[var(--color-border)]">
+                    <table className="min-w-full divide-y divide-cyan-100 text-left text-xs">
+                      <thead className="bg-cyan-50/80 font-bold uppercase text-[10px] tracking-wider text-cyan-950 border-b border-cyan-200">
                         <tr>
                           <th className="px-4 py-3 text-center">Rank</th>
                           <th className="px-4 py-3">Item Name</th>
@@ -410,13 +407,13 @@ export function DashboardPage() {
                           <th className="px-4 py-3 text-right">Revenue</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[var(--color-border-muted)] bg-white">
+                      <tbody className="divide-y divide-cyan-50 bg-white">
                         {popularItems.map((item, idx) => (
-                          <tr key={item.id} className="hover:bg-[var(--color-surface)]/40 transition-colors">
-                            <td className="px-4 py-3 text-center font-mono font-bold text-[var(--color-primary-strong)]">#{idx + 1}</td>
+                          <tr key={item.id} className="hover:bg-cyan-50/40 transition-colors">
+                            <td className="px-4 py-3 text-center font-mono font-bold text-cyan-900">#{idx + 1}</td>
                             <td className="px-4 py-3 font-semibold text-slate-900">{item.name}</td>
                             <td className="px-4 py-3 text-right font-medium text-slate-700">{item.units_sold}</td>
-                            <td className="px-4 py-3 text-right font-serif font-bold text-[var(--color-primary)]">
+                            <td className="px-4 py-3 text-right font-serif font-bold text-cyan-950">
                               {formatCurrency(item.revenue)}
                             </td>
                           </tr>
@@ -435,29 +432,29 @@ export function DashboardPage() {
                   <h2 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">
                     Receipt Timeline
                   </h2>
-                  <p className="text-xs text-[var(--color-primary-strong)] font-medium">Live terminal transactions</p>
+                  <p className="text-xs text-slate-500 font-medium">Live terminal transactions</p>
                 </div>
               </div>
 
               {/* Thermal Paper Container */}
-              <div className="receipt-paper mx-auto w-full rounded-2xl p-6 text-slate-800 font-sans shadow-md border border-[var(--color-border)] bg-[var(--color-surface-alt)] relative">
+              <div className="receipt-paper mx-auto w-full rounded-2xl p-6 text-slate-800 font-sans shadow-md border border-cyan-200/90 bg-white relative">
                 {/* Store Header on Thermal Ticket */}
-                <div className="text-center pb-3 border-b border-dashed border-[var(--color-border)] mb-4 space-y-0.5">
+                <div className="text-center pb-3 border-b border-dashed border-cyan-200 mb-4 space-y-0.5">
                   <span className="font-serif text-xs font-black tracking-wider text-slate-900 uppercase block">
                     Unified POS Store
                   </span>
-                  <span className="font-mono text-[10px] text-[var(--color-primary-strong)] uppercase block tracking-widest">
+                  <span className="font-mono text-[10px] text-cyan-800 uppercase block tracking-widest font-bold">
                     Terminal #01 • Live Log
                   </span>
                 </div>
 
                 <div className="space-y-4 text-xs">
                   {latestSales.slice(0, 5).map((sale) => (
-                    <div key={sale.id} className="relative pl-5 border-l-2 border-[var(--color-border)] space-y-1">
-                      <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--color-primary)] ring-3 ring-[var(--color-surface-alt)]" />
+                    <div key={sale.id} className="relative pl-5 border-l-2 border-cyan-200 space-y-1">
+                      <span className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-cyan-700 ring-3 ring-cyan-100" />
 
                       <div className="flex items-center justify-between font-medium">
-                        <span className="font-mono font-bold text-[var(--color-primary)]">
+                        <span className="font-mono font-bold text-cyan-800">
                           {sale.invoice_no}
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
@@ -473,7 +470,7 @@ export function DashboardPage() {
                         <span className="font-serif font-extrabold text-slate-900">
                           {formatCurrency(sale.grand_total)}
                         </span>
-                        <span className="text-[9px] font-bold text-[var(--color-primary)] bg-[var(--color-surface)] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
+                        <span className="text-[9px] font-bold text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">
                           {sale.payment_status} ✓
                         </span>
                       </div>
@@ -481,12 +478,12 @@ export function DashboardPage() {
                   ))}
 
                   {latestSales.length === 0 && (
-                    <div className="py-8 text-center text-xs text-[var(--color-primary-strong)] space-y-2">
-                      <div className="w-10 h-10 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto text-[var(--color-primary)] text-lg">
+                    <div className="py-8 text-center text-xs text-slate-500 space-y-2">
+                      <div className="w-10 h-10 rounded-full bg-cyan-50 border border-cyan-200 flex items-center justify-center mx-auto text-cyan-800 text-lg">
                         🧾
                       </div>
                       <p className="font-serif text-sm font-semibold text-slate-700">No receipts printed yet</p>
-                      <p className="text-[11px] max-w-[200px] mx-auto leading-relaxed">
+                      <p className="text-[11px] max-w-[200px] mx-auto leading-relaxed text-slate-400">
                         Bills printed at POS or web orders will appear in real time here.
                       </p>
                     </div>
@@ -494,10 +491,10 @@ export function DashboardPage() {
                 </div>
 
                 {/* Receipt Total & Barcode Bottom */}
-                <div className="mt-5 pt-3.5 border-t border-dashed border-[var(--color-border)] space-y-3">
+                <div className="mt-5 pt-3.5 border-t border-dashed border-cyan-200 space-y-3">
                   <div className="flex items-center justify-between font-bold text-slate-900 text-sm">
-                    <span className="font-serif text-[var(--color-primary-strong)]">Recent Total:</span>
-                    <span className="font-serif text-lg font-black text-[var(--color-primary)]">
+                    <span className="font-serif text-slate-600">Recent Total:</span>
+                    <span className="font-serif text-lg font-black text-cyan-950">
                       {formatCurrency(totalReceiptsSum)}
                     </span>
                   </div>
@@ -521,7 +518,7 @@ export function DashboardPage() {
                       <span className="w-[3.5px] h-full bg-slate-800" />
                       <span className="w-[1px] h-full bg-slate-800" />
                     </div>
-                    <div className="text-center text-[10px] font-serif italic text-[var(--color-primary-strong)]">
+                    <div className="text-center text-[10px] font-serif italic text-cyan-800">
                       Thank you for your business
                     </div>
                   </div>
@@ -531,33 +528,33 @@ export function DashboardPage() {
           </div>
 
           {/* Most Viewed Products Section */}
-          <div className="space-y-4 pt-4 border-t border-[var(--color-border-muted)]/70">
+          <div className="space-y-4 pt-4 border-t border-cyan-100">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">
                     Most Viewed Products
                   </h2>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--color-primary)]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 text-[10px] font-bold text-cyan-800">
                     👁️ Customer Views
                   </span>
                 </div>
-                <p className="text-xs text-[var(--color-primary-strong)] font-medium mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
                   Products attracting the highest interest and catalog detail views on the customer storefront
                 </p>
               </div>
             </div>
 
             {mostViewedItems.length === 0 ? (
-              <Card className="rounded-3xl border border-[var(--color-border-muted)] bg-white p-10 text-center shadow-2xs flex flex-col items-center justify-center space-y-2.5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-border-muted)] border border-[var(--color-border)] text-[var(--color-primary)] text-xl shadow-xs">
+              <Card className="rounded-3xl border border-cyan-100 bg-white p-10 text-center shadow-2xs flex flex-col items-center justify-center space-y-2.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-50 border border-cyan-200 text-cyan-800 text-xl shadow-xs">
                   👁️
                 </div>
                 <div>
                   <h3 className="font-serif text-base font-bold text-slate-900">
                     No Product Views Recorded Yet
                   </h3>
-                  <p className="text-xs text-[var(--color-primary-strong)] mt-1 max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
                     As shoppers open and explore product detail pages on the storefront, view counts will aggregate and rank your most-viewed catalog items here.
                   </p>
                 </div>
@@ -567,28 +564,28 @@ export function DashboardPage() {
                 {mostViewedItems.map((item, idx) => (
                   <div
                     key={item.id}
-                    className="group relative flex flex-col justify-between rounded-2xl bg-white p-4 shadow-2xs border border-[var(--color-border-muted)] transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-[var(--color-primary)]/40"
+                    className="group relative flex flex-col justify-between rounded-2xl bg-white p-4 shadow-2xs border border-cyan-100 transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-cyan-500"
                   >
                     <div className="flex items-start justify-between">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-mono font-bold text-[var(--color-primary)]">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-50 border border-cyan-200 text-xs font-mono font-bold text-cyan-900">
                         #{idx + 1}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--color-primary)]">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 text-[10px] font-bold text-cyan-800">
                         <span>👁️</span>
                         <span>{item.view_count} views</span>
                       </span>
                     </div>
 
                     <div className="my-3">
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 font-sans tracking-tight line-clamp-2 group-hover:text-[var(--color-primary)] transition-colors">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-900 font-sans tracking-tight line-clamp-2 group-hover:text-cyan-700 transition-colors">
                         {item.name}
                       </h3>
                     </div>
 
-                    <div className="pt-2.5 border-t border-[var(--color-border-muted)] flex items-center justify-between text-xs">
-                      <span className="text-[var(--color-primary-strong)] text-[11px] font-medium">Catalog Item</span>
+                    <div className="pt-2.5 border-t border-cyan-100 flex items-center justify-between text-xs">
+                      <span className="text-slate-500 text-[11px] font-medium">Catalog Item</span>
                       {item.min_price && (
-                        <span className="font-serif font-black text-[var(--color-primary)] text-xs sm:text-sm">
+                        <span className="font-serif font-black text-cyan-950 text-xs sm:text-sm">
                           ₹{Number(item.min_price).toLocaleString('en-IN')}
                         </span>
                       )}

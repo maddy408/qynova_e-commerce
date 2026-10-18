@@ -8,17 +8,18 @@
  * text-text-muted, border-border, etc.
  */
 @theme {
-  --color-primary: #7B3F4A;
-  --color-primary-strong: #804652;
-  --color-primary-strong-hover: #6E3642;
-  --color-sale-accent: #7E1235;
+  --color-primary: #0e7490;
+  --color-primary-strong: #155e75;
+  --color-primary-strong-hover: #164e63;
+  --color-sale-accent: #0e7490;
+  --color-sale-accent-hover: #155e75;
 
-  --color-surface: #FAF2F4;
-  --color-surface-alt: #FAF5F6;
-  --color-surface-muted: #E5D5D8;
+  --color-surface: #f0fdfa;
+  --color-surface-alt: #f8fafc;
+  --color-surface-muted: #e0f2fe;
 
-  --color-border: #EEDDE0;
-  --color-border-muted: #F2E5E7;
+  --color-border: #cffafe;
+  --color-border-muted: #e2e8f0;
 
   --color-text: #0f172a;
   --color-text-muted: #475569;
@@ -31,62 +32,55 @@
   --color-ink: #000000;
 
   /*
-   * "Extra" tokens: every other distinct color this app used before this
-   * refactor (chart accents, gradient stops, status-pill tints, etc.)
-   * that doesn't map to one of the semantic names above. Auto-extracted
-   * so the app renders pixel-identical to before — these are pass-through
-   * values, not meaningful design tokens, and are good candidates for a
-   * future consolidation pass once someone reviews what each is actually
-   * used for.
+   * "Extra" tokens: modern Furnish cyan/teal palette
    */
-  --color-extra-001: #4a1821;
-  --color-extra-002: #fdfbfb;
-  --color-extra-003: #e8ccd1;
-  --color-extra-004: #f0e0e3;
-  --color-extra-005: #f8eaed;
-  --color-extra-006: #f3e1e4;
-  --color-extra-007: #dcbac1;
+  --color-extra-001: #164e63;
+  --color-extra-002: #ffffff;
+  --color-extra-003: #cffafe;
+  --color-extra-004: #e0f2fe;
+  --color-extra-005: #ecfeff;
+  --color-extra-006: #f0fdfa;
+  --color-extra-007: #cffafe;
   --color-extra-008: #b91c1c;
-  --color-extra-009: #68343e;
-  --color-extra-010: #faf0f2;
+  --color-extra-009: #0e7490;
+  --color-extra-010: #f0fdfa;
   --color-extra-011: #0e7a36;
-  --color-extra-012: #650e2a;
-  --color-extra-013: #f6edee;
-  --color-extra-014: #fde8ec;
-  --color-extra-015: #f9b6c2;
+  --color-extra-012: #164e63;
+  --color-extra-013: #f0fdfa;
+  --color-extra-014: #ecfeff;
+  --color-extra-015: #67e8f9;
   --color-extra-016: #e3f8e9;
   --color-extra-017: #b7edc4;
-  --color-extra-018: #7a4550;
-  --color-extra-019: #f2dfe2;
-  --color-extra-020: #f9f3f4;
-  --color-extra-021: #68333d;
-  --color-extra-022: #6e3743;
+  --color-extra-018: #155e75;
+  --color-extra-019: #e0f2fe;
+  --color-extra-020: #f0fdfa;
+  --color-extra-021: #0e7490;
+  --color-extra-022: #0891b2;
   --color-extra-023: #8b5cf6;
   --color-extra-024: #22c55e;
   --color-extra-025: #16a34a;
-  --color-extra-026: #6a3340;
-  --color-extra-027: #f5e6e9;
-  --color-extra-028: #faf8fc;
+  --color-extra-026: #0e7490;
+  --color-extra-027: #f0fdfa;
+  --color-extra-028: #ffffff;
   --color-extra-029: #3b82f6;
   --color-extra-030: #f97316;
   --color-extra-031: #a78bfa;
   --color-extra-032: #ec4899;
   --color-extra-033: #14b8a6;
-  --color-extra-034: #e2cbd0;
+  --color-extra-034: #cffafe;
   --color-extra-035: #faf8f0;
   --color-extra-036: #faf6f3;
   --color-extra-037: #fbf8f6;
   --color-extra-038: #f7f0eb;
   --color-extra-039: #ece0d6;
-  --color-extra-040: #8b4856;
-  --color-extra-041: #5a2c36;
-  --color-extra-042: #f3e5e8;
-  --color-extra-043: #a35c69;
-  --color-extra-044: #680f2c;
+  --color-extra-040: #155e75;
+  --color-extra-041: #164e63;
+  --color-extra-042: #f0fdfa;
+  --color-extra-043: #0891b2;
+  --color-extra-044: #164e63;
 
-  /* Shadow tokens (alpha-blended colors — kept as full box-shadow values
-     since Tailwind's arbitrary shadow syntax takes the whole value) */
-  --shadow-login-card: 0 20px 50px -15px rgba(74, 24, 33, 0.18);
+  /* Shadow tokens (alpha-blended colors) */
+  --shadow-login-card: 0 20px 50px -15px rgba(14, 116, 144, 0.18);
 }
 
 :root {

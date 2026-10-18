@@ -24,6 +24,7 @@ import { CustomersPage } from '../pages/CustomersPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DeliveriesPage } from '../pages/DeliveriesPage'
 import { DeliveryDetailPage } from '../pages/DeliveryDetailPage'
+import { CourierPartnersPage } from '../pages/CourierPartnersPage'
 import { FinancePage } from '../pages/FinancePage'
 import { HomeSectionsPage } from '../pages/HomeSectionsPage'
 import { InvoiceDetailPage } from '../pages/InvoiceDetailPage'
@@ -79,6 +80,7 @@ export const ROUTES = {
   CUSTOMERS: '/customers',
   DELIVERIES: '/deliveries',
   DELIVERY_DETAIL: (id: string | number = ':id') => `/deliveries/${id}`,
+  COURIER_PARTNERS: '/courier-partners',
   RETURNS: '/returns',
   FINANCE: '/finance',
   REPORTS: '/reports',
@@ -146,6 +148,7 @@ export const ROUTE_TABLE: RouteDef[] = [
   { path: ROUTES.CUSTOMERS, component: CustomersPage, access: 'authenticated' },
   { path: ROUTES.DELIVERIES, component: DeliveriesPage, access: 'delivery.manage' },
   { path: ROUTES.DELIVERY_DETAIL(':id'), component: DeliveryDetailPage, access: 'delivery.manage' },
+  { path: ROUTES.COURIER_PARTNERS, component: CourierPartnersPage, access: 'delivery.manage' },
   { path: ROUTES.RETURNS, component: ReturnsPage, access: 'orders.manage' },
   { path: ROUTES.FINANCE, component: FinancePage, access: 'reports.financial.view' },
   { path: ROUTES.REPORTS, component: ReportsPage, access: 'reports.financial.view' },
@@ -231,13 +234,14 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'sales-orders',
     label: 'Sales & Orders',
     to: ROUTES.ORDERS,
-    matchPrefixes: [ROUTES.ORDERS, ROUTES.INVOICES, ROUTES.COLLECTIONS, ROUTES.CUSTOMERS, ROUTES.DELIVERIES, ROUTES.RETURNS, ROUTES.FINANCE, ROUTES.REPORTS],
+    matchPrefixes: [ROUTES.ORDERS, ROUTES.INVOICES, ROUTES.COLLECTIONS, ROUTES.CUSTOMERS, ROUTES.DELIVERIES, ROUTES.COURIER_PARTNERS, ROUTES.RETURNS, ROUTES.FINANCE, ROUTES.REPORTS],
     items: [
       { to: ROUTES.ORDERS, label: 'Orders', permission: 'orders.manage' },
       { to: ROUTES.INVOICES, label: 'Invoices', permission: 'orders.manage' },
       { to: ROUTES.COLLECTIONS, label: 'Collections (Credit)' },
       { to: ROUTES.CUSTOMERS, label: 'Customers' },
       { to: ROUTES.DELIVERIES, label: 'Delivery', permission: 'delivery.manage' },
+      { to: ROUTES.COURIER_PARTNERS, label: 'Courier Partners', permission: 'delivery.manage' },
       { to: ROUTES.RETURNS, label: 'Returns', permission: 'orders.manage' },
       { to: ROUTES.FINANCE, label: 'Expenses & Income', permission: 'reports.financial.view' },
       { to: ROUTES.REPORTS, label: 'Reports', permission: 'reports.financial.view' },

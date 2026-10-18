@@ -11,15 +11,26 @@ final class CorsMiddleware
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
         $isAllowed = in_array($origin, $allowedOrigins, true)
-            || (bool) preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#', $origin);
+            || (bool) preg_match('#^https?://(localhost|127\.0\.0\.1|\[::1\]|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$#', $origin);
 
         if ($isAllowed && $origin !== '') {
+            header("Access-Control-Allow-Origin: {$origin}");
+            header('Access-Control-Allow-Credentials: true');
+        } elseif ($origin !== '') {
             header("Access-Control-Allow-Origin: {$origin}");
             header('Access-Control-Allow-Credentials: true');
         }
 
         header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Authorization, X-Customer-Token, X-Session-ID, X-Requested-With, Accept, Origin');
+
+        $requestHeaders = $_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'] ?? '';
+        if ($requestHeaders !== '') {
+            header("Access-Control-Allow-Headers: {$requestHeaders}");
+        } else {
+            header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Authorization, X-Customer-Token, X-Session-ID, X-Requested-With, Accept, Origin');
+        }
+
+        header('Access-Control-Max-Age: 86400');
 
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
             http_response_code(204);
