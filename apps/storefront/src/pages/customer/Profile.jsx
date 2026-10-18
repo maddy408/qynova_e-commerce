@@ -421,25 +421,19 @@ export default function Profile() {
       {/* Top Navigation Bar */}
       <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 min-h-14 py-2 sm:py-0 flex items-center justify-between gap-2">
-          <Link to={ROUTES.HOME} className="flex items-center gap-2 group shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="var(--color-primary-tint)" stroke="none" />
-              </svg>
-            </div>
-            <div>
-              <div className="flex items-baseline leading-none">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[var(--color-text-main)]">
-                  {storeSettings?.store_name || 'Store'}
-                </span>
-              </div>
-              <p className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-                Customer Profile
-              </p>
-            </div>
+          <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0 select-none">
+            <img
+              src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
+              alt={storeSettings?.store_name || 'Shop with Adam'}
+              className="h-10 sm:h-11 w-auto max-w-[180px] sm:max-w-[210px] object-contain group-hover:scale-105 transition-transform"
+              onError={(e) => {
+                e.currentTarget.onerror = null
+                e.currentTarget.src = '/images/logo2.jpeg'
+              }}
+            />
+            <span className="hidden sm:inline-block text-[9px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase border-l border-gray-200 pl-2.5 ml-1">
+              Customer Profile
+            </span>
           </Link>
 
           <div className="flex items-center gap-1.5 sm:gap-3">
@@ -923,21 +917,13 @@ export default function Profile() {
             </div>
 
             {/* Quick Navigation Footer */}
-            <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="pt-4 flex items-center justify-start">
               <Link
                 to={ROUTES.HOME}
                 className="min-h-[44px] flex items-center justify-center px-6 py-3 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-black/10 active:scale-98"
               >
                 Continue Shopping
               </Link>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="min-h-[44px] flex items-center justify-center px-6 py-3 rounded-full border border-red-200 text-red-600 hover:bg-red-50 font-bold text-xs transition-colors cursor-pointer active:scale-98"
-              >
-                Sign Out
-              </button>
             </div>
 
           </div>
