@@ -51,14 +51,14 @@ export function Layout() {
   // bar below only ever lists/counts items this user can actually open)
   const activeSection = visibleSections.find((sec) => isPathActive(location.pathname, sec))
   const breadcrumb = getBreadcrumb(location.pathname, activeSection)
+  const isPosSaleRoute = location.pathname.startsWith(ROUTES.SALE)
 
   return (
-    <div className="min-h-screen bg-[var(--color-extra-028)] flex flex-col font-sans text-slate-900 antialiased">
+    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 antialiased">
       {/* Unique Floating Luxury Navbar */}
       <header className="no-print sticky top-3 z-50 px-3 sm:px-6 lg:px-8 mb-1">
-        <div className="w-full bg-white/95 backdrop-blur-xl border border-[var(--color-extra-003)] shadow-md shadow-[var(--color-primary-strong)]/8 rounded-full px-3.5 sm:px-5 py-2">
+        <div className="w-full bg-white/95 backdrop-blur-xl border border-cyan-200/80 shadow-md shadow-cyan-950/5 rounded-full px-3.5 sm:px-5 py-2">
           <div className="flex items-center justify-between gap-3">
-            {/* Logo */}
             <Link to={ROUTES.DASHBOARD} className="flex items-center gap-2.5 group shrink-0 pl-1 select-none">
               <img
                 src="/images/logo2.jpeg"
@@ -71,12 +71,12 @@ export function Layout() {
               />
               <div className="flex flex-col">
                 <span className="text-sm font-black tracking-tight text-slate-950 leading-none">Shop with Adam</span>
-                <span className="text-[9px] font-black text-[var(--color-primary-strong)] uppercase tracking-widest mt-0.5">ADMIN &amp; POS</span>
+                <span className="text-[9px] font-black text-cyan-700 uppercase tracking-widest mt-0.5">ADMIN &amp; POS</span>
               </div>
             </Link>
 
             {/* Desktop Center Floating Navigation Pill Dock */}
-            <nav className="hidden lg:flex items-center gap-1 bg-[var(--color-surface)] p-1 rounded-full border border-[var(--color-border)] shadow-inner">
+            <nav className="hidden lg:flex items-center gap-1 bg-cyan-50/60 p-1 rounded-full border border-cyan-200/70 shadow-inner">
               {visibleSections.map((sec) => {
                 const isActive = isPathActive(location.pathname, sec)
                 const isPosSale = sec.id === 'pos-sale'
@@ -88,11 +88,11 @@ export function Layout() {
                       to={sec.to}
                       className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-black rounded-full transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[var(--color-primary-strong)] text-white shadow-xs'
-                          : 'bg-white text-[var(--color-primary-strong)] border border-[var(--color-extra-003)] hover:bg-[var(--color-extra-005)]'
+                          ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-md shadow-cyan-600/25 ring-2 ring-cyan-400/20'
+                          : 'bg-white text-cyan-800 border border-cyan-200 hover:bg-cyan-50'
                       }`}
                     >
-                      <ZapIcon className={`h-3.5 w-3.5 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-[var(--color-primary-strong)] fill-[var(--color-primary-strong)]'}`} />
+                      <ZapIcon className={`h-3.5 w-3.5 ${isActive ? 'text-amber-300 fill-amber-300' : 'text-cyan-700 fill-cyan-700'}`} />
                       {sec.label}
                     </Link>
                   )
@@ -104,8 +104,8 @@ export function Layout() {
                     to={sec.to}
                     className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[var(--color-primary-strong)] text-white shadow-xs font-black'
-                        : 'text-slate-800 hover:text-[var(--color-primary-strong)] hover:bg-white/80'
+                        ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-xs font-black'
+                        : 'text-slate-700 hover:text-cyan-900 hover:bg-white/90'
                     }`}
                   >
                     {sec.label}
@@ -119,13 +119,13 @@ export function Layout() {
               <NotificationBell />
 
               {/* User Profile Capsule */}
-              <div className="flex items-center gap-2 pl-1 pr-3.5 py-1 bg-[var(--color-surface)] border border-[var(--color-extra-003)] rounded-full shadow-2xs">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-strong)] to-[var(--color-extra-001)] text-[11px] font-black text-white shadow-xs">
+              <div className="flex items-center gap-2 pl-1 pr-3.5 py-1 bg-cyan-50/80 border border-cyan-200 rounded-full shadow-2xs">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-700 to-teal-800 text-[11px] font-black text-white shadow-xs">
                   {user?.name?.charAt(0).toUpperCase() || 'A'}
                 </div>
                 <div className="text-left leading-tight">
                   <p className="text-xs font-bold text-slate-950">{user?.name || 'Admin'}</p>
-                  <span className="text-[9px] font-black text-[var(--color-primary-strong)] uppercase tracking-wider block">
+                  <span className="text-[9px] font-black text-cyan-800 uppercase tracking-wider block">
                     {user?.role || 'ADMIN'}
                   </span>
                 </div>
@@ -147,7 +147,7 @@ export function Layout() {
               <NotificationBell />
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="p-1.5 rounded-full border border-[var(--color-extra-003)] bg-[var(--color-surface)] text-[var(--color-primary-strong)] hover:bg-[var(--color-extra-005)]"
+                className="p-1.5 rounded-full border border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100"
                 aria-label="Toggle Navigation Menu"
               >
                 {mobileOpen ? <XMarkIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
@@ -158,7 +158,7 @@ export function Layout() {
 
         {/* Mobile Dropdown Menu */}
         {mobileOpen && (
-          <div className="lg:hidden w-full mt-2 rounded-2xl border border-[var(--color-extra-003)] bg-white p-4 space-y-2 shadow-xl">
+          <div className="lg:hidden w-full mt-2 rounded-2xl border border-cyan-200 bg-white p-4 space-y-2 shadow-xl">
             {visibleSections.map((sec) => {
               const isActive = isPathActive(location.pathname, sec)
               return (
@@ -167,7 +167,7 @@ export function Layout() {
                     to={sec.to}
                     onClick={() => setMobileOpen(false)}
                     className={`block px-3.5 py-2 text-xs font-bold rounded-xl ${
-                      isActive ? 'bg-[var(--color-primary-strong)] text-white' : 'text-slate-800 bg-[var(--color-surface)]'
+                      isActive ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white' : 'text-slate-800 bg-cyan-50/60'
                     }`}
                   >
                     {sec.label}
@@ -181,7 +181,7 @@ export function Layout() {
                           onClick={() => setMobileOpen(false)}
                           className={({ isActive: subActive }) =>
                             `block px-2.5 py-1 text-[11px] font-medium rounded-lg ${
-                              subActive ? 'text-[var(--color-primary-strong)] bg-[var(--color-surface)] font-bold' : 'text-slate-600 hover:bg-[var(--color-surface)]/50'
+                              subActive ? 'text-cyan-900 bg-cyan-100/80 font-bold' : 'text-slate-600 hover:bg-cyan-50/50'
                             }`
                           }
                         >
@@ -193,7 +193,7 @@ export function Layout() {
                 </div>
               )
             })}
-            <div className="pt-3 border-t border-[var(--color-border-muted)] flex items-center justify-between">
+            <div className="pt-3 border-t border-cyan-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-slate-900">{user?.name}</p>
                 <p className="text-[10px] text-slate-500">{user?.role}</p>
@@ -212,16 +212,16 @@ export function Layout() {
 
       {/* Section Sub-Header & Horizontal Tab Navigation */}
       {activeSection && activeSection.items.length > 0 && (
-        <div className="no-print bg-white border-b border-slate-200/80 shadow-2xs">
+        <div className="no-print bg-white border-b border-cyan-100 shadow-2xs">
           <div className="w-full max-w-full px-4 sm:px-6 py-3.5">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               {/* Breadcrumb & Section Name */}
               <div>
                 {breadcrumb && (
-                  <nav className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--color-sale-accent)]/80 uppercase tracking-[0.2em] mb-0.5">
+                  <nav className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-700/80 uppercase tracking-[0.2em] mb-0.5">
                     <span>{breadcrumb.sectionLabel}</span>
                     <span>&gt;</span>
-                    <span className="text-[var(--color-sale-accent)]">{breadcrumb.itemLabel}</span>
+                    <span className="text-cyan-800 font-extrabold">{breadcrumb.itemLabel}</span>
                   </nav>
                 )}
                 <h1 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-slate-900">
@@ -230,7 +230,7 @@ export function Layout() {
               </div>
 
               {/* Horizontal Sub-Navigation Tab Bar */}
-              <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm self-start sm:self-auto border bg-[var(--color-extra-020)] border-[var(--color-border)]">
+              <div className="inline-flex items-center gap-1 p-1 rounded-full text-xs overflow-x-auto max-w-full scrollbar-none shadow-sm self-start sm:self-auto border bg-cyan-50/60 border-cyan-200/70">
                 {activeSection.items.map((sub) => {
                   if (sub.permission && !hasPermission(sub.permission)) return null
                   const isSubActive = location.pathname.startsWith(sub.to)
@@ -240,8 +240,8 @@ export function Layout() {
                       to={sub.to}
                       className={`px-3.5 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
                         isSubActive
-                          ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                          ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
                       }`}
                     >
                       {sub.label}
@@ -255,7 +255,7 @@ export function Layout() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-full px-4 sm:px-6 py-4">
+      <main className={isPosSaleRoute ? 'flex-1 w-full max-w-full px-2 sm:px-4 py-1 bg-white' : 'flex-1 w-full max-w-full px-4 sm:px-6 py-4 bg-white'}>
         <Outlet />
       </main>
     </div>

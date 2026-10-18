@@ -170,7 +170,7 @@ function QuantityStepper({ line, onQuantityChange, onCommitFocusSearch }: Quanti
         type="button"
         title="Decrease quantity"
         onClick={() => onQuantityChange(line.variant_id, line.qty - 1)}
-        className="flex h-6 w-6 items-center justify-center rounded border border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+        className="flex h-6 w-6 items-center justify-center rounded-lg border border-cyan-200 bg-white text-xs font-bold text-cyan-800 hover:bg-cyan-50 hover:border-cyan-400 transition-colors cursor-pointer shadow-2xs"
       >
         −
       </button>
@@ -184,10 +184,10 @@ function QuantityStepper({ line, onQuantityChange, onCommitFocusSearch }: Quanti
         onPaste={handlePaste}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className={`h-6 w-10 text-center rounded border px-1 text-xs font-bold transition-colors ${
+        className={`h-6 w-10 text-center rounded-lg border px-1 text-xs font-black transition-colors ${
           isMaxReached
             ? 'border-amber-400 bg-amber-50 text-amber-900 focus:border-amber-500'
-            : 'border-slate-300 bg-white text-slate-900 focus:border-[var(--color-sale-accent)]'
+            : 'border-cyan-200 bg-white text-slate-900 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-500/20'
         } focus:outline-hidden`}
         title={isMaxReached ? `Max available stock (${maxStock}) reached` : 'Edit quantity'}
       />
@@ -197,10 +197,10 @@ function QuantityStepper({ line, onQuantityChange, onCommitFocusSearch }: Quanti
         title={isMaxReached ? `Max stock (${maxStock}) reached` : 'Increase quantity'}
         disabled={isMaxReached}
         onClick={() => onQuantityChange(line.variant_id, line.qty + 1)}
-        className={`flex h-6 w-6 items-center justify-center rounded border text-xs font-bold transition-colors cursor-pointer ${
+        className={`flex h-6 w-6 items-center justify-center rounded-lg border text-xs font-bold transition-colors cursor-pointer shadow-2xs ${
           isMaxReached
             ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
-            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+            : 'border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-50 hover:border-cyan-400'
         }`}
       >
         +
@@ -1037,7 +1037,7 @@ export function SalePage() {
   }, [activeCategory, categories])
 
   return (
-    <div className="w-full max-w-full min-h-screen bg-slate-50 text-slate-800 p-2 sm:p-4">
+    <div className="w-full max-w-full min-h-screen bg-white text-slate-900 p-2 sm:p-3">
       {/* Hidden temporary div for file barcode scanner if needed */}
       <div id="pos-file-scanner-temp" className="hidden" />
       <canvas ref={canvasRef} className="hidden" />
@@ -1045,16 +1045,16 @@ export function SalePage() {
       {/* Toast Notification Banner */}
       {toastMsg && (
         <div
-          className={`fixed top-4 right-4 z-50 flex items-center space-x-2 rounded-xl px-4 py-3 text-xs font-bold shadow-xl border ${
+          className={`fixed top-4 right-4 z-50 flex items-center space-x-2.5 rounded-2xl px-4 py-3 text-xs font-bold shadow-2xl border ${
             toastMsg.type === 'success'
-              ? 'bg-emerald-900 text-emerald-100 border-emerald-700'
-              : 'bg-red-900 text-red-100 border-red-700'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white border-emerald-500 shadow-emerald-900/20'
+              : 'bg-gradient-to-r from-rose-600 to-pink-700 text-white border-rose-500 shadow-rose-900/20'
           }`}
         >
           {toastMsg.type === 'success' ? (
-            <CheckIcon className="h-4 w-4 text-emerald-400" />
+            <CheckIcon className="h-4 w-4 text-emerald-200 stroke-[2.5]" />
           ) : (
-            <span className="text-red-400 font-extrabold">⚠️</span>
+            <span className="text-white font-extrabold text-sm">⚠️</span>
           )}
           <span>{toastMsg.text}</span>
         </div>
@@ -1067,22 +1067,22 @@ export function SalePage() {
         {/* ========================================================= */}
         <div className="w-full lg:w-[65%] min-w-0 space-y-3">
           {/* Top Control Bar & Customer Type Section */}
-          <div className="rounded-2xl bg-white border border-slate-200 p-3.5 shadow-xs space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="rounded-3xl bg-white border border-cyan-200/80 p-3.5 sm:p-4 shadow-sm shadow-cyan-950/5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
               {/* Customer Type Selector Pills: Normal | Retail | Wholesale | Customer-Wise */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-extrabold uppercase text-[var(--color-sale-accent)] tracking-wider mr-1">
-                  CUSTOMER TYPE:
+                <span className="text-[11px] font-black uppercase text-cyan-800 tracking-wider mr-1 flex items-center gap-1">
+                  <span>✨</span> CUSTOMER TYPE:
                 </span>
                 {(['NORMAL', 'RETAIL', 'WHOLESALE', 'CUSTOMER_WISE'] as const).map((t) => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => setPriceType(t)}
-                    className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                    className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                       priceType === t
-                        ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-md shadow-cyan-700/25 ring-2 ring-cyan-400/20'
+                        : 'bg-cyan-50/70 text-cyan-950 hover:bg-cyan-100/80 border border-cyan-200/70'
                     }`}
                   >
                     {t === 'NORMAL' ? 'Normal' : t === 'RETAIL' ? 'Retail' : t === 'WHOLESALE' ? 'Wholesale' : 'Customer-Wise'}
@@ -1095,7 +1095,7 @@ export function SalePage() {
                 <button
                   type="button"
                   onClick={() => setShowQuickSaleModal(true)}
-                  className="flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-3.5 py-1.5 text-xs font-black shadow-sm shadow-amber-500/25 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <span>⚡</span> Quick Sale
                 </button>
@@ -1103,7 +1103,7 @@ export function SalePage() {
                 <button
                   type="button"
                   onClick={() => setShowHoldBillsModal(true)}
-                  className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 hover:bg-blue-100 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50/80 hover:bg-cyan-100 text-cyan-950 px-3.5 py-1.5 text-xs font-black shadow-2xs transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <span>⏸</span> Hold Bills ({holdBills.length})
                 </button>
@@ -1115,7 +1115,7 @@ export function SalePage() {
               {/* Customer Search with Dropdown */}
               <div className="relative w-full sm:w-[45%]" ref={customerContainerRef}>
                 <div className="relative flex items-center">
-                  <span className="absolute left-3 text-slate-400 text-xs">🔍</span>
+                  <span className="absolute left-3 text-cyan-700 text-xs">🔍</span>
                   <input
                     type="text"
                     value={customer ? `${customer.name} (${customer.phone})` : customerQuery}
@@ -1126,7 +1126,7 @@ export function SalePage() {
                     }}
                     onFocus={() => setShowCustomerDropdown(true)}
                     placeholder="Search customer name / phone..."
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-[var(--color-sale-accent)] focus:bg-white focus:outline-hidden"
+                    className="w-full rounded-2xl border border-cyan-200/80 bg-white py-2 pl-8 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 focus:outline-hidden transition-all shadow-2xs"
                   />
                   {customer && (
                     <button
@@ -1135,7 +1135,7 @@ export function SalePage() {
                         setCustomer(null)
                         setCustomerQuery('')
                       }}
-                      className="absolute right-2 text-slate-400 hover:text-red-600 text-xs cursor-pointer font-bold"
+                      className="absolute right-2.5 text-slate-400 hover:text-rose-600 text-xs cursor-pointer font-bold"
                     >
                       ✕
                     </button>
@@ -1144,7 +1144,7 @@ export function SalePage() {
 
                 {/* Customer Dropdown Results */}
                 {showCustomerDropdown && (
-                  <div className="absolute left-0 top-10 z-40 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+                  <div className="absolute left-0 top-11 z-40 max-h-56 w-full overflow-y-auto rounded-2xl border border-cyan-200 bg-white shadow-xl shadow-cyan-950/10">
                     {allCustomers
                       .filter(
                         (c) =>
@@ -1160,13 +1160,13 @@ export function SalePage() {
                             setPriceType(c.customer_type)
                             setShowCustomerDropdown(false)
                           }}
-                          className="flex items-center justify-between px-3 py-2 text-xs hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0"
+                          className="flex items-center justify-between px-3 py-2 text-xs hover:bg-cyan-50/60 cursor-pointer border-b border-cyan-50 last:border-0 transition-colors"
                         >
                           <div>
                             <span className="font-bold text-slate-900 block">{c.name}</span>
                             <span className="text-[10px] text-slate-500">{c.phone}</span>
                           </div>
-                          <Badge tone="slate">{c.customer_type}</Badge>
+                          <Badge tone="cyan">{c.customer_type}</Badge>
                         </div>
                       ))}
 
@@ -1175,7 +1175,7 @@ export function SalePage() {
                         setShowCustomerDropdown(false)
                         setShowNewCustModal(true)
                       }}
-                      className="bg-slate-50 px-3 py-2 text-center text-xs font-bold text-[var(--color-sale-accent)] hover:bg-slate-100 cursor-pointer"
+                      className="bg-cyan-50 px-3 py-2 text-center text-xs font-extrabold text-cyan-800 hover:bg-cyan-100 cursor-pointer transition-colors"
                     >
                       + Add New Customer
                     </div>
@@ -1186,7 +1186,7 @@ export function SalePage() {
               {/* Product Barcode & Name Search Bar */}
               <div className="relative flex-1 w-full flex items-center gap-1.5">
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-2.5 text-slate-400 text-xs">|||||</span>
+                  <span className="absolute left-3 top-2.5 text-cyan-700 text-xs font-mono font-bold">|||||</span>
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -1204,13 +1204,13 @@ export function SalePage() {
                       }
                     }}
                     placeholder="Search product by name, SKU or barcode (Press Enter)..."
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-[var(--color-sale-accent)] focus:bg-white focus:outline-hidden"
+                    className="w-full rounded-2xl border border-cyan-200/80 bg-white py-2 pl-9 pr-8 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 focus:outline-hidden transition-all shadow-2xs"
                   />
                   {search && (
                     <button
                       type="button"
                       onClick={() => setSearch('')}
-                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-red-600 text-xs cursor-pointer font-bold"
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-rose-600 text-xs cursor-pointer font-bold"
                     >
                       ✕
                     </button>
@@ -1222,7 +1222,7 @@ export function SalePage() {
                   type="button"
                   onClick={() => setShowImageScannerModal(true)}
                   title="Snap photo with camera or upload image to scan & add products"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:border-[var(--color-sale-accent)] hover:text-[var(--color-sale-accent)] transition-all cursor-pointer shadow-2xs"
+                  className="flex h-9 w-9 items-center justify-center rounded-2xl border border-cyan-200 bg-white text-cyan-800 hover:border-cyan-600 hover:bg-cyan-50 transition-all cursor-pointer shadow-2xs"
                 >
                   <CameraIcon className="h-4 w-4" />
                 </button>
@@ -1235,7 +1235,7 @@ export function SalePage() {
                     setShowDeviceModal(true)
                   }}
                   title={printerConnected ? "WiFi Printer (Ready)" : "WiFi Printer & Network"}
-                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:border-[var(--color-sale-accent)] hover:text-[var(--color-sale-accent)] transition-all cursor-pointer shadow-2xs"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-2xl border border-cyan-200 bg-white text-cyan-800 hover:border-cyan-600 hover:bg-cyan-50 transition-all cursor-pointer shadow-2xs"
                 >
                   <WifiIcon className="h-4 w-4" />
                   <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500" />
@@ -1249,22 +1249,22 @@ export function SalePage() {
                     setShowDeviceModal(true)
                   }}
                   title={bluetoothConnected ? "Bluetooth Barcode Scanner (Active & Paired)" : "Bluetooth Barcode Scanner (Click to Pair)"}
-                  className={`relative flex h-9 w-9 items-center justify-center rounded-xl border transition-all cursor-pointer shadow-2xs ${
+                  className={`relative flex h-9 w-9 items-center justify-center rounded-2xl border transition-all cursor-pointer shadow-2xs ${
                     bluetoothConnected
-                      ? 'border-blue-400 bg-blue-50 text-blue-700 font-bold'
-                      : 'border-slate-300 bg-white text-slate-700 hover:border-[var(--color-sale-accent)] hover:text-[var(--color-sale-accent)]'
+                      ? 'border-cyan-600 bg-cyan-50 text-cyan-900 font-bold'
+                      : 'border-cyan-200 bg-white text-cyan-800 hover:border-cyan-600 hover:bg-cyan-50'
                   }`}
                 >
                   <BluetoothIcon className="h-4 w-4" />
                   {bluetoothConnected && (
-                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-cyan-600 animate-pulse" />
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Category Filter Chips Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+            {/* Category Filter Chips Bar (Furnish Ocean Teal Aesthetics) */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-cyan-100">
               <div className="flex flex-wrap items-center gap-1.5">
                 {/* 1. All Items Chip */}
                 <button
@@ -1273,10 +1273,10 @@ export function SalePage() {
                     setActiveCategory(ALL_ITEMS)
                     setShowCategoriesDropdown(false)
                   }}
-                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                     activeCategory === ALL_ITEMS
-                      ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-md shadow-cyan-700/25 ring-2 ring-cyan-400/20'
+                      : 'bg-cyan-50/70 text-cyan-950 border border-cyan-200/70 hover:bg-cyan-100'
                   }`}
                 >
                   All Items
@@ -1289,10 +1289,10 @@ export function SalePage() {
                     setActiveCategory(TOP_SELLING)
                     setShowCategoriesDropdown(false)
                   }}
-                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                     activeCategory === TOP_SELLING
-                      ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/20'
+                      : 'bg-amber-50/80 text-amber-900 border border-amber-200 hover:bg-amber-100'
                   }`}
                 >
                   ★ Top Selling
@@ -1302,26 +1302,26 @@ export function SalePage() {
                 <button
                   type="button"
                   onClick={() => setShowCategoriesDropdown((prev) => !prev)}
-                  className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                     (activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING) || showCategoriesDropdown
-                      ? 'bg-[var(--color-sale-accent)] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-md shadow-cyan-700/25 ring-2 ring-cyan-400/20'
+                      : 'bg-cyan-50/70 text-cyan-950 border border-cyan-200/70 hover:bg-cyan-100'
                   }`}
                 >
                   <span>
-                    {activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING ? activeCategoryLabel : `All Categories (${categories.length})`}
+                    {activeCategory !== ALL_ITEMS && activeCategory !== TOP_SELLING ? activeCategoryLabel : `Categories (${categories.length})`}
                   </span>
-                  <span>{showCategoriesDropdown ? '▲' : '▼'}</span>
+                  <span className="text-[10px]">{showCategoriesDropdown ? '▲' : '▼'}</span>
                 </button>
               </div>
 
               {/* View Mode Toggle: Grid | List (Default: Grid) */}
-              <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-0.5">
+              <div className="flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50/70 p-0.5 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    viewMode === 'list' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                    viewMode === 'list' ? 'bg-white text-cyan-950 shadow-2xs border border-cyan-200/60' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <ListIcon className="h-3.5 w-3.5" />
@@ -1330,8 +1330,8 @@ export function SalePage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    viewMode === 'grid' ? 'bg-white text-[var(--color-sale-accent)] shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
+                    viewMode === 'grid' ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <LayoutGridIcon className="h-3.5 w-3.5" />
@@ -1342,8 +1342,8 @@ export function SalePage() {
 
             {/* Expanded Categories Chips Tray */}
             {showCategoriesDropdown && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 flex flex-wrap gap-1.5 transition-all">
-                <span className="text-[10px] font-extrabold uppercase text-[var(--color-sale-accent)] w-full block mb-1">
+              <div className="rounded-2xl border border-cyan-200/80 bg-cyan-50/40 p-3 flex flex-wrap gap-1.5 transition-all">
+                <span className="text-[10px] font-black uppercase text-cyan-800 w-full block mb-1 tracking-wider">
                   SELECT CATEGORY:
                 </span>
                 {categories.map((cat) => (
@@ -1354,10 +1354,10 @@ export function SalePage() {
                       setActiveCategory(cat.id)
                       setShowCategoriesDropdown(false)
                     }}
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                       String(activeCategory) === String(cat.id)
-                        ? 'bg-[var(--color-sale-accent)] text-white font-bold shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        ? 'bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 text-white font-bold shadow-xs'
+                        : 'bg-white border border-cyan-200 text-cyan-950 hover:bg-cyan-50 hover:border-cyan-300'
                     }`}
                   >
                     {cat.name}
@@ -1369,12 +1369,15 @@ export function SalePage() {
 
           {/* Product Catalog Display (Grid View by Default vs List Table View) */}
           {loading && !products ? (
-            <div className="flex items-center justify-center p-12 rounded-2xl bg-white border border-slate-200">
-              <span className="text-sm font-bold text-slate-500 animate-pulse">Loading catalog products...</span>
+            <div className="flex items-center justify-center p-16 rounded-3xl bg-white border border-cyan-200/80 shadow-sm">
+              <span className="text-sm font-bold text-cyan-800 animate-pulse flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-cyan-600 animate-ping" />
+                Loading luxury catalog products...
+              </span>
             </div>
           ) : viewMode === 'grid' ? (
             /* ================= GRID VIEW (DEFAULT) ================= */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
               {(products ?? []).map((p) => {
                 const price = resolveVariantPrice(p, priceType)
                 const status = stockStatus(p.available, p.low_stock_threshold)
@@ -1384,21 +1387,24 @@ export function SalePage() {
                 return (
                   <div
                     key={p.variant_id}
-                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 shadow-2xs hover:border-[var(--color-sale-accent)] transition-all group"
+                    className="flex flex-col justify-between rounded-3xl border border-cyan-200/80 bg-white p-3.5 shadow-xs hover:border-cyan-500 hover:shadow-xl hover:shadow-cyan-900/10 transition-all duration-200 group relative"
                   >
                     <div>
                       {/* Product Thumbnail / Placeholder */}
-                      <div className="mb-2 flex h-24 w-full items-center justify-center rounded-xl bg-slate-800 text-white font-black text-sm uppercase relative overflow-hidden shadow-2xs">
+                      <div className="mb-2.5 flex h-28 w-full items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-50 via-teal-50 to-slate-50 border border-cyan-100 text-cyan-950 font-black text-sm uppercase relative overflow-hidden shadow-2xs group-hover:scale-[1.02] transition-transform">
                         {p.primary_image ? (
                           <img src={p.primary_image} alt={p.product_name} className="h-full w-full object-cover" />
                         ) : (
-                          <span>{p.product_name.slice(0, 4)}</span>
+                          <div className="flex flex-col items-center justify-center text-center p-2">
+                            <span className="text-lg opacity-40">✨</span>
+                            <span className="text-xs font-black tracking-wider text-cyan-800">{p.product_name.slice(0, 4)}</span>
+                          </div>
                         )}
 
                         {/* In Stock / Out of Stock Badge */}
                         <span
-                          className={`absolute top-1.5 right-1.5 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${
-                            outOfStock ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
+                          className={`absolute top-2 right-2 rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider shadow-xs ${
+                            outOfStock ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'
                           }`}
                         >
                           {outOfStock ? 'Out of Stock' : 'In Stock'}
@@ -1407,38 +1413,38 @@ export function SalePage() {
 
                       {/* Product Name */}
                       <h4
-                        className="font-extrabold text-slate-900 text-xs uppercase truncate"
+                        className="font-bold text-slate-900 text-xs uppercase truncate group-hover:text-cyan-700 transition-colors"
                         title={p.product_name}
                       >
                         {p.product_name}
                       </h4>
 
                       {/* Price & GST */}
-                      <div className="mt-1 flex items-center justify-between text-[11px]">
-                        <span className="font-black text-slate-900 text-sm">₹{Number(price).toFixed(2)}</span>
-                        <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                      <div className="mt-1.5 flex items-center justify-between text-[11px]">
+                        <span className="font-black text-slate-950 text-base tracking-tight">₹{Number(price).toFixed(2)}</span>
+                        <span className="rounded-md bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 text-[9px] font-black text-cyan-800">
                           GST {Number(p.gst_percent || 0).toFixed(0)}%
                         </span>
                       </div>
 
                       {/* Stock & SKU Info */}
-                      <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
+                      <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                         <span className="font-mono">SKU: {p.sku}</span>
-                        <span className="font-bold">Stock: {Number(p.available).toFixed(0)}</span>
+                        <span className="font-bold text-slate-600">Stock: {Number(p.available).toFixed(0)}</span>
                       </div>
                     </div>
 
                     {/* Action Button */}
                     {inCartItem ? (
-                      <div className="mt-2.5 flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 p-1">
-                        <span className="text-[11px] font-bold text-emerald-800 pl-2">
+                      <div className="mt-3 flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-200 p-1 shadow-2xs">
+                        <span className="text-[11px] font-extrabold text-emerald-800 pl-2">
                           In Cart ({inCartItem.qty})
                         </span>
                         <button
                           type="button"
                           disabled={outOfStock || inCartItem.qty >= (parseFloat(p.available) || 9999)}
                           onClick={() => addToCart(p)}
-                          className="h-6 w-6 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center justify-center text-xs cursor-pointer disabled:opacity-40"
+                          className="h-7 w-7 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center justify-center text-xs cursor-pointer disabled:opacity-40 shadow-xs"
                         >
                           +
                         </button>
@@ -1448,9 +1454,9 @@ export function SalePage() {
                         type="button"
                         disabled={outOfStock}
                         onClick={() => addToCart(p)}
-                        className="mt-2.5 flex w-full items-center justify-center gap-1 rounded-xl bg-[var(--color-sale-accent)] text-white py-2 text-xs font-bold hover:bg-[var(--color-extra-012)] transition-all shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 hover:from-cyan-800 hover:to-teal-800 text-white py-2 px-3 text-xs font-black shadow-md shadow-cyan-700/25 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        + Add to Cart
+                        <span>+</span> Add to Cart
                       </button>
                     )}
                   </div>
@@ -1458,15 +1464,15 @@ export function SalePage() {
               })}
 
               {products !== null && products.length === 0 && (
-                <div className="col-span-full py-16 text-center text-xs text-slate-500 font-medium">
+                <div className="col-span-full py-20 text-center text-xs text-slate-400 font-medium">
                   No products found matching your search.
                 </div>
               )}
             </div>
           ) : (
             /* ================= LIST TABLE VIEW ================= */
-            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
-              <div className="grid grid-cols-[1fr_100px_100px_90px_110px] items-center bg-slate-50 border-b border-slate-200 px-4 py-2.5 text-[11px] font-black uppercase text-slate-800 tracking-wider">
+            <div className="rounded-3xl border border-cyan-200/80 bg-white overflow-hidden shadow-sm">
+              <div className="grid grid-cols-[1fr_100px_100px_90px_110px] items-center bg-cyan-50/70 border-b border-cyan-200/80 px-4 py-3 text-[11px] font-black uppercase text-cyan-950 tracking-wider">
                 <span>ITEM</span>
                 <span className="text-right">PRICE</span>
                 <span className="text-center">TAX</span>
@@ -1474,7 +1480,7 @@ export function SalePage() {
                 <span className="text-right">ACTION</span>
               </div>
 
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-cyan-50">
                 {(products ?? []).map((p) => {
                   const price = resolveVariantPrice(p, priceType)
                   const status = stockStatus(p.available, p.low_stock_threshold)
@@ -1484,26 +1490,26 @@ export function SalePage() {
                   return (
                     <div
                       key={p.variant_id}
-                      className="grid grid-cols-[1fr_100px_100px_90px_110px] items-center px-4 py-2.5 hover:bg-slate-50 transition-colors"
+                      className="grid grid-cols-[1fr_100px_100px_90px_110px] items-center px-4 py-3 hover:bg-cyan-50/30 transition-colors"
                     >
                       <div className="flex items-center min-w-0 pr-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-800 text-white font-black text-[9px] uppercase shrink-0 mr-3 shadow-2xs">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-950 font-black text-[10px] uppercase shrink-0 mr-3 shadow-2xs border border-cyan-200">
                           {p.product_name.slice(0, 3)}
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="font-extrabold text-slate-900 text-xs uppercase truncate">
                             {p.product_name}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-mono">SKU: {p.sku}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">SKU: {p.sku}</span>
                         </div>
                       </div>
 
-                      <div className="text-right font-black text-slate-900 text-xs">
+                      <div className="text-right font-black text-slate-950 text-xs">
                         ₹{Number(price).toFixed(2)}
                       </div>
 
                       <div className="text-center">
-                        <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800">
+                        <span className="rounded-md bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 text-[9px] font-black text-cyan-800">
                           GST {Number(p.gst_percent || 0).toFixed(0)}%
                         </span>
                       </div>
@@ -1514,7 +1520,7 @@ export function SalePage() {
 
                       <div className="text-right">
                         {inCartItem ? (
-                          <span className="inline-block rounded-lg bg-emerald-100 px-2 py-1 text-[11px] font-bold text-emerald-800">
+                          <span className="inline-block rounded-xl bg-emerald-100 px-2.5 py-1 text-[11px] font-black text-emerald-800">
                             In Cart ({inCartItem.qty})
                           </span>
                         ) : (
@@ -1522,7 +1528,7 @@ export function SalePage() {
                             type="button"
                             disabled={outOfStock}
                             onClick={() => addToCart(p)}
-                            className="rounded-lg bg-[var(--color-sale-accent)] px-3 py-1 text-xs font-bold text-white hover:bg-[var(--color-extra-012)] transition-colors disabled:opacity-40 cursor-pointer"
+                            className="rounded-xl bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 px-3.5 py-1.5 text-xs font-bold text-white hover:from-cyan-800 hover:to-teal-800 transition-all shadow-xs disabled:opacity-40 cursor-pointer"
                           >
                             + Add
                           </button>
@@ -1541,27 +1547,29 @@ export function SalePage() {
         {/* Only inner Cart Items Box scrolls inside this card!       */}
         {/* ========================================================= */}
         <div className="w-full lg:w-[35%] shrink-0">
-          <div className="sticky top-4 h-[calc(100vh-80px)] min-h-[580px] max-h-[880px] flex flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm overflow-hidden">
+          <div className="sticky top-4 h-[calc(100vh-80px)] min-h-[580px] max-h-[880px] flex flex-col rounded-3xl border border-cyan-200/90 bg-white p-4 shadow-xl shadow-cyan-950/5 overflow-hidden">
             {/* 1. TOP HEADER (SHRINK-0: NEVER SCROLLS) */}
-            <div className="shrink-0 mb-3 border-b border-slate-100 pb-2.5">
+            <div className="shrink-0 mb-3 border-b border-cyan-100 pb-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="text-base font-extrabold text-slate-900">Current Bill</span>
-                  <span className="rounded bg-[var(--color-sale-accent)] px-2 py-0.5 text-[9px] font-extrabold uppercase text-white tracking-wider">
+                  <span className="text-base font-black text-slate-900 tracking-tight">Current Bill</span>
+                  <span className="rounded-full bg-gradient-to-r from-cyan-700 via-teal-700 to-cyan-800 px-2.5 py-0.5 text-[9px] font-black uppercase text-white tracking-wider shadow-xs">
                     {priceType} PRICING
                   </span>
                 </div>
-                <div className="text-xs font-bold text-slate-600">
+                <div className="text-xs font-black text-cyan-800 bg-cyan-50 px-2.5 py-1 rounded-full border border-cyan-200 shadow-2xs">
                   {cart.length} item(s)
                 </div>
               </div>
 
               {/* Active Customer or Walk-In Banner */}
-              <div className="mt-2 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm">👤</span>
+              <div className="mt-2.5 flex items-center justify-between bg-gradient-to-r from-cyan-50/90 to-teal-50/40 border border-cyan-200/80 rounded-2xl px-3 py-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-700 to-teal-800 text-white font-black text-xs shadow-xs shrink-0">
+                    👤
+                  </div>
                   <div className="truncate">
-                    <span className="font-extrabold text-slate-900 block truncate">
+                    <span className="font-black text-slate-900 block truncate text-xs">
                       {customer ? customer.name : 'Walk-in Customer'}
                     </span>
                     <span className="text-[10px] text-slate-500 block">
@@ -1574,7 +1582,7 @@ export function SalePage() {
                     <button
                       type="button"
                       onClick={() => setCustomer(null)}
-                      className="text-slate-400 hover:text-red-600 text-xs font-bold px-1.5 py-0.5 rounded hover:bg-slate-200 cursor-pointer transition-colors"
+                      className="text-slate-400 hover:text-rose-600 text-xs font-bold px-1.5 py-0.5 rounded-lg hover:bg-cyan-100 cursor-pointer transition-colors"
                       title="Switch to Walk-in Customer"
                     >
                       ✕
@@ -1583,11 +1591,11 @@ export function SalePage() {
                   <button
                     type="button"
                     onClick={() => setShowNewCustModal(true)}
-                    className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-sale-accent)] text-white hover:bg-[var(--color-extra-044)] px-2.5 py-1 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 rounded-xl bg-cyan-700 text-white hover:bg-cyan-800 px-2.5 py-1 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer"
                     title="Add New Customer"
                   >
                     <span>+</span>
-                    <span>Add Customer</span>
+                    <span>Add</span>
                   </button>
                 </div>
               </div>
@@ -1598,13 +1606,13 @@ export function SalePage() {
               {cart.map((line) => (
                 <div
                   key={line.variant_id}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 p-2.5 bg-slate-50 hover:bg-slate-100/70 transition-colors"
+                  className="flex items-center justify-between rounded-2xl border border-cyan-150 p-2.5 bg-white hover:bg-cyan-50/20 hover:border-cyan-300 transition-all shadow-2xs"
                 >
                   <div className="min-w-0 flex-1 pr-2">
-                    <div className="truncate text-xs font-extrabold text-slate-900 uppercase">
+                    <div className="truncate text-xs font-black text-slate-900 uppercase">
                       {line.product_name}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                       ₹{line.unit_price.toFixed(2)} × {line.qty}
                     </div>
                   </div>
@@ -1615,13 +1623,13 @@ export function SalePage() {
                       line={line}
                       onQuantityChange={(vId, nextQty) => updateQty(vId, nextQty)}
                     />
-                    <span className="text-xs font-extrabold text-slate-900 w-16 text-right">
+                    <span className="text-xs font-black text-slate-950 w-16 text-right">
                       {money(line.unit_price * line.qty)}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeLine(line.variant_id)}
-                      className="text-slate-400 hover:text-red-600 p-1 text-xs cursor-pointer font-bold"
+                      className="text-slate-300 hover:text-rose-600 p-1 text-xs cursor-pointer font-bold transition-colors"
                       title="Remove line"
                     >
                       ✕
@@ -1631,26 +1639,26 @@ export function SalePage() {
               ))}
 
               {cart.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center py-12 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50">
-                  <span className="text-2xl mb-1.5">🛒</span>
-                  <span className="font-extrabold text-slate-700 text-xs">Cart is empty</span>
-                  <span className="text-[10px] text-slate-400 mt-0.5">
-                    Scan barcode, snap photo, or tap a product
+                <div className="h-full flex flex-col items-center justify-center py-12 text-center text-xs text-slate-400 border border-dashed border-cyan-200/80 rounded-2xl bg-cyan-50/30">
+                  <span className="text-3xl mb-2">🛍️</span>
+                  <span className="font-black text-slate-800 text-xs">Cart is empty</span>
+                  <span className="text-[10px] text-slate-400 mt-1 max-w-[180px]">
+                    Scan barcode, snap photo, or tap any product to start sale
                   </span>
                 </div>
               )}
             </div>
 
             {/* 3. BOTTOM SUMMARY, DISCOUNT & PAYMENT (SHRINK-0: NEVER SCROLLS) */}
-            <div className="shrink-0 border-t border-slate-100 pt-2.5 mt-2 space-y-2">
+            <div className="shrink-0 border-t border-cyan-100 pt-2.5 mt-2 space-y-2">
               {/* T06: Bill Discount (% or Rs Toggle + Input) */}
               <div className="flex items-center gap-1.5">
-                <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-100 text-[10px] font-bold">
+                <div className="flex rounded-xl border border-cyan-200 p-0.5 bg-cyan-50 text-[10px] font-bold shadow-2xs">
                   <button
                     type="button"
                     onClick={() => setDiscountType('PERCENT')}
-                    className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
-                      discountType === 'PERCENT' ? 'bg-[var(--color-sale-accent)] text-white shadow-2xs' : 'text-slate-600'
+                    className={`px-2.5 py-0.5 rounded-lg cursor-pointer transition-all ${
+                      discountType === 'PERCENT' ? 'bg-cyan-700 text-white font-black shadow-2xs' : 'text-cyan-950 font-bold'
                     }`}
                   >
                     %
@@ -1658,8 +1666,8 @@ export function SalePage() {
                   <button
                     type="button"
                     onClick={() => setDiscountType('AMOUNT')}
-                    className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
-                      discountType === 'AMOUNT' ? 'bg-[var(--color-sale-accent)] text-white shadow-2xs' : 'text-slate-600'
+                    className={`px-2.5 py-0.5 rounded-lg cursor-pointer transition-all ${
+                      discountType === 'AMOUNT' ? 'bg-cyan-700 text-white font-black shadow-2xs' : 'text-cyan-950 font-bold'
                     }`}
                   >
                     ₹
@@ -1672,7 +1680,7 @@ export function SalePage() {
                   placeholder={discountType === 'PERCENT' ? 'Bill Discount % (e.g. 10)' : 'Bill Discount ₹'}
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-[var(--color-sale-accent)] focus:bg-white focus:outline-hidden"
+                  className="flex-1 rounded-xl border border-cyan-200/90 bg-white px-3 py-1 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600/20 focus:outline-hidden"
                 />
               </div>
 
@@ -1698,10 +1706,17 @@ export function SalePage() {
                 </div>
               </div>
 
-              {/* Grand Total Box */}
-              <div className="flex items-center justify-between rounded-xl bg-slate-100 border border-slate-200 px-3.5 py-2">
-                <span className="text-xs font-extrabold text-slate-900">Total Amount</span>
-                <span className="text-xl font-black text-slate-950">₹{totals.grandTotal.toFixed(2)}</span>
+              {/* Grand Total Box ("color thuki katanum" - Luxury Glowing Ocean Teal & Deep Petrol Card) */}
+              <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-cyan-800 via-teal-800 to-slate-900 text-white px-4 py-3 shadow-lg shadow-cyan-950/25 border border-cyan-600/30">
+                <div>
+                  <span className="text-[10px] font-black uppercase text-cyan-200 tracking-wider block">
+                    TOTAL AMOUNT
+                  </span>
+                  <span className="text-[10px] text-cyan-200/80 font-medium">
+                    Taxes & discounts included
+                  </span>
+                </div>
+                <span className="text-2xl font-black text-white tracking-tight">₹{totals.grandTotal.toFixed(2)}</span>
               </div>
 
               {/* Proceed to Payment Action Button */}
@@ -1712,10 +1727,10 @@ export function SalePage() {
                   setAmountPaid(totals.grandTotal.toFixed(2))
                   setShowPayment(true)
                 }}
-                className="w-full rounded-xl bg-[var(--color-extra-024)] hover:bg-[var(--color-extra-025)] text-white font-extrabold text-sm py-2.5 px-4 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-700 hover:from-emerald-600 hover:to-cyan-800 text-white font-black text-sm py-3 px-4 shadow-lg shadow-teal-700/30 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Proceed to Payment</span>
-                <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">Ctrl+S</span>
+                <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono font-bold">Ctrl+S</span>
               </button>
 
               {/* Hold Bill & Clear Cart Action Row */}
@@ -1724,7 +1739,7 @@ export function SalePage() {
                   type="button"
                   disabled={cart.length === 0}
                   onClick={() => setHoldNoteModal(true)}
-                  className="flex-1 rounded-xl border border-slate-300 bg-white py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex-1 rounded-xl border border-cyan-200 bg-cyan-50/70 py-2 text-xs font-bold text-cyan-950 hover:bg-cyan-100 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Hold Bill
                 </button>
@@ -1732,7 +1747,7 @@ export function SalePage() {
                   type="button"
                   disabled={cart.length === 0}
                   onClick={clearCart}
-                  className="flex-1 rounded-xl border border-slate-300 bg-white py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="flex-1 rounded-xl border border-rose-200 bg-rose-50/70 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Clear Cart
                 </button>
@@ -2224,17 +2239,17 @@ export function SalePage() {
             {error && <Alert tone="red">{error}</Alert>}
 
             {/* Grand Total Due Box */}
-            <div className="rounded-xl bg-slate-100 border border-slate-200 p-3.5 text-center">
-              <span className="text-[11px] font-extrabold uppercase text-slate-600 block tracking-wider">
+            <div className="rounded-2xl bg-gradient-to-br from-cyan-800 via-teal-800 to-slate-900 border border-cyan-600/30 p-4 text-center text-white shadow-lg shadow-cyan-950/20">
+              <span className="text-[11px] font-black uppercase text-cyan-200 block tracking-widest">
                 GRAND TOTAL DUE
               </span>
-              <span className="text-2xl font-black text-slate-950">₹{totals.grandTotal.toFixed(2)}</span>
+              <span className="text-3xl font-black text-white mt-0.5 block tracking-tight">₹{totals.grandTotal.toFixed(2)}</span>
             </div>
 
             {/* T05: 6 Payment Method Buttons */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Select Payment Method <span className="text-red-500">*</span>
+              <label className="block text-xs font-black text-slate-800 mb-1.5">
+                Select Payment Method <span className="text-rose-500">*</span>
               </label>
               <PaymentMethodButtons
                 value={paymentMethod}
@@ -2246,19 +2261,19 @@ export function SalePage() {
 
             {/* Amount Paid Field */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Amount Paid (₹)</label>
+              <label className="block text-xs font-black text-slate-800 mb-1">Amount Paid (₹)</label>
               <input
                 type="number"
                 step="any"
                 value={amountPaid}
                 onChange={(e) => setAmountPaid(e.target.value)}
                 placeholder={totals.grandTotal.toFixed(2)}
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs font-bold text-slate-900 focus:border-[var(--color-sale-accent)] focus:outline-hidden"
+                className="w-full rounded-2xl border border-cyan-200 bg-white p-2.5 text-sm font-black text-slate-900 focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 focus:outline-hidden shadow-2xs"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-cyan-100">
               <Button variant="secondary" onClick={() => setShowPayment(false)}>
                 Back
               </Button>

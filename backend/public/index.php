@@ -139,12 +139,24 @@ $router->get('/api/payment-methods', fn () => $masters->indexPaymentMethods());
 $router->post('/api/payment-methods', fn () => $masters->storePaymentMethod());
 $router->put('/api/payment-methods/{id}', fn ($id) => $masters->updatePaymentMethod($id));
 
-// Returns (Sale Returns & Purchase Returns)
+// Returns Management System (Sale Returns & Purchase Returns)
 $returns = new \App\Controllers\ReturnsController($pdo);
+$router->get('/api/returns/summary', fn () => $returns->summary());
+$router->get('/api/returns/eligible-orders', fn () => $returns->eligibleOrders());
+$router->get('/api/returns/export', fn () => $returns->export());
 $router->get('/api/returns/sales', fn () => $returns->indexSaleReturns());
 $router->post('/api/returns/sales', fn () => $returns->storeSaleReturn());
 $router->get('/api/returns/purchases', fn () => $returns->indexPurchaseReturns());
 $router->post('/api/returns/purchases', fn () => $returns->storePurchaseReturn());
+$router->get('/api/returns', fn () => $returns->list());
+$router->post('/api/returns', fn () => $returns->store());
+$router->get('/api/returns/{id}', fn ($id) => $returns->show($id));
+$router->patch('/api/returns/{id}/status', fn ($id) => $returns->updateStatus($id));
+$router->put('/api/returns/{id}/status', fn ($id) => $returns->updateStatus($id));
+$router->post('/api/returns/{id}/approve', fn ($id) => $returns->approve($id));
+$router->post('/api/returns/{id}/reject', fn ($id) => $returns->reject($id));
+$router->post('/api/returns/{id}/refund', fn ($id) => $returns->processRefund($id));
+$router->get('/api/orders/{orderId}/return', fn ($orderId) => $returns->showForOrder($orderId));
 
 // Finance Management (Expense & Income)
 $finance = new \App\Controllers\FinanceController($pdo);
@@ -361,12 +373,30 @@ $router->post('/api/purchases/{purchaseId}/payments/{paymentId}/reverse', fn ($p
 // Delivery (ECOMMERCE_POS_ADMIN_SPEC.md sections 21-22)
 $delivery = new DeliveryController($pdo);
 $router->get('/api/delivery/check-pincode', fn () => $delivery->checkPincode());
+$router->get('/api/deliveries/summary', fn () => $delivery->summary());
+$router->get('/api/deliveries/eligible-orders', fn () => $delivery->eligibleOrders());
+$router->get('/api/deliveries/drivers', fn () => $delivery->drivers());
 $router->get('/api/deliveries', fn () => $delivery->index());
 $router->get('/api/deliveries/{id}', fn ($id) => $delivery->show($id));
 $router->get('/api/orders/{orderId}/delivery', fn ($orderId) => $delivery->showForOrder($orderId));
 $router->post('/api/orders/{orderId}/delivery', fn ($orderId) => $delivery->store($orderId));
+$router->post('/api/deliveries', fn () => $delivery->createDirect());
 $router->patch('/api/deliveries/{id}/status', fn ($id) => $delivery->updateStatus($id));
+$router->put('/api/deliveries/{id}/status', fn ($id) => $delivery->updateStatus($id));
+$router->put('/api/deliveries/{id}/assignment', fn ($id) => $delivery->updateAssignment($id));
+$router->post('/api/deliveries/{id}/cod-collect', fn ($id) => $delivery->collectCod($id));
 $router->post('/api/shipping/webhook', fn () => $delivery->webhook());
+
+// Courier Partners Management (Reference Image 1)
+$courierPartners = new \App\Controllers\CourierPartnerController($pdo);
+$router->get('/api/courier-partners/summary', fn () => $courierPartners->summary());
+$router->get('/api/courier-partners', fn () => $courierPartners->list());
+$router->post('/api/courier-partners', fn () => $courierPartners->store());
+$router->get('/api/courier-partners/{id}', fn ($id) => $courierPartners->show($id));
+$router->put('/api/courier-partners/{id}', fn ($id) => $courierPartners->update($id));
+$router->put('/api/courier-partners/{id}/status', fn ($id) => $courierPartners->toggleStatus($id));
+$router->post('/api/courier-partners/{id}/test-connection', fn ($id) => $courierPartners->testConnection($id));
+
 
 // Refunds (ECOMMERCE_POS_ADMIN_SPEC.md section 23)
 $refunds = new RefundController($pdo);

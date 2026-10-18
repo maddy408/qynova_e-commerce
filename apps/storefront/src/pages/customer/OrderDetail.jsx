@@ -12,7 +12,8 @@ import {
   FiPackage, 
   FiClock, 
   FiShoppingBag,
-  FiNavigation 
+  FiNavigation,
+  FiRotateCcw
 } from 'react-icons/fi'
 import { api, getCustomerToken, isTokenExpired, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
@@ -22,6 +23,7 @@ export default function OrderDetail() {
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [delivery, setDelivery] = useState(null)
+  const [returnData, setReturnData] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -54,7 +56,17 @@ export default function OrderDetail() {
                 setDelivery(dRes.data.delivery)
               }
             })
-            .catch(() => {})
+                .catch(() => {})
+
+              // Also fetch return tracking info
+              api
+                .get(`/orders/${id}/return`)
+                .then((rRes) => {
+                  if (rRes.data?.return) {
+                    setReturnData(rRes.data.return)
+                  }
+                })
+                .catch(() => {})
         } else {
           setError('Order details could not be found')
         }
@@ -441,6 +453,80 @@ export default function OrderDetail() {
                           </span>
                         </div>
                       )}
+                      {delivery.expected_delivery_date && (
+                        <div className="text-[11px] text-[var(--color-text-muted)]">
+                          Estimated Delivery: <span className="font-bold text-[var(--color-text-main)]">{formatDate(delivery.expected_delivery_date)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Return / RMA Status Card & Event Timeline */}
+              {returnData && (
+                <div className="p-4 bg-purple-50/60 border border-purple-200/80 rounded-2xl space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shrink-0">
+                        <FiRotateCcw className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-xs font-black text-purple-950">
+                            Return Request {returnData.return_no}
+                          </p>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+                            {returnData.status.replace(/_/g, ' ')}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${returnData.return_type === 'REPLACEMENT' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                            {returnData.return_type}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-purple-700/80 mt-0.5">
+                          Reason: {returnData.reason} {returnData.refund_status && returnData.refund_status !== 'NOT_APPLICABLE' && `• Refund: ${returnData.refund_status}`}
+                          {returnData.pickup_tracking_id && ` • Pickup AWB: ${returnData.pickup_tracking_id}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {returnData.pickup_tracking_url && (
+                      <a
+                        href={returnData.pickup_tracking_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 transition-colors self-start sm:self-auto shrink-0"
+                      >
+                        <span>Track Return</span>
+                        <FiExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Return Status History Timeline */}
+                  {returnData.history && returnData.history.length > 0 && (
+                    <div className="pt-2 border-t border-purple-200/60">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-900 mb-2">
+                        Return Progress
+                      </p>
+                      <div className="relative pl-5 space-y-3 before:absolute before:left-1.5 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-purple-200">
+                        {returnData.history.map((h, hIdx) => (
+                          <div key={h.id || hIdx} className="relative text-xs">
+                            <span className={`absolute -left-5 top-1 w-2.5 h-2.5 rounded-full ring-3 ring-white ${hIdx === returnData.history.length - 1 ? 'bg-purple-700 ring-purple-200' : 'bg-purple-300'}`} />
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                              <span className="font-bold text-purple-950">
+                                {h.to_status ? h.to_status.replace(/_/g, ' ') : 'Updated'}
+                              </span>
+                              <span className="text-[10px] text-purple-600 font-medium">
+                                {new Date(h.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                            </div>
+                            {h.note && (
+                              <p className="text-[11px] text-purple-800 mt-0.5">{h.note}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
