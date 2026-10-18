@@ -14,29 +14,39 @@ export default function TrustValueBar({ deliverySettings = null }) {
 
   const items = [
     {
+      image: '/images/icon5.jpeg',
       icon: <FiTruck className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
       title: 'Free Delivery',
       desc: `On orders above ₹${freeThreshold}`,
+      alt: 'Free Delivery Van',
     },
     {
+      image: '/images/icon4.jpeg',
       icon: <LuLeaf className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
       title: 'Fresh & Quality',
       desc: '100% Genuine Products',
+      alt: 'Fresh and Quality Leaf',
     },
     {
+      image: '/images/icon3.jpeg',
       icon: <FiShield className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
       title: 'Secure Payments',
       desc: 'Multiple Payment Options',
+      alt: 'Secure Payments Shield',
     },
     {
+      image: '/images/icon2.jpeg',
       icon: <LuHeadphones className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
       title: '24/7 Support',
       desc: "We're here to help",
+      alt: '24/7 Support Headset',
     },
     {
+      image: '/images/icon1.jpeg',
       icon: <FiPercent className="w-5 h-5 text-[var(--color-primary)] stroke-[2.2]" />,
       title: 'Great Offers',
       desc: 'Save More Every Day',
+      alt: 'Great Offers Percentage',
     },
   ]
 
@@ -50,9 +60,23 @@ export default function TrustValueBar({ deliverySettings = null }) {
                 key={idx}
                 className={`flex items-center gap-3 ${idx > 0 ? 'sm:pl-4 pt-2 sm:pt-0' : ''}`}
               >
-                {/* Circular soft primary/cyan badge */}
-                <div className="w-10 h-10 rounded-full bg-[var(--color-primary-tint)] border border-sky-200/60 flex items-center justify-center shrink-0">
-                  {item.icon}
+                {/* Circular custom icon / soft primary badge */}
+                <div className="w-10 h-10 rounded-full bg-[var(--color-primary-tint)] border border-sky-200/60 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs group">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.alt || item.title}
+                      className="w-full h-full object-cover transition-transform duration-200 hover:scale-110"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                        const fallback = e.currentTarget.parentElement?.querySelector('.fallback-svg')
+                        if (fallback) fallback.style.display = 'flex'
+                      }}
+                    />
+                  ) : null}
+                  <span className={`fallback-svg ${item.image ? 'hidden' : 'flex'} items-center justify-center`}>
+                    {item.icon}
+                  </span>
                 </div>
 
                 <div className="min-w-0">

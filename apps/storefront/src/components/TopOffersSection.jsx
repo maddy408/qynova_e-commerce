@@ -38,15 +38,16 @@ export default function TopOffersSection({
       ? Number(deliverySettings.free_delivery_threshold)
       : 499
 
-  // Local saved illustrations in public/images/offers/
+  // Local saved illustrations in public/images/
+  // Mapped by recognized objects: Van, Grocery Cart, Festive Gift Box, Coupon Tag
   const localOfferImages = [
-    '/images/offers/offer_truck.png',
-    '/images/offers/offer_basket.png',
-    '/images/offers/offer_gift.png',
-    '/images/offers/offer_tag.png',
+    '/images/top_offer_4.jpeg',
+    '/images/top_offer_5.jpeg',
+    '/images/top_offer_3.jpeg',
+    '/images/top_offer_2.jpeg',
   ]
 
-  // Default preset cards matching reference image
+  // Default preset cards matching reference image & recognized objects
   const presetCards = [
     {
       id: 'offer-card-1',
@@ -59,8 +60,8 @@ export default function TopOffersSection({
       btnText: 'Shop Essentials',
       btnVariant: 'primary',
       link: ROUTES.PRODUCTS,
-      image: '/images/offers/offer_truck.png',
-      fallbackImage: '/images/offers/offer_truck.png',
+      image: '/images/top_offer_4.jpeg', // Object: 3D Grocery Delivery Van
+      fallbackImage: '/images/icon5.jpeg',
     },
     {
       id: 'offer-card-2',
@@ -74,7 +75,7 @@ export default function TopOffersSection({
       btnVariant: 'secondary',
       btnCustomClass: 'bg-rose-600 hover:bg-rose-700 text-white',
       link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-      image: '/images/offers/offer_basket.png',
+      image: '/images/top_offer_5.jpeg', // Object: 3D Grocery Shopping Cart
       fallbackImage: '/images/offers/offer_basket.png',
     },
     {
@@ -88,7 +89,7 @@ export default function TopOffersSection({
       btnText: 'Shop Deals',
       btnVariant: 'primary',
       link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-      image: '/images/offers/offer_gift.png',
+      image: '/images/top_offer_3.jpeg', // Object: 3D Festive Blue Gift Box
       fallbackImage: '/images/offers/offer_gift.png',
     },
     {
@@ -103,8 +104,8 @@ export default function TopOffersSection({
       btnVariant: 'primary',
       btnCustomClass: 'bg-purple-600 hover:bg-purple-700 text-white',
       link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-      image: '/images/offers/offer_tag.png',
-      fallbackImage: '/images/offers/offer_tag.png',
+      image: '/images/top_offer_2.jpeg', // Object: 3D Purple % Discount Tag
+      fallbackImage: '/images/icon1.jpeg',
     },
   ]
 
@@ -247,7 +248,7 @@ export default function TopOffersSection({
                   </Button>
 
                   {/* Mini Visual / Illustration */}
-                  <div className="shrink-0 w-16 h-12 flex items-center justify-end">
+                  <div className="shrink-0 w-20 h-16 sm:w-22 sm:h-16 flex items-center justify-end">
                     <img
                       src={card.image}
                       alt={card.title}
@@ -256,7 +257,7 @@ export default function TopOffersSection({
                           e.currentTarget.src = card.fallbackImage
                         }
                       }}
-                      className="max-h-12 max-w-full object-contain drop-shadow-xs group-hover:scale-105 transition-transform"
+                      className="max-h-16 max-w-full object-contain mix-blend-multiply drop-shadow-xs group-hover:scale-108 transition-transform duration-200"
                     />
                   </div>
                 </div>
