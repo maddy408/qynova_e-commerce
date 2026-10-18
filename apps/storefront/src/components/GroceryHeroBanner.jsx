@@ -5,15 +5,13 @@ import { resolveImageUrl } from '../lib/api'
 import { FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 /**
- * Modern Shop with Adam Grocery Hero Banner
- * - Full-width seamless background image covering the container edge-to-edge
- * - Clean widescreen aspect ratio with zero over-zoom on all slides
- * - Crisp text overlay with pill badge, title, subtitle, and CTA buttons
- * - Left/Right navigation arrows & pill pagination dots
+ * Dynamic Shop with Adam Hero Banner
+ * - Renders ONLY active banners created in the Admin Panel (3, 5, 6, etc.)
+ * - Zero fallback/hardcoded placeholder images
+ * - Full-width background coverage edge-to-edge
+ * - Clean responsive height with Left/Right arrows & pagination dots
  */
 export default function GroceryHeroBanner({
-  storeSettings = null,
-  deliverySettings = null,
   banners = [],
   isLoading = false,
   autoPlayInterval = 5500,
@@ -24,57 +22,36 @@ export default function GroceryHeroBanner({
   const touchStartX = useRef(null)
   const touchEndX = useRef(null)
 
-  const storeName = storeSettings?.store_name || 'Shop with Adam'
-
-  // Active banners from MySQL database
+  // Active banners from MySQL database via Admin Panel
   const activeBanners = useMemo(() => {
     if (!Array.isArray(banners)) return []
     return banners.filter((b) => Number(b.is_active) === 1)
   }, [banners])
 
+  // Map ONLY banners that exist in Admin Panel
   const slides = useMemo(() => {
-    const flagshipSlide = {
-      id: 'flagship-grocery-basket',
-      badge: 'FRESHNESS & QUALITY',
-      title: 'Good Food,\nBetter Living',
-      subtitle: 'Fresh groceries, daily essentials and more — at your doorstep.',
-      cta_text: 'Shop Now',
+    if (activeBanners.length === 0) return []
+
+    return activeBanners.map((b, idx) => ({
+      id: b.id || `banner-${idx}`,
+      badge: b.discount_text || (b.title ? 'SPECIAL OFFER' : ''),
+      title: b.title || '',
+      subtitle: b.subtitle || b.description || '',
+      cta_text: b.cta_text || 'Shop Now',
       secondary_cta: 'View Offers',
-      target_url: ROUTES.PRODUCTS,
-      image_url: '/images/kirana_hero_bg_full.jpg',
-    }
-
-    if (activeBanners.length > 0) {
-      const bannerSlides = activeBanners.map((b, idx) => ({
-        id: b.id || `banner-${idx}`,
-        badge: b.discount_text || 'SPECIAL OFFER',
-        title: b.title || 'Good Food,\nBetter Living',
-        subtitle: b.subtitle || b.description || 'Fresh groceries and daily essentials delivered to your doorstep.',
-        cta_text: b.cta_text || 'Shop Now',
-        secondary_cta: 'View Offers',
-        target_url: b.target_url || (b.target_type === 'CATEGORY' && b.target_id ? ROUTES.PRODUCTS_BY_CATEGORY(b.target_id) : ROUTES.PRODUCTS),
-        target_type: b.target_type,
-        target_id: b.target_id,
-        image_url: b.image_desktop_path ? resolveImageUrl(b.image_desktop_path) : '/images/kirana_hero_bg_full.jpg',
-      }))
-
-      // Return flagship slide first, followed by database custom banners
-      return [flagshipSlide, ...bannerSlides]
-    }
-
-    return [
-      flagshipSlide,
-      {
-        id: 'hero-slide-2',
-        badge: 'SUPERMARKET SPECIALS',
-        title: 'Daily Essentials,\nUnbeatable Prices',
-        subtitle: 'Farm-fresh vegetables, dairy, pantry staples and household supplies with fast delivery.',
-        cta_text: 'Explore Groceries',
-        secondary_cta: 'Top Deals',
-        target_url: ROUTES.PRODUCTS,
-        image_url: '/images/kirana_hero_bg_full.jpg',
-      },
-    ]
+      target_url:
+        b.target_url ||
+        (b.target_type === 'CATEGORY' && b.target_id
+          ? ROUTES.PRODUCTS_BY_CATEGORY(b.target_id)
+          : ROUTES.PRODUCTS),
+      target_type: b.target_type,
+      target_id: b.target_id,
+      image_url: b.image_desktop_path
+        ? resolveImageUrl(b.image_desktop_path)
+        : b.image_mobile_path
+        ? resolveImageUrl(b.image_mobile_path)
+        : '',
+    }))
   }, [activeBanners])
 
   const totalSlides = slides.length
@@ -148,6 +125,11 @@ export default function GroceryHeroBanner({
     )
   }
 
+  // If no banners are configured in Admin Panel, don't render an empty banner
+  if (totalSlides === 0) {
+    return null
+  }
+
   return (
     <section
       className="w-full select-none"
@@ -162,9 +144,11 @@ export default function GroceryHeroBanner({
         {/* Sleek Panoramic Hero Container */}
         <div className="relative w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] rounded-[20px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB] border border-sky-100 shadow-xs flex items-center">
           
-          {/* Slides: Every single banner covers full width edge-to-edge */}
+          {/* Slides: ONLY Admin-created banners */}
           {slides.map((slide, idx) => {
             const isCurrent = idx === currentSlide
+            const hasTextContent = Boolean(slide.title || slide.subtitle || slide.badge)
+
             return (
               <div
                 key={slide.id || idx}
@@ -173,69 +157,85 @@ export default function GroceryHeroBanner({
                 }`}
               >
                 {/* 1. Full-Width Background Banner Image (Covers entire container) */}
-                <img
-                  src={slide.image_url}
-                  alt={slide.title}
-                  className="absolute inset-0 w-full h-full object-cover object-right md:object-center select-none pointer-events-none"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null
-                    e.currentTarget.src = '/images/kirana_hero_bg_full.jpg'
-                  }}
-                />
+                {slide.image_url && (
+                  <img
+                    src={slide.image_url}
+                    alt={slide.title || 'Promotion Banner'}
+                    className="absolute inset-0 w-full h-full object-cover object-right md:object-center select-none pointer-events-none"
+                  />
+                )}
 
-                {/* 2. Soft Gradient Mask on left for maximum text legibility */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
+                {/* 2. Soft Gradient Mask on left for maximum text legibility (only if banner has text) */}
+                {hasTextContent && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
+                )}
 
-                {/* 3. Content Overlay: Text, Badge, CTA Buttons (Cleanly positioned on the left) */}
-                <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-3 sm:py-5 max-w-md sm:max-w-lg lg:max-w-xl text-left space-y-2 sm:space-y-2.5">
-                  {/* Badge */}
-                  <div>
-                    <span className="inline-block px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full bg-[#BAE6FD]/90 backdrop-blur-xs text-[#004B87] font-sans font-extrabold text-[10px] sm:text-[11px] tracking-wider uppercase border border-sky-300/60 shadow-2xs">
-                      {slide.badge || 'FRESHNESS & QUALITY'}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h1 className="font-sans font-black text-xl sm:text-2xl md:text-3xl lg:text-[38px] text-[#0F172A] tracking-tight leading-[1.14]">
-                    {slide.title.includes('\n') ? (
-                      slide.title.split('\n').map((line, i) => (
-                        <React.Fragment key={i}>
-                          {line}
-                          {i === 0 && <br />}
-                        </React.Fragment>
-                      ))
-                    ) : (
-                      slide.title
+                {/* 3. Content Overlay: Text, Badge, CTA Buttons */}
+                {hasTextContent ? (
+                  <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-3 sm:py-5 max-w-md sm:max-w-lg lg:max-w-xl text-left space-y-2 sm:space-y-2.5">
+                    {/* Badge */}
+                    {slide.badge && (
+                      <div>
+                        <span className="inline-block px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full bg-[#BAE6FD]/90 backdrop-blur-xs text-[#004B87] font-sans font-extrabold text-[10px] sm:text-[11px] tracking-wider uppercase border border-sky-300/60 shadow-2xs">
+                          {slide.badge}
+                        </span>
+                      </div>
                     )}
-                  </h1>
 
-                  {/* Subtitle / Description */}
-                  <p className="font-sans text-xs sm:text-[13px] md:text-sm text-slate-600 font-medium max-w-xs sm:max-w-sm md:max-w-md line-clamp-2 leading-relaxed">
-                    {slide.subtitle}
-                  </p>
+                    {/* Title */}
+                    {slide.title && (
+                      <h1 className="font-sans font-black text-xl sm:text-2xl md:text-3xl lg:text-[38px] text-[#0F172A] tracking-tight leading-[1.14]">
+                        {slide.title.includes('\n') ? (
+                          slide.title.split('\n').map((line, i) => (
+                            <React.Fragment key={i}>
+                              {line}
+                              {i === 0 && <br />}
+                            </React.Fragment>
+                          ))
+                        ) : (
+                          slide.title
+                        )}
+                      </h1>
+                    )}
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2.5 sm:gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleBannerClick(slide)}
-                      className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#004B87] hover:bg-[#003B6B] text-white font-sans font-bold text-xs sm:text-sm transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
-                    >
-                      <span>{slide.cta_text || 'Shop Now'}</span>
-                      <FiArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    </button>
+                    {/* Subtitle / Description */}
+                    {slide.subtitle && (
+                      <p className="font-sans text-xs sm:text-[13px] md:text-sm text-slate-600 font-medium max-w-xs sm:max-w-sm md:max-w-md line-clamp-2 leading-relaxed">
+                        {slide.subtitle}
+                      </p>
+                    )}
 
-                    {slide.secondary_cta && (
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2.5 sm:gap-3 pt-1">
                       <button
                         type="button"
-                        onClick={() => navigate(ROUTES.PRODUCTS_BY_SECTION('deals'))}
-                        className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/90 font-sans font-bold text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer backdrop-blur-xs"
+                        onClick={() => handleBannerClick(slide)}
+                        className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#004B87] hover:bg-[#003B6B] text-white font-sans font-bold text-xs sm:text-sm transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
                       >
-                        {slide.secondary_cta}
+                        <span>{slide.cta_text || 'Shop Now'}</span>
+                        <FiArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
-                    )}
+
+                      {slide.secondary_cta && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(ROUTES.PRODUCTS_BY_SECTION('deals'))}
+                          className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/90 font-sans font-bold text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer backdrop-blur-xs"
+                        >
+                          {slide.secondary_cta}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  // If banner is image-only, make entire banner clickable
+                  <button
+                    type="button"
+                    onClick={() => handleBannerClick(slide)}
+                    className="absolute inset-0 w-full h-full cursor-pointer z-10"
+                    aria-label="View promotion"
+                  />
+                )}
               </div>
             )
           })}
