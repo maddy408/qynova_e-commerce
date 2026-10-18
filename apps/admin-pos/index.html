@@ -2,12 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin + POS</title>
+    <title>Shop with Adam — Admin & POS</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;background:#f8fafc;font-family:system-ui,-apple-system,sans-serif;">
+        <img src="/images/logo2.jpeg" alt="Shop with Adam" style="height:64px;width:auto;max-width:240px;object-fit:contain;margin-bottom:16px;" onerror="this.src='/logo2.jpeg'" />
+        <div style="width:34px;height:34px;border:3px solid #cbd5e1;border-top-color:#004b87;border-radius:50%;animation:swa-spin 0.8s linear infinite;"></div>
+        <p style="margin-top:14px;font-size:13px;font-weight:600;letter-spacing:0.04em;color:#475569;">Loading Shop with Adam &bull; Admin &amp; POS...</p>
+        <style>
+          @keyframes swa-spin { to { transform: rotate(360deg); } }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

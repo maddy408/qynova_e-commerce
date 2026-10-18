@@ -10,14 +10,14 @@ export default function GroceryFooter({
   storeSettings = null,
   categories = [],
 }) {
-  const storeName = storeSettings?.store_name || 'KiranaBazaar'
-  const storeTagline = storeSettings?.tagline || 'YOUR TRUSTED NEIGHBORHOOD SUPERMARKET'
+  const storeName = storeSettings?.store_name || 'Shop with Adam'
+  const storeTagline = storeSettings?.tagline || 'FRESH • DAILY • ESSENTIALS'
   const storeDesc =
     storeSettings?.description ||
     'Your trusted neighborhood supermarket delivering farm-fresh fruits, vegetables, dairy, pantry staples, and daily household essentials right to your doorstep.'
   const phone = storeSettings?.phone || '+91 98765 01234'
   const whatsappNum = (storeSettings?.whatsapp_number || storeSettings?.phone || '919876501234').replace(/[^0-9]/g, '')
-  const email = storeSettings?.email || 'support@kiranabazaar.com'
+  const email = storeSettings?.email || 'support@shopwithadam.com'
   const address = storeSettings?.address
     ? `${storeSettings.address}${storeSettings.city ? `, ${storeSettings.city}` : ''}`
     : '123 Market Road, Main City Bazaar'
@@ -78,25 +78,15 @@ export default function GroceryFooter({
           {/* Column 1 & 2: Store Identity & Description */}
           <div className="lg:col-span-2 space-y-4">
             <Link to={ROUTES.HOME} className="flex items-center gap-3 group">
-              {storeSettings?.logo ? (
-                <img
-                  src={resolveImageUrl(storeSettings.logo)}
-                  alt={storeName}
-                  className="w-10 h-10 rounded-full object-cover shadow-xs border border-zinc-800"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 text-purple-400 flex items-center justify-center font-serif font-bold text-lg shadow-xs">
-                  {storeName.charAt(0) || 'K'}
-                </div>
-              )}
-              <div>
-                <span className="font-serif text-xl sm:text-2xl font-bold text-white tracking-tight block leading-tight">
-                  {storeName}
-                </span>
-                <span className="text-[9px] font-sans font-bold text-purple-400 uppercase tracking-[0.2em] block mt-0.5">
-                  {storeTagline}
-                </span>
-              </div>
+              <img
+                src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
+                alt={storeName}
+                className="h-10 w-auto max-w-[170px] object-contain rounded-xl bg-white p-1 border border-zinc-800"
+                onError={(e) => {
+                  e.currentTarget.onerror = null
+                  e.currentTarget.src = '/images/logo2.jpeg'
+                }}
+              />
             </Link>
 
             <p className="font-sans text-xs sm:text-[13px] text-zinc-400 leading-relaxed max-w-sm pt-1">

@@ -11,8 +11,21 @@ function ProtectedLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spinner />
+      <div className="flex min-h-screen items-center justify-center bg-stone-50">
+        <div className="flex flex-col items-center gap-3.5 p-6 text-center">
+          <img
+            src="/images/logo2.jpeg"
+            alt="Shop with Adam"
+            className="h-12 w-auto max-w-[180px] object-contain animate-pulse drop-shadow-xs"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = '/logo2.jpeg'
+            }}
+          />
+          <div className="flex items-center gap-2 text-xs font-semibold text-stone-500">
+            <Spinner />
+            <span>Loading Shop with Adam...</span>
+          </div>
+        </div>
       </div>
     )
   }

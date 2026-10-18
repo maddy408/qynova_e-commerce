@@ -1,53 +1,71 @@
 import React from 'react'
-import { LuSparkles, LuShieldCheck } from 'react-icons/lu'
-import { TbTruckDelivery, TbHeadset } from 'react-icons/tb'
+import { FiTruck, FiShield, FiPercent } from 'react-icons/fi'
+import { LuLeaf, LuHeadphones } from 'react-icons/lu'
 
-export default function TrustValueBar() {
+/**
+ * Trust & Value Proposition Bar
+ * Located directly under the Hero Banner matching KiranaBazaar reference image:
+ * 5 key trust badges with soft cyan/primary circle icons and clean typography.
+ */
+export default function TrustValueBar({ deliverySettings = null }) {
+  const freeThreshold = deliverySettings?.free_delivery_threshold != null
+    ? Number(deliverySettings.free_delivery_threshold)
+    : 499
+
   const items = [
     {
-      icon: <LuShieldCheck className="w-6 h-6 text-[#6C4EFF]" />,
-      title: '100% Fresh & Genuine',
-      desc: 'Directly sourced from trusted local farms & verified brand distributors',
+      icon: <FiTruck className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
+      title: 'Free Delivery',
+      desc: `On orders above ₹${freeThreshold}`,
     },
     {
-      icon: <LuSparkles className="w-6 h-6 text-[#6C4EFF]" />,
-      title: 'Best Price Guaranteed',
-      desc: 'Unbeatable daily supermarket prices, combo deals & festival savings',
+      icon: <LuLeaf className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
+      title: 'Fresh & Quality',
+      desc: '100% Genuine Products',
     },
     {
-      icon: <TbTruckDelivery className="w-6 h-6 text-[#6C4EFF]" />,
-      title: 'Express Doorstep Delivery',
-      desc: 'Fast 60-minute neighborhood delivery right to your kitchen counter',
+      icon: <FiShield className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
+      title: 'Secure Payments',
+      desc: 'Multiple Payment Options',
     },
     {
-      icon: <TbHeadset className="w-6 h-6 text-[#6C4EFF]" />,
-      title: '24/7 Dedicated Support',
-      desc: 'Instant customer assistance via WhatsApp & phone for all grocery queries',
+      icon: <LuHeadphones className="w-5 h-5 text-[var(--color-primary)] stroke-[2]" />,
+      title: '24/7 Support',
+      desc: "We're here to help",
+    },
+    {
+      icon: <FiPercent className="w-5 h-5 text-[var(--color-primary)] stroke-[2.2]" />,
+      title: 'Great Offers',
+      desc: 'Save More Every Day',
     },
   ]
 
   return (
-    <section className="w-full bg-[#FAF8FF] border-y border-[#E9DFFF] py-10 sm:py-14 select-none">
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {items.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-[20px] p-6 border border-[#E9DFFF] shadow-[0_4px_20px_rgba(108,78,255,0.03)] hover:shadow-[0_8px_25px_rgba(108,78,255,0.08)] hover:-translate-y-1 transition-all duration-200 flex items-start gap-4"
-            >
-              <div className="w-12 h-12 rounded-[14px] bg-[#FAF8FF] border border-[#E9DFFF] flex items-center justify-center shrink-0">
-                {item.icon}
+    <section className="w-full select-none pt-2 pb-4">
+      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs px-4 py-3.5 sm:py-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            {items.map((item, idx) => (
+              <div
+                key={idx}
+                className={`flex items-center gap-3 ${idx > 0 ? 'sm:pl-4 pt-2 sm:pt-0' : ''}`}
+              >
+                {/* Circular soft primary/cyan badge */}
+                <div className="w-10 h-10 rounded-full bg-[var(--color-primary-tint)] border border-sky-200/60 flex items-center justify-center shrink-0">
+                  {item.icon}
+                </div>
+
+                <div className="min-w-0">
+                  <h4 className="font-sans text-xs sm:text-[13px] font-bold text-[var(--color-text-main)] truncate">
+                    {item.title}
+                  </h4>
+                  <p className="font-sans text-[11px] text-[var(--color-text-muted)] truncate">
+                    {item.desc}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-serif text-[15px] sm:text-base font-bold text-[#1B133F] leading-tight mb-1">
-                  {item.title}
-                </h4>
-                <p className="font-sans text-xs text-[#666666] leading-relaxed">
-                  {item.desc}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
 import { resolveImageUrl } from '../lib/api'
-import { FiZap, FiCheck, FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
-import { TbSparkles } from 'react-icons/tb'
+import { FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
+/**
+ * Modern Shop with Adam Grocery Hero Banner
+ * Matches the reference image layout:
+ * - Single-screen panoramic banner (no 2-page vertical scroll)
+ * - Full background banner image with crisp gradient text overlay
+ * - Pill badge, bold typography, Shop Now & View Offers buttons
+ * - Cursive callout on the visual side
+ * - Left/Right arrows & pill pagination dots
+ */
 export default function GroceryHeroBanner({
   storeSettings = null,
   deliverySettings = null,
   banners = [],
   isLoading = false,
-  autoPlayInterval = 6000,
+  autoPlayInterval = 5500,
 }) {
   const navigate = useNavigate()
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -18,47 +26,62 @@ export default function GroceryHeroBanner({
   const touchStartX = useRef(null)
   const touchEndX = useRef(null)
 
-  // Store settings
-  const storeName = storeSettings?.store_name || 'KiranaBazaar'
-  const storeDesc =
-    storeSettings?.description ||
-    'Your trusted neighborhood supermarket for farm-fresh groceries, vegetables, and daily essentials at unbeatable prices.'
-  const freeMinAmount = deliverySettings?.free_delivery_threshold
-    ? Number(deliverySettings.free_delivery_threshold)
-    : 499
+  const storeName = storeSettings?.store_name || 'Shop with Adam'
 
-  // Active database banners from MySQL
+  // Active banners from MySQL database
   const activeBanners = useMemo(() => {
     if (!Array.isArray(banners)) return []
     return banners.filter((b) => Number(b.is_active) === 1)
   }, [banners])
 
-  // Fallback grocery supermarket slides if database has no active banners yet
   const slides = useMemo(() => {
-    if (activeBanners.length > 0) return activeBanners
+    const flagshipSlide = {
+      id: 'flagship-grocery-basket',
+      badge: 'FRESHNESS & QUALITY',
+      title: 'Good Food,\nBetter Living',
+      subtitle: 'Fresh groceries, daily essentials and more — at your doorstep.',
+      cta_text: 'Shop Now',
+      secondary_cta: 'View Offers',
+      target_url: ROUTES.PRODUCTS,
+      image_url: '/images/kirana_hero_basket.jpg',
+      is_uploaded: false,
+      callout: 'Fresh Healthy Happy ♡',
+    }
+
+    if (activeBanners.length > 0) {
+      const bannerSlides = activeBanners.map((b, idx) => ({
+        id: b.id || `banner-${idx}`,
+        badge: b.discount_text || 'SPECIAL OFFER',
+        title: b.title || 'Good Food,\nBetter Living',
+        subtitle: b.subtitle || b.description || 'Fresh groceries and daily essentials delivered to your doorstep.',
+        cta_text: b.cta_text || 'Shop Now',
+        secondary_cta: 'View Offers',
+        target_url: b.target_url || (b.target_type === 'CATEGORY' && b.target_id ? ROUTES.PRODUCTS_BY_CATEGORY(b.target_id) : ROUTES.PRODUCTS),
+        target_type: b.target_type,
+        target_id: b.target_id,
+        image_url: b.image_desktop_path ? resolveImageUrl(b.image_desktop_path) : '/images/kirana_hero_basket.jpg',
+        is_uploaded: Boolean(b.image_desktop_path),
+        color_theme: b.color_theme || 'blue',
+        callout: null,
+      }))
+
+      // Return database banners with the flagship slide so all are reachable
+      return [...bannerSlides, flagshipSlide]
+    }
 
     return [
+      flagshipSlide,
       {
-        id: 'grocery-hero-1',
-        title: 'Fresh Supermarket Groceries Delivered to Your Door',
-        subtitle:
-          'Farm-fresh fruits, organic vegetables, dairy, pantry staples, and daily essentials at unbeatable neighborhood prices.',
-        discount_text: 'FLAT 20% OFF',
-        cta_text: 'Shop Essentials',
-        secondary_cta: 'Explore Offers',
-        target_type: 'ALL',
-        image_desktop_path: '/images/hero_diwali_grocery.jpg',
-      },
-      {
-        id: 'grocery-hero-2',
-        title: 'Mega Festive Grocery Savings & Daily Deals',
-        subtitle:
-          'Top quality spices, pulses, rice, dry fruits, snacks, and combo packages with express doorstep delivery.',
-        discount_text: 'UP TO 40% OFF',
-        cta_text: 'View Deals',
-        secondary_cta: 'All Categories',
-        target_type: 'DEALS',
-        image_desktop_path: '/images/hero_navaratri_grocery.jpg',
+        id: 'hero-slide-2',
+        badge: 'SUPERMARKET SPECIALS',
+        title: 'Daily Essentials,\nUnbeatable Prices',
+        subtitle: 'Farm-fresh vegetables, dairy, pantry staples and household supplies with fast delivery.',
+        cta_text: 'Explore Groceries',
+        secondary_cta: 'Top Deals',
+        target_url: ROUTES.PRODUCTS,
+        image_url: '/images/kirana_hero_basket.jpg',
+        is_uploaded: false,
+        callout: '100% Quality Guaranteed ★',
       },
     ]
   }, [activeBanners])
@@ -81,7 +104,6 @@ export default function GroceryHeroBanner({
     return () => clearInterval(timer)
   }, [totalSlides, isHovered, autoPlayInterval])
 
-  // Touch Swipe Handlers for Mobile Browsers
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX
   }
@@ -102,224 +124,208 @@ export default function GroceryHeroBanner({
     touchEndX.current = null
   }
 
-  const handleBannerClick = (banner) => {
-    if (!banner) return
+  const handleBannerClick = (slide) => {
+    if (!slide) return
 
-    if (banner.target_url) {
-      if (banner.target_url.startsWith('http://') || banner.target_url.startsWith('https://')) {
-        window.open(banner.target_url, '_blank', 'noopener,noreferrer')
+    if (slide.target_url) {
+      if (slide.target_url.startsWith('http://') || slide.target_url.startsWith('https://')) {
+        window.open(slide.target_url, '_blank', 'noopener,noreferrer')
       } else {
-        navigate(banner.target_url)
+        navigate(slide.target_url)
       }
       return
     }
 
-    if (banner.target_type === 'CATEGORY' && banner.target_id) {
-      navigate(ROUTES.PRODUCTS_BY_CATEGORY(banner.target_id))
+    if (slide.target_type === 'CATEGORY' && slide.target_id) {
+      navigate(ROUTES.PRODUCTS_BY_CATEGORY(slide.target_id))
       return
     }
 
-    if (banner.target_type === 'PRODUCT' && banner.target_id) {
-      navigate(ROUTES.PRODUCT_DETAIL(banner.target_id))
-      return
-    }
-
-    if (banner.target_type === 'DEALS') {
-      navigate(ROUTES.PRODUCTS_BY_SECTION('deals'))
+    if (slide.target_type === 'PRODUCT' && slide.target_id) {
+      navigate(ROUTES.PRODUCT_DETAIL(slide.target_id))
       return
     }
 
     navigate(ROUTES.PRODUCTS)
   }
 
-  const getSlideImageUrl = (slide, index) => {
-    const rawPath = slide.image_desktop_path || slide.image_mobile_path
-    if (rawPath) {
-      if (rawPath.startsWith('/images/')) return rawPath
-      return resolveImageUrl(rawPath)
-    }
-    return index % 2 === 0
-      ? '/images/hero_diwali_grocery.jpg'
-      : '/images/hero_navaratri_grocery.jpg'
-  }
-
   if (isLoading) {
     return (
-      <section className="w-full h-[360px] sm:h-[440px] md:h-[500px] lg:h-[560px] bg-slate-900/10 animate-pulse flex items-center justify-center border-b border-[#E9DFFF]">
-        <div className="w-12 h-12 border-4 border-[#6C4EFF] border-t-transparent rounded-full animate-spin" />
-      </section>
+      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3.5 pb-2">
+        <div className="w-full h-[260px] sm:h-[300px] md:h-[340px] lg:h-[370px] bg-slate-100 animate-pulse rounded-[20px] sm:rounded-[32px]" />
+      </div>
     )
   }
 
+  const activeSlide = slides[currentSlide] || slides[0]
+
   return (
     <section
-      className="w-full relative overflow-hidden select-none bg-slate-950 border-b border-[#E9DFFF]"
+      className="w-full select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      aria-label="Supermarket Hero Promotion Banners"
+      aria-label="Shop with Adam Grocery Promotion"
     >
-      {/* 100% Width Cover Carousel with Full Height */}
-      <div className="relative w-full h-[360px] sm:h-[440px] md:h-[500px] lg:h-[560px] xl:h-[600px] overflow-hidden">
-        {slides.map((slide, idx) => {
-          const isActive = idx === currentSlide
-          const imageUrl = getSlideImageUrl(slide, idx)
-          const fallbackUrl =
-            idx % 2 === 0
-              ? '/images/hero_diwali_grocery.jpg'
-              : '/images/hero_navaratri_grocery.jpg'
+      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3.5 pb-2">
+        {/* Sleek Panoramic Hero Container */}
+        <div className="relative w-full h-[260px] sm:h-[300px] md:h-[340px] lg:h-[370px] rounded-[20px] sm:rounded-[32px] overflow-hidden bg-gradient-to-r from-[#DDF4FC] via-[#EAF7FD] to-[#D2F2FB] border border-sky-100/90 shadow-xs flex items-center">
+          
+          {/* Slide Background Layer with smooth transition */}
+          {slides.map((slide, idx) => {
+            const isCurrent = idx === currentSlide
+            return (
+              <div
+                key={slide.id || idx}
+                className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${
+                  isCurrent ? 'opacity-100 z-1 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+              >
+                {slide.is_uploaded ? (
+                  // Full Background Banner Image
+                  <>
+                    <img
+                      src={slide.image_url}
+                      alt={slide.title}
+                      className="absolute inset-0 w-full h-full object-cover object-right md:object-center select-none"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null
+                        e.currentTarget.src = '/images/kirana_hero_basket.jpg'
+                      }}
+                    />
+                    {/* Soft gradient mask on left for high-contrast crisp text */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-transparent sm:w-[62%] w-[88%] pointer-events-none" />
+                  </>
+                ) : (
+                  // Flagship Basket Design (from screenshot)
+                  <>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#DDF4FC] via-[#EAF7FD] to-[#D2F2FB]" />
+                    {/* Subtle Organic Background Accents */}
+                    <div className="absolute -top-12 -right-12 w-64 h-64 bg-emerald-100/40 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-sky-200/50 rounded-full blur-3xl pointer-events-none" />
 
-          return (
-            <div
-              key={slide.id || idx}
-              className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${
-                isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-              }`}
-            >
-              {/* 1. FULL WIDTH COVER IMAGE */}
-              <img
-                src={imageUrl}
-                alt={slide.title || storeName}
-                onError={(e) => {
-                  if (e.currentTarget.src !== fallbackUrl) {
-                    e.currentTarget.src = fallbackUrl
-                  }
-                }}
-                className="w-full h-full object-cover object-center transform transition-transform duration-7000 ease-out"
-                style={{
-                  transform: isActive ? 'scale(1.03)' : 'scale(1)',
-                }}
-              />
+                    {/* Fresh Grocery Basket Image on the right */}
+                    <img
+                      src={slide.image_url || '/images/kirana_hero_basket.jpg'}
+                      alt={slide.title}
+                      className="absolute right-3 sm:right-10 lg:right-16 bottom-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[85%] max-w-[48%] object-contain mix-blend-multiply drop-shadow-md pointer-events-none select-none transition-transform duration-500 hover:scale-102"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null
+                        e.currentTarget.src = '/images/kirana_hero_basket.jpg'
+                      }}
+                    />
 
-              {/* 2. ELEGANT DARK GRADIENT OVERLAY (Guarantees 100% Text & Button Readability) */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/25 sm:to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
-
-              {/* 3. TEXT & BUTTON LAYER DIRECTLY OVER THE IMAGE */}
-              <div className="absolute inset-0 z-20 flex flex-col justify-center px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20 max-w-[1320px] mx-auto">
-                <div className="max-w-2xl space-y-4 text-left animate-in fade-in slide-in-from-left-4 duration-500">
-                  
-                  {/* Offer / Category Badge */}
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/40 text-white text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider shadow-lg">
-                    {slide.discount_text ? (
-                      <>
-                        <TbSparkles className="w-4 h-4 text-[#FFB800]" />
-                        <span>{slide.discount_text}</span>
-                      </>
-                    ) : (
-                      <>
-                        <FiZap className="w-4 h-4 text-[#FFB800]" />
-                        <span>SUPERMARKET SPECIAL</span>
-                      </>
+                    {/* Floating Cursive Callout: Fresh Healthy Happy ♡ */}
+                    {slide.callout && (
+                      <div className="hidden md:block absolute top-4 sm:top-6 right-6 sm:right-12 z-10 pointer-events-none text-right select-none">
+                        <span className="font-serif italic text-base lg:text-xl text-slate-800/90 drop-shadow-xs block leading-tight font-medium tracking-wide">
+                          {slide.callout}
+                        </span>
+                      </div>
                     )}
+                  </>
+                )}
+
+                {/* Content Overlay: Text, Badge, CTA Buttons (Cleanly positioned on the left) */}
+                <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-4 sm:py-6 max-w-lg sm:max-w-xl text-left space-y-2 sm:space-y-3">
+                  {/* Badge */}
+                  <div>
+                    <span className="inline-block px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full bg-[#BAE6FD]/90 backdrop-blur-xs text-[#004B87] font-sans font-black text-[10px] sm:text-[11px] tracking-wider uppercase border border-sky-300/60 shadow-2xs">
+                      {slide.badge || 'FRESHNESS & QUALITY'}
+                    </span>
                   </div>
 
-                  {/* Banner Main Title: Playfair Display bold */}
-                  <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-[1.12] drop-shadow-md">
-                    {slide.title}
+                  {/* Title */}
+                  <h1 className="font-sans font-black text-xl sm:text-3xl lg:text-[40px] text-[#0F172A] tracking-tight leading-[1.12]">
+                    {slide.title.includes('\n') ? (
+                      slide.title.split('\n').map((line, i) => (
+                        <React.Fragment key={i}>
+                          {line}
+                          {i === 0 && <br />}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      slide.title
+                    )}
                   </h1>
 
-                  {/* Banner Subtitle: Inter comfortable font */}
-                  <p className="font-sans text-xs sm:text-base text-white/95 font-normal leading-relaxed max-w-xl line-clamp-2 sm:line-clamp-3 drop-shadow-sm">
-                    {slide.subtitle || slide.description || storeDesc}
+                  {/* Subtitle / Description */}
+                  <p className="font-sans text-xs sm:text-sm text-slate-600 font-medium max-w-md line-clamp-2 sm:line-clamp-none leading-relaxed">
+                    {slide.subtitle}
                   </p>
 
-                  {/* Delivery Value Props on Desktop */}
-                  <div className="hidden sm:flex flex-wrap items-center gap-4 pt-1 text-xs font-sans text-white/95 font-semibold drop-shadow-xs">
-                    <span className="flex items-center gap-1.5">
-                      <FiCheck className="w-4 h-4 text-emerald-400 stroke-[2.5]" /> Free delivery above ₹{freeMinAmount}
-                    </span>
-                    <span className="text-white/40">•</span>
-                    <span className="flex items-center gap-1.5">
-                      <FiCheck className="w-4 h-4 text-emerald-400 stroke-[2.5]" /> 100% Fresh & Genuine
-                    </span>
-                    <span className="text-white/40">•</span>
-                    <span className="flex items-center gap-1.5">
-                      <FiCheck className="w-4 h-4 text-emerald-400 stroke-[2.5]" /> Express 60-min delivery
-                    </span>
-                  </div>
-
-                  {/* CTA Buttons Placed DIRECTLY Over the Image */}
-                  <div className="flex items-center gap-3 pt-2 sm:pt-3">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
                     <button
                       type="button"
                       onClick={() => handleBannerClick(slide)}
-                      className="bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white font-sans font-semibold text-xs sm:text-sm px-7 sm:px-8 py-3.5 rounded-full shadow-2xl hover:shadow-[#6C4EFF]/40 transition-all transform active:scale-95 cursor-pointer flex items-center gap-2 border border-white/20"
+                      className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[#004B87] hover:bg-[#003B6B] text-white font-sans font-bold text-xs sm:text-sm transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
                     >
                       <span>{slide.cta_text || 'Shop Now'}</span>
-                      <FiArrowRight className="w-4 h-4 text-white" />
+                      <FiArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
 
-                    <Link
-                      to={ROUTES.PRODUCTS_BY_SECTION('deals')}
-                      className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/40 font-sans font-semibold text-xs sm:text-sm px-6 py-3.5 rounded-full shadow-lg transition-all active:scale-95 cursor-pointer"
-                    >
-                      <span>{slide.secondary_cta || 'View Deals'}</span>
-                    </Link>
+                    {slide.secondary_cta && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(ROUTES.PRODUCTS_BY_SECTION('deals'))}
+                        className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/90 font-sans font-bold text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer backdrop-blur-xs"
+                      >
+                        {slide.secondary_cta}
+                      </button>
+                    )}
                   </div>
-
                 </div>
               </div>
+            )
+          })}
 
-            </div>
-          )
-        })}
-
-        {/* 4. PREV & NEXT CAROUSEL CONTROLS */}
-        {totalSlides > 1 && (
-          <div className="absolute inset-y-0 inset-x-3 sm:inset-x-6 flex items-center justify-between pointer-events-none z-30">
+          {/* Left Arrow Button */}
+          {totalSlides > 1 && (
             <button
               type="button"
               onClick={() => setCurrentSlide((prev) => (prev === 0 ? totalSlides - 1 : prev - 1))}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/45 hover:bg-black/80 text-white backdrop-blur-md border border-white/30 flex items-center justify-center pointer-events-auto transition-transform active:scale-90 cursor-pointer shadow-xl hover:scale-105"
+              className="absolute left-2.5 sm:left-4 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center cursor-pointer transition-all active:scale-95 hover:scale-105"
               aria-label="Previous Slide"
             >
-              <FiChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+              <FiChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
             </button>
+          )}
+
+          {/* Right Arrow Button */}
+          {totalSlides > 1 && (
             <button
               type="button"
               onClick={() => setCurrentSlide((prev) => (prev + 1) % totalSlides)}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/45 hover:bg-black/80 text-white backdrop-blur-md border border-white/30 flex items-center justify-center pointer-events-auto transition-transform active:scale-90 cursor-pointer shadow-xl hover:scale-105"
+              className="absolute right-2.5 sm:right-4 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/95 hover:bg-white text-slate-700 shadow-md border border-slate-200/80 flex items-center justify-center cursor-pointer transition-all active:scale-95 hover:scale-105"
               aria-label="Next Slide"
             >
-              <FiChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+              <FiChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
             </button>
-          </div>
-        )}
+          )}
 
-        {/* 5. PAGINATION DOTS (Centered at the Bottom) */}
-        {totalSlides > 1 && (
-          <div className="absolute bottom-5 sm:bottom-7 inset-x-0 flex justify-center items-center gap-2 z-30 pointer-events-auto">
-            {slides.map((_, idx) => {
-              const isActive = idx === currentSlide
-              return (
+          {/* Centered Pagination Dots at Bottom */}
+          {totalSlides > 1 && (
+            <div className="absolute bottom-2.5 sm:bottom-3.5 inset-x-0 flex justify-center items-center gap-1.5 z-20 pointer-events-auto">
+              {slides.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setCurrentSlide(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
-                  className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    isActive
-                      ? 'w-8 sm:w-10 bg-[#E9DFFF] shadow-lg border border-white/60'
-                      : 'w-2 sm:w-2.5 bg-white/50 hover:bg-white/80'
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    idx === currentSlide
+                      ? 'w-6 bg-[#004B87] shadow-xs'
+                      : 'w-2 bg-sky-300/80 hover:bg-sky-400'
                   }`}
                 />
-              )
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        {/* 6. SLIDE INDICATOR PILL */}
-        {totalSlides > 1 && (
-          <div className="hidden sm:block absolute bottom-5 sm:bottom-7 right-8 z-30 pointer-events-none">
-            <span className="px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white/95 text-[11px] font-mono font-bold tracking-wider">
-              {currentSlide + 1} / {totalSlides}
-            </span>
-          </div>
-        )}
-
+        </div>
       </div>
     </section>
   )
