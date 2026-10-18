@@ -6,11 +6,10 @@ import { FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 /**
  * Modern Shop with Adam Grocery Hero Banner
- * - Full-width seamless background image without rectangular cutouts
- * - Custom uploaded banners fit height with zero over-zoom (100% of products visible)
- * - Proportional panoramic height optimized for laptop and desktop screens
+ * - Full-width seamless background image covering the container edge-to-edge
+ * - Clean widescreen aspect ratio with zero over-zoom on all slides
  * - Crisp text overlay with pill badge, title, subtitle, and CTA buttons
- * - Left/Right arrows & pill pagination dots
+ * - Left/Right navigation arrows & pill pagination dots
  */
 export default function GroceryHeroBanner({
   storeSettings = null,
@@ -43,8 +42,6 @@ export default function GroceryHeroBanner({
       secondary_cta: 'View Offers',
       target_url: ROUTES.PRODUCTS,
       image_url: '/images/kirana_hero_bg_full.jpg',
-      is_flagship: true,
-      callout: null,
     }
 
     if (activeBanners.length > 0) {
@@ -59,9 +56,6 @@ export default function GroceryHeroBanner({
         target_type: b.target_type,
         target_id: b.target_id,
         image_url: b.image_desktop_path ? resolveImageUrl(b.image_desktop_path) : '/images/kirana_hero_bg_full.jpg',
-        is_flagship: false,
-        color_theme: b.color_theme || 'blue',
-        callout: null,
       }))
 
       // Return flagship slide first, followed by database custom banners
@@ -79,8 +73,6 @@ export default function GroceryHeroBanner({
         secondary_cta: 'Top Deals',
         target_url: ROUTES.PRODUCTS,
         image_url: '/images/kirana_hero_bg_full.jpg',
-        is_flagship: true,
-        callout: null,
       },
     ]
   }, [activeBanners])
@@ -156,8 +148,6 @@ export default function GroceryHeroBanner({
     )
   }
 
-  const activeSlide = slides[currentSlide] || slides[0]
-
   return (
     <section
       className="w-full select-none"
@@ -172,7 +162,7 @@ export default function GroceryHeroBanner({
         {/* Sleek Panoramic Hero Container */}
         <div className="relative w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] rounded-[20px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB] border border-sky-100 shadow-xs flex items-center">
           
-          {/* Slide Background Layer with smooth transition */}
+          {/* Slides: Every single banner covers full width edge-to-edge */}
           {slides.map((slide, idx) => {
             const isCurrent = idx === currentSlide
             return (
@@ -182,51 +172,21 @@ export default function GroceryHeroBanner({
                   isCurrent ? 'opacity-100 z-1 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
-                {slide.is_flagship ? (
-                  // 1. Flagship Fresh Vegetable Basket (Seamless 1400x380 full-width background, NO cutout box)
-                  <>
-                    <img
-                      src={slide.image_url}
-                      alt={slide.title}
-                      className="absolute inset-0 w-full h-full object-cover object-right md:object-center select-none"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null
-                        e.currentTarget.src = '/images/banner3.jpeg'
-                      }}
-                    />
-                    {/* Left gradient mask so text stays 100% legible */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/70 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
-                  </>
-                ) : (
-                  // 2. Custom Uploaded Banners (e.g. Soaps & Detergent / Maggi bags)
-                  // Fits container height with zero over-zoom, full products visible on right
-                  <>
-                    {/* Sky-cyan background extending seamlessly to left edge */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB]" />
+                {/* 1. Full-Width Background Banner Image (Covers entire container) */}
+                <img
+                  src={slide.image_url}
+                  alt={slide.title}
+                  className="absolute inset-0 w-full h-full object-cover object-right md:object-center select-none pointer-events-none"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null
+                    e.currentTarget.src = '/images/kirana_hero_bg_full.jpg'
+                  }}
+                />
 
-                    {/* Corner leaves for cohesive brand atmosphere */}
-                    <div className="absolute top-0 left-0 w-24 h-24 bg-contain bg-no-repeat opacity-40 pointer-events-none" />
+                {/* 2. Soft Gradient Mask on left for maximum text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
 
-                    {/* Right-side Graphic: Scaled proportionally with zero over-zoom */}
-                    <div className="absolute right-0 inset-y-0 h-full w-[65%] sm:w-[58%] lg:w-[52%] flex items-center justify-end overflow-hidden pointer-events-none">
-                      <img
-                        src={slide.image_url}
-                        alt={slide.title}
-                        className="h-full w-auto max-w-none object-contain object-right select-none"
-                        style={{
-                          maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 100%)',
-                          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 100%)',
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.onerror = null
-                          e.currentTarget.src = '/images/kirana_hero_bg_full.jpg'
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Content Overlay: Text, Badge, CTA Buttons (Cleanly positioned on the left) */}
+                {/* 3. Content Overlay: Text, Badge, CTA Buttons (Cleanly positioned on the left) */}
                 <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-3 sm:py-5 max-w-md sm:max-w-lg lg:max-w-xl text-left space-y-2 sm:space-y-2.5">
                   {/* Badge */}
                   <div>
