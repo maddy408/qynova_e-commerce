@@ -59,13 +59,19 @@ export function Layout() {
         <div className="w-full bg-white/95 backdrop-blur-xl border border-[var(--color-extra-003)] shadow-md shadow-[var(--color-primary-strong)]/8 rounded-full px-3.5 sm:px-5 py-2">
           <div className="flex items-center justify-between gap-3">
             {/* Logo */}
-            <Link to={ROUTES.DASHBOARD} className="flex items-center gap-2.5 group shrink-0 pl-1">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary-strong)] via-[var(--color-primary-strong-hover)] to-[var(--color-extra-001)] text-white font-black text-sm shadow-sm group-hover:scale-105 transition-transform">
-                UP
-              </div>
+            <Link to={ROUTES.DASHBOARD} className="flex items-center gap-2.5 group shrink-0 pl-1 select-none">
+              <img
+                src="/images/logo2.jpeg"
+                alt="Shop with Adam"
+                className="h-8 sm:h-9 w-auto max-w-[130px] object-contain rounded-lg group-hover:scale-105 transition-transform"
+                onError={(e) => {
+                  e.currentTarget.onerror = null
+                  e.currentTarget.src = '/logo2.jpeg'
+                }}
+              />
               <div className="flex flex-col">
-                <span className="text-sm font-extrabold tracking-tight text-slate-950 leading-none">Unified POS</span>
-                <span className="text-[9px] font-black text-[var(--color-primary-strong)] uppercase tracking-widest mt-0.5">ADMIN PANEL</span>
+                <span className="text-sm font-black tracking-tight text-slate-950 leading-none">Shop with Adam</span>
+                <span className="text-[9px] font-black text-[var(--color-primary-strong)] uppercase tracking-widest mt-0.5">ADMIN &amp; POS</span>
               </div>
             </Link>
 

@@ -282,7 +282,7 @@ export default function Home() {
           activeNav="home"
         />
 
-        {/* 2. GROCERY HERO BANNER (100% Width NatureCart Design with 60 Mins Badge) */}
+        {/* 2. GROCERY HERO BANNER (KiranaBazaar Reference Design with Fresh Veg Basket) */}
         <GroceryHeroBanner
           storeSettings={storeSettings}
           deliverySettings={deliverySettings}
@@ -290,13 +290,10 @@ export default function Home() {
           isLoading={isBannersLoading}
         />
 
-        {/* 3. CIRCULAR CATEGORIES ROW ("Shop by Category" Round Avatars) */}
-        <CircularCategoriesRow
-          categories={categories}
-          isLoading={isBannersLoading}
-        />
+        {/* 3. VALUE PROPOSITION BAR (Directly below Hero Banner: Free Delivery, Fresh & Quality, Secure Payments, 24/7 Support, Great Offers) */}
+        <TrustValueBar deliverySettings={deliverySettings} />
 
-        {/* 4. TOP OFFERS FOR YOU (Dynamic Promo Cards from MySQL Database) */}
+        {/* 4. TOP OFFERS FOR YOU (4 Pastel Promo Cards from Reference Image) */}
         <TopOffersSection
           topOffers={topOffers}
           deliverySettings={deliverySettings}
@@ -304,13 +301,12 @@ export default function Home() {
           isLoading={isBannersLoading}
         />
 
-        {/* 5. BEST SELLING PRODUCTS (1320px Container, 4-Col Desktop Rhythm) */}
+        {/* 5. BEST SELLING PRODUCTS (Crown Header, Compact JioMart Cards, View All Link) */}
         <HorizontalProductSection
           id="best-sellers-section"
-          badgeText="BEST SELLERS"
-          badgeBg="bg-[#FAF8FF] text-[#6C4EFF] border border-[#E9DFFF]"
+          icon="👑"
           title="Best Selling Products"
-          subtitle="Top rated groceries and customer favourites at unbeatable prices"
+          subtitle="Top rated groceries and customer favourites."
           products={bestSellers}
           viewAllLink="/products?section=best_sellers"
           isLoading={isLoadingSections}
@@ -319,7 +315,13 @@ export default function Home() {
           onAddToCart={handleAddToCart}
         />
 
-        {/* 6. MOST LOVED BRANDS (Top Brands from Database via PHP API) */}
+        {/* 6. CIRCULAR CATEGORIES ROW ("Shop by Category" Round Avatars) */}
+        <CircularCategoriesRow
+          categories={categories}
+          isLoading={isBannersLoading}
+        />
+
+        {/* 7. MOST LOVED BRANDS (Top Brands from Database via PHP API) */}
         <TopBrandsSection
           brands={topBrands}
           isLoading={isTopBrandsLoading}
@@ -327,7 +329,7 @@ export default function Home() {
           subtitle="Top verified brands with exclusive offers and daily savings"
         />
 
-        {/* 6. DYNAMIC DATABASE-DRIVEN HOME SECTIONS (Configured in MySQL home_sections) */}
+        {/* 8. DYNAMIC DATABASE-DRIVEN HOME SECTIONS (Configured in MySQL home_sections) */}
         {sections.map((section, index) => (
           <React.Fragment key={section.id}>
             <DynamicHomeSection
@@ -353,15 +355,13 @@ export default function Home() {
           </React.Fragment>
         ))}
 
-        {/* 7. POPUP BANNER MODAL (Real MySQL Data via PHP REST API) */}
+        {/* 9. POPUP BANNER MODAL (Real MySQL Data via PHP REST API) */}
         {popupBanner && <PopupBannerModal banner={popupBanner} />}
 
-        {/* 8. RECENTLY VIEWED PRODUCTS */}
+        {/* 10. RECENTLY VIEWED PRODUCTS */}
         {recentlyViewed.length > 0 && (
           <HorizontalProductSection
             id="recently-viewed-section"
-            badgeText="RECENTLY VIEWED"
-            badgeBg="bg-[#ede9fe] text-[#6d28d9]"
             title="Recently Viewed Products"
             subtitle="Products you browsed during recent visits"
             products={recentlyViewed}
@@ -373,10 +373,7 @@ export default function Home() {
           />
         )}
 
-        {/* 9. VALUE PROPOSITION BAR (100% Genuine, Secure Payments, Easy Returns, 24/7 Support) */}
-        <TrustValueBar />
-
-        {/* 10. NEWSLETTER / STAY UPDATED BAR */}
+        {/* 11. NEWSLETTER / STAY UPDATED BAR */}
         <NewsletterBar />
       </div>
 

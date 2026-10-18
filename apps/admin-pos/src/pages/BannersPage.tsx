@@ -616,13 +616,38 @@ export function BannersPage() {
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-black/65 text-white backdrop-blur-md shadow-xs">
                             {b.position.replace('_', ' ')}
                           </span>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs ${
-                              Number(b.is_active) === 1 ? 'bg-emerald-600/90 text-white' : 'bg-slate-700/80 text-slate-200'
-                            }`}
-                          >
-                            {Number(b.is_active) === 1 ? 'Active' : 'Inactive'}
-                          </span>
+                          {(() => {
+                            const isInactive = Number(b.is_active) !== 1
+                            const isFuture = b.starts_at && new Date(b.starts_at.replace(' ', 'T')).getTime() > Date.now()
+                            const isExpired = b.ends_at && new Date(b.ends_at.replace(' ', 'T')).getTime() < Date.now()
+
+                            if (isInactive) {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs bg-slate-700/80 text-slate-200">
+                                  Inactive
+                                </span>
+                              )
+                            }
+                            if (isFuture) {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs bg-amber-500/90 text-white" title={`Starts on ${b.starts_at}`}>
+                                  Scheduled
+                                </span>
+                              )
+                            }
+                            if (isExpired) {
+                              return (
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs bg-rose-600/90 text-white">
+                                  Expired
+                                </span>
+                              )
+                            }
+                            return (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md shadow-xs bg-emerald-600/90 text-white">
+                                Active (Live)
+                              </span>
+                            )
+                          })()}
                         </div>
 
                         {/* Bottom-right thumbnail tag for mobile image */}
@@ -1417,7 +1442,7 @@ function BannerFormModal({
 
         {/* Schedule, Sort Order, Active Status */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <TextField label="Starts At (Optional)" type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          <TextField label="Starts At (Optional — blank for immediate)" type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
           <TextField label="Ends At (Optional)" type="date" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
           <TextField label="Sort Order" type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
         </div>

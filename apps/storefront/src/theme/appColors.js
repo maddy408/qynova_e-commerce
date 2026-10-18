@@ -9,36 +9,47 @@
  * Tailwind (inline styles, JS-computed colors), import `AppColors`.
  */
 export const AppColors = {
-  // Primary brand
-  brand: '#601D49',
-  brandHover: '#4D153A',
-  primaryTint: '#F2DDE9', // light brand-tinted surface (icon circles, chips)
+  // Central Brand Tokens (Primary: Ocean Cyan/Blue, Secondary: Fresh Green)
+  primary: '#0284C7',
+  primaryHover: '#0369A1',
+  primaryTint: '#E0F2FE',
+  primarySubtle: '#F0F9FF',
+
+  secondary: '#16A34A',
+  secondaryHover: '#15803D',
+  secondaryTint: '#DCFCE7',
+
+  accent: '#F59E0B',
+  accentGold: '#F59E0B',
+
+  // Backward compatibility brand aliases
+  brand: '#0284C7',
+  brandHover: '#0369A1',
 
   // Surfaces
-  bgMain: '#F8F3F6',
-  bgAlt: '#F7F5F7',
+  bgMain: '#F8FAFC',
+  bgAlt: '#F1F5F9',
   background: '#FFFFFF',
 
   // Borders
-  borderSubtle: '#E8E0E5',
+  borderSubtle: '#E2E8F0',
 
   // Text
-  textMain: '#2D252B',
-  textMuted: '#6B5E68',
+  textMain: '#0F172A',
+  textMuted: '#64748B',
 
   // Status
-  success: '#15803D',
-  warning: '#EA580C',
-  error: '#F43F5E',
-  info: '#14B8A6',
+  success: '#16A34A',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#0284C7',
 
-  // Referral program accent (distinct violet family used only in the
-  // referral modal/badges)
-  referralTint: '#EDE5FF',
-  referral: '#7042D2',
-  referralAlt: '#8B5CF6',
-  referralStrong: '#7C3AED',
-  referralDark: '#6B21A8',
+  // Referral program accent
+  referralTint: '#E0F2FE',
+  referral: '#0284C7',
+  referralAlt: '#0369A1',
+  referralStrong: '#075985',
+  referralDark: '#082F49',
 
   // Third-party brand colors used verbatim — not design tokens, kept for
   // traceability

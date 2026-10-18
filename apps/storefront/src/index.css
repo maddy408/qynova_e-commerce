@@ -1,94 +1,126 @@
 @import "tailwindcss";
 
 :root {
-  /* KiranaBazaar — Editorial Grocery Supermarket Color System */
-  --primary-purple: #6C4EFF;
-  --deep-purple: #4B2AC5;
-  --lavender: #BFA2FF;
-  --soft-lavender: #E9DFFF;
-  --background: #FAF8FF;
-  --card-background: #FFFFFF;
-  --heading-text: #1B133F;
-  --body-text: #666666;
-  --accent-gold: #FFB800;
+  /* ========================================================
+     KIRANABAZAAR CENTRAL DESIGN SYSTEM TOKENS
+     Change primary/secondary colors here to re-theme full app!
+     ======================================================== */
+  --color-primary: #0284C7;          /* Ocean Cyan/Blue: Header buttons, CTAs, active pills */
+  --color-primary-hover: #0369A1;    /* Primary hover state */
+  --color-primary-tint: #E0F2FE;     /* Soft sky blue tint: announcement bar, badges */
+  --color-primary-subtle: #F0F9FF;   /* Light canvas tint */
 
-  /* Semantic Core Variables */
-  --foreground: #1B133F;
-  --surface-card: #FFFFFF;
-  --text-main: #1B133F;
-  --text-muted: #666666;
-  --bg-main: #FAF8FF;
-  --bg-alt: #F3EDFF;
-  --border-subtle: #E9DFFF;
-  --brand-burgundy: #6C4EFF;
-  --brand-burgundy-hover: #4B2AC5;
-  --brand-hover: #F3EDFF;
+  --color-secondary: #16A34A;        /* Fresh Leaf Green: Veg tags, WhatsApp support */
+  --color-secondary-hover: #15803D;  /* Secondary hover state */
+  --color-secondary-tint: #DCFCE7;   /* Fresh mint tint */
+
+  --color-accent: #F59E0B;           /* Warm Deal Gold: Stars, top ratings */
+  --color-accent-gold: #F59E0B;
+
+  /* Surfaces & Backgrounds */
+  --color-bg-main: #F8FAFC;          /* Clean e-commerce canvas */
+  --color-bg-alt: #F1F5F9;           /* Secondary card/tint surface */
+  --color-card-bg: #FFFFFF;          /* Pure white cards */
+  --color-border-subtle: #E2E8F0;    /* Crisp separator borders */
+  --color-border-card: #E2E8F0;
+
+  /* Text & Typography */
+  --color-text-main: #0F172A;        /* Deep slate/navy for crisp readability */
+  --color-text-muted: #64748B;       /* Secondary neutral text */
+
+  /* Aliases for 100% backward compatibility */
+  --color-brand: var(--color-primary);
+  --color-brand-hover: var(--color-primary-hover);
+  --primary-purple: var(--color-primary);
+  --deep-purple: var(--color-primary-hover);
+  --lavender: var(--color-primary-tint);
+  --soft-lavender: var(--color-primary-tint);
+  --background: var(--color-bg-main);
+  --card-background: var(--color-card-bg);
+  --heading-text: var(--color-text-main);
+  --body-text: var(--color-text-muted);
+  --foreground: var(--color-text-main);
+  --surface-card: var(--color-card-bg);
+  --text-main: var(--color-text-main);
+  --text-muted: var(--color-text-muted);
+  --bg-main: var(--color-bg-main);
+  --bg-alt: var(--color-bg-alt);
+  --border-subtle: var(--color-border-subtle);
+  --brand-burgundy: var(--color-primary);
+  --brand-burgundy-hover: var(--color-primary-hover);
+  --brand-hover: var(--color-primary-tint);
 }
 
 @theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--color-bg-main);
+  --color-foreground: var(--color-text-main);
 
-  /* Font Families: Playfair Display (Luxury Editorial Serif) & Inter (Clean UI Sans) */
+  /* Font Families */
   --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", serif;
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* KiranaBazaar Editorial Tokens */
-  --color-brand: #6C4EFF;
-  --color-brand-hover: #4B2AC5;
-  --color-brand-primary: #6C4EFF;
-  --color-brand-deep: #4B2AC5;
-  --color-brand-lavender: #BFA2FF;
-  --color-brand-soft-lavender: #E9DFFF;
-  --color-brand-gold: #FFB800;
+  /* Central Brand Tokens */
+  --color-brand: var(--color-primary);
+  --color-brand-hover: var(--color-primary-hover);
+  --color-brand-primary: var(--color-primary);
+  --color-brand-deep: var(--color-primary-hover);
+  --color-brand-lavender: var(--color-primary-tint);
+  --color-brand-soft-lavender: var(--color-primary-tint);
+  --color-brand-gold: var(--color-accent);
 
-  --color-text-main: #1B133F;
-  --color-text-muted: #666666;
-  --color-border-subtle: #E9DFFF;
-  --color-bg-main: #FAF8FF;
-  --color-bg-alt: #F3EDFF;
-  --color-bg-hover: #FAF8FF;
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-tint: var(--color-primary-tint);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-hover: var(--color-secondary-hover);
+  --color-secondary-tint: var(--color-secondary-tint);
+
+  --color-text-main: var(--color-text-main);
+  --color-text-muted: var(--color-text-muted);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-bg-main: var(--color-bg-main);
+  --color-bg-alt: var(--color-bg-alt);
+  --color-bg-hover: var(--color-primary-subtle);
 
   /* Backward Compatibility Aliases for components */
-  --color-burgundy: #6C4EFF;
-  --color-burgundy-hover: #4B2AC5;
-  --color-burgundy-light: #F3EDFF;
+  --color-burgundy: var(--color-primary);
+  --color-burgundy-hover: var(--color-primary-hover);
+  --color-burgundy-light: var(--color-primary-tint);
   --color-burgundy-surface: #FFFFFF;
-  --color-primary-tint: #FAF8FF;
 
-  --color-purple-50: #FAF8FF;
-  --color-purple-100: #F3EDFF;
-  --color-purple-200: #E9DFFF;
-  --color-purple-300: #D8C8FF;
-  --color-purple-400: #BFA2FF;
-  --color-purple-500: #9373FF;
-  --color-purple-600: #6C4EFF;
-  --color-purple-700: #4B2AC5;
-  --color-purple-800: #381A9E;
-  --color-purple-900: #291275;
-  --color-purple-950: #1B133F;
+  --color-purple-50: #F0F9FF;
+  --color-purple-100: #E0F2FE;
+  --color-purple-200: #BAE6FD;
+  --color-purple-300: #7DD3FC;
+  --color-purple-400: #38BDF8;
+  --color-purple-500: #0EA5E9;
+  --color-purple-600: #0284C7;
+  --color-purple-700: #0369A1;
+  --color-purple-800: #075985;
+  --color-purple-900: #0C4A6E;
+  --color-purple-950: #082F49;
 
-  --color-lavender-bg: #FAF8FF;
-  --color-lavender-light: #F3EDFF;
-  --color-lavender-accent: #BFA2FF;
-  --color-lavender-secondary: #E9DFFF;
+  --color-lavender-bg: var(--color-primary-subtle);
+  --color-lavender-light: var(--color-primary-tint);
+  --color-lavender-accent: #38BDF8;
+  --color-lavender-secondary: #BAE6FD;
   --color-lavender-surface: #FFFFFF;
-  --color-brand-purple: #6C4EFF;
-  --color-brand-purple-hover: #4B2AC5;
+  --color-brand-purple: var(--color-primary);
+  --color-brand-purple-hover: var(--color-primary-hover);
 
   /* Status Tokens */
-  --color-success: #10B981;
+  --color-success: #16A34A;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
-  --color-info: #6C4EFF;
+  --color-info: var(--color-primary);
 
   /* Referral Tokens */
-  --color-referral-tint: #F3EDFF;
-  --color-referral: #6C4EFF;
-  --color-referral-alt: #4B2AC5;
-  --color-referral-strong: #381A9E;
-  --color-referral-dark: #1B133F;
+  --color-referral-tint: var(--color-primary-tint);
+  --color-referral: var(--color-primary);
+  --color-referral-alt: var(--color-primary-hover);
+  --color-referral-strong: #075985;
+  --color-referral-dark: var(--color-text-main);
 
   /* Third-party Brand Colors */
   --color-whatsapp: #25D366;

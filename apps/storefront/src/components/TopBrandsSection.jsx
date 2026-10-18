@@ -150,7 +150,21 @@ export default function TopBrandsSection({
             }}
           >
             {brands.map((brand) => {
-              const imageUrl = brand.image_path ? resolveImageUrl(brand.image_path) : null
+              const brandNameLower = (brand.name || '').toLowerCase()
+              const localBrandFallback =
+                brandNameLower.includes('nivea') ? '/images/brands/nivea.png' :
+                brandNameLower.includes('dettol') ? '/images/brands/dettol.png' :
+                brandNameLower.includes('fortune') ? '/images/brands/fortune.png' :
+                brandNameLower.includes('britannia') ? '/images/brands/britannia.png' :
+                brandNameLower.includes('maggi') ? '/images/brands/maggi.png' :
+                brandNameLower.includes('amul') ? '/images/brands/amul.png' :
+                brandNameLower.includes('tata') ? '/images/brands/tata.png' :
+                brandNameLower.includes('dabur') ? '/images/brands/dabur.png' :
+                brandNameLower.includes('dove') ? '/images/brands/dove.png' :
+                brandNameLower.includes('gold winner') ? '/images/brands/gold_winner.png' :
+                brandNameLower.includes('aashirvaad') ? '/images/brands/aashirvaad.png' : null
+
+              const imageUrl = brand.image_path ? resolveImageUrl(brand.image_path) : localBrandFallback
               const offerLabel =
                 brand.offer_text?.trim() ||
                 (brand.min_price ? `From ₹${Math.round(Number(brand.min_price))}` : 'Explore Brand')
@@ -171,6 +185,11 @@ export default function TopBrandsSection({
                           <img
                             src={imageUrl}
                             alt={brand.name}
+                            onError={(e) => {
+                              if (localBrandFallback && e.target.src !== window.location.origin + localBrandFallback) {
+                                e.target.src = localBrandFallback
+                              }
+                            }}
                             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
                             loading="lazy"
                           />

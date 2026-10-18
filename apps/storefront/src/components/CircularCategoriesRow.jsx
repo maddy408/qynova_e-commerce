@@ -144,7 +144,18 @@ export default function CircularCategoriesRow({
                 <>
                   {(categories || []).map((cat) => {
                     const visual = getCategoryVisual(cat)
-                    const imageSrc = cat.image_path ? resolveImageUrl(cat.image_path) : null
+                    const slugOrName = (cat.slug || cat.name || '').toLowerCase().replace(/[^a-z0-9]/g, '-')
+                    const localFallback = 
+                      cat.slug?.includes('hair') ? '/images/categories/hair_accessories.jpg' :
+                      cat.slug?.includes('jewel') ? '/images/categories/jewellery_fashion.jpg' :
+                      cat.slug?.includes('gift') ? '/images/categories/gift_items.jpg' :
+                      cat.slug?.includes('toy') ? '/images/categories/toys.jpg' :
+                      cat.slug?.includes('bag') ? '/images/categories/bags_pouches.jpg' :
+                      cat.slug?.includes('beauty') ? '/images/categories/beauty_accessories.jpg' :
+                      cat.slug?.includes('storage') ? '/images/categories/storage_utility.jpg' :
+                      cat.slug?.includes('combo') ? '/images/categories/combo_offers.jpg' : null
+
+                    const imageSrc = cat.image_path ? resolveImageUrl(cat.image_path) : localFallback
 
                     return (
                       <Link
@@ -154,16 +165,21 @@ export default function CircularCategoriesRow({
                         title={cat.name}
                       >
                         {/* Circular Avatar with Lavender Radial Glow */}
-                        <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-[radial-gradient(circle_at_center,#FFFFFF_0%,#F3EDFF_100%)] border border-[#E9DFFF] group-hover:border-[#6C4EFF] shadow-[0_4px_16px_rgba(108,78,255,0.06)] group-hover:shadow-[0_8px_24px_rgba(108,78,255,0.14)] transition-all duration-300 flex items-center justify-center overflow-hidden p-3 relative">
+                        <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-[radial-gradient(circle_at_center,#FFFFFF_0%,#F3EDFF_100%)] border border-[#E9DFFF] group-hover:border-[#6C4EFF] shadow-[0_4px_16px_rgba(108,78,255,0.06)] group-hover:shadow-[0_8px_24px_rgba(108,78,255,0.14)] transition-all duration-300 flex items-center justify-center overflow-hidden p-0 relative">
                           {imageSrc ? (
                             <img
                               src={imageSrc}
                               alt={cat.name}
-                              className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                              onError={(e) => {
+                                if (localFallback && e.target.src !== window.location.origin + localFallback) {
+                                  e.target.src = localFallback
+                                }
+                              }}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="group-hover:scale-110 transition-transform duration-300">
+                            <div className="group-hover:scale-110 transition-transform duration-300 p-3">
                               {visual.icon}
                             </div>
                           )}

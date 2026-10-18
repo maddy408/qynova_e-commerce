@@ -1466,7 +1466,7 @@ export function ProductCreatePage() {
                 {metaTitle || name || 'Product Title'}
               </p>
               <p className="text-[11px] text-emerald-700 font-mono truncate">
-                https://store.qynova.in/products/{slug || 'product-slug'}
+                https://shopwithadam.com/products/{slug || 'product-slug'}
               </p>
               <p className="text-[11px] text-slate-600 line-clamp-2">
                 {metaDescription || description || 'Add a title and description to see how this product might appear in a search engine listing.'}

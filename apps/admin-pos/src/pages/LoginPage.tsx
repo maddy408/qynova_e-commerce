@@ -41,26 +41,21 @@ export function LoginPage() {
 
       {/* ================= TOP NAVIGATION BRAND HEADER ================= */}
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-3 sm:px-10 sm:py-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white/70 backdrop-blur-md border border-white/80 shadow-sm flex items-center justify-center text-[var(--color-primary-strong)]">
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-          </div>
+        <div className="flex items-center gap-3">
+          <img
+            src="/images/logo2.jpeg"
+            alt="Shop with Adam"
+            className="h-9 w-auto max-w-[140px] object-contain rounded-md"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = '/logo2.jpeg';
+            }}
+          />
           <div>
-            <span className="text-base font-extrabold tracking-widest text-[var(--color-extra-001)] uppercase">
-              QYNOVA
+            <span className="text-base font-extrabold tracking-tight text-[var(--color-extra-001)] block leading-none">
+              Shop with Adam
             </span>
-            <p className="text-[8px] font-bold tracking-[0.2em] text-[var(--color-primary-strong)]/90 uppercase">
-              Unified Commerce &amp; POS
+            <p className="text-[9px] font-bold tracking-[0.2em] text-[var(--color-primary-strong)]/90 uppercase mt-0.5">
+              Admin &amp; POS
             </p>
           </div>
         </div>
@@ -77,15 +72,16 @@ export function LoginPage() {
       <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-2 min-h-0">
         <div className="w-full max-w-[390px] rounded-[28px] bg-white/65 backdrop-blur-xl border border-white/80 p-6 sm:p-7 shadow-[var(--shadow-login-card)] text-center transition-all my-auto">
           
-          {/* Top Lotus Emblem Icon */}
-          <div className="mx-auto mb-2 w-10 h-10 rounded-full bg-[var(--color-extra-010)] border border-[var(--color-extra-019)] flex items-center justify-center text-[var(--color-primary-strong)] shadow-2xs">
-            <svg
-              className="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M12 2C12 2 8 7 8 12C8 17 12 22 12 22C12 22 16 17 16 12C16 7 12 2 12 2ZM12 4.5C13.2 8 14.5 11.5 14.5 14C14.5 15.5 13.5 17 12 18.5C10.5 17 9.5 15.5 9.5 14C9.5 11.5 10.8 8 12 4.5ZM5.5 8C5.5 8 7.5 11.5 7.5 14C7.5 16 6.5 17.5 5 18.5C3.5 17 3 15.5 3 14C3 11 5.5 8 5.5 8ZM18.5 8C18.5 8 21 11 21 14C21 15.5 20.5 17 19 18.5C17.5 17.5 16.5 16 16.5 14C16.5 11.5 18.5 8 18.5 8Z" />
-            </svg>
+          {/* Logo in Login Card */}
+          <div className="mx-auto mb-3 flex items-center justify-center">
+            <img
+              src="/images/logo2.jpeg"
+              alt="Shop with Adam"
+              className="h-11 w-auto max-w-[170px] object-contain drop-shadow-xs"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = '/logo2.jpeg';
+              }}
+            />
           </div>
 
           {/* Heading & Subtitle */}
@@ -195,7 +191,7 @@ export function LoginPage() {
 
       {/* ================= FOOTER ================= */}
       <footer className="relative z-10 w-full py-2 text-center text-[10px] text-[var(--color-extra-018)]/80 shrink-0">
-        <p>© 2026 Qynova Luxury Retail POS Platform • All rights reserved</p>
+        <p>© 2026 Shop with Adam • Admin &amp; POS Platform • All rights reserved</p>
       </footer>
     </div>
   )

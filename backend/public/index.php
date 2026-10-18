@@ -33,6 +33,7 @@ use App\Controllers\ProductController;
 use App\Controllers\ProductExportController;
 use App\Controllers\ProductImageController;
 use App\Controllers\ProductImportController;
+use App\Controllers\ProductReviewController;
 use App\Controllers\PurchaseController;
 use App\Controllers\ReferralController;
 use App\Controllers\RefundController;
@@ -178,6 +179,12 @@ $router->post('/api/products/{id}/view', fn ($id) => $products->recordView($id))
 $router->put('/api/products/{id}', fn ($id) => $products->update($id));
 $router->delete('/api/products/{id}', fn ($id) => $products->destroy($id));
 $router->put('/api/products/{id}/specifications', fn ($id) => $products->updateSpecifications($id));
+
+// Customer Reviews (docs/spec: mapped to products/items)
+$productReviews = new ProductReviewController($pdo);
+$router->get('/api/products/{id}/reviews', fn ($id) => $productReviews->index($id));
+$router->post('/api/products/{id}/reviews', fn ($id) => $productReviews->store($id));
+$router->post('/api/reviews/{id}/helpful', fn ($id) => $productReviews->helpful($id));
 
 // Product images (sections 8-10, 37-38) — real file upload, WebP
 // compression, primary/reorder/delete. Registered before the generic

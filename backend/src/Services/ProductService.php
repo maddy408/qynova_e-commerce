@@ -178,7 +178,9 @@ final class ProductService
                     (SELECT COUNT(*)
                      FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
                      WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
-                       AND COALESCE(i.available, 0) <= 0) AS out_of_stock_variant_count
+                       AND COALESCE(i.available, 0) <= 0) AS out_of_stock_variant_count,
+                    (SELECT ROUND(AVG(cr.rating), 1) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) AS avg_rating,
+                    (SELECT COUNT(*) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) AS review_count
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
              WHERE {$whereSql}
@@ -314,6 +316,38 @@ final class ProductService
         $product['min_price'] = !empty($prices) ? min($prices) : null;
         $product['max_price'] = !empty($prices) ? max($prices) : null;
         $product['variants'] = $variantRows;
+
+        $reviewsStmt = $this->pdo->prepare(
+            'SELECT id, product_id, customer_id, customer_name, customer_avatar,
+                    rating, title, comment, is_verified_purchase, helpful_count,
+                    created_at
+             FROM customer_reviews
+             WHERE product_id = :id AND status = "APPROVED" AND deleted_at IS NULL
+             ORDER BY created_at DESC'
+        );
+        $reviewsStmt->execute(['id' => $realId]);
+        $reviews = $reviewsStmt->fetchAll();
+
+        $totalReviews = count($reviews);
+        $avgRating = 0.0;
+        $ratingCounts = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+
+        if ($totalReviews > 0) {
+            $sum = 0;
+            foreach ($reviews as $rev) {
+                $r = max(1, min(5, (int) $rev['rating']));
+                $ratingCounts[$r]++;
+                $sum += $r;
+            }
+            $avgRating = round($sum / $totalReviews, 1);
+        }
+
+        $product['reviews'] = $reviews;
+        $product['review_summary'] = [
+            'total_reviews' => $totalReviews,
+            'average_rating' => $avgRating,
+            'rating_breakdown' => $ratingCounts,
+        ];
 
         return $product;
     }
