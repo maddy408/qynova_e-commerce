@@ -201,6 +201,44 @@ final class CartService
         $this->pdo->prepare('DELETE FROM carts WHERE id = :id')->execute(['id' => $sessionCartId]);
     }
 
+    /**
+     * Merges an array of items (e.g. from guest localStorage) into the customer's database cart table
+     *
+     * @param list<array{variant_id?: int, product_id?: int, quantity?: int}> $items
+     */
+    public function mergeItemsList(int $customerId, array $items): void
+    {
+        $customerCartId = $this->findOrCreateCartId($customerId, null);
+
+        foreach ($items as $item) {
+            $variantId = (int) ($item['variant_id'] ?? 0);
+            $productId = isset($item['product_id']) ? (int) $item['product_id'] : null;
+            $quantity = max(1, (int) ($item['quantity'] ?? 1));
+
+            if ($variantId <= 0 && $productId !== null && $productId > 0) {
+                $stmt = $this->pdo->prepare(
+                    'SELECT id FROM product_variants WHERE product_id = :product_id AND deleted_at IS NULL ORDER BY is_default DESC, id ASC LIMIT 1'
+                );
+                $stmt->execute(['product_id' => $productId]);
+                $variantId = (int) $stmt->fetchColumn();
+            }
+
+            if ($variantId <= 0) {
+                continue;
+            }
+
+            $this->pdo->prepare(
+                'INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES (:cart_id, :variant_id, :quantity)
+                 ON DUPLICATE KEY UPDATE quantity = GREATEST(quantity, :quantity2)'
+            )->execute([
+                'cart_id' => $customerCartId,
+                'variant_id' => $variantId,
+                'quantity' => $quantity,
+                'quantity2' => $quantity,
+            ]);
+        }
+    }
+
     private function findCartId(?int $customerId, ?string $sessionId): ?int
     {
         if ($customerId !== null) {

@@ -139,17 +139,63 @@ export function InvoicesPage() {
     }
   }
 
+  // Filtered invoices by search
+  const [search, setSearch] = useState('')
+  const displayedInvoices = (invoices || []).filter((inv) => {
+    if (!search.trim()) return true
+    const term = search.toLowerCase()
+    return (
+      inv.invoice_no?.toLowerCase().includes(term) ||
+      inv.customer_name?.toLowerCase().includes(term) ||
+      inv.cashier_name?.toLowerCase().includes(term)
+    )
+  })
+
   return (
     <div>
       <PageHeader
         title="Invoices Management"
-        description="POS sales and e-commerce order invoices with print receipt, edit payment, and delete controls."
+        description="Filter and generate walk-in customer POS bills and e-commerce online order invoices separately."
         actions={
-          <Select value={channel} onChange={(e) => setChannel(e.target.value)} className="w-40">
-            <option value="">All Channels</option>
-            <option value="POS">POS</option>
-            <option value="ECOMMERCE">E-commerce</option>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <input
+              type="text"
+              placeholder="Search invoice #, customer, cashier…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="text-xs px-3 py-1.5 rounded-xl border border-slate-200 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] w-60"
+            />
+            {/* Quick Channel Filter Tabs */}
+            <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setChannel('')}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer font-bold ${
+                  channel === '' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All Invoices
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannel('POS')}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer font-bold flex items-center gap-1 ${
+                  channel === 'POS' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🏬 Walk-in Customer (POS)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannel('ECOMMERCE')}
+                className={`px-3 py-1 rounded-lg transition-all cursor-pointer font-bold flex items-center gap-1 ${
+                  channel === 'ECOMMERCE' ? 'bg-white text-blue-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🌐 E-Commerce Orders</span>
+              </button>
+            </div>
+          </div>
         }
       />
 
@@ -162,19 +208,19 @@ export function InvoicesPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[var(--color-border-muted)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-strong)] bg-[var(--color-surface)]/80">
               <tr>
-                <th className="px-5 py-3">Invoice No</th>
-                <th className="px-5 py-3">Channel</th>
-                <th className="px-5 py-3">Customer</th>
-                <th className="px-5 py-3">Cashier</th>
-                <th className="px-5 py-3">Total</th>
-                <th className="px-5 py-3">Payment</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="px-5 py-3.5">Invoice No</th>
+                <th className="px-5 py-3.5">Type / Channel</th>
+                <th className="px-5 py-3.5">Customer</th>
+                <th className="px-5 py-3.5">Cashier</th>
+                <th className="px-5 py-3.5">Total</th>
+                <th className="px-5 py-3.5">Payment</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5">Date</th>
+                <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border-muted)]">
-              {invoices.map((inv) => (
+              {displayedInvoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-[var(--color-surface)]/40 transition-colors">
                   <td
                     onClick={() => navigate(ROUTES.INVOICE_DETAIL(inv.id))}
@@ -182,9 +228,21 @@ export function InvoicesPage() {
                   >
                     {inv.invoice_no}
                   </td>
-                  <td className="px-5 py-3 text-slate-600">{inv.channel}</td>
-                  <td className="px-5 py-3 text-slate-600 font-medium">{inv.customer_name ?? 'Walk-in'}</td>
-                  <td className="px-5 py-3 text-slate-600">{inv.cashier_name ?? '—'}</td>
+                  <td className="px-5 py-3">
+                    {inv.channel === 'POS' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        🏬 Walk-in Bill
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                        🌐 E-Commerce
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-slate-800 font-medium">
+                    {inv.customer_name ?? <span className="text-slate-500 italic">Walk-in Customer</span>}
+                  </td>
+                  <td className="px-5 py-3 text-slate-600 text-xs">{inv.cashier_name ?? 'Online System'}</td>
                   <td className="px-5 py-3 font-serif font-bold text-slate-900">₹{inv.grand_total}</td>
                   <td className="px-5 py-3">
                     <Badge tone={PAYMENT_TONE[inv.payment_status]}>{inv.payment_status}</Badge>
@@ -195,19 +253,20 @@ export function InvoicesPage() {
                   <td className="px-5 py-3 text-slate-500 text-xs">{new Date(inv.created_at).toLocaleString()}</td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {/* Print Button */}
+                      {/* Take / Print Invoice Button */}
                       <button
                         onClick={() => navigate(ROUTES.INVOICE_DETAIL(inv.id))}
-                        className="p-1.5 text-slate-500 hover:text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-surface)] transition-colors"
-                        title="Print Thermal / A4 Receipt"
+                        className="px-2.5 py-1 text-xs font-bold bg-[var(--color-primary-tint)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                        title="View / Print Tax Invoice"
                       >
-                        <PrinterIcon className="w-4 h-4" />
+                        <PrinterIcon className="w-3.5 h-3.5" />
+                        <span>Print Bill</span>
                       </button>
 
                       {/* Edit Button */}
                       <button
                         onClick={() => openEdit(inv)}
-                        className="p-1.5 text-slate-500 hover:text-amber-600 rounded hover:bg-amber-50 transition-colors"
+                        className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-colors cursor-pointer"
                         title="Amend Invoice (Record Payment / Cancel)"
                       >
                         <PencilIcon className="w-4 h-4" />

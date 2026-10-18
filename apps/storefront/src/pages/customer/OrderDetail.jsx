@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { FiAlertCircle, FiInfo, FiTruck, FiExternalLink, FiMapPin, FiX } from 'react-icons/fi'
+import { 
+  FiAlertCircle, 
+  FiAlertTriangle,
+  FiInfo, 
+  FiTruck, 
+  FiExternalLink, 
+  FiMapPin, 
+  FiX, 
+  FiCheck, 
+  FiPackage, 
+  FiClock, 
+  FiShoppingBag,
+  FiNavigation 
+} from 'react-icons/fi'
 import { api, getCustomerToken, isTokenExpired, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
 
@@ -119,26 +132,47 @@ export default function OrderDetail() {
           dot: 'bg-emerald-500',
           label: 'Delivered',
         }
-      case 'SHIPPED':
       case 'OUT_FOR_DELIVERY':
+        return {
+          bg: 'bg-cyan-50 text-cyan-800 border-cyan-200',
+          dot: 'bg-cyan-500',
+          label: 'Out for Delivery',
+        }
+      case 'SHIPPED':
         return {
           bg: 'bg-blue-50 text-blue-800 border-blue-200',
           dot: 'bg-blue-500',
-          label: status === 'OUT_FOR_DELIVERY' ? 'Out for Delivery' : 'Shipped',
+          label: 'Shipped',
+        }
+      case 'PACKED':
+        return {
+          bg: 'bg-purple-50 text-purple-800 border-purple-200',
+          dot: 'bg-purple-500',
+          label: 'Packed',
         }
       case 'PROCESSING':
-      case 'PACKED':
+        return {
+          bg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+          dot: 'bg-indigo-500',
+          label: 'Processing',
+        }
       case 'CONFIRMED':
         return {
-          bg: 'bg-[var(--color-bg-main)] text-[var(--color-brand)] border-[var(--color-border-subtle)]',
-          dot: 'bg-[var(--color-brand)]',
-          label: status.charAt(0) + status.slice(1).toLowerCase(),
+          bg: 'bg-sky-50 text-sky-800 border-sky-200',
+          dot: 'bg-sky-500',
+          label: 'Order Confirmed',
         }
       case 'PENDING':
         return {
           bg: 'bg-amber-50 text-amber-800 border-amber-200',
           dot: 'bg-amber-500',
           label: 'Pending Confirmation',
+        }
+      case 'OUT_OF_STOCK':
+        return {
+          bg: 'bg-orange-50 text-orange-900 border-orange-300',
+          dot: 'bg-orange-500',
+          label: 'Out of Stock',
         }
       case 'CANCELLED':
         return {
@@ -150,9 +184,23 @@ export default function OrderDetail() {
         return {
           bg: 'bg-gray-50 text-gray-800 border-gray-200',
           dot: 'bg-gray-400',
-          label: status || 'Unknown',
+          label: (status || 'Unknown').replace(/_/g, ' '),
         }
     }
+  }
+
+  // Tracking Progress calculation
+  const getStepProgress = (currentStatus) => {
+    const statusMap = {
+      PENDING: 1,
+      CONFIRMED: 1,
+      PROCESSING: 2,
+      PACKED: 2,
+      SHIPPED: 3,
+      OUT_FOR_DELIVERY: 4,
+      DELIVERED: 5,
+    }
+    return statusMap[currentStatus] || 1
   }
 
   return (
@@ -162,21 +210,19 @@ export default function OrderDetail() {
       <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-16 flex items-center justify-between gap-4">
           <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="var(--color-primary-tint)" stroke="none" />
-              </svg>
-            </div>
-            <div>
-              <div className="flex items-baseline leading-none">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[var(--color-text-main)]">Qynova</span>
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[var(--color-brand)]">.</span>
-              </div>
+            <img 
+              src="/logo.jpeg" 
+              alt="Shop with Adams" 
+              className="h-9 sm:h-10 w-auto object-contain rounded-lg group-hover:scale-105 transition-transform"
+              onError={(e) => {
+                e.currentTarget.onerror = null
+                e.currentTarget.src = '/images/logo2.jpeg'
+              }}
+            />
+            <div className="hidden sm:block">
+              <span className="text-base sm:text-lg font-black tracking-tight text-[var(--color-text-main)]">Shop with Adams</span>
               <p className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
-                Order Details
+                Order Tracking
               </p>
             </div>
           </Link>
@@ -269,49 +315,133 @@ export default function OrderDetail() {
                 </div>
               </div>
 
-              {/* Status Banner / Timeline Notice */}
-              {order.status === 'CANCELLED' ? (
-                <div className="p-4 bg-rose-50/80 border border-rose-200 rounded-2xl flex items-start gap-3">
-                  <FiInfo className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" />
+              {/* Status Alerts */}
+              {order.status === 'CANCELLED' && (
+                <div className="p-4 sm:p-5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3.5 shadow-xs">
+                  <FiAlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                   <div className="text-xs">
-                    <p className="font-bold text-rose-900">This order has been cancelled.</p>
-                    {order.cancellation_reason && (
-                      <p className="text-rose-700 mt-0.5">Reason: {order.cancellation_reason}</p>
+                    <p className="font-bold text-rose-900 text-sm">Order Cancelled</p>
+                    {order.cancellation_reason ? (
+                      <p className="text-rose-700 mt-1">Reason: <span className="font-semibold">{order.cancellation_reason}</span></p>
+                    ) : (
+                      <p className="text-rose-700 mt-1">This order has been cancelled.</p>
                     )}
                     {order.cancelled_at && (
-                      <p className="text-rose-600/80 text-[11px] mt-0.5">Cancelled at: {formatDate(order.cancelled_at)}</p>
+                      <p className="text-rose-500 text-[11px] mt-1">Cancelled on: {formatDate(order.cancelled_at)}</p>
                     )}
                   </div>
                 </div>
-              ) : (
-                /* Delivery / Tracking Status Pill */
-                <div className="p-4 bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-lg">
-                      <FiTruck className="w-5 h-5" />
-                    </div>
+              )}
+
+              {order.status === 'OUT_OF_STOCK' && (
+                <div className="p-4 sm:p-5 bg-orange-50 border border-orange-300 rounded-2xl flex items-start gap-3.5 shadow-xs">
+                  <FiAlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <p className="font-bold text-orange-950 text-sm">Action Notice: Item(s) Out of Stock</p>
+                    <p className="text-orange-800 mt-1 leading-relaxed">
+                      One or more products in this order are currently out of stock. Our team will contact you directly on your phone number (+91 {order.shipping_phone}) to provide a fast alternative or process a refund.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Visual Order Tracking Stepper */}
+              {order.status !== 'CANCELLED' && (
+                <div className="p-5 sm:p-6 bg-white border border-[var(--color-border-subtle)] rounded-2xl shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                     <div>
-                      <p className="text-xs font-black text-[var(--color-text-main)]">
-                        {delivery?.courier_name ? `Shipment by ${delivery.courier_name}` : 'Order In Progress'}
+                      <h3 className="text-xs font-black uppercase tracking-wider text-[var(--color-text-main)]">
+                        Shipment &amp; Delivery Progress
+                      </h3>
+                      <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                        Current Status: <span className="font-bold text-[var(--color-brand)]">{getStatusBadge(order.status).label}</span>
                       </p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">
-                        {delivery?.tracking_number
-                          ? `Tracking AWB: ${delivery.tracking_number} (${delivery.status || 'SHIPPED'})`
-                          : `Status: ${getStatusBadge(order.status).label}`}
-                      </p>
+                    </div>
+                    {delivery?.tracking_url && (
+                      <a
+                        href={delivery.tracking_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--color-brand)] text-white text-xs font-bold hover:opacity-90 transition-opacity self-start sm:self-auto shadow-xs"
+                      >
+                        <span>Live Tracking</span>
+                        <FiExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="relative pt-2 pb-1">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-2">
+                      {[
+                        { step: 1, label: 'Order Placed', desc: 'Placed & Confirmed', icon: FiShoppingBag },
+                        { step: 2, label: 'Order Packed', desc: 'Ready in warehouse', icon: FiPackage },
+                        { step: 3, label: 'Shipped', desc: delivery?.courier_name ? `Via ${delivery.courier_name}` : 'Dispatched', icon: FiTruck },
+                        { step: 4, label: 'Out for Delivery', desc: 'Courier agent en route', icon: FiNavigation },
+                        { step: 5, label: 'Delivered', desc: 'Package received', icon: FiCheck },
+                      ].map((s, idx, arr) => {
+                        const Icon = s.icon
+                        const currentStep = getStepProgress(order.status)
+                        const isDone = currentStep > s.step || (currentStep === 5 && s.step === 5)
+                        const isCurrent = currentStep === s.step && order.status !== 'OUT_OF_STOCK'
+
+                        return (
+                          <div key={s.step} className="relative flex md:flex-col items-center md:text-center gap-3 md:gap-2">
+                            {/* Connector line for desktop */}
+                            {idx < arr.length - 1 && (
+                              <div
+                                className={`hidden md:block absolute top-4.5 left-1/2 w-full h-1 -z-0 transition-colors ${
+                                  currentStep > s.step ? 'bg-emerald-500' : 'bg-gray-200'
+                                }`}
+                              />
+                            )}
+
+                            {/* Step Icon Node */}
+                            <div
+                              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 z-10 transition-all ${
+                                isDone
+                                  ? 'bg-emerald-500 text-white shadow-sm ring-4 ring-emerald-50'
+                                  : isCurrent
+                                  ? 'bg-[var(--color-brand)] text-white shadow-md ring-4 ring-[var(--color-primary-tint)] animate-pulse'
+                                  : 'bg-gray-100 text-gray-400 border border-gray-200'
+                              }`}
+                            >
+                              {isDone ? <FiCheck className="w-5 h-5 stroke-[3]" /> : <Icon className="w-4.5 h-4.5" />}
+                            </div>
+
+                            {/* Step Text Info */}
+                            <div className="min-w-0">
+                              <p className={`text-xs font-bold leading-tight ${
+                                isDone ? 'text-emerald-900' : isCurrent ? 'text-[var(--color-brand)] font-extrabold' : 'text-gray-400'
+                              }`}>
+                                {s.label}
+                              </p>
+                              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 leading-tight">
+                                {s.desc}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
 
-                  {delivery?.tracking_url && (
-                    <a
-                      href={delivery.tracking_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--color-brand)] text-white text-xs font-bold hover:bg-[var(--color-brand)] transition-colors self-start sm:self-auto"
-                    >
-                      <span>Track Shipment</span>
-                      <FiExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                  {/* Courier / AWB details bar if present */}
+                  {delivery && (delivery.courier_name || delivery.tracking_number) && (
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs bg-gray-50/70 p-3 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <FiTruck className="w-4 h-4 text-[var(--color-brand)]" />
+                        <span className="text-[var(--color-text-muted)]">Courier Partner:</span>
+                        <span className="font-bold text-[var(--color-text-main)]">{delivery.courier_name || 'Standard Courier'}</span>
+                      </div>
+                      {delivery.tracking_number && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[var(--color-text-muted)]">Tracking AWB:</span>
+                          <span className="font-mono font-bold text-[var(--color-brand)] bg-white px-2 py-0.5 rounded border border-gray-200">
+                            {delivery.tracking_number}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

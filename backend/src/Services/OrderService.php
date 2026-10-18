@@ -86,11 +86,14 @@ final class OrderService
     private function statusNotificationCopy(string $status): ?array
     {
         return match ($status) {
+            'CONFIRMED' => ['type' => 'ORDER_CONFIRMED', 'title' => 'Order Confirmed', 'body' => 'has been confirmed and is being prepared.'],
             'PROCESSING' => ['type' => 'ORDER_PROCESSING', 'title' => 'Order is being processed', 'body' => 'is now being processed.'],
             'PACKED' => ['type' => 'ORDER_PACKED', 'title' => 'Order packed', 'body' => 'has been packed and will ship soon.'],
             'SHIPPED' => ['type' => 'ORDER_SHIPPED', 'title' => 'Order shipped', 'body' => 'has shipped.'],
             'OUT_FOR_DELIVERY' => ['type' => 'ORDER_OUT_FOR_DELIVERY', 'title' => 'Out for delivery', 'body' => 'is out for delivery.'],
             'DELIVERED' => ['type' => 'ORDER_DELIVERED', 'title' => 'Order delivered', 'body' => 'has been delivered. Thank you for shopping with us!'],
+            'OUT_OF_STOCK' => ['type' => 'ORDER_OUT_OF_STOCK', 'title' => 'Item Out of Stock', 'body' => 'contains items that are currently out of stock. Our team will contact you shortly.'],
+            'CANCELLED' => ['type' => 'ORDER_CANCELLED', 'title' => 'Order Cancelled', 'body' => 'has been cancelled.'],
             default => null,
         };
     }
@@ -493,31 +496,26 @@ final class OrderService
             throw new RuntimeException('Order not found');
         }
 
-        if (in_array($order['status'], ['CANCELLED', 'DELIVERED', 'REFUNDED'], true)) {
-            throw new RuntimeException("Order is {$order['status']} and its status can no longer be changed here");
+        $validStatuses = [
+            'PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED',
+            'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'OUT_OF_STOCK',
+            'RETURN_REQUESTED', 'RETURNED', 'REFUNDED'
+        ];
+
+        if (!in_array($newStatus, $validStatuses, true)) {
+            throw new RuntimeException("Invalid status: {$newStatus}");
         }
 
-        if (!array_key_exists($newStatus, self::STATUS_RANK)) {
-            throw new RuntimeException('Use the dedicated cancel endpoint to cancel an order');
+        if ($newStatus === 'CANCELLED') {
+            $this->pdo->prepare('UPDATE orders SET status = :status, cancelled_at = NOW(), cancellation_reason = :reason WHERE id = :id')
+                ->execute(['status' => 'CANCELLED', 'reason' => $note ?: 'Cancelled by store admin', 'id' => $orderId]);
+        } elseif ($newStatus === 'OUT_OF_STOCK') {
+            $this->pdo->prepare('UPDATE orders SET status = :status, cancellation_reason = :reason WHERE id = :id')
+                ->execute(['status' => 'OUT_OF_STOCK', 'reason' => $note ?: 'Items currently out of stock', 'id' => $orderId]);
+        } else {
+            $this->pdo->prepare('UPDATE orders SET status = :status WHERE id = :id')
+                ->execute(['status' => $newStatus, 'id' => $orderId]);
         }
-
-        // This endpoint is the manual fulfillment-stage updater — the
-        // payment-and-confirm step is confirmPayment()'s job, which sets
-        // status and payment_status together atomically. Without this
-        // check, an admin could pick DELIVERED straight off a PENDING,
-        // never-paid order (OrderDetailPage.tsx's dropdown lists every
-        // status with no filtering), creating an invoice via the branch
-        // below for goods that were never actually paid for.
-        if (self::STATUS_RANK[$newStatus] >= self::STATUS_RANK['CONFIRMED'] && $order['payment_status'] !== 'PAID') {
-            throw new RuntimeException('Order must be paid before it can move past PENDING');
-        }
-
-        if (self::STATUS_RANK[$newStatus] <= self::STATUS_RANK[$order['status']]) {
-            throw new RuntimeException("Status can only move forward — order is already {$order['status']}");
-        }
-
-        $this->pdo->prepare('UPDATE orders SET status = :status WHERE id = :id')
-            ->execute(['status' => $newStatus, 'id' => $orderId]);
 
         $this->logStatus($orderId, $order['status'], $newStatus, $actorUserId, 'ADMIN', $note);
 
