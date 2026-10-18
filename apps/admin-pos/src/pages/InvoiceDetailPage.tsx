@@ -261,6 +261,9 @@ export function InvoiceDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Badge tone={invoice.channel === 'POS' ? 'green' : 'teal'}>
+            {invoice.channel === 'POS' ? '🏬 Walk-in Customer Bill' : '🌐 E-Commerce Order'}
+          </Badge>
           {invoice.status === 'CANCELLED' && <Badge tone="red">CANCELLED</Badge>}
           <Button size="sm" variant="secondary" onClick={() => window.print()} className="font-semibold text-xs">
             🖨️ Print
@@ -296,8 +299,21 @@ export function InvoiceDetailPage() {
                 <p className="text-[11px] font-semibold text-slate-800">GSTIN: {companyDetails.gstin}</p>
               </div>
               <div className="text-right">
-                <h2 className="text-lg font-black tracking-widest text-[var(--color-primary)] uppercase">TAX INVOICE</h2>
-                <p className="mt-1 text-xs font-bold text-slate-900">
+                <h2 className="text-base sm:text-lg font-black tracking-widest text-[var(--color-primary)] uppercase">
+                  {invoice.channel === 'POS' ? 'WALK-IN POS TAX INVOICE' : 'E-COMMERCE ORDER TAX INVOICE'}
+                </h2>
+                <div className="mt-1">
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                      invoice.channel === 'POS'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                        : 'bg-blue-50 text-blue-800 border-blue-300'
+                    }`}
+                  >
+                    {invoice.channel === 'POS' ? '🏬 Walk-in Customer Bill' : '🌐 E-Commerce Online Order'}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs font-bold text-slate-900">
                   BILL NO: <span className="text-[var(--color-primary)]">{invoice.invoice_no}</span>
                 </p>
                 <p className="text-xs text-slate-600">
@@ -310,7 +326,9 @@ export function InvoiceDetailPage() {
             <div className="border border-slate-400 p-3 rounded-xs flex justify-between items-center bg-slate-50/50">
               <div>
                 <p className="font-extrabold uppercase text-[11px] text-slate-700">TO (CUSTOMER DETAILS):</p>
-                <p className="text-sm font-bold text-slate-900 mt-0.5">{invoice.customer_name ?? 'Walk-in Customer'}</p>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">
+                  {invoice.customer_name ?? (invoice.channel === 'POS' ? 'Walk-in Customer' : 'E-Commerce Customer')}
+                </p>
               </div>
               <div className="text-right font-medium">
                 <p className="text-xs text-slate-700">
@@ -467,6 +485,10 @@ export function InvoiceDetailPage() {
             {/* Bill Details */}
             <div className="space-y-1 text-[11px]">
               <div className="flex justify-between">
+                <span className="font-bold">BILL TYPE:</span>
+                <span className="font-bold uppercase">{invoice.channel === 'POS' ? 'WALK-IN POS BILL' : 'ECOMMERCE ORDER'}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="font-bold">INVOICE NO:</span>
                 <span className="font-bold">{invoice.invoice_no}</span>
               </div>
@@ -476,7 +498,7 @@ export function InvoiceDetailPage() {
               </div>
               <div className="flex justify-between text-slate-700">
                 <span>CUSTOMER:</span>
-                <span className="font-semibold">{invoice.customer_name || 'Walk-in'}</span>
+                <span className="font-semibold">{invoice.customer_name || (invoice.channel === 'POS' ? 'Walk-in Customer' : 'Online Customer')}</span>
               </div>
               <div className="flex justify-between">
                 <span>STATUS:</span>

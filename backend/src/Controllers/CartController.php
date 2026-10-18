@@ -112,9 +112,15 @@ final class CartController
         [$customerId, $sessionId] = $this->resolveIdentity();
         $body = Request::json();
         $incomingSession = $body['session_id'] ?? $sessionId;
+        $items = $body['items'] ?? [];
 
-        if ($customerId !== null && !empty($incomingSession)) {
-            $this->cartService->mergeSessionCart((string) $incomingSession, $customerId);
+        if ($customerId !== null) {
+            if (!empty($incomingSession)) {
+                $this->cartService->mergeSessionCart((string) $incomingSession, $customerId);
+            }
+            if (is_array($items) && !empty($items)) {
+                $this->cartService->mergeItemsList($customerId, $items);
+            }
         }
 
         Response::json($this->cartService->getCart($customerId, null));

@@ -69,26 +69,47 @@ export default function Orders() {
           dot: 'bg-emerald-500',
           label: 'Delivered',
         }
-      case 'SHIPPED':
       case 'OUT_FOR_DELIVERY':
+        return {
+          bg: 'bg-cyan-50 text-cyan-800 border-cyan-200',
+          dot: 'bg-cyan-500',
+          label: 'Out for Delivery',
+        }
+      case 'SHIPPED':
         return {
           bg: 'bg-blue-50 text-blue-800 border-blue-200',
           dot: 'bg-blue-500',
-          label: status === 'OUT_FOR_DELIVERY' ? 'Out for Delivery' : 'Shipped',
+          label: 'Shipped',
+        }
+      case 'PACKED':
+        return {
+          bg: 'bg-purple-50 text-purple-800 border-purple-200',
+          dot: 'bg-purple-500',
+          label: 'Packed',
         }
       case 'PROCESSING':
-      case 'PACKED':
+        return {
+          bg: 'bg-indigo-50 text-indigo-800 border-indigo-200',
+          dot: 'bg-indigo-500',
+          label: 'Processing',
+        }
       case 'CONFIRMED':
         return {
-          bg: 'bg-[var(--color-bg-main)] text-[var(--color-brand)] border-[var(--color-border-subtle)]',
-          dot: 'bg-[var(--color-brand)]',
-          label: status.charAt(0) + status.slice(1).toLowerCase(),
+          bg: 'bg-sky-50 text-sky-800 border-sky-200',
+          dot: 'bg-sky-500',
+          label: 'Confirmed',
         }
       case 'PENDING':
         return {
           bg: 'bg-amber-50 text-amber-800 border-amber-200',
           dot: 'bg-amber-500',
           label: 'Pending',
+        }
+      case 'OUT_OF_STOCK':
+        return {
+          bg: 'bg-orange-50 text-orange-900 border-orange-300',
+          dot: 'bg-orange-500',
+          label: 'Out of Stock',
         }
       case 'CANCELLED':
         return {
@@ -100,7 +121,7 @@ export default function Orders() {
         return {
           bg: 'bg-gray-50 text-gray-800 border-gray-200',
           dot: 'bg-gray-400',
-          label: status || 'Unknown',
+          label: (status || 'Unknown').replace(/_/g, ' '),
         }
     }
   }
@@ -120,7 +141,7 @@ export default function Orders() {
 
   const filteredOrders = orders.filter((order) => {
     if (statusFilter === 'ALL') return true
-    if (statusFilter === 'ACTIVE') return !['DELIVERED', 'CANCELLED'].includes(order.status)
+    if (statusFilter === 'ACTIVE') return !['DELIVERED', 'CANCELLED', 'OUT_OF_STOCK'].includes(order.status)
     return order.status === statusFilter
   })
 
@@ -131,19 +152,17 @@ export default function Orders() {
       <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 min-h-16 flex items-center justify-between gap-4">
           <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-brand)] flex items-center justify-center shadow-md text-white group-hover:scale-105 transition-transform">
-              <svg className="w-5 h-5 sm:w-5.5 sm:h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                <path d="M12 5c.5-2 2-3 4-3-1 2-1 3-4 3z" fill="var(--color-primary-tint)" stroke="none" />
-              </svg>
-            </div>
-            <div>
-              <div className="flex items-baseline leading-none">
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[var(--color-text-main)]">Qynova</span>
-                <span className="text-lg sm:text-xl font-black tracking-tight text-[var(--color-brand)]">.</span>
-              </div>
+            <img 
+              src="/logo.jpeg" 
+              alt="Shop with Adams" 
+              className="h-9 sm:h-10 w-auto object-contain rounded-lg group-hover:scale-105 transition-transform"
+              onError={(e) => {
+                e.currentTarget.onerror = null
+                e.currentTarget.src = '/images/logo2.jpeg'
+              }}
+            />
+            <div className="hidden sm:block">
+              <span className="text-base sm:text-lg font-black tracking-tight text-[var(--color-text-main)]">Shop with Adams</span>
               <p className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase">
                 Customer Orders
               </p>
@@ -196,6 +215,7 @@ export default function Orders() {
                 { id: 'ALL', label: 'All' },
                 { id: 'ACTIVE', label: 'In Progress' },
                 { id: 'DELIVERED', label: 'Delivered' },
+                { id: 'OUT_OF_STOCK', label: 'Out of Stock' },
                 { id: 'CANCELLED', label: 'Cancelled' },
               ].map((pill) => (
                 <button

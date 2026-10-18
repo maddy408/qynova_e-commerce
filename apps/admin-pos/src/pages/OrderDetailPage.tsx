@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Alert, Badge, Button, Card, Select, Spinner } from '../components/ui'
+import { Alert, Badge, Button, Card, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
@@ -47,7 +47,16 @@ interface OrderDetail {
   status_history: StatusHistoryRow[]
 }
 
-const STATUS_PIPELINE = ['PENDING', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED']
+const ALL_ORDER_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'PACKED',
+  'SHIPPED',
+  'OUT_FOR_DELIVERY',
+  'DELIVERED',
+  'OUT_OF_STOCK',
+  'CANCELLED',
+]
 
 export function OrderDetailPage() {
   const { id } = useParams()
@@ -55,6 +64,7 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [error, setError] = useState('')
   const [nextStatus, setNextStatus] = useState('')
+  const [statusNote, setStatusNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [deliveryId, setDeliveryId] = useState<number | null>(null)
   const [deliveryChecked, setDeliveryChecked] = useState(false)
@@ -89,7 +99,9 @@ export function OrderDetailPage() {
     setBusy(true)
     setError('')
     try {
-      await api.patch(`/orders/${id}/status`, { status: nextStatus })
+      await api.patch(`/orders/${id}/status`, { status: nextStatus, note: statusNote || undefined })
+      setNextStatus('')
+      setStatusNote('')
       load()
     } catch (err) {
       setError(apiErrorMessage(err, 'Could not update status'))
@@ -117,15 +129,7 @@ export function OrderDetailPage() {
     return <Spinner />
   }
 
-  const canModify = !['CANCELLED', 'DELIVERED', 'REFUNDED'].includes(order.status)
-  // Mirrors OrderService::updateStatus()'s backend rules: forward-only,
-  // and nothing past PENDING without payment captured — the dropdown
-  // used to list every status regardless of where the order actually
-  // was, so an admin could pick DELIVERED on an order that was never
-  // paid (which also silently created an invoice for it).
-  const currentRank = STATUS_PIPELINE.indexOf(order.status)
-  const availableStatuses =
-    order.payment_status === 'PAID' ? STATUS_PIPELINE.slice(currentRank + 1) : []
+  const canModify = !['DELIVERED', 'REFUNDED'].includes(order.status)
 
   return (
     <div>
@@ -260,29 +264,49 @@ export function OrderDetailPage() {
           )}
 
           {canModify && (
-            <Card className="space-y-3 p-5">
-              <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
-              {order.payment_status !== 'PAID' ? (
-                <p className="text-xs text-slate-500">
-                  Status can&apos;t move past PENDING until this order is paid.
+            <Card className="space-y-4 p-5">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">Update Order Status</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Change fulfillment stage to Packed, Shipped, Delivered, Out of Stock, etc.
                 </p>
-              ) : (
-                <>
-                  <Select label="Update status" value={nextStatus} onChange={(e) => setNextStatus(e.target.value)}>
+              </div>
+
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">New Status</label>
+                  <select
+                    value={nextStatus}
+                    onChange={(e) => setNextStatus(e.target.value)}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] cursor-pointer"
+                  >
                     <option value="">Select status…</option>
-                    {availableStatuses.map((s) => (
+                    {ALL_ORDER_STATUSES.map((s) => (
                       <option key={s} value={s}>
                         {s.replace(/_/g, ' ')}
                       </option>
                     ))}
-                  </Select>
-                  <Button size="sm" onClick={updateStatus} disabled={busy || !nextStatus}>
-                    Update Status
-                  </Button>
-                </>
-              )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Status Note (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Dispatched via Express Courier / Batch A"
+                    value={statusNote}
+                    onChange={(e) => setStatusNote(e.target.value)}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                  />
+                </div>
+
+                <Button size="sm" onClick={updateStatus} disabled={busy || !nextStatus} className="w-full">
+                  {busy ? 'Updating…' : 'Update Status'}
+                </Button>
+              </div>
+
               <div className="border-t border-slate-200 pt-3">
-                <Button size="sm" variant="danger" onClick={cancelOrder} disabled={busy}>
+                <Button size="sm" variant="danger" onClick={cancelOrder} disabled={busy} className="w-full">
                   Cancel Order
                 </Button>
               </div>
