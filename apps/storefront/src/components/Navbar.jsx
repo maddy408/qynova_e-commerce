@@ -586,7 +586,7 @@ export default function Navbar({
               <img
                 src={storeLogo || '/images/logo2.jpeg'}
                 alt={storeName || 'Shop with Adam'}
-                className="h-9 sm:h-11 w-auto max-w-[170px] sm:max-w-[210px] object-contain group-hover:scale-105 transition-transform"
+                className="h-10 sm:h-12 w-auto max-w-[190px] sm:max-w-[230px] object-contain group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   e.currentTarget.onerror = null
                   e.currentTarget.src = '/images/logo2.jpeg'

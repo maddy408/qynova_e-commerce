@@ -81,7 +81,7 @@ export default function GroceryFooter({
               <img
                 src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
                 alt={storeName}
-                className="h-10 w-auto max-w-[170px] object-contain rounded-xl bg-white p-1 border border-zinc-800"
+                className="h-14 sm:h-16 w-auto max-w-[240px] sm:max-w-[280px] object-contain rounded-2xl bg-white p-2 border border-zinc-800 shadow-md group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   e.currentTarget.onerror = null
                   e.currentTarget.src = '/images/logo2.jpeg'
