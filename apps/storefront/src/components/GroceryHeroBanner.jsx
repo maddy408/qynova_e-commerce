@@ -6,11 +6,10 @@ import { FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 /**
  * Modern Shop with Adam Grocery Hero Banner
- * Matches the reference image layout:
- * - Single-screen panoramic banner (no 2-page vertical scroll)
- * - Full background banner image with crisp gradient text overlay
- * - Pill badge, bold typography, Shop Now & View Offers buttons
- * - Cursive callout on the visual side
+ * - Full-width seamless background image without rectangular cutouts
+ * - Custom uploaded banners fit height with zero over-zoom (100% of products visible)
+ * - Proportional panoramic height optimized for laptop and desktop screens
+ * - Crisp text overlay with pill badge, title, subtitle, and CTA buttons
  * - Left/Right arrows & pill pagination dots
  */
 export default function GroceryHeroBanner({
@@ -43,9 +42,9 @@ export default function GroceryHeroBanner({
       cta_text: 'Shop Now',
       secondary_cta: 'View Offers',
       target_url: ROUTES.PRODUCTS,
-      image_url: '/images/kirana_hero_basket.jpg',
-      is_uploaded: false,
-      callout: 'Fresh Healthy Happy ♡',
+      image_url: '/images/kirana_hero_bg_full.jpg',
+      is_flagship: true,
+      callout: null,
     }
 
     if (activeBanners.length > 0) {
@@ -59,14 +58,14 @@ export default function GroceryHeroBanner({
         target_url: b.target_url || (b.target_type === 'CATEGORY' && b.target_id ? ROUTES.PRODUCTS_BY_CATEGORY(b.target_id) : ROUTES.PRODUCTS),
         target_type: b.target_type,
         target_id: b.target_id,
-        image_url: b.image_desktop_path ? resolveImageUrl(b.image_desktop_path) : '/images/kirana_hero_basket.jpg',
-        is_uploaded: Boolean(b.image_desktop_path),
+        image_url: b.image_desktop_path ? resolveImageUrl(b.image_desktop_path) : '/images/kirana_hero_bg_full.jpg',
+        is_flagship: false,
         color_theme: b.color_theme || 'blue',
         callout: null,
       }))
 
-      // Return database banners with the flagship slide so all are reachable
-      return [...bannerSlides, flagshipSlide]
+      // Return flagship slide first, followed by database custom banners
+      return [flagshipSlide, ...bannerSlides]
     }
 
     return [
@@ -79,9 +78,9 @@ export default function GroceryHeroBanner({
         cta_text: 'Explore Groceries',
         secondary_cta: 'Top Deals',
         target_url: ROUTES.PRODUCTS,
-        image_url: '/images/kirana_hero_basket.jpg',
-        is_uploaded: false,
-        callout: '100% Quality Guaranteed ★',
+        image_url: '/images/kirana_hero_bg_full.jpg',
+        is_flagship: true,
+        callout: null,
       },
     ]
   }, [activeBanners])
@@ -151,8 +150,8 @@ export default function GroceryHeroBanner({
 
   if (isLoading) {
     return (
-      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3.5 pb-2">
-        <div className="w-full h-[260px] sm:h-[300px] md:h-[340px] lg:h-[370px] bg-slate-100 animate-pulse rounded-[20px] sm:rounded-[32px]" />
+      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3 pb-2">
+        <div className="w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] bg-slate-100 animate-pulse rounded-[20px] sm:rounded-[28px]" />
       </div>
     )
   }
@@ -169,9 +168,9 @@ export default function GroceryHeroBanner({
       onTouchEnd={handleTouchEnd}
       aria-label="Shop with Adam Grocery Promotion"
     >
-      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3.5 pb-2">
+      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-2.5 pb-2">
         {/* Sleek Panoramic Hero Container */}
-        <div className="relative w-full h-[260px] sm:h-[300px] md:h-[340px] lg:h-[370px] rounded-[20px] sm:rounded-[32px] overflow-hidden bg-gradient-to-r from-[#DDF4FC] via-[#EAF7FD] to-[#D2F2FB] border border-sky-100/90 shadow-xs flex items-center">
+        <div className="relative w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] rounded-[20px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB] border border-sky-100 shadow-xs flex items-center">
           
           {/* Slide Background Layer with smooth transition */}
           {slides.map((slide, idx) => {
@@ -183,8 +182,8 @@ export default function GroceryHeroBanner({
                   isCurrent ? 'opacity-100 z-1 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
-                {slide.is_uploaded ? (
-                  // Full Background Banner Image
+                {slide.is_flagship ? (
+                  // 1. Flagship Fresh Vegetable Basket (Seamless 1400x380 full-width background, NO cutout box)
                   <>
                     <img
                       src={slide.image_url}
@@ -192,53 +191,52 @@ export default function GroceryHeroBanner({
                       className="absolute inset-0 w-full h-full object-cover object-right md:object-center select-none"
                       onError={(e) => {
                         e.currentTarget.onerror = null
-                        e.currentTarget.src = '/images/kirana_hero_basket.jpg'
+                        e.currentTarget.src = '/images/banner3.jpeg'
                       }}
                     />
-                    {/* Soft gradient mask on left for high-contrast crisp text */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-transparent sm:w-[62%] w-[88%] pointer-events-none" />
+                    {/* Left gradient mask so text stays 100% legible */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/70 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
                   </>
                 ) : (
-                  // Flagship Basket Design (from screenshot)
+                  // 2. Custom Uploaded Banners (e.g. Soaps & Detergent / Maggi bags)
+                  // Fits container height with zero over-zoom, full products visible on right
                   <>
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#DDF4FC] via-[#EAF7FD] to-[#D2F2FB]" />
-                    {/* Subtle Organic Background Accents */}
-                    <div className="absolute -top-12 -right-12 w-64 h-64 bg-emerald-100/40 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-sky-200/50 rounded-full blur-3xl pointer-events-none" />
+                    {/* Sky-cyan background extending seamlessly to left edge */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB]" />
 
-                    {/* Fresh Grocery Basket Image on the right */}
-                    <img
-                      src={slide.image_url || '/images/kirana_hero_basket.jpg'}
-                      alt={slide.title}
-                      className="absolute right-3 sm:right-10 lg:right-16 bottom-0 sm:top-1/2 sm:-translate-y-1/2 max-h-[85%] max-w-[48%] object-contain mix-blend-multiply drop-shadow-md pointer-events-none select-none transition-transform duration-500 hover:scale-102"
-                      onError={(e) => {
-                        e.currentTarget.onerror = null
-                        e.currentTarget.src = '/images/kirana_hero_basket.jpg'
-                      }}
-                    />
+                    {/* Corner leaves for cohesive brand atmosphere */}
+                    <div className="absolute top-0 left-0 w-24 h-24 bg-contain bg-no-repeat opacity-40 pointer-events-none" />
 
-                    {/* Floating Cursive Callout: Fresh Healthy Happy ♡ */}
-                    {slide.callout && (
-                      <div className="hidden md:block absolute top-4 sm:top-6 right-6 sm:right-12 z-10 pointer-events-none text-right select-none">
-                        <span className="font-serif italic text-base lg:text-xl text-slate-800/90 drop-shadow-xs block leading-tight font-medium tracking-wide">
-                          {slide.callout}
-                        </span>
-                      </div>
-                    )}
+                    {/* Right-side Graphic: Scaled proportionally with zero over-zoom */}
+                    <div className="absolute right-0 inset-y-0 h-full w-[65%] sm:w-[58%] lg:w-[52%] flex items-center justify-end overflow-hidden pointer-events-none">
+                      <img
+                        src={slide.image_url}
+                        alt={slide.title}
+                        className="h-full w-auto max-w-none object-contain object-right select-none"
+                        style={{
+                          maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 100%)',
+                          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 100%)',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null
+                          e.currentTarget.src = '/images/kirana_hero_bg_full.jpg'
+                        }}
+                      />
+                    </div>
                   </>
                 )}
 
                 {/* Content Overlay: Text, Badge, CTA Buttons (Cleanly positioned on the left) */}
-                <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-4 sm:py-6 max-w-lg sm:max-w-xl text-left space-y-2 sm:space-y-3">
+                <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-3 sm:py-5 max-w-md sm:max-w-lg lg:max-w-xl text-left space-y-2 sm:space-y-2.5">
                   {/* Badge */}
                   <div>
-                    <span className="inline-block px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full bg-[#BAE6FD]/90 backdrop-blur-xs text-[#004B87] font-sans font-black text-[10px] sm:text-[11px] tracking-wider uppercase border border-sky-300/60 shadow-2xs">
+                    <span className="inline-block px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full bg-[#BAE6FD]/90 backdrop-blur-xs text-[#004B87] font-sans font-extrabold text-[10px] sm:text-[11px] tracking-wider uppercase border border-sky-300/60 shadow-2xs">
                       {slide.badge || 'FRESHNESS & QUALITY'}
                     </span>
                   </div>
 
                   {/* Title */}
-                  <h1 className="font-sans font-black text-xl sm:text-3xl lg:text-[40px] text-[#0F172A] tracking-tight leading-[1.12]">
+                  <h1 className="font-sans font-black text-xl sm:text-2xl md:text-3xl lg:text-[38px] text-[#0F172A] tracking-tight leading-[1.14]">
                     {slide.title.includes('\n') ? (
                       slide.title.split('\n').map((line, i) => (
                         <React.Fragment key={i}>
@@ -252,12 +250,12 @@ export default function GroceryHeroBanner({
                   </h1>
 
                   {/* Subtitle / Description */}
-                  <p className="font-sans text-xs sm:text-sm text-slate-600 font-medium max-w-md line-clamp-2 sm:line-clamp-none leading-relaxed">
+                  <p className="font-sans text-xs sm:text-[13px] md:text-sm text-slate-600 font-medium max-w-xs sm:max-w-sm md:max-w-md line-clamp-2 leading-relaxed">
                     {slide.subtitle}
                   </p>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 pt-1">
                     <button
                       type="button"
                       onClick={() => handleBannerClick(slide)}
@@ -271,7 +269,7 @@ export default function GroceryHeroBanner({
                       <button
                         type="button"
                         onClick={() => navigate(ROUTES.PRODUCTS_BY_SECTION('deals'))}
-                        className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/90 font-sans font-bold text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer backdrop-blur-xs"
+                        className="inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-white/95 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-200/90 font-sans font-bold text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer backdrop-blur-xs"
                       >
                         {slide.secondary_cta}
                       </button>
@@ -308,7 +306,7 @@ export default function GroceryHeroBanner({
 
           {/* Centered Pagination Dots at Bottom */}
           {totalSlides > 1 && (
-            <div className="absolute bottom-2.5 sm:bottom-3.5 inset-x-0 flex justify-center items-center gap-1.5 z-20 pointer-events-auto">
+            <div className="absolute bottom-2.5 sm:bottom-3 inset-x-0 flex justify-center items-center gap-1.5 z-20 pointer-events-auto">
               {slides.map((_, idx) => (
                 <button
                   key={idx}
