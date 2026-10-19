@@ -30,20 +30,70 @@ final class DashboardService
     }
 
     /** @return array<string, mixed> */
-    public function summary(): array
+    public function summary(?string $startDate = null, ?string $endDate = null): array
     {
-        $sales = $this->pdo->query(
+        $hasFilter = false;
+        if ($startDate !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            if ($endDate === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+                $endDate = $startDate;
+            }
+            $hasFilter = true;
+        } elseif ($endDate !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+            $startDate = $endDate;
+            $hasFilter = true;
+        }
+
+        // Invoices (Sales)
+        $invWhere = "status = 'ACTIVE' AND deleted_at IS NULL";
+        $invParams = [];
+        if ($hasFilter) {
+            $invWhere .= " AND DATE(created_at) >= :inv_start AND DATE(created_at) <= :inv_end";
+            $invParams = ['inv_start' => $startDate, 'inv_end' => $endDate];
+        }
+
+        $invStmt = $this->pdo->prepare(
             "SELECT
                 COALESCE(SUM(grand_total), 0) AS total_sales,
                 COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN grand_total ELSE 0 END), 0) AS today_sales,
                 COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN grand_total ELSE 0 END), 0) AS this_month_sales,
                 COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN amount_paid ELSE 0 END), 0) AS today_collection,
+                COALESCE(SUM(amount_paid), 0) AS period_collection,
                 COALESCE(SUM(channel = 'POS'), 0) AS pos_invoice_count,
                 COALESCE(SUM(channel = 'ECOMMERCE'), 0) AS ecommerce_invoice_count
-             FROM invoices WHERE status = 'ACTIVE' AND deleted_at IS NULL"
-        )->fetch();
+             FROM invoices WHERE {$invWhere}"
+        );
+        $invStmt->execute($invParams);
+        $sales = $invStmt->fetch();
 
-        $orders = $this->pdo->query(
+        if ($hasFilter) {
+            $baselineSales = $this->pdo->query(
+                "SELECT
+                    COALESCE(SUM(grand_total), 0) AS all_time_sales,
+                    COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN grand_total ELSE 0 END), 0) AS today_sales,
+                    COALESCE(SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN grand_total ELSE 0 END), 0) AS this_month_sales,
+                    COALESCE(SUM(CASE WHEN DATE(created_at) = CURDATE() THEN amount_paid ELSE 0 END), 0) AS today_collection
+                 FROM invoices WHERE status = 'ACTIVE' AND deleted_at IS NULL"
+            )->fetch();
+
+            $sales['all_time_sales'] = $baselineSales['all_time_sales'];
+            $sales['today_sales'] = $baselineSales['today_sales'];
+            $sales['this_month_sales'] = $baselineSales['this_month_sales'];
+            $sales['today_collection'] = $baselineSales['today_collection'];
+            $sales['period_sales'] = $sales['total_sales'];
+        } else {
+            $sales['all_time_sales'] = $sales['total_sales'];
+            $sales['period_sales'] = $sales['total_sales'];
+        }
+
+        // Orders
+        $ordWhere = "1=1";
+        $ordParams = [];
+        if ($hasFilter) {
+            $ordWhere .= " AND DATE(created_at) >= :ord_start AND DATE(created_at) <= :ord_end";
+            $ordParams = ['ord_start' => $startDate, 'ord_end' => $endDate];
+        }
+
+        $ordStmt = $this->pdo->prepare(
             "SELECT
                 COUNT(*) AS total_orders,
                 COALESCE(SUM(status = 'PENDING'), 0) AS pending_orders,
@@ -51,40 +101,83 @@ final class DashboardService
                 COALESCE(SUM(status = 'DELIVERED'), 0) AS completed_orders,
                 COALESCE(SUM(status = 'CANCELLED'), 0) AS cancelled_orders,
                 COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS today_orders
-             FROM orders"
-        )->fetch();
+             FROM orders WHERE {$ordWhere}"
+        );
+        $ordStmt->execute($ordParams);
+        $orders = $ordStmt->fetch();
 
-        // total_refund_amount counts COMPLETED only — refunds.status also
-        // includes PENDING/PROCESSING/FAILED/CANCELLED, none of which
-        // actually paid money out, so a blanket SUM(amount) overstates
-        // real cash outflow (RefundService::summary() has the same
-        // "total" label on the same blanket sum; this dashboard figure
-        // is the one actually rendered, so it's the one fixed here).
-        $refunds = $this->pdo->query(
+        // Refunds
+        $refWhere = "1=1";
+        $refParams = [];
+        if ($hasFilter) {
+            $refWhere .= " AND DATE(created_at) >= :ref_start AND DATE(created_at) <= :ref_end";
+            $refParams = ['ref_start' => $startDate, 'ref_end' => $endDate];
+        }
+
+        $refStmt = $this->pdo->prepare(
             "SELECT
                 COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN amount ELSE 0 END), 0) AS total_refund_amount,
                 COALESCE(SUM(CASE WHEN status = 'PENDING' THEN amount ELSE 0 END), 0) AS pending_refund_amount,
                 COALESCE(SUM(status = 'COMPLETED'), 0) AS completed_refund_count,
                 COALESCE(SUM(status = 'PENDING'), 0) AS pending_refund_count
-             FROM refunds"
-        )->fetch();
+             FROM refunds WHERE {$refWhere}"
+        );
+        $refStmt->execute($refParams);
+        $refunds = $refStmt->fetch();
 
-        $finance = $this->pdo->query(
+        // Finance
+        $finWhere = "deleted_at IS NULL";
+        $finParams = [];
+        if ($hasFilter) {
+            $finWhere .= " AND transaction_date >= :fin_start AND transaction_date <= :fin_end";
+            $finParams = ['fin_start' => $startDate, 'fin_end' => $endDate];
+        }
+
+        $finStmt = $this->pdo->prepare(
             "SELECT
                 COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END), 0) AS total_income,
                 COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) AS total_expense
-             FROM finance_transactions WHERE deleted_at IS NULL"
-        )->fetch();
+             FROM finance_transactions WHERE {$finWhere}"
+        );
+        $finStmt->execute($finParams);
+        $finance = $finStmt->fetch();
         $netProfit = bcsub((string) $finance['total_income'], (string) $finance['total_expense'], 2);
 
-        $customers = $this->pdo->query(
-            "SELECT
-                COUNT(*) AS total_customers,
-                COALESCE(SUM(status = 'ACTIVE'), 0) AS active_customers,
-                COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS new_customers_today,
-                COALESCE(SUM(created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)), 0) AS new_customers_30d
-             FROM customers WHERE deleted_at IS NULL"
-        )->fetch();
+        // Customers
+        $totalCustomers = (int) $this->pdo->query(
+            "SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL"
+        )->fetchColumn();
+
+        if ($hasFilter) {
+            $custStmt = $this->pdo->prepare(
+                "SELECT
+                    COUNT(*) AS period_customers,
+                    COALESCE(SUM(status = 'ACTIVE'), 0) AS active_customers,
+                    COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS new_customers_today
+                 FROM customers
+                 WHERE deleted_at IS NULL AND DATE(created_at) >= :c_start AND DATE(created_at) <= :c_end"
+            );
+            $custStmt->execute(['c_start' => $startDate, 'c_end' => $endDate]);
+            $custData = $custStmt->fetch();
+
+            $customers = [
+                'total_customers' => (int) $custData['period_customers'],
+                'all_time_customers' => $totalCustomers,
+                'active_customers' => (int) $custData['active_customers'],
+                'new_customers_today' => (int) $custData['new_customers_today'],
+            ];
+        } else {
+            $custStmt = $this->pdo->query(
+                "SELECT
+                    COUNT(*) AS total_customers,
+                    COALESCE(SUM(status = 'ACTIVE'), 0) AS active_customers,
+                    COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS new_customers_today,
+                    COALESCE(SUM(created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)), 0) AS new_customers_30d
+                 FROM customers WHERE deleted_at IS NULL"
+            );
+            $customers = $custStmt->fetch();
+            $customers['all_time_customers'] = (int) $customers['total_customers'];
+        }
 
         $products = $this->pdo->query(
             "SELECT COUNT(*) AS total_products FROM products WHERE deleted_at IS NULL"
@@ -115,12 +208,74 @@ final class DashboardService
                 'total_expense' => $finance['total_expense'],
                 'net_profit' => $netProfit,
             ],
+            'filter' => [
+                'has_filter' => $hasFilter,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
         ];
     }
 
     /** @return list<array{period: string, sales_amount: string, order_count: int}> */
-    public function salesChart(string $granularity, int $buckets): array
+    public function salesChart(string $granularity, int $buckets, ?string $startDate = null, ?string $endDate = null): array
     {
+        $hasFilter = false;
+        if ($startDate !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            if ($endDate === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+                $endDate = $startDate;
+            }
+            $hasFilter = true;
+        }
+
+        if ($hasFilter) {
+            $stmt = $this->pdo->prepare(
+                "SELECT DATE(created_at) AS period,
+                        COALESCE(SUM(grand_total), 0) AS sales_amount,
+                        COUNT(*) AS order_count
+                 FROM invoices
+                 WHERE status = 'ACTIVE' AND deleted_at IS NULL
+                   AND DATE(created_at) >= :chart_start AND DATE(created_at) <= :chart_end
+                 GROUP BY DATE(created_at)
+                 ORDER BY period ASC"
+            );
+            $stmt->execute(['chart_start' => $startDate, 'chart_end' => $endDate]);
+            $rawRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $map = [];
+            foreach ($rawRows as $row) {
+                $map[$row['period']] = $row;
+            }
+
+            $result = [];
+            $current = new \DateTimeImmutable($startDate);
+            $endObj = new \DateTimeImmutable($endDate);
+
+            $diff = $current->diff($endObj)->days;
+            if ($diff > 365) {
+                $current = $endObj->modify('-365 days');
+            }
+
+            while ($current <= $endObj) {
+                $key = $current->format('Y-m-d');
+                if (isset($map[$key])) {
+                    $result[] = [
+                        'period' => $key,
+                        'sales_amount' => (string) $map[$key]['sales_amount'],
+                        'order_count' => (int) $map[$key]['order_count'],
+                    ];
+                } else {
+                    $result[] = [
+                        'period' => $key,
+                        'sales_amount' => '0.00',
+                        'order_count' => 0,
+                    ];
+                }
+                $current = $current->modify('+1 day');
+            }
+
+            return $result;
+        }
+
         [$format, $interval] = match ($granularity) {
             'weekly' => ['%x-W%v', 'WEEK'],
             'monthly' => ['%Y-%m', 'MONTH'],
@@ -145,38 +300,62 @@ final class DashboardService
     }
 
     /** @return array<string, mixed> */
-    public function productAnalytics(int $limit = 10): array
+    public function productAnalytics(int $limit = 10, ?string $startDate = null, ?string $endDate = null): array
     {
+        $hasFilter = false;
+        if ($startDate !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            if ($endDate === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+                $endDate = $startDate;
+            }
+            $hasFilter = true;
+        }
+
+        $invFilter = "";
+        $invParams = [];
+        if ($hasFilter) {
+            $invFilter = " AND DATE(i.created_at) >= :prod_start AND DATE(i.created_at) <= :prod_end";
+            $invParams = ['prod_start' => $startDate, 'prod_end' => $endDate];
+        }
+
         $topProducts = $this->pdo->prepare(
             "SELECT p.id, p.name, SUM(ii.quantity) AS units_sold, SUM(ii.line_total) AS revenue,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image
              FROM invoice_items ii
-             JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL
+             JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL{$invFilter}
              JOIN products p ON p.id = ii.product_id
              GROUP BY p.id, p.name ORDER BY units_sold DESC LIMIT :limit"
         );
+        foreach ($invParams as $k => $v) {
+            $topProducts->bindValue($k, $v);
+        }
         $topProducts->bindValue('limit', $limit, PDO::PARAM_INT);
         $topProducts->execute();
 
         $topCategories = $this->pdo->prepare(
             "SELECT c.id, c.name, SUM(ii.quantity) AS units_sold, SUM(ii.line_total) AS revenue
              FROM invoice_items ii
-             JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL
+             JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL{$invFilter}
              JOIN product_categories pc ON pc.product_id = ii.product_id
              JOIN categories c ON c.id = pc.category_id
              GROUP BY c.id, c.name ORDER BY units_sold DESC LIMIT :limit"
         );
+        foreach ($invParams as $k => $v) {
+            $topCategories->bindValue($k, $v);
+        }
         $topCategories->bindValue('limit', $limit, PDO::PARAM_INT);
         $topCategories->execute();
 
         $topVariants = $this->pdo->prepare(
             "SELECT v.id, v.sku, p.name AS product_name, SUM(ii.quantity) AS units_sold, SUM(ii.line_total) AS revenue
              FROM invoice_items ii
-             JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL
+             JOIN invoices i ON i.id = ii.invoice_id AND i.status = 'ACTIVE' AND i.deleted_at IS NULL{$invFilter}
              JOIN product_variants v ON v.id = ii.variant_id
              JOIN products p ON p.id = v.product_id
              GROUP BY v.id, v.sku, p.name ORDER BY units_sold DESC LIMIT :limit"
         );
+        foreach ($invParams as $k => $v) {
+            $topVariants->bindValue($k, $v);
+        }
         $topVariants->bindValue('limit', $limit, PDO::PARAM_INT);
         $topVariants->execute();
 
@@ -240,7 +419,7 @@ final class DashboardService
     }
 
     /** @return array<string, mixed> */
-    public function customerAnalytics(int $limit = 10): array
+    public function customerAnalytics(int $limit = 10, ?string $startDate = null, ?string $endDate = null): array
     {
         $newCustomers = $this->pdo->query(
             "SELECT DATE(created_at) AS date, COUNT(*) AS count FROM customers
@@ -280,23 +459,51 @@ final class DashboardService
     }
 
     /** @return array{recent_sales: list<array<string, mixed>>, recent_orders: list<array<string, mixed>>} */
-    public function recentActivity(int $limit = 10): array
+    public function recentActivity(int $limit = 10, ?string $startDate = null, ?string $endDate = null): array
     {
+        $hasFilter = false;
+        if ($startDate !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            if ($endDate === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+                $endDate = $startDate;
+            }
+            $hasFilter = true;
+        }
+
+        $invFilter = "";
+        $invParams = [];
+        if ($hasFilter) {
+            $invFilter = " AND DATE(i.created_at) >= :act_start AND DATE(i.created_at) <= :act_end";
+            $invParams = ['act_start' => $startDate, 'act_end' => $endDate];
+        }
+
         $sales = $this->pdo->prepare(
             "SELECT i.id, i.invoice_no, i.channel, i.customer_id, c.name AS customer_name, i.grand_total, i.payment_status, i.created_at,
                     (SELECT GROUP_CONCAT(CONCAT(product_name_snapshot, ' x', quantity) SEPARATOR ', ') FROM invoice_items ii WHERE ii.invoice_id = i.id) AS items_summary
              FROM invoices i
              LEFT JOIN customers c ON c.id = i.customer_id
-             WHERE i.deleted_at IS NULL ORDER BY i.created_at DESC LIMIT :limit"
+             WHERE i.deleted_at IS NULL{$invFilter} ORDER BY i.created_at DESC LIMIT :limit"
         );
+        foreach ($invParams as $k => $v) {
+            $sales->bindValue($k, $v);
+        }
         $sales->bindValue('limit', $limit, PDO::PARAM_INT);
         $sales->execute();
 
+        $ordFilter = "";
+        $ordParams = [];
+        if ($hasFilter) {
+            $ordFilter = " WHERE DATE(o.created_at) >= :ord_start AND DATE(o.created_at) <= :ord_end";
+            $ordParams = ['ord_start' => $startDate, 'ord_end' => $endDate];
+        }
+
         $orders = $this->pdo->prepare(
             "SELECT o.id, o.order_no, c.name AS customer_name, o.status, o.payment_status, o.grand_total, o.created_at
-             FROM orders o JOIN customers c ON c.id = o.customer_id
+             FROM orders o JOIN customers c ON c.id = o.customer_id{$ordFilter}
              ORDER BY o.created_at DESC LIMIT :limit"
         );
+        foreach ($ordParams as $k => $v) {
+            $orders->bindValue($k, $v);
+        }
         $orders->bindValue('limit', $limit, PDO::PARAM_INT);
         $orders->execute();
 
