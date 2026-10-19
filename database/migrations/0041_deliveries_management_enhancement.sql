@@ -27,7 +27,8 @@ ALTER TABLE deliveries
     ADD COLUMN return_initiated_at DATETIME NULL AFTER failure_reason,
     ADD COLUMN returned_at DATETIME NULL AFTER return_initiated_at,
     ADD COLUMN dispatched_at DATETIME NULL AFTER returned_at,
-    ADD COLUMN delivered_at DATETIME NULL AFTER dispatched_at;
+    ADD COLUMN delivered_at DATETIME NULL AFTER dispatched_at,
+    MODIFY COLUMN status ENUM('PENDING', 'ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'RETURN_INITIATED', 'RETURNED') NOT NULL DEFAULT 'PENDING';
 
 ALTER TABLE deliveries
     ADD INDEX idx_deliveries_channel (delivery_channel),

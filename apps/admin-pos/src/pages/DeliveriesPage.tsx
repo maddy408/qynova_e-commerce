@@ -175,6 +175,7 @@ export function DeliveriesPage() {
   const [statusNote, setStatusNote] = useState('')
   const [failureReason, setFailureReason] = useState('')
   const [statusSubmitting, setStatusSubmitting] = useState(false)
+  const [statusModalError, setStatusModalError] = useState<string | null>(null)
 
   // Reassign form state
   const [reassignChannel, setReassignChannel] = useState<'OWN_DELIVERY' | 'COURIER'>('COURIER')
@@ -380,6 +381,7 @@ export function DeliveriesPage() {
     setNewStatusValue('')
     setStatusNote('')
     setFailureReason('')
+    setStatusModalError(null)
     setIsStatusModalOpen(true)
   }
 
@@ -388,6 +390,7 @@ export function DeliveriesPage() {
     if (!statusTargetDelivery || !newStatusValue) return
 
     setStatusSubmitting(true)
+    setStatusModalError(null)
     try {
       const payload: Record<string, any> = {
         status: newStatusValue,
@@ -408,7 +411,9 @@ export function DeliveriesPage() {
       fetchDeliveries()
       fetchSummary()
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Could not update delivery status'))
+      const errMsg = apiErrorMessage(err, 'Could not update delivery status')
+      setStatusModalError(errMsg)
+      setActionError(errMsg)
     } finally {
       setStatusSubmitting(false)
     }
@@ -1640,6 +1645,13 @@ export function DeliveriesPage() {
             </div>
 
             <form onSubmit={handleUpdateStatusSubmit} className="space-y-3.5 text-xs">
+              {statusModalError && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
+                  <span className="font-bold text-rose-900 shrink-0">⚠️ Error:</span>
+                  <span>{statusModalError}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                   Select Next Status <span className="text-red-500">*</span>
@@ -1655,6 +1667,9 @@ export function DeliveriesPage() {
                     <>
                       <option value="ASSIGNED">ASSIGNED (Fleet / Courier assigned)</option>
                       <option value="PICKED_UP">PICKED_UP (Picked up from store)</option>
+                      <option value="IN_TRANSIT">IN_TRANSIT (In transit)</option>
+                      <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY (Out for delivery)</option>
+                      <option value="DELIVERED">DELIVERED (Directly delivered)</option>
                       <option value="FAILED">FAILED (Delivery failed)</option>
                     </>
                   )}
@@ -1663,6 +1678,7 @@ export function DeliveriesPage() {
                       <option value="PICKED_UP">PICKED_UP (Dispatched from hub)</option>
                       <option value="IN_TRANSIT">IN_TRANSIT (In transit via courier)</option>
                       <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY (Out for delivery today)</option>
+                      <option value="DELIVERED">DELIVERED (Successfully delivered)</option>
                       <option value="FAILED">FAILED (Failed attempt)</option>
                     </>
                   )}
@@ -1670,6 +1686,7 @@ export function DeliveriesPage() {
                     <>
                       <option value="IN_TRANSIT">IN_TRANSIT (In transit)</option>
                       <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY (Out for delivery)</option>
+                      <option value="DELIVERED">DELIVERED (Successfully delivered)</option>
                       <option value="FAILED">FAILED (Failed attempt)</option>
                     </>
                   )}
@@ -1684,20 +1701,31 @@ export function DeliveriesPage() {
                     <>
                       <option value="DELIVERED">DELIVERED (Successfully delivered & signed)</option>
                       <option value="FAILED">FAILED (Customer unreachable / failed)</option>
+                      <option value="IN_TRANSIT">IN_TRANSIT (Returned to hub / In transit)</option>
                     </>
                   )}
                   {statusTargetDelivery.status === 'FAILED' && (
                     <>
                       <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY (Reattempt delivery)</option>
+                      <option value="DELIVERED">DELIVERED (Successfully delivered after resolution)</option>
+                      <option value="IN_TRANSIT">IN_TRANSIT (In transit / re-dispatched)</option>
+                      <option value="PICKED_UP">PICKED_UP (Picked up from hub)</option>
                       <option value="ASSIGNED">ASSIGNED (Reassign driver / carrier)</option>
                       <option value="RETURN_INITIATED">RETURN_INITIATED (Initiate RTO return)</option>
+                      <option value="RETURNED">RETURNED (Returned to warehouse)</option>
                     </>
                   )}
                   {statusTargetDelivery.status === 'RETURN_INITIATED' && (
-                    <option value="RETURNED">RETURNED (Returned to warehouse)</option>
+                    <>
+                      <option value="RETURNED">RETURNED (Returned to warehouse)</option>
+                      <option value="DELIVERED">DELIVERED (Return cancelled / delivered)</option>
+                    </>
                   )}
                   {statusTargetDelivery.status === 'DELIVERED' && (
-                    <option value="RETURN_INITIATED">RETURN_INITIATED (Customer return approved)</option>
+                    <>
+                      <option value="RETURN_INITIATED">RETURN_INITIATED (Customer return approved)</option>
+                      <option value="RETURNED">RETURNED (Returned directly)</option>
+                    </>
                   )}
                 </select>
               </div>
