@@ -10,6 +10,11 @@ interface DashboardSummary {
     today_sales: string
     this_month_sales: string
     today_collection?: string
+    period_sales?: string
+    all_time_sales?: string
+    period_collection?: string
+    pos_invoice_count?: number
+    ecommerce_invoice_count?: number
   }
   orders: {
     total_orders: number
@@ -23,6 +28,7 @@ interface DashboardSummary {
     total_customers: number
     new_customers_today: string
     active_customers?: string
+    all_time_customers?: number
   }
   products: {
     total_products: number
@@ -33,6 +39,11 @@ interface DashboardSummary {
     total_income: string
     total_expense: string
     net_profit: string
+  }
+  filter?: {
+    has_filter: boolean
+    start_date: string | null
+    end_date: string | null
   }
 }
 
@@ -181,12 +192,51 @@ function WaveSparkline({ color, isUp }: { color: string; isUp: boolean }) {
   )
 }
 
-function getHeaderDateRange(chartDays: number) {
-  const end = new Date()
-  const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (chartDays - 1))
-  const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  return `${fmt(start)} - ${fmt(end)}`
+type DatePreset = 'all' | 'today' | 'yesterday' | '7days' | 'this_month' | '30days' | 'custom'
+
+function formatDateToIso(d: Date): string {
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function formatDatePretty(dateStr: string): string {
+  if (!dateStr) return ''
+  const parts = dateStr.split('-')
+  if (parts.length !== 3) return dateStr
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function getPresetRange(preset: DatePreset): { start: string; end: string } {
+  const today = new Date()
+  const todayStr = formatDateToIso(today)
+
+  if (preset === 'today') {
+    return { start: todayStr, end: todayStr }
+  }
+  if (preset === 'yesterday') {
+    const y = new Date(today)
+    y.setDate(today.getDate() - 1)
+    const yStr = formatDateToIso(y)
+    return { start: yStr, end: yStr }
+  }
+  if (preset === '7days') {
+    const s = new Date(today)
+    s.setDate(today.getDate() - 6)
+    return { start: formatDateToIso(s), end: todayStr }
+  }
+  if (preset === 'this_month') {
+    const s = new Date(today.getFullYear(), today.getMonth(), 1)
+    return { start: formatDateToIso(s), end: todayStr }
+  }
+  if (preset === '30days') {
+    const s = new Date(today)
+    s.setDate(today.getDate() - 29)
+    return { start: formatDateToIso(s), end: todayStr }
+  }
+  return { start: '', end: '' }
 }
 
 function getTimelinePoints(chartDays: number, points: SalesChartPoint[]) {
@@ -222,7 +272,12 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [chartDays, setChartDays] = useState<number>(7)
-  const [headerDateRange, setHeaderDateRange] = useState<string>(() => getHeaderDateRange(7))
+  const [datePreset, setDatePreset] = useState<DatePreset>('all')
+  const [filterStart, setFilterStart] = useState<string>('')
+  const [filterEnd, setFilterEnd] = useState<string>('')
+  const [customInputStart, setCustomInputStart] = useState<string>(() => formatDateToIso(new Date()))
+  const [customInputEnd, setCustomInputEnd] = useState<string>(() => formatDateToIso(new Date()))
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [chartTimeline, setChartTimeline] = useState<
     Array<{ dateKey: string; label: string; amount: number; count: number }>
   >([])
@@ -239,18 +294,68 @@ export function DashboardPage() {
     count: number
   } | null>(null)
 
-  // Fetch all live data from backend
+  const activeDateLabel = useMemo(() => {
+    if (datePreset === 'today') return `Today (${formatDatePretty(filterStart)})`
+    if (datePreset === 'yesterday') return `Yesterday (${formatDatePretty(filterStart)})`
+    if (datePreset === '7days') return `Last 7 Days (${formatDatePretty(filterStart)} - ${formatDatePretty(filterEnd)})`
+    if (datePreset === 'this_month') return `This Month (${formatDatePretty(filterStart)} - ${formatDatePretty(filterEnd)})`
+    if (datePreset === '30days') return `Last 30 Days (${formatDatePretty(filterStart)} - ${formatDatePretty(filterEnd)})`
+    if (datePreset === 'custom' && filterStart && filterEnd) {
+      return `${formatDatePretty(filterStart)} - ${formatDatePretty(filterEnd)}`
+    }
+    return 'All Time (No Filter)'
+  }, [datePreset, filterStart, filterEnd])
+
+  const handlePresetSelect = (preset: DatePreset) => {
+    setDatePreset(preset)
+    if (preset === 'all') {
+      setFilterStart('')
+      setFilterEnd('')
+    } else {
+      const { start, end } = getPresetRange(preset)
+      setFilterStart(start)
+      setFilterEnd(end)
+      setCustomInputStart(start)
+      setCustomInputEnd(end)
+    }
+    setDatePickerOpen(false)
+  }
+
+  const handleApplyCustom = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!customInputStart || !customInputEnd) return
+    const start = customInputStart <= customInputEnd ? customInputStart : customInputEnd
+    const end = customInputStart <= customInputEnd ? customInputEnd : customInputStart
+    setFilterStart(start)
+    setFilterEnd(end)
+    setDatePreset('custom')
+    setDatePickerOpen(false)
+  }
+
+  // Fetch all live data from backend with date filters applied
   useEffect(() => {
     let isMounted = true
 
     const loadAll = async () => {
       setLoading(true)
       try {
+        const queryParams: Record<string, string | number> = {}
+        if (filterStart && filterEnd && datePreset !== 'all') {
+          queryParams.start_date = filterStart
+          queryParams.end_date = filterEnd
+        }
+
         const [sumRes, chartRes, prodRes, actRes, catRes] = await Promise.all([
-          api.get('/dashboard/summary'),
-          api.get('/dashboard/sales-chart', { params: { period: 'daily', buckets: chartDays } }),
-          api.get('/dashboard/product-analytics', { params: { limit: 10 } }),
-          api.get('/dashboard/recent-activity', { params: { limit: 10 } }),
+          api.get('/dashboard/summary', { params: queryParams }),
+          api.get('/dashboard/sales-chart', {
+            params: {
+              ...queryParams,
+              period: 'daily',
+              buckets: chartDays,
+            },
+          }),
+          api.get('/dashboard/product-analytics', { params: { ...queryParams, limit: 10 } }),
+          api.get('/dashboard/recent-activity', { params: { ...queryParams, limit: 10 } }),
           api.get('/categories'),
         ])
 
@@ -258,8 +363,24 @@ export function DashboardPage() {
 
         const chartPts: SalesChartPoint[] = chartRes.data.chart || []
         setSummary(sumRes.data)
-        setHeaderDateRange(getHeaderDateRange(chartDays))
-        setChartTimeline(getTimelinePoints(chartDays, chartPts))
+
+        if (filterStart && filterEnd && datePreset !== 'all') {
+          setChartTimeline(
+            chartPts.map((p) => {
+              const parts = p.period.split('-')
+              const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+              return {
+                dateKey: p.period,
+                label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                amount: Number(p.sales_amount || 0),
+                count: Number(p.order_count || 0),
+              }
+            })
+          )
+        } else {
+          setChartTimeline(getTimelinePoints(chartDays, chartPts))
+        }
+
         setPopularItems(prodRes.data.top_selling_products || [])
         setRecentSales(actRes.data.recent_sales || [])
         setRecentOrders(actRes.data.recent_orders || [])
@@ -275,7 +396,7 @@ export function DashboardPage() {
     return () => {
       isMounted = false
     }
-  }, [chartDays])
+  }, [chartDays, filterStart, filterEnd, datePreset])
 
   // Calculate SVG curve geometry for Sales Overview
   const { pathD, areaD, plottedPoints, yAxisTicks, maxVal } = useMemo(() => {
@@ -466,7 +587,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-6 pb-12 font-sans text-slate-800 antialiased">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-100">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
             Dashboard
@@ -476,15 +597,246 @@ export function DashboardPage() {
           </p>
         </div>
 
-        {/* Date Range Picker Indicator */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white shadow-2xs text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
-            <span className="text-sm">📅</span>
-            <span>{headerDateRange}</span>
-            <span className="text-[10px] text-slate-400">▼</span>
+        {/* Date Filter Bar & Picker */}
+        <div className="relative flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          {/* Quick Preset Buttons */}
+          <div className="inline-flex items-center rounded-xl bg-slate-100 p-1 text-xs font-semibold text-slate-600">
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('all')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                datePreset === 'all'
+                  ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All Time
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('today')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                datePreset === 'today'
+                  ? 'bg-white text-purple-700 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('yesterday')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                datePreset === 'yesterday'
+                  ? 'bg-white text-purple-700 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Yesterday
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('7days')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                datePreset === '7days'
+                  ? 'bg-white text-purple-700 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('this_month')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                datePreset === 'this_month'
+                  ? 'bg-white text-purple-700 shadow-2xs font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              This Month
+            </button>
+          </div>
+
+          {/* Custom Date Range Popover Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setDatePickerOpen(!datePickerOpen)}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-2xs transition-all cursor-pointer ${
+                datePreset === 'custom' || (datePreset !== 'all' && filterStart)
+                  ? 'border-purple-300 bg-purple-50 text-purple-800'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span className="text-sm">📅</span>
+              <span>{activeDateLabel}</span>
+              <span className="text-[10px] text-slate-400">▼</span>
+            </button>
+
+            {/* Dropdown Popover */}
+            {datePickerOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl z-50 animate-in fade-in zoom-in-95">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Select Date Range
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setDatePickerOpen(false)}
+                    className="text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Presets Grid in Dropdown */}
+                <div className="grid grid-cols-2 gap-1.5 my-3">
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('today')}
+                    className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${
+                      datePreset === 'today' ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    Today
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('yesterday')}
+                    className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${
+                      datePreset === 'yesterday' ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    Yesterday
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('7days')}
+                    className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${
+                      datePreset === '7days' ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    Last 7 Days
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('30days')}
+                    className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${
+                      datePreset === '30days' ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    Last 30 Days
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('this_month')}
+                    className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${
+                      datePreset === 'this_month' ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    This Month
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('all')}
+                    className={`text-left px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer ${
+                      datePreset === 'all' ? 'bg-purple-50 text-purple-700 font-bold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    All Time
+                  </button>
+                </div>
+
+                {/* Custom Date Inputs */}
+                <form onSubmit={handleApplyCustom} className="pt-3 border-t border-slate-100 space-y-2.5">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Custom Range
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                        From Date
+                      </label>
+                      <input
+                        type="date"
+                        value={customInputStart}
+                        onChange={(e) => setCustomInputStart(e.target.value)}
+                        className="w-full text-xs rounded-lg border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-400 font-medium mb-1">
+                        To Date
+                      </label>
+                      <input
+                        type="date"
+                        value={customInputEnd}
+                        onChange={(e) => setCustomInputEnd(e.target.value)}
+                        className="w-full text-xs rounded-lg border border-slate-200 px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePresetSelect('all')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 shadow-xs cursor-pointer"
+                    >
+                      Apply Filter
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Filter Status Notification Banner */}
+      {summary?.filter?.has_filter && (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-purple-50/80 border border-purple-200/60 shadow-2xs text-xs text-purple-900 animate-in fade-in">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-white text-xs">
+              📅
+            </span>
+            <span className="font-semibold text-slate-700">Reporting Range:</span>
+            <span className="font-extrabold text-purple-800 bg-white px-2.5 py-0.5 rounded-lg border border-purple-200 shadow-2xs">
+              {formatDatePretty(summary.filter.start_date || '')} — {formatDatePretty(summary.filter.end_date || '')}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>
+              Period Sales:{' '}
+              <strong className="font-bold text-slate-900">
+                {formatCurrency(summary.sales.period_sales || summary.sales.total_sales)}
+              </strong>
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>
+              Orders in Period:{' '}
+              <strong className="font-bold text-slate-900">{summary.orders.total_orders}</strong>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handlePresetSelect('all')}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-bold text-purple-700 bg-white hover:bg-purple-100 border border-purple-200 transition-colors shadow-2xs cursor-pointer"
+          >
+            <span>✕</span>
+            <span>Clear Filter</span>
+          </button>
+        </div>
+      )}
 
       {loading && !summary ? (
         <div className="flex justify-center py-24">
@@ -497,29 +849,30 @@ export function DashboardPage() {
       ) : (
         <>
           {/* ========================================================= */}
-          {/* Top Statistics Cards (11 Cards Total)                     */}
-          {/* Row 1: 6 Cards | Row 2: 5 Cards                           */}
+          {/* Top Statistics Cards                                      */}
+          {/* Row 1: 3 Equal-Width Cards | Row 2: 5 Equal-Width Cards   */}
+          {/* Row 3: 3 Financial Cards                                  */}
           {/* ========================================================= */}
           <div className="space-y-3.5">
-            {/* ROW 1: 6 EQUAL-WIDTH CARDS */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
+            {/* ROW 1: EXACTLY 3 EQUAL-WIDTH CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
               {/* 1. Today's Sales */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-600 text-white shadow-xs text-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 text-white shadow-xs text-base">
                     🛒
                   </div>
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
                     Today's Sales
                   </span>
                 </div>
-                <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <div className="my-3">
+                  <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                     {formatCurrency(summary.sales.today_sales)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
                     ↑ Daily POS
                   </span>
                   <MiniBars color="bg-purple-600" />
@@ -527,48 +880,55 @@ export function DashboardPage() {
               </div>
 
               {/* 2. This Month */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-500 text-white shadow-xs text-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500 text-white shadow-xs text-base">
                     👛
                   </div>
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
                     This Month
                   </span>
                 </div>
-                <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                <div className="my-3">
+                  <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                     {formatCurrency(summary.sales.this_month_sales)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[10px]">Current 30 Days</span>
+                  <span className="text-slate-400 font-medium text-[11px]">Current Month</span>
                   <MiniBars color="bg-teal-500" />
                 </div>
               </div>
 
-              {/* 3. Total Sales */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              {/* 3. Total Sales (or Selected Period Sales when filtered) */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-white shadow-xs text-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white shadow-xs text-base">
                     🪙
                   </div>
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                    Total Sales
+                    {summary.filter?.has_filter ? 'Selected Period Sales' : 'Total Sales'}
                   </span>
                 </div>
-                <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                    {formatCurrency(summary.sales.total_sales)}
+                <div className="my-3">
+                  <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                    {formatCurrency(summary.sales.period_sales || summary.sales.total_sales)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[10px]">Lifetime Revenue</span>
+                  <span className="text-slate-400 font-medium text-[11px]">
+                    {summary.filter?.has_filter
+                      ? `All-time: ${formatCurrency(summary.sales.all_time_sales || summary.sales.total_sales)}`
+                      : 'Lifetime Revenue'}
+                  </span>
                   <MiniBars color="bg-blue-500" />
                 </div>
               </div>
+            </div>
 
-              {/* 4. Orders */}
+            {/* ROW 2: EXACTLY 5 EQUAL-WIDTH CARDS */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+              {/* 1. Orders */}
               <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs text-sm">
@@ -591,7 +951,7 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* 5. Customers */}
+              {/* 2. Customers */}
               <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-white shadow-xs text-sm">
@@ -614,11 +974,11 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* 6. Products */}
+              {/* 3. Products */}
               <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xs text-sm">
-                    📦
+                    🏷️
                   </div>
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
                     Products
@@ -634,11 +994,8 @@ export function DashboardPage() {
                   <MiniBars color="bg-indigo-600" />
                 </div>
               </div>
-            </div>
 
-            {/* ROW 2: 5 EQUAL-WIDTH CARDS */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-              {/* 7. Low Stock */}
+              {/* 4. Low Stock */}
               <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-400 text-white shadow-xs text-sm">
@@ -659,7 +1016,7 @@ export function DashboardPage() {
                 </div>
               </div>
 
-              {/* 8. Out of Stock */}
+              {/* 5. Out of Stock */}
               <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-400 text-white shadow-xs text-sm">
@@ -679,8 +1036,11 @@ export function DashboardPage() {
                   <MiniBars color="bg-rose-400" />
                 </div>
               </div>
+            </div>
 
-              {/* 9. Total Income */}
+            {/* ROW 3: 3 EQUAL-WIDTH FINANCIAL CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              {/* Total Income */}
               <div className="relative rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-white shadow-xs text-sm font-bold">
@@ -699,12 +1059,14 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span className="text-slate-400 font-medium text-[10px]">All recorded income</span>
+                  <span className="text-slate-400 font-medium text-[10px]">
+                    {summary.filter?.has_filter ? 'Filtered period' : 'All recorded income'}
+                  </span>
                   <WaveSparkline color="emerald" isUp={true} />
                 </div>
               </div>
 
-              {/* 10. Total Expense */}
+              {/* Total Expense */}
               <div className="relative rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-400 text-white shadow-xs text-sm">
@@ -723,12 +1085,14 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-end justify-between">
-                  <span className="text-slate-400 font-medium text-[10px]">All recorded expenses</span>
+                  <span className="text-slate-400 font-medium text-[10px]">
+                    {summary.filter?.has_filter ? 'Filtered period' : 'All recorded expenses'}
+                  </span>
                   <WaveSparkline color="rose" isUp={false} />
                 </div>
               </div>
 
-              {/* 11. Net Profit */}
+              {/* Net Profit */}
               <div className="relative rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-white shadow-xs text-sm">
@@ -761,20 +1125,28 @@ export function DashboardPage() {
                 <div>
                   <h2 className="text-base sm:text-lg font-bold text-slate-900">Sales Overview</h2>
                   <p className="text-xs text-slate-400 mt-0.5 font-normal">
-                    Total sales for the last {chartDays} days
+                    {summary.filter?.has_filter
+                      ? `Daily sales for ${formatDatePretty(summary.filter.start_date || '')} — ${formatDatePretty(summary.filter.end_date || '')}`
+                      : `Total sales for the last ${chartDays} days`}
                   </p>
                 </div>
 
-                {/* Period Selector */}
-                <select
-                  value={chartDays}
-                  onChange={(e) => setChartDays(Number(e.target.value))}
-                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
-                >
-                  <option value={7}>Last 7 Days</option>
-                  <option value={14}>Last 14 Days</option>
-                  <option value={30}>Last 30 Days</option>
-                </select>
+                {/* Period Selector / Filtered Indicator */}
+                {summary.filter?.has_filter ? (
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100 shadow-2xs">
+                    {chartTimeline.length} {chartTimeline.length === 1 ? 'day' : 'days'} timeline
+                  </span>
+                ) : (
+                  <select
+                    value={chartDays}
+                    onChange={(e) => setChartDays(Number(e.target.value))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                  >
+                    <option value={7}>Last 7 Days</option>
+                    <option value={14}>Last 14 Days</option>
+                    <option value={30}>Last 30 Days</option>
+                  </select>
+                )}
               </div>
 
               {/* Dynamic SVG Flow Chart */}

@@ -22,7 +22,9 @@ final class DashboardController
     public function summary(): void
     {
         $this->authorize();
-        Response::json($this->dashboard->summary());
+        $startDate = !empty($_GET['start_date']) ? (string) $_GET['start_date'] : null;
+        $endDate = !empty($_GET['end_date']) ? (string) $_GET['end_date'] : null;
+        Response::json($this->dashboard->summary($startDate, $endDate));
     }
 
     public function salesChart(): void
@@ -31,8 +33,10 @@ final class DashboardController
 
         $granularity = (string) ($_GET['period'] ?? 'daily');
         $buckets = max(1, min(365, (int) ($_GET['buckets'] ?? 30)));
+        $startDate = !empty($_GET['start_date']) ? (string) $_GET['start_date'] : null;
+        $endDate = !empty($_GET['end_date']) ? (string) $_GET['end_date'] : null;
 
-        Response::json(['chart' => $this->dashboard->salesChart($granularity, $buckets)]);
+        Response::json(['chart' => $this->dashboard->salesChart($granularity, $buckets, $startDate, $endDate)]);
     }
 
     public function productAnalytics(): void
@@ -40,7 +44,10 @@ final class DashboardController
         $this->authorize();
 
         $limit = max(1, min(50, (int) ($_GET['limit'] ?? 10)));
-        Response::json($this->dashboard->productAnalytics($limit));
+        $startDate = !empty($_GET['start_date']) ? (string) $_GET['start_date'] : null;
+        $endDate = !empty($_GET['end_date']) ? (string) $_GET['end_date'] : null;
+
+        Response::json($this->dashboard->productAnalytics($limit, $startDate, $endDate));
     }
 
     public function customerAnalytics(): void
@@ -48,7 +55,10 @@ final class DashboardController
         $this->authorize();
 
         $limit = max(1, min(50, (int) ($_GET['limit'] ?? 10)));
-        Response::json($this->dashboard->customerAnalytics($limit));
+        $startDate = !empty($_GET['start_date']) ? (string) $_GET['start_date'] : null;
+        $endDate = !empty($_GET['end_date']) ? (string) $_GET['end_date'] : null;
+
+        Response::json($this->dashboard->customerAnalytics($limit, $startDate, $endDate));
     }
 
     public function recentActivity(): void
@@ -56,7 +66,10 @@ final class DashboardController
         $this->authorize();
 
         $limit = max(1, min(50, (int) ($_GET['limit'] ?? 10)));
-        Response::json($this->dashboard->recentActivity($limit));
+        $startDate = !empty($_GET['start_date']) ? (string) $_GET['start_date'] : null;
+        $endDate = !empty($_GET['end_date']) ? (string) $_GET['end_date'] : null;
+
+        Response::json($this->dashboard->recentActivity($limit, $startDate, $endDate));
     }
 
     private function authorize(): void
