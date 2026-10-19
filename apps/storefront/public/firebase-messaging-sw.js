@@ -15,12 +15,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js')
 
 firebase.initializeApp({
-  apiKey: 'AIzaSyCVG9mrIN4SK-aWOX3FnmVTbYkpbUK-lSY',
-  authDomain: 'e-commerce-cda55.firebaseapp.com',
-  projectId: 'e-commerce-cda55',
-  storageBucket: 'e-commerce-cda55.firebasestorage.app',
-  messagingSenderId: '571728115329',
-  appId: '1:571728115329:web:14a8e7515a231b4722bf80',
+  apiKey: 'AIzaSyDnJ2zTCmofnMzR_8jgs52X26cq49Lneok',
+  authDomain: 'shop-with-adams.firebaseapp.com',
+  projectId: 'shop-with-adams',
+  storageBucket: 'shop-with-adams.firebasestorage.app',
+  messagingSenderId: '1071658443475',
+  appId: '1:1071658443475:web:34653cb3bb94148bd8aa26',
 })
 
 const messaging = firebase.messaging()

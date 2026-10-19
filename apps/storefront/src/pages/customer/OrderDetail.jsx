@@ -48,6 +48,7 @@ export default function OrderDetail() {
   const [returnConfirmed, setReturnConfirmed] = useState(false)
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false)
   const [returnError, setReturnError] = useState('')
+  const [returnSuccessMsg, setReturnSuccessMsg] = useState('')
 
   const RETURN_REASONS = [
     'Damaged product',
@@ -84,25 +85,25 @@ export default function OrderDetail() {
                 setDelivery(dRes.data.delivery)
               }
             })
-                .catch(() => {})
+            .catch(() => {})
 
-              // Also fetch return tracking info
-              api
-                .get(`/orders/${id}/return`)
-                .then((rRes) => {
-                  if (rRes.data?.return) {
-                    setReturnData(rRes.data.return)
-                  }
-                })
-                .catch(() => {})
+          // Also fetch return tracking info
+          api
+            .get(`/orders/${id}/return`)
+            .then((rRes) => {
+              if (rRes.data?.return) {
+                setReturnData(rRes.data.return)
+              }
+            })
+            .catch(() => {})
 
-              // Per-item return eligibility (section 2) — delivered_at
-              // and remaining quantity come from the backend, never
-              // computed from this order's own (possibly stale) status.
-              api
-                .get(`/orders/${id}/return-eligibility`)
-                .then((eRes) => setEligibility(eRes.data))
-                .catch(() => {})
+          // Per-item return eligibility (section 2) — delivered_at
+          // and remaining quantity come from the backend, never
+          // computed from this order's own (possibly stale) status.
+          api
+            .get(`/orders/${id}/return-eligibility`)
+            .then((eRes) => setEligibility(eRes.data))
+            .catch(() => {})
         } else {
           setError('Order details could not be found')
         }
@@ -166,11 +167,24 @@ export default function OrderDetail() {
     setReturnImages([])
     setReturnConfirmed(false)
     setReturnError('')
+    setReturnSuccessMsg('')
     setIsReturnModalOpen(true)
   }
 
   const handleReturnImagesChange = (e) => {
+    setReturnError('')
     const files = Array.from(e.target.files || [])
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+    for (const f of files) {
+      if (!allowed.includes(f.type)) {
+        setReturnError('Only JPG, PNG, and WebP images are allowed.')
+        return
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        setReturnError('Each image must be smaller than 5 MB.')
+        return
+      }
+    }
     const room = Math.max(0, 5 - returnImages.length)
     const staged = files.slice(0, room).map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))
     setReturnImages((prev) => [...prev, ...staged])
@@ -202,7 +216,7 @@ export default function OrderDetail() {
       return
     }
     if (!returnConfirmed) {
-      setReturnError('Please confirm the return details are correct')
+      setReturnError('Please confirm that the return details provided are correct')
       return
     }
 
@@ -218,16 +232,22 @@ export default function OrderDetail() {
           packaging_available: returnPackaging === 'yes',
           resolution: returnResolution,
           confirmed: true,
-          items: [{ order_item_id: returnTargetItem.order_item_id, qty: Number(returnQty) }],
+          items: [{ order_item_id: returnTargetItem.order_item_id || returnTargetItem.id, qty: Number(returnQty) }],
         })
       )
       returnImages.forEach((img) => formData.append('images[]', img.file))
 
-      await api.post(`/orders/${id}/return`, formData, {
+      const res = await api.post(`/orders/${id}/return`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
 
+      const returnedRecord = res.data?.return
       setIsReturnModalOpen(false)
+      setReturnSuccessMsg(
+        returnedRecord?.return_no
+          ? `Return Request #${returnedRecord.return_no} submitted successfully! Our team is reviewing it.`
+          : 'Return request submitted successfully! Our team is reviewing it.'
+      )
       fetchOrderDetails()
     } catch (err) {
       setReturnError(err.response?.data?.error || 'Failed to submit return request')
@@ -332,6 +352,17 @@ export default function OrderDetail() {
     return statusMap[currentStatus] || 1
   }
 
+  // Delivery status and return eligibility helpers
+  const isOrderDelivered =
+    order?.status === 'DELIVERED' ||
+    Boolean(eligibility?.delivered_at) ||
+    Boolean(delivery?.delivered_at)
+
+  const eligibleItems = (order?.items || []).filter((item) => {
+    const elig = eligibility?.items?.find((e) => e.order_item_id === item.id)
+    return Boolean(elig?.eligible)
+  })
+
   return (
     <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-text-main)]">
       
@@ -435,6 +466,29 @@ export default function OrderDetail() {
                       Cancel Order
                     </button>
                   )}
+                  {isOrderDelivered && eligibleItems.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const firstItem = eligibleItems[0]
+                        const eligObj = eligibility?.items?.find((e) => e.order_item_id === firstItem.id)
+                        openReturnModal(firstItem, eligObj)
+                      }}
+                      className="px-5 py-2 rounded-full bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold transition-all shadow-xs hover:shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FiRotateCcw className="w-3.5 h-3.5" />
+                      <span>Return Item{eligibleItems.length > 1 ? 's' : ''}</span>
+                    </button>
+                  )}
+                  {returnData && (
+                    <a
+                      href="#return-status-card"
+                      className="px-4 py-2 rounded-full bg-purple-100 hover:bg-purple-200 text-purple-900 text-xs font-bold transition-colors flex items-center gap-1.5"
+                    >
+                      <FiRotateCcw className="w-3.5 h-3.5" />
+                      <span>Return Request ({returnData.status?.replace(/_/g, ' ')})</span>
+                    </a>
+                  )}
                   <Link
                     to={ROUTES.SHOP}
                     className="px-5 py-2 rounded-full bg-[var(--color-bg-alt)] text-[var(--color-brand)] hover:bg-[var(--color-primary-tint)] text-xs font-bold transition-colors"
@@ -443,6 +497,26 @@ export default function OrderDetail() {
                   </Link>
                 </div>
               </div>
+
+              {/* Return Request Success Alert */}
+              {returnSuccessMsg && (
+                <div className="p-4 sm:p-5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <FiCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-emerald-950 text-sm">Return Request Submitted</p>
+                      <p className="text-emerald-800 text-xs mt-0.5">{returnSuccessMsg}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReturnSuccessMsg('')}
+                    className="text-emerald-700 hover:text-emerald-900 p-1 cursor-pointer"
+                  >
+                    <FiX className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Status Alerts */}
               {order.status === 'CANCELLED' && (
@@ -582,27 +656,32 @@ export default function OrderDetail() {
 
               {/* Return / RMA Status Card & Event Timeline */}
               {returnData && (
-                <div className="p-4 bg-purple-50/60 border border-purple-200/80 rounded-2xl space-y-3">
+                <div id="return-status-card" className="p-5 bg-purple-50/70 border border-purple-200 rounded-3xl space-y-4 shadow-xs scroll-mt-24">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg shrink-0">
+                      <div className="w-11 h-11 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
                         <FiRotateCcw className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-xs font-black text-purple-950">
-                            Return Request {returnData.return_no}
+                          <p className="text-sm font-black text-purple-950">
+                            Return Request #{returnData.return_no}
                           </p>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
-                            {returnData.status.replace(/_/g, ' ')}
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+                            {returnData.status?.replace(/_/g, ' ')}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${returnData.return_type === 'REPLACEMENT' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${returnData.return_type === 'REPLACEMENT' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                             {returnData.return_type}
                           </span>
                         </div>
-                        <p className="text-[11px] text-purple-700/80 mt-0.5">
-                          Reason: {returnData.reason} {returnData.refund_status && returnData.refund_status !== 'NOT_APPLICABLE' && `• Refund: ${returnData.refund_status}`}
-                          {returnData.pickup_tracking_id && ` • Pickup AWB: ${returnData.pickup_tracking_id}`}
+                        <p className="text-xs text-purple-800/90 mt-1">
+                          Reason: <span className="font-semibold">{returnData.reason}</span>
+                          {returnData.refund_status && returnData.refund_status !== 'NOT_APPLICABLE' && (
+                            <> • Refund Status: <span className="font-semibold">{returnData.refund_status}</span></>
+                          )}
+                          {returnData.pickup_tracking_id && (
+                            <> • Pickup AWB: <span className="font-mono font-bold">{returnData.pickup_tracking_id}</span></>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -612,7 +691,7 @@ export default function OrderDetail() {
                         href={returnData.pickup_tracking_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 transition-colors self-start sm:self-auto shrink-0"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-purple-700 text-white text-xs font-bold hover:bg-purple-800 transition-colors self-start sm:self-auto shrink-0 shadow-xs"
                       >
                         <span>Track Return</span>
                         <FiExternalLink className="w-3.5 h-3.5" />
@@ -620,11 +699,48 @@ export default function OrderDetail() {
                     )}
                   </div>
 
+                  {/* Return Details Summary: Items, Condition, Notes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+                    {returnData.items && returnData.items.length > 0 && (
+                      <div className="bg-white/90 p-3 rounded-2xl border border-purple-100 space-y-1.5">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-purple-900">
+                          Items in this Return
+                        </p>
+                        {returnData.items.map((ri, riIdx) => (
+                          <div key={riIdx} className="flex justify-between items-center text-xs">
+                            <span className="font-medium text-gray-800">{ri.product_name_snapshot || `Item #${ri.order_item_id}`}</span>
+                            <span className="font-bold text-purple-900 bg-purple-50 px-2 py-0.5 rounded">Qty: {ri.qty}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="bg-white/90 p-3 rounded-2xl border border-purple-100 space-y-1.5">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-900">
+                        Condition &amp; Details
+                      </p>
+                      <p className="text-gray-700">
+                        Condition: <span className="font-semibold">{returnData.reported_condition ? returnData.reported_condition.replace(/_/g, ' ') : 'Reported'}</span>
+                      </p>
+                      <p className="text-gray-700">
+                        Package/Accessories: <span className="font-semibold">{returnData.packaging_available ? 'Available' : 'Not available'}</span>
+                      </p>
+                      {returnData.rejection_reason && (
+                        <p className="text-rose-700 font-semibold bg-rose-50 p-2 rounded-xl border border-rose-200 mt-1">
+                          Rejection Reason: {returnData.rejection_reason}
+                        </p>
+                      )}
+                      {returnData.notes && (
+                        <p className="text-gray-600 italic">Notes: {returnData.notes}</p>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Return Status History Timeline */}
                   {returnData.history && returnData.history.length > 0 && (
-                    <div className="pt-2 border-t border-purple-200/60">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-900 mb-2">
-                        Return Progress
+                    <div className="pt-3 border-t border-purple-200/70">
+                      <p className="text-[10px] font-black uppercase tracking-wider text-purple-900 mb-2.5">
+                        Return Progress Timeline
                       </p>
                       <div className="relative pl-5 space-y-3 before:absolute before:left-1.5 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-purple-200">
                         {returnData.history.map((h, hIdx) => (
@@ -666,14 +782,9 @@ export default function OrderDetail() {
                   <div className="divide-y divide-gray-100">
                     {order.items?.map((item) => {
                       const eligItem = eligibility?.items?.find((e) => e.order_item_id === item.id)
-                      // Gated on the delivery timestamp, not order.status —
-                      // a return already requested on ANOTHER item in this
-                      // order moves order.status away from DELIVERED, but
-                      // this item's own eligibility must not disappear.
-                      const wasDelivered = Boolean(eligibility?.delivered_at)
 
                       return (
-                        <div key={item.id} className="py-4 first:pt-0 last:pb-0 space-y-2">
+                        <div key={item.id} className="py-4 first:pt-0 last:pb-0 space-y-3">
                           <div className="flex items-start justify-between gap-4">
                             <div className="space-y-1">
                               <p className="text-sm font-bold text-[var(--color-text-main)] leading-snug">
@@ -701,30 +812,80 @@ export default function OrderDetail() {
                             </div>
                           </div>
 
-                          {wasDelivered && eligItem && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              {eligItem.eligible ? (
-                                <>
+                          {/* Return Section for Item - Only shown after delivery */}
+                          {isOrderDelivered && (
+                            <div className="pt-2">
+                              {eligItem?.eligible ? (
+                                <div className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                                  <div className="space-y-1 text-xs">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="inline-flex items-center gap-1 font-bold text-purple-950">
+                                        <FiRotateCcw className="w-3.5 h-3.5 text-purple-700" />
+                                        Return Eligible
+                                      </span>
+                                      {eligItem.return_window_days && (
+                                        <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-black uppercase tracking-wider">
+                                          {eligItem.return_window_days} Days Window
+                                        </span>
+                                      )}
+                                      <span className="text-[11px] text-purple-800 font-semibold">
+                                        • Returnable Qty: {eligItem.remaining_qty} of {eligItem.quantity}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-purple-800/90">
+                                      Delivered: <span className="font-semibold">{formatDate(eligibility?.delivered_at || delivery?.delivered_at || order.updated_at)}</span>
+                                      {eligItem.return_deadline && (
+                                        <> • Deadline: <span className="font-semibold">{formatDate(eligItem.return_deadline)}</span></>
+                                      )}
+                                    </p>
+                                    {eligItem.return_policy_description && (
+                                      <p className="text-[10px] text-purple-700 italic">
+                                        Policy: {eligItem.return_policy_description}
+                                      </p>
+                                    )}
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => openReturnModal(item, eligItem)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-300 text-purple-700 hover:bg-purple-50 text-[11px] font-bold transition-colors cursor-pointer"
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
                                   >
-                                    <FiRotateCcw className="w-3 h-3" />
+                                    <FiRotateCcw className="w-3.5 h-3.5" />
                                     <span>Return Item</span>
                                   </button>
-                                  {eligItem.return_deadline && (
-                                    <span className="text-[10px] text-[var(--color-text-muted)]">
-                                      Return by {formatDate(eligItem.return_deadline)}
-                                    </span>
+                                </div>
+                              ) : eligItem?.remaining_qty === 0 || (returnData && returnData.status !== 'REJECTED') ? (
+                                <div className="bg-purple-50/40 border border-purple-200/60 rounded-xl p-2.5 sm:p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-purple-600" />
+                                    <span className="font-bold text-purple-950">Return Request Recorded</span>
+                                    {returnData?.status && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+                                        {returnData.status.replace(/_/g, ' ')}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {returnData && (
+                                    <a
+                                      href="#return-status-card"
+                                      className="text-[11px] font-bold text-purple-700 hover:text-purple-900 hover:underline flex items-center gap-1"
+                                    >
+                                      <span>View Return Timeline</span>
+                                      <span>↓</span>
+                                    </a>
                                   )}
-                                </>
+                                </div>
+                              ) : eligItem?.reason === 'Return window expired.' ? (
+                                <div className="bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs text-gray-500 flex items-center gap-2">
+                                  <FiClock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                  <span>
+                                    Return window expired {eligItem.return_deadline ? `on ${formatDate(eligItem.return_deadline)}` : ''}
+                                  </span>
+                                </div>
                               ) : (
-                                <span className="text-[10px] text-gray-400 font-medium">
-                                  {eligItem.reason === 'Return window expired.'
-                                    ? 'Return window expired'
-                                    : eligItem.reason || 'This item is not eligible for return'}
-                                </span>
+                                <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-xs text-gray-400 flex items-center gap-2">
+                                  <FiInfo className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                  <span>{eligItem?.reason || 'This item is not eligible for return'}</span>
+                                </div>
                               )}
                             </div>
                           )}
@@ -936,18 +1097,61 @@ export default function OrderDetail() {
               </button>
             </div>
 
-            <div className="p-3 bg-purple-50/60 border border-purple-200/80 rounded-2xl text-xs space-y-1">
-              <p className="font-bold text-purple-950">{returnTargetItem.product_name_snapshot}</p>
-              {returnTargetItem.return_policy_description && (
-                <p className="text-purple-700/80">{returnTargetItem.return_policy_description}</p>
-              )}
+            {eligibleItems.length > 1 && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Select Item to Return <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={returnTargetItem?.order_item_id || returnTargetItem?.id}
+                  onChange={(e) => {
+                    const selId = Number(e.target.value)
+                    const selItem = order.items.find((i) => i.id === selId)
+                    const selElig = eligibility?.items?.find((i) => i.order_item_id === selId)
+                    if (selItem && selElig) {
+                      setReturnTargetItem({ ...selItem, ...selElig })
+                      setReturnQty(1)
+                    }
+                  }}
+                  className="w-full p-2.5 border border-[var(--color-border-subtle)] rounded-xl text-xs text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-brand)] bg-white font-medium"
+                >
+                  {eligibleItems.map((item) => {
+                    const elig = eligibility?.items?.find((e) => e.order_item_id === item.id)
+                    return (
+                      <option key={item.id} value={item.id}>
+                        {item.product_name_snapshot} (Returnable Qty: {elig?.remaining_qty || 1})
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+            )}
+
+            <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl text-xs space-y-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-bold text-purple-950 text-sm">{returnTargetItem.product_name_snapshot}</p>
+                  {returnTargetItem.variant_label_snapshot && (
+                    <p className="text-[11px] text-purple-700">{returnTargetItem.variant_label_snapshot}</p>
+                  )}
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold shrink-0">
+                  {returnTargetItem.return_window_days || 7} Days Window
+                </span>
+              </div>
               {returnTargetItem.return_deadline && (
-                <p className="text-purple-700/80">
-                  Return window: {returnTargetItem.return_window_days} day(s) — deadline{' '}
-                  {formatDate(returnTargetItem.return_deadline)}
+                <p className="text-purple-800 text-[11px]">
+                  Return Deadline: <span className="font-semibold">{formatDate(returnTargetItem.return_deadline)}</span>
                 </p>
               )}
-              <p className="text-purple-700/80">Eligible to return: up to {returnTargetItem.remaining_qty} unit(s)</p>
+              {returnTargetItem.return_policy_description && (
+                <p className="text-purple-700/90 text-[11px] italic">
+                  Policy: {returnTargetItem.return_policy_description}
+                </p>
+              )}
+              <p className="text-purple-800 text-[11px]">
+                Eligible Returnable Quantity: <span className="font-bold text-purple-950">{returnTargetItem.remaining_qty} unit(s)</span>
+              </p>
             </div>
 
             {returnError && (
@@ -1090,6 +1294,16 @@ export default function OrderDetail() {
                   )}
                 </div>
               </div>
+
+              {/* Live Review Summary */}
+              {returnReason && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] text-gray-700 space-y-1">
+                  <p className="font-bold text-gray-900 text-xs">Return Request Summary:</p>
+                  <p>Product: <span className="font-semibold">{returnTargetItem.product_name_snapshot}</span></p>
+                  <p>Returning: <span className="font-semibold">{returnQty} unit(s)</span> • Resolution: <span className="font-semibold text-purple-700">{returnResolution}</span></p>
+                  <p>Reason: <span className="font-semibold">{returnReason}</span> {returnDescription && `— "${returnDescription}"`}</p>
+                </div>
+              )}
 
               <label className="flex items-start gap-2 text-[11px] text-gray-600 cursor-pointer pt-1 border-t border-gray-100">
                 <input

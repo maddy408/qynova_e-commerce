@@ -1195,6 +1195,10 @@ final class ReturnService
         $deliveredAtValue = $deliveredAt->fetchColumn();
         $deliveredAtValue = $deliveredAtValue === false ? null : (string) $deliveredAtValue;
 
+        if ($deliveredAtValue === null && strtoupper((string)($order['status'] ?? '')) === 'DELIVERED') {
+            $deliveredAtValue = (string)($order['updated_at'] ?? $order['created_at']);
+        }
+
         $itemsStmt = $this->pdo->prepare(
             "SELECT oi.id AS order_item_id, oi.product_id, oi.variant_id, oi.product_name_snapshot,
                     oi.variant_label_snapshot, oi.sku_snapshot, oi.quantity,
@@ -1222,7 +1226,9 @@ final class ReturnService
             $alreadyReturned = (int) ($pastReturned[$orderItemId] ?? 0);
             $remainingQty = max(0, (int) $oi['quantity'] - $alreadyReturned);
             $returnable = (bool) $oi['returnable'];
-            $windowDays = $oi['return_window_days'] !== null ? (int) $oi['return_window_days'] : null;
+            $windowDays = ($oi['return_window_days'] !== null && (int)$oi['return_window_days'] > 0)
+                ? (int) $oi['return_window_days']
+                : ($returnable ? 7 : null);
 
             $deadline = null;
             if ($deliveredAtValue !== null && $windowDays !== null) {

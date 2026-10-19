@@ -815,6 +815,46 @@ $garbagePriceResult = $importer->preview($garbagePriceSheetPath, true, false);
 assertTest('A non-numeric (but non-blank) Selling Price is still rejected', $garbagePriceResult['failed_rows'] === 1 && $garbagePriceResult['errors'][0]['reason'] === 'Selling Price must be numeric', json_encode($garbagePriceResult['errors']));
 @unlink($garbagePriceSheetPath);
 
+// ---------------------------------------------------------------------
+// GROUP 16: regression — two rows share a Product Code (matched
+// case-insensitively) and the FIRST row's product is created but then
+// the row fails LATER (a bare image filename with no ZIP attached),
+// rolling back that product via the SAVEPOINT. The second row, sharing
+// the same product group, must not reuse the now-rolled-back product id
+// — it previously crashed with a raw foreign-key SQL error instead of
+// either cleanly creating its own product or reporting a row error.
+// ---------------------------------------------------------------------
+echo "\n-- Regression: stale product-group cache after a mid-row rollback --\n";
+$dupCode = 'T26-DUPCODE-' . $uid;
+$staleRowA = array_merge($baseRow, [
+    'Product Name' => 'T26 Stale Cache A ' . $uid,
+    'Product Code' => mb_strtoupper($dupCode), // e.g. "T26-DUPCODE-xxx" uppercase
+    'Variant SKU' => 'T26-STALE-SKU-A-' . $uid,
+    'Product Image Path' => 'no-zip-attached.jpg', // fails AFTER the product row is created
+]);
+$staleRowB = array_merge($baseRow, [
+    'Product Name' => 'T26 Stale Cache B ' . $uid,
+    'Product Code' => mb_strtolower($dupCode), // same code, different case — same group key
+    'Variant SKU' => 'T26-STALE-SKU-B-' . $uid,
+    'Product Image Path' => '', // no image — this row must succeed cleanly
+]);
+$staleSheetPath = $tmpDir . '/t26-stalecache-' . $uid . '.xlsx';
+writeImportSheet($staleSheetPath, [$staleRowA, $staleRowB]);
+$staleResult = $importer->commit($staleSheetPath, true, $cashierUserId, false, null);
+assertTest(
+    'Row A (image filename, no ZIP) fails cleanly, row B (same product-code group) still succeeds',
+    $staleResult['successful_rows'] === 1 && $staleResult['failed_rows'] === 1
+        && str_contains($staleResult['errors'][0]['reason'], 'no Product Images ZIP was uploaded'),
+    json_encode($staleResult['errors'])
+);
+$staleVariantB = (int) $pdo->query("SELECT id FROM product_variants WHERE sku = 'T26-STALE-SKU-B-{$uid}'")->fetchColumn();
+assertTest('Row B\'s variant was actually created (not a crash)', $staleVariantB > 0, (string) $staleVariantB);
+$staleProductBId = (int) $pdo->query("SELECT product_id FROM product_variants WHERE id = {$staleVariantB}")->fetchColumn();
+$staleProductCount = (int) $pdo->query("SELECT COUNT(*) FROM products WHERE product_code = '" . mb_strtolower($dupCode) . "' OR product_code = '" . mb_strtoupper($dupCode) . "'")->fetchColumn();
+assertTest('Exactly one product row exists for this group (row A\'s was rolled back, row B created its own)', $staleProductCount === 1, (string) $staleProductCount);
+assertTest('Row B\'s product has its own id, not a dangling reference to row A\'s rolled-back product', $staleProductBId > 0);
+@unlink($staleSheetPath);
+
 // Authoritative, whole-suite orphan check — every group above cleans up
 // after itself individually, but this is the one check that actually
 // catches a leak regardless of which group's manual cleanup was wrong.
