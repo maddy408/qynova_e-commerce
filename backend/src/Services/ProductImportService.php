@@ -74,6 +74,21 @@ final class ProductImportService
     private array $pendingCacheKeys = [];
 
     /**
+     * Set to the $productIdByGroupKey key (see run()/processRow()) when
+     * the row currently being processed is the one that just created a
+     * NEW product and cached its id under that key — null when the row
+     * instead reused an entry an earlier, already-succeeded row put
+     * there. If this row then fails LATER (e.g. its image step), the
+     * SAVEPOINT rollback in run() undoes the product INSERT itself, but
+     * $productIdByGroupKey is a plain in-memory array the database
+     * rollback knows nothing about — without this, a later row sharing
+     * the same product group (same Product Code, matched case-
+     * insensitively) would keep reusing that now-dangling id and crash
+     * with a raw foreign-key SQL error instead of a clean row error.
+     */
+    private ?string $pendingNewGroupKey = null;
+
+    /**
      * Same image token (URL or filename) referenced more than once across
      * the file — e.g. the same photo used as both a product's main image
      * and reused on a second variant row — is fetched/converted/stored
@@ -184,6 +199,7 @@ final class ProductImportService
             $this->pdo->exec('SAVEPOINT import_row');
             $this->pendingUploadedFiles = [];
             $this->pendingCacheKeys = [];
+            $this->pendingNewGroupKey = null;
 
             try {
                 [$productId, $variantId] = $this->processRow($row, $autoCreateMasters, $updateExisting, $userId, $fileHash, $imagesDir, $commit, $imageStats, $productIdByGroupKey);
@@ -196,6 +212,9 @@ final class ProductImportService
                 }
                 foreach ($this->pendingCacheKeys as $cacheKey) {
                     unset($this->imageCache[$cacheKey]);
+                }
+                if ($this->pendingNewGroupKey !== null) {
+                    unset($productIdByGroupKey[$this->pendingNewGroupKey]);
                 }
                 $results[] = ['row' => $excelRow, 'status' => 'error', 'errors' => [$e->getMessage()], 'raw' => $row];
             }
@@ -262,6 +281,7 @@ final class ProductImportService
             $productId = $this->findExistingProduct($productCode, $productName)
                 ?? $this->createProduct($row, $productName, $productCode, $autoCreateMasters);
             $productIdByGroupKey[$groupKey] = $productId;
+            $this->pendingNewGroupKey = $groupKey;
 
             $this->maybeImportProductImages(trim($row['Product Image Path'] ?? ''), $productId, $imagesDir, $persistImages, $imageStats);
         }
