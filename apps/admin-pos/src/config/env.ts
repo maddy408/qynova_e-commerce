@@ -7,13 +7,14 @@ function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined' && localStorage.getItem('api_base_url')) {
     return localStorage.getItem('api_base_url')!
   }
-  if (import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.trim() !== '') {
-    return import.meta.env.VITE_API_BASE_URL
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  if (envUrl && !envUrl.includes('localhost') && envUrl.trim() !== '') {
+    return envUrl
   }
-  if (typeof window !== 'undefined' && window.location.hostname) {
+  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost') {
     return `http://${window.location.hostname}:8080/api`
   }
-  return 'http://localhost:8080/api'
+  return 'http://192.168.1.103:8080/api'
 }
 
 export const env = {

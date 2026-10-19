@@ -127,6 +127,7 @@ export function ProductCreatePage() {
   const [heightCm, setHeightCm] = useState('')
   const [returnable, setReturnable] = useState(true)
   const [returnWindowDays, setReturnWindowDays] = useState('7')
+  const [returnPolicyDescription, setReturnPolicyDescription] = useState('')
   const [replacementAvailable, setReplacementAvailable] = useState(true)
   const [refundAvailable, setRefundAvailable] = useState(true)
   const [shippingRequired, setShippingRequired] = useState(true)
@@ -447,6 +448,7 @@ export function ProductCreatePage() {
         height_cm: heightCm || null,
         returnable,
         return_window_days: returnable ? returnWindowDays || null : null,
+        return_policy_description: returnPolicyDescription.trim() || null,
         replacement_available: replacementAvailable,
         refund_available: refundAvailable,
         shipping_required: shippingRequired,
@@ -996,6 +998,15 @@ export function ProductCreatePage() {
                 </div>
               )}
             </div>
+            {returnable && (
+              <TextArea
+                label="Return Policy Description (Optional)"
+                value={returnPolicyDescription}
+                onChange={(e) => setReturnPolicyDescription(e.target.value)}
+                placeholder="e.g. Item must be unused, in original packaging, with all tags attached."
+                rows={2}
+              />
+            )}
           </Card>
 
           {/* Card 6: Variants Option Matrix */}

@@ -156,7 +156,10 @@ $router->put('/api/returns/{id}/status', fn ($id) => $returns->updateStatus($id)
 $router->post('/api/returns/{id}/approve', fn ($id) => $returns->approve($id));
 $router->post('/api/returns/{id}/reject', fn ($id) => $returns->reject($id));
 $router->post('/api/returns/{id}/refund', fn ($id) => $returns->processRefund($id));
+$router->post('/api/returns/{id}/replacement', fn ($id) => $returns->createReplacement($id));
 $router->get('/api/orders/{orderId}/return', fn ($orderId) => $returns->showForOrder($orderId));
+$router->get('/api/orders/{orderId}/return-eligibility', fn ($orderId) => $returns->customerEligibility($orderId));
+$router->post('/api/orders/{orderId}/return', fn ($orderId) => $returns->customerCreate($orderId));
 
 // Finance Management (Expense & Income)
 $finance = new \App\Controllers\FinanceController($pdo);
@@ -281,6 +284,9 @@ $router->get('/api/pages', fn () => $settings->getPages());
 $router->get('/api/pages/{slug}', fn ($slug) => $settings->getPage($slug));
 $router->get('/api/offers', fn () => $settings->getOffers());
 $router->get('/api/offers/flash-deal', fn () => $settings->getFlashDeal());
+$router->get('/api/settings/notifications', fn () => $settings->getNotificationSettings());
+$router->put('/api/settings/notifications', fn () => $settings->updateNotificationSettings());
+$router->post('/api/settings/notifications/test-redis', fn () => $settings->testRedisConnection());
 
 // Orders & checkout (docs section 13/20; ECOMMERCE_POS_ADMIN_SPEC.md 18-20, 36-38)
 $orders = new OrderController($pdo);

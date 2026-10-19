@@ -45,13 +45,20 @@ use RuntimeException;
  *
  * No `Product Line` column — removed per the resolved spec conflict
  * (README.md "Conflicts ... resolved").
+ *
+ * Variant SKU and Selling Price are both optional cells — see
+ * generateVariantSku() for what a blank SKU becomes and
+ * createVariant()/updateVariant() for what a blank Selling Price becomes.
+ * Product Name, MRP, Category and (when auto-create is off) every other
+ * master-data lookup remain required exactly as before.
  */
 final class ProductImportService
 {
     public const HEADERS = [
         'Product Name', 'Product Code', 'Category', 'Subcategory', 'Brand',
         'Description', 'Short Description', 'Material', 'Unit', 'HSN Code', 'Tax', 'Tax Type',
-        'Manufacturer', 'Manufacturing Date', 'Expiry Date', 'Product Image Path',
+        'Manufacturer', 'Manufacturing Date', 'Expiry Date',
+        'Return Eligible', 'Return Window (Days)', 'Product Image Path',
         'Variant SKU', 'Variant Barcode', 'Variant Description', 'Size', 'Color',
         'MRP', 'Selling Price', 'Variant Cost Price', 'Opening Stock', 'Low Stock Threshold',
         'Variant Image Path', 'Status',
@@ -233,14 +240,15 @@ final class ProductImportService
         if ($productName === '') {
             throw new RuntimeException('Product Name is required');
         }
-        if ($sku === '') {
-            throw new RuntimeException('Variant SKU is required');
-        }
         if ($mrp === '' || !is_numeric($mrp)) {
             throw new RuntimeException('MRP is required and must be numeric');
         }
-        if ($sellingPrice === '' || !is_numeric($sellingPrice)) {
-            throw new RuntimeException('Selling Price is required and must be numeric');
+        // Selling Price is optional (see class docblock) — but a cell that
+        // DOES hold something must still be a real number, otherwise it
+        // would silently cast to 0/NaN-ish garbage below instead of being
+        // reported as the bad input it is.
+        if ($sellingPrice !== '' && !is_numeric($sellingPrice)) {
+            throw new RuntimeException('Selling Price must be numeric');
         }
 
         $barcode = trim($row['Variant Barcode'] ?? '') ?: null;
@@ -258,6 +266,24 @@ final class ProductImportService
             $this->maybeImportProductImages(trim($row['Product Image Path'] ?? ''), $productId, $imagesDir, $persistImages, $imageStats);
         }
 
+        // Variant SKU is optional (see class docblock) — a blank cell gets
+        // a system-assigned SKU using the SAME scheme VariantService's own
+        // "generate combinations" admin feature already uses (product
+        // code/name slug + short attribute tokens, de-duplicated), rather
+        // than inventing an unrelated numbering scheme of our own.
+        if ($sku === '') {
+            $sku = $this->generateVariantSku($productCode, $productName, trim($row['Size'] ?? ''), trim($row['Color'] ?? ''));
+        }
+
+        // null (not 0) means "not entered" — createVariant()/updateVariant()
+        // decide what that means for the retail_price column themselves:
+        // a brand new variant needs SOME value (the column is NOT NULL), so
+        // it falls back to the MRP (no discount); an UPDATE of an existing
+        // variant leaves its current price untouched instead, matching how
+        // every other optional column here (barcode, cost price, status,
+        // description) already treats a blank cell as "no change".
+        $sellingPriceValue = $sellingPrice !== '' ? (float) $sellingPrice : null;
+
         $existingVariantId = $this->findVariantBySku($sku);
 
         if ($existingVariantId !== null) {
@@ -265,10 +291,10 @@ final class ProductImportService
                 throw new RuntimeException('SKU already exists');
             }
             $this->assertBarcodeFree($barcode, $existingVariantId);
-            $variantId = $this->updateVariant($existingVariantId, $row, $barcode, (float) $mrp, (float) $sellingPrice, $userId, $fileHash, $imagesDir, $persistImages, $imageStats);
+            $variantId = $this->updateVariant($existingVariantId, $row, $barcode, (float) $mrp, $sellingPriceValue, $userId, $fileHash, $imagesDir, $persistImages, $imageStats);
         } else {
             $this->assertBarcodeFree($barcode, null);
-            $variantId = $this->createVariant($row, $productId, $sku, $barcode, (float) $mrp, (float) $sellingPrice, $autoCreateMasters, $imagesDir, $persistImages, $imageStats);
+            $variantId = $this->createVariant($row, $productId, $sku, $barcode, (float) $mrp, $sellingPriceValue, $autoCreateMasters, $imagesDir, $persistImages, $imageStats);
 
             $stockRaw = trim($row['Opening Stock'] ?? '');
             if ($stockRaw !== '' && is_numeric($stockRaw) && (float) $stockRaw > 0 && $userId !== null) {
@@ -349,6 +375,47 @@ final class ProductImportService
     }
 
     /**
+     * product_variants.sku is NOT NULL + UNIQUE, so a blank Variant SKU
+     * cell can't be stored as-is. The admin panel already has exactly one
+     * place that auto-builds a SKU when the user doesn't type one —
+     * VariantService::generateCombinations()'s "Product Code (or a slug of
+     * the product name) + short attribute tokens, de-duplicated with a
+     * numeric suffix" scheme — so this reuses that same scheme rather than
+     * inventing a different one. Checked against both already-committed
+     * variants and any earlier row in this same import batch (findVariantBySku()
+     * sees this transaction's own uncommitted inserts), so two blank-SKU
+     * rows in one file never collide with each other either.
+     */
+    private function generateVariantSku(?string $productCode, string $productName, string $size, string $color): string
+    {
+        $base = $productCode !== null && $productCode !== ''
+            ? mb_strtoupper($productCode)
+            : $this->skuToken($productName, 6);
+
+        foreach ([$size, $color] as $attributeValue) {
+            if ($attributeValue !== '') {
+                $base .= '-' . $this->skuToken($attributeValue, 3);
+            }
+        }
+
+        $sku = $base;
+        $suffix = 1;
+        while ($this->findVariantBySku($sku) !== null) {
+            $sku = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $sku;
+    }
+
+    private function skuToken(string $value, int $length): string
+    {
+        $clean = mb_strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $value) ?? '');
+
+        return $clean !== '' ? mb_substr($clean, 0, $length) : 'PROD';
+    }
+
+    /**
      * barcode is likewise a plain UNIQUE KEY — checked regardless of
      * deleted_at for the same reason, but (unlike sku/product_code)
      * never auto-reactivates anything: a barcode collision found on a
@@ -389,14 +456,17 @@ final class ProductImportService
         );
         $hsnCodeId = $this->resolveHsnCode(trim($row['HSN Code'] ?? ''), $autoCreate);
         $gstRateId = $this->resolveGstRate(trim($row['Tax'] ?? ''), trim($row['Tax Type'] ?? 'EXCLUSIVE'), $autoCreate);
+        [$returnable, $returnWindowDays] = $this->resolveReturnPolicy($row);
 
         $this->pdo->prepare(
             'INSERT INTO products (
                 name, slug, product_code, brand_id, unit_id, hsn_code_id, gst_rate_id,
-                description, short_description, material, manufacturer, manufacturing_date, expiry_date
+                description, short_description, material, manufacturer, manufacturing_date, expiry_date,
+                returnable, return_window_days
             ) VALUES (
                 :name, :slug, :product_code, :brand_id, :unit_id, :hsn_code_id, :gst_rate_id,
-                :description, :short_description, :material, :manufacturer, :manufacturing_date, :expiry_date
+                :description, :short_description, :material, :manufacturer, :manufacturing_date, :expiry_date,
+                :returnable, :return_window_days
             )'
         )->execute([
             'name' => $productName,
@@ -412,6 +482,8 @@ final class ProductImportService
             'manufacturer' => $row['Manufacturer'] ?? null ?: null,
             'manufacturing_date' => $this->parseDate($row['Manufacturing Date'] ?? ''),
             'expiry_date' => $this->parseDate($row['Expiry Date'] ?? ''),
+            'returnable' => $returnable,
+            'return_window_days' => $returnWindowDays,
         ]);
 
         $productId = (int) $this->pdo->lastInsertId();
@@ -431,6 +503,42 @@ final class ProductImportService
         return $productId;
     }
 
+    /**
+     * "Return Eligible" / "Return Window (Days)" are product-level, read
+     * only on the first row of a product (same convention as "Product
+     * Image Path" — see class docblock). Both are new, optional columns —
+     * a blank cell (the overwhelmingly common case for every pre-existing
+     * template/export, since this import had no such columns before)
+     * must import cleanly with no error, so unlike
+     * ProductService::assertValidReturnWindow() (used by the manual admin
+     * form, which has an explicit "Returnable" checkbox right next to the
+     * window field) this does NOT require a window just because
+     * "Return Eligible" defaults to Yes. A blank window on a returnable
+     * product simply leaves the product not yet actually offering returns
+     * — ReturnService::eligibilityForOrder() already requires a positive
+     * window before a return is ever offered to a customer — rather than
+     * breaking the import. A value that IS present must still be sane.
+     *
+     * @param array<string, string> $row
+     * @return array{0: int, 1: int|null}
+     */
+    private function resolveReturnPolicy(array $row): array
+    {
+        $eligibleRaw = mb_strtoupper(trim($row['Return Eligible'] ?? ''));
+        $returnable = match ($eligibleRaw) {
+            'NO', 'N', 'FALSE', '0' => false,
+            default => true, // blank, 'YES', or anything else — matches the column's own schema default
+        };
+
+        $windowRaw = trim($row['Return Window (Days)'] ?? '');
+
+        if ($windowRaw !== '' && (!is_numeric($windowRaw) || (int) $windowRaw < 0 || str_contains($windowRaw, '.'))) {
+            throw new RuntimeException('Return Window (Days) must be a non-negative whole number');
+        }
+
+        return [(int) $returnable, $windowRaw !== '' ? (int) $windowRaw : null];
+    }
+
     /** @param array<string, string> $row */
     private function createVariant(
         array $row,
@@ -438,7 +546,7 @@ final class ProductImportService
         string $sku,
         ?string $barcode,
         float $mrp,
-        float $sellingPrice,
+        ?float $sellingPrice,
         bool $autoCreate,
         ?string $imagesDir,
         bool $persistImages,
@@ -459,7 +567,10 @@ final class ProductImportService
             'sku' => $sku,
             'barcode' => $barcode,
             'mrp' => $mrp,
-            'retail_price' => $sellingPrice,
+            // retail_price is NOT NULL in the schema — a brand new variant
+            // with no Selling Price entered gets the MRP (i.e. no discount),
+            // never a silent 0.
+            'retail_price' => $sellingPrice ?? $mrp,
             'purchase_price' => $costPrice !== '' && is_numeric($costPrice) ? $costPrice : null,
             'description' => $row['Variant Description'] ?? null ?: null,
             'status' => mb_strtoupper($status),
@@ -497,7 +608,7 @@ final class ProductImportService
      *
      * @param array<string, string> $row
      */
-    private function updateVariant(int $variantId, array $row, ?string $barcode, float $mrp, float $sellingPrice, ?int $userId, string $fileHash, ?string $imagesDir, bool $persistImages, array &$imageStats): int
+    private function updateVariant(int $variantId, array $row, ?string $barcode, float $mrp, ?float $sellingPrice, ?int $userId, string $fileHash, ?string $imagesDir, bool $persistImages, array &$imageStats): int
     {
         $costPrice = trim($row['Variant Cost Price'] ?? '');
         $statusRaw = trim($row['Status'] ?? '');
@@ -515,8 +626,16 @@ final class ProductImportService
         // findVariantBySku() matched while soft-deleted (see its
         // docblock) — otherwise a resurrected row would still be
         // invisible everywhere a listing filters on deleted_at.
-        $sets = ['mrp = :mrp', 'retail_price = :retail_price', 'deleted_at = NULL'];
-        $params = ['mrp' => $mrp, 'retail_price' => $sellingPrice, 'id' => $variantId];
+        $sets = ['mrp = :mrp', 'deleted_at = NULL'];
+        $params = ['mrp' => $mrp, 'id' => $variantId];
+
+        // A blank Selling Price cell on an update row means "leave it
+        // alone" — exactly like a blank barcode/cost price/description/
+        // status below — never a silent reset of an existing price to MRP.
+        if ($sellingPrice !== null) {
+            $sets[] = 'retail_price = :retail_price';
+            $params['retail_price'] = $sellingPrice;
+        }
 
         if ($barcode !== null) {
             $sets[] = 'barcode = :barcode';

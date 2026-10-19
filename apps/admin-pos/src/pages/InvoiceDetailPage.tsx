@@ -92,22 +92,22 @@ export function InvoiceDetailPage() {
       if (s) {
         const parsed = JSON.parse(s)
         return {
-          name: parsed.name || 'Unified POS Store Ltd',
-          address: parsed.address || '123 Retail Hub Street, Commercial Zone, City',
+          name: parsed.name || 'Shop with Adam Supermarket',
+          address: parsed.address || 'Plot 42, Commercial Avenue, Sector 5, Jaipur',
           gstin: parsed.gstin || '27AAAAA0000A1Z5',
-          phone: parsed.phone || '+91 9876543210',
-          email: parsed.email || 'contact@unifiedpos.store',
+          phone: parsed.phone || '+91 98765 01234',
+          email: parsed.email || 'support@shopwithadam.com',
         }
       }
     } catch (e) {
       console.error(e)
     }
     return {
-      name: 'Unified POS Store Ltd',
-      address: '123 Retail Hub Street, Commercial Zone, City',
+      name: 'Shop with Adam Supermarket',
+      address: 'Plot 42, Commercial Avenue, Sector 5, Jaipur',
       gstin: '27AAAAA0000A1Z5',
-      phone: '+91 9876543210',
-      email: 'contact@unifiedpos.store',
+      phone: '+91 98765 01234',
+      email: 'support@shopwithadam.com',
     }
   }, [])
 
@@ -470,7 +470,7 @@ export function InvoiceDetailPage() {
             </div>
           </div>
         ) : (
-          /* THERMAL RECEIPT PRINTER LAYOUT (Matching AJ AGENCY Thermal Printer Image) */
+          /* THERMAL RECEIPT PRINTER LAYOUT (Shop with Adam POS Thermal Receipt) */
           <div className="font-mono text-xs text-slate-900 space-y-3 leading-snug">
             {/* Header */}
             <div className="text-center space-y-0.5">

@@ -22,6 +22,10 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   }).catch(() => {})
 }
 
+if (typeof document !== 'undefined') {
+  document.title = 'Shop with Adam — Admin & POS'
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

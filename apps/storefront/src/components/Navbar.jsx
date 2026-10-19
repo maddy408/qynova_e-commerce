@@ -513,7 +513,7 @@ export default function Navbar({
 
   const storeName = storeSettings?.store_name || 'Shop with Adam'
   const storeTagline = storeSettings?.tagline || 'Fresh • Daily • Essentials'
-  const storeLogo = storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'
+  const storeLogo = storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo.png'
   const whatsappClean = (storeSettings?.whatsapp_number || storeSettings?.phone || '').replace(/[^0-9]/g, '')
   const whatsappUrl = whatsappClean ? `https://wa.me/${whatsappClean}` : '#'
   const helplineText = storeSettings?.phone ? storeSettings.phone : null
@@ -584,12 +584,13 @@ export default function Navbar({
             {/* Brand Logo & Name */}
             <Link to={ROUTES.HOME} className="flex items-center gap-2.5 sm:gap-3 group select-none">
               <img
-                src={storeLogo || '/images/logo2.jpeg'}
+                src={storeLogo || '/images/logo.png'}
                 alt={storeName || 'Shop with Adam'}
+                title="Shop with Adam"
                 className="h-10 sm:h-12 w-auto max-w-[190px] sm:max-w-[230px] object-contain group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   e.currentTarget.onerror = null
-                  e.currentTarget.src = '/images/logo2.jpeg'
+                  e.currentTarget.src = '/images/logo.png'
                 }}
               />
             </Link>
@@ -1570,12 +1571,13 @@ export default function Navbar({
             <div className="p-4 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-gradient-to-r from-[var(--color-bg-main)] to-[var(--color-primary-tint)]">
               <div className="flex items-center gap-2.5">
                 <img
-                  src={storeLogo || '/images/logo2.jpeg'}
+                  src={storeLogo || '/images/logo.png'}
                   alt={storeName || 'Shop with Adam'}
-                  className="h-8 w-auto max-w-[130px] object-contain rounded-lg"
+                  title="Shop with Adam"
+                  className="h-8 w-auto max-w-[130px] object-contain"
                   onError={(e) => {
                     e.currentTarget.onerror = null
-                    e.currentTarget.src = '/images/logo2.jpeg'
+                    e.currentTarget.src = '/images/logo.png'
                   }}
                 />
                 <div>

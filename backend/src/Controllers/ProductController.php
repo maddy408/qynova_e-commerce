@@ -8,6 +8,11 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\BroadcastService;
+use App\Services\DeviceTokenService;
+use App\Services\FcmSenderService;
+use App\Services\NotificationService;
+use App\Services\PriceDropNotificationService;
 use App\Services\ProductService;
 use App\Services\ProductSpecificationService;
 use PDO;
@@ -193,16 +198,50 @@ final class ProductController
              WHERE id = :id"
         );
 
+        $notifications = new NotificationService($this->pdo);
+        $deviceTokens = new DeviceTokenService($this->pdo);
+        $fcm = new FcmSenderService($deviceTokens);
+        $broadcastService = new BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+        $priceDropService = new PriceDropNotificationService($this->pdo, $broadcastService);
+
         foreach ($items as $item) {
             if (!isset($item['variant_id'])) {
                 continue;
             }
+            $vId = (int) $item['variant_id'];
+            $newRetail = (float) ($item['retail_price'] ?? 0);
+
+            // Fetch current retail price to detect drops
+            $oldRetail = null;
+            try {
+                $cur = $this->pdo->prepare("SELECT retail_price FROM product_variants WHERE id = :id");
+                $cur->execute(['id' => $vId]);
+                $r = $cur->fetchColumn();
+                if ($r !== false) {
+                    $oldRetail = (float) $r;
+                }
+            } catch (\Throwable $e) {}
+
             $stmt->execute([
-                'id' => (int) $item['variant_id'],
-                'retail_price' => (float) ($item['retail_price'] ?? 0),
+                'id' => $vId,
+                'retail_price' => $newRetail,
                 'wholesale_price' => isset($item['wholesale_price']) && $item['wholesale_price'] !== '' && $item['wholesale_price'] !== null ? (float) $item['wholesale_price'] : null,
                 'customer_price' => isset($item['customer_price']) && $item['customer_price'] !== '' && $item['customer_price'] !== null ? (float) $item['customer_price'] : null,
             ]);
+
+            // If retail price dropped, trigger automated push notification (subject to threshold & daily limit)
+            if ($oldRetail !== null && $newRetail < $oldRetail) {
+                try {
+                    $priceDropService->handlePriceDrop(
+                        variantId: $vId,
+                        oldPrice: $oldRetail,
+                        newPrice: $newRetail,
+                        changedByUserId: (int) ($claims['sub'] ?? 1),
+                    );
+                } catch (\Throwable $ne) {
+                    error_log('updatePriceSettings: price drop notification failed: ' . $ne->getMessage());
+                }
+            }
         }
 
         Response::json(['updated' => true]);
@@ -280,7 +319,40 @@ final class ProductController
 
             $this->pdo->commit();
 
-            Response::json(['variant_id' => $variantId, 'price_type' => $priceType, 'old_price' => $oldValue, 'new_price' => (string) $newValue]);
+            // Automated price drop push notification via Firebase and Redis queue
+            $priceDropDispatched = false;
+            $priceDropReason = null;
+            if ($priceType === 'RETAIL' && $oldValue !== null && $newValue < (float) $oldValue) {
+                try {
+                    $notifications = new NotificationService($this->pdo);
+                    $deviceTokens = new DeviceTokenService($this->pdo);
+                    $fcm = new FcmSenderService($deviceTokens);
+                    $broadcastService = new BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+                    $priceDropService = new PriceDropNotificationService($this->pdo, $broadcastService);
+
+                    $pdRes = $priceDropService->handlePriceDrop(
+                        variantId: $variantId,
+                        oldPrice: (float) $oldValue,
+                        newPrice: $newValue,
+                        changedByUserId: (int) $claims['sub'],
+                    );
+                    $priceDropDispatched = $pdRes['triggered'];
+                    $priceDropReason = $pdRes['reason'];
+                } catch (\Throwable $ne) {
+                    error_log('ProductController updateVariantPrice: price drop notification error: ' . $ne->getMessage());
+                }
+            }
+
+            Response::json([
+                'variant_id' => $variantId,
+                'price_type' => $priceType,
+                'old_price' => $oldValue,
+                'new_price' => (string) $newValue,
+                'price_drop_notification' => [
+                    'dispatched' => $priceDropDispatched,
+                    'reason' => $priceDropReason,
+                ],
+            ]);
         } catch (RuntimeException $e) {
             $this->pdo->rollBack();
             Response::error($e->getMessage(), 404);

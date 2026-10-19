@@ -361,6 +361,11 @@ final class ProductService
             throw new RuntimeException('Product name is required');
         }
 
+        $this->assertValidReturnWindow(
+            returnable: (bool) ($data['returnable'] ?? true),
+            returnWindowDays: array_key_exists('return_window_days', $data) ? $data['return_window_days'] : null,
+        );
+
         $slug = $this->uniqueSlug($this->slugify($data['slug'] ?? $name));
 
         $stmt = $this->pdo->prepare(
@@ -370,7 +375,7 @@ final class ProductService
                 length_cm, width_cm, height_cm, weight_grams, manufacturer, country_of_origin,
                 meta_title, meta_description, seo_keywords,
                 expiry_applicable, warranty_applicable, warranty_period, warranty_unit, warranty_description,
-                returnable, return_window_days, replacement_available, refund_available,
+                returnable, return_window_days, return_policy_description, replacement_available, refund_available,
                 shipping_required, cod_available,
                 is_active, is_pos_enabled, is_ecommerce_enabled, is_featured, is_trending, is_deal, show_discount
             ) VALUES (
@@ -379,7 +384,7 @@ final class ProductService
                 :length_cm, :width_cm, :height_cm, :weight_grams, :manufacturer, :country_of_origin,
                 :meta_title, :meta_description, :seo_keywords,
                 :expiry_applicable, :warranty_applicable, :warranty_period, :warranty_unit, :warranty_description,
-                :returnable, :return_window_days, :replacement_available, :refund_available,
+                :returnable, :return_window_days, :return_policy_description, :replacement_available, :refund_available,
                 :shipping_required, :cod_available,
                 :is_active, :is_pos_enabled, :is_ecommerce_enabled, :is_featured, :is_trending, :is_deal, :show_discount
             )'
@@ -413,6 +418,7 @@ final class ProductService
             'warranty_description' => $data['warranty_description'] ?? null,
             'returnable' => (int) (bool) ($data['returnable'] ?? true),
             'return_window_days' => $data['return_window_days'] ?? null,
+            'return_policy_description' => $data['return_policy_description'] ?? null,
             'replacement_available' => (int) (bool) ($data['replacement_available'] ?? false),
             'refund_available' => (int) (bool) ($data['refund_available'] ?? true),
             'shipping_required' => (int) (bool) ($data['shipping_required'] ?? true),
@@ -432,6 +438,26 @@ final class ProductService
         $this->syncSubcategories($productId, (array) ($data['subcategory_ids'] ?? []));
 
         return $productId;
+    }
+
+    /**
+     * returnable/return_window_days drive customer-facing return
+     * eligibility (ReturnService::eligibilityForOrder()) — a blank/zero
+     * window on a "returnable" product would silently make it
+     * unreturnable in practice, which is a confusing admin mistake to
+     * ship rather than reject outright.
+     */
+    private function assertValidReturnWindow(bool $returnable, mixed $returnWindowDays): void
+    {
+        if ($returnWindowDays !== null && $returnWindowDays !== '') {
+            if (!is_numeric($returnWindowDays) || (int) $returnWindowDays < 0 || (string) (int) $returnWindowDays !== (string) $returnWindowDays) {
+                throw new RuntimeException('Return Window (Days) must be a non-negative whole number');
+            }
+        }
+
+        if ($returnable && (int) ($returnWindowDays ?: 0) <= 0) {
+            throw new RuntimeException('Return Window (Days) must be a positive number when the product is returnable');
+        }
     }
 
     /** @param list<string>|null $bulletPoints */
@@ -455,13 +481,18 @@ final class ProductService
             throw new RuntimeException('Product not found');
         }
 
+        $this->assertValidReturnWindow(
+            returnable: (bool) (array_key_exists('returnable', $data) ? $data['returnable'] : $existing['returnable']),
+            returnWindowDays: array_key_exists('return_window_days', $data) ? $data['return_window_days'] : $existing['return_window_days'],
+        );
+
         $fields = [
             'name', 'product_code', 'brand_id', 'unit_id', 'hsn_code_id', 'gst_rate_id',
             'short_description', 'description', 'tags', 'material',
             'length_cm', 'width_cm', 'height_cm', 'weight_grams', 'manufacturer', 'country_of_origin',
             'meta_title', 'meta_description', 'seo_keywords',
             'expiry_applicable', 'expiry_date', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
-            'returnable', 'return_window_days', 'replacement_available', 'refund_available',
+            'returnable', 'return_window_days', 'return_policy_description', 'replacement_available', 'refund_available',
             'shipping_required', 'cod_available',
             'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
         ];

@@ -1,18 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
 import { resolveImageUrl } from '../lib/api'
-import { FiArrowRight, FiCopy, FiCheck } from 'react-icons/fi'
+import { FiArrowRight, FiCopy, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import Button from './common/Button'
 
 /**
  * Top Offers for You Section
- * Exactly matches the KiranaBazaar reference image:
- * - 4 pastel promo cards (Mint, Peach, Sky Blue, Lavender)
- * - Coupon copy badge
- * - Themed CTA buttons
- * - 4 dedicated saved offer graphics (delivery truck, grocery basket, gift box, discount tag)
- * - Full fallback protection to local saved images so broken icons never happen
+ * Purely database-driven: Only displays offers created by Admin.
+ * Displays exactly 4 cards on desktop at a time in a sleek single-row slider.
+ * Additional cards (> 4) are revealed via Next/Prev navigation or View More Deals.
+ * Never wraps cards to a 2nd row below.
  */
 export default function TopOffersSection({
   topOffers = [],
@@ -21,6 +19,39 @@ export default function TopOffersSection({
   isLoading = false,
 }) {
   const [copiedCode, setCopiedCode] = useState(null)
+  const scrollRef = useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const checkScrollBounds = () => {
+    if (!scrollRef.current) return
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
+    setCanScrollLeft(scrollLeft > 6)
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 6)
+  }
+
+  useEffect(() => {
+    checkScrollBounds()
+    const el = scrollRef.current
+    if (!el) return
+    el.addEventListener('scroll', checkScrollBounds, { passive: true })
+    window.addEventListener('resize', checkScrollBounds)
+    return () => {
+      el.removeEventListener('scroll', checkScrollBounds)
+      window.removeEventListener('resize', checkScrollBounds)
+    }
+  }, [topOffers])
+
+  const handleScroll = (direction) => {
+    if (!scrollRef.current) return
+    const container = scrollRef.current
+    const card = container.querySelector('[data-offer-card]')
+    const scrollAmount = card ? card.offsetWidth + 16 : container.clientWidth / 4
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    })
+  }
 
   const handleCopyCode = (code) => {
     if (!code) return
@@ -33,113 +64,51 @@ export default function TopOffersSection({
     }, 2500)
   }
 
-  const freeThreshold =
-    deliverySettings?.free_delivery_threshold != null
-      ? Number(deliverySettings.free_delivery_threshold)
-      : 499
-
-  // Local saved illustrations in public/images/
-  // Mapped by recognized objects: Van, Grocery Cart, Festive Gift Box, Coupon Tag
-  const localOfferImages = [
-    '/images/top_offer_4.jpeg',
-    '/images/top_offer_5.jpeg',
-    '/images/top_offer_3.jpeg',
-    '/images/top_offer_2.jpeg',
-  ]
-
-  // Default preset cards matching reference image & recognized objects
-  const presetCards = [
+  // 4 Rotating visual themes for styling dynamic cards
+  const CARD_THEMES = [
     {
-      id: 'offer-card-1',
       bgGradient: 'from-[#E0F7FA]/70 via-[#E8F8FC]/60 to-[#DCFCE7]/50 border-emerald-100',
       badgeBg: 'bg-[#E0F2FE] text-[#0284C7]',
-      badge: 'FREE DELIVERY',
-      title: `Free Delivery Above ₹${freeThreshold}`,
-      subtitle: `No shipping charge applied on orders over ₹${freeThreshold}. Fast doorstep delivery.`,
-      code: null,
-      btnText: 'Shop Essentials',
       btnVariant: 'primary',
-      link: ROUTES.PRODUCTS,
-      image: '/images/top_offer_4.jpeg', // Object: 3D Grocery Delivery Van
-      fallbackImage: '/images/icon5.jpeg',
+      btnCustomClass: '',
     },
     {
-      id: 'offer-card-2',
       bgGradient: 'from-[#FFEDD5]/70 via-[#FFF1F2]/60 to-[#FEE2E2]/50 border-rose-100',
       badgeBg: 'bg-rose-100 text-rose-600',
-      badge: 'FLAT ₹50 OFF',
-      title: 'Flat ₹50 Off Kirana Welcome',
-      subtitle: 'Flat ₹50 instant discount on orders above ₹299.',
-      code: 'KIRANA50',
-      btnText: 'Shop Deals',
       btnVariant: 'secondary',
       btnCustomClass: 'bg-rose-600 hover:bg-rose-700 text-white',
-      link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-      image: '/images/top_offer_5.jpeg', // Object: 3D Grocery Shopping Cart
-      fallbackImage: '/images/offers/offer_basket.png',
     },
     {
-      id: 'offer-card-3',
       bgGradient: 'from-[#E0F2FE]/80 via-[#F0F9FF]/70 to-[#E0F7FA]/50 border-sky-100',
       badgeBg: 'bg-sky-100 text-sky-700',
-      badge: '10% OFF',
-      title: 'Festive Offer 10% Off',
-      subtitle: 'Get 10% off on all accessories and gift orders above ₹499.',
-      code: 'FESTIVE10',
-      btnText: 'Shop Deals',
       btnVariant: 'primary',
-      link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-      image: '/images/top_offer_3.jpeg', // Object: 3D Festive Blue Gift Box
-      fallbackImage: '/images/offers/offer_gift.png',
+      btnCustomClass: '',
     },
     {
-      id: 'offer-card-4',
       bgGradient: 'from-[#F3E8FF]/70 via-[#FAF5FF]/70 to-[#EDE9FE]/50 border-purple-100',
       badgeBg: 'bg-purple-100 text-purple-700',
-      badge: '10% OFF',
-      title: 'Test Coupon',
-      subtitle: 'Applicable directly on checkout',
-      code: 'TEST10',
-      btnText: 'Shop Deals',
       btnVariant: 'primary',
       btnCustomClass: 'bg-purple-600 hover:bg-purple-700 text-white',
-      link: ROUTES.PRODUCTS_BY_SECTION('deals'),
-      image: '/images/top_offer_2.jpeg', // Object: 3D Purple % Discount Tag
-      fallbackImage: '/images/icon1.jpeg',
     },
   ]
 
-  // If live offers exist from database, map dynamically into cards
-  let displayCards = [...presetCards]
-  if (Array.isArray(topOffers) && topOffers.length > 0) {
-    displayCards = topOffers.slice(0, 4).map((item, idx) => {
-      const fallback = localOfferImages[idx % localOfferImages.length]
-      let resolved = fallback
-
-      if (item.image_path) {
-        if (item.image_path.startsWith('/images/') || item.image_path.startsWith('http')) {
-          resolved = item.image_path
-        } else {
-          resolved = resolveImageUrl(item.image_path) || fallback
-        }
-      }
-
-      return {
-        id: item.id || `live-offer-${idx}`,
-        bgGradient: presetCards[idx % presetCards.length].bgGradient,
-        badgeBg: presetCards[idx % presetCards.length].badgeBg,
-        badge: item.badge || presetCards[idx % presetCards.length].badge,
-        title: item.title || presetCards[idx % presetCards.length].title,
-        subtitle: item.subtitle || presetCards[idx % presetCards.length].subtitle,
-        code: item.code,
-        btnText: item.button_text || presetCards[idx % presetCards.length].btnText,
-        btnVariant: presetCards[idx % presetCards.length].btnVariant,
-        btnCustomClass: presetCards[idx % presetCards.length].btnCustomClass,
-        link: item.link || ROUTES.PRODUCTS_BY_SECTION('deals'),
-        image: resolved,
-        fallbackImage: fallback,
-      }
-    })
+  const renderIcon = (icon) => {
+    switch (icon) {
+      case 'truck':
+        return '🚚'
+      case 'tag':
+        return '🏷️'
+      case 'percent':
+        return '％'
+      case 'gift':
+        return '🎁'
+      case 'zap':
+        return '⚡'
+      case 'star':
+        return '⭐'
+      default:
+        return '🏷️'
+    }
   }
 
   if (isLoading) {
@@ -154,117 +123,221 @@ export default function TopOffersSection({
     )
   }
 
+  // If no top offers exist in database, do not render any fake/static cards
+  if (!Array.isArray(topOffers) || topOffers.length === 0) {
+    return null
+  }
+
+  const hasMultipleOffers = topOffers.length > 4
+
   return (
-    <section className="w-full py-4 sm:py-6 select-none">
+    <section className="w-full py-4 sm:py-6 select-none relative">
       <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8">
         
-        {/* Header: 🔥 Top Offers for You */}
+        {/* Header: 🔥 Top Offers for You + Prev/Next Controls + View More Deals */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-base sm:text-lg">🔥</span>
             <h2 className="font-sans text-base sm:text-lg font-black text-[var(--color-text-main)] tracking-tight">
               Top Offers for You
             </h2>
+            {topOffers.length > 4 && (
+              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-2 py-0.5 rounded-full ml-1">
+                {topOffers.length} Deals
+              </span>
+            )}
           </div>
 
-          <Link
-            to={ROUTES.PRODUCTS_BY_SECTION('deals')}
-            className="text-xs sm:text-[13px] font-sans font-bold text-[var(--color-primary)] hover:underline flex items-center gap-1 transition-colors"
-          >
-            <span>View All Deals</span>
-            <FiArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Prev / Next buttons when more than 4 offers exist */}
+            {hasMultipleOffers && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleScroll('left')}
+                  disabled={!canScrollLeft}
+                  aria-label="Previous offers"
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all ${
+                    canScrollLeft
+                      ? 'bg-white hover:bg-purple-50 text-slate-800 hover:text-purple-700 border-slate-300 hover:border-purple-300 shadow-2xs cursor-pointer active:scale-95'
+                      : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed opacity-40'
+                  }`}
+                  title="Previous offers"
+                >
+                  <FiChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleScroll('right')}
+                  disabled={!canScrollRight}
+                  aria-label="Next offers"
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border flex items-center justify-center transition-all ${
+                    canScrollRight
+                      ? 'bg-white hover:bg-purple-50 text-slate-800 hover:text-purple-700 border-slate-300 hover:border-purple-300 shadow-2xs cursor-pointer active:scale-95'
+                      : 'bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed opacity-40'
+                  }`}
+                  title="Next offers"
+                >
+                  <FiChevronRight className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
+            )}
+
+            <Link
+              to={ROUTES.PRODUCTS_BY_SECTION('deals')}
+              className="text-xs sm:text-[13px] font-sans font-bold text-[var(--color-primary)] hover:underline flex items-center gap-1 transition-colors"
+            >
+              <span>View More Deals</span>
+              <FiArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
-        {/* 4 Pastel Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-          {displayCards.slice(0, 4).map((card) => {
-            const isCopied = copiedCode === card.code
+        {/* Carousel Container: Exactly 4 cards visible on desktop, no bottom row */}
+        <div className="relative group/carousel">
+          {/* Floating Left Arrow (Desktop / Tablet) */}
+          {hasMultipleOffers && canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => handleScroll('left')}
+              aria-label="Previous offers"
+              className="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 hover:bg-white text-slate-800 shadow-md border border-slate-200 items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95"
+            >
+              <FiChevronLeft className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
 
-            return (
-              <div
-                key={card.id}
-                className={`rounded-2xl p-4 sm:p-4.5 border bg-gradient-to-br ${card.bgGradient} shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group`}
-              >
-                <div>
-                  {/* Badge */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`text-[9.5px] sm:text-[10px] font-sans font-extrabold uppercase px-2 py-0.5 rounded shadow-2xs ${card.badgeBg}`}
+          {/* Cards Track (Single horizontal row, never wraps underneath) */}
+          <div
+            ref={scrollRef}
+            className="flex flex-nowrap overflow-x-auto scroll-smooth no-scrollbar gap-3.5 sm:gap-4 py-1 select-none"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {topOffers.map((card, idx) => {
+              const theme = CARD_THEMES[idx % CARD_THEMES.length]
+              const isCopied = copiedCode === card.code
+
+              let imageUrl = null
+              if (card.image_path) {
+                if (
+                  card.image_path.startsWith('http://') ||
+                  card.image_path.startsWith('https://') ||
+                  card.image_path.startsWith('/images/')
+                ) {
+                  imageUrl = card.image_path
+                } else {
+                  imageUrl = resolveImageUrl(card.image_path)
+                }
+              }
+
+              return (
+                <div
+                  key={card.id || `live-offer-${idx}`}
+                  data-offer-card="true"
+                  className={`w-[calc(100%-24px)] min-w-[240px] sm:w-[calc(50%-10px)] lg:w-[calc(25%-12px)] shrink-0 rounded-2xl p-4 sm:p-4.5 border bg-gradient-to-br ${theme.bgGradient} shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[175px]`}
+                >
+                  <div>
+                    {/* Badge */}
+                    {card.badge && (
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className={`text-[9.5px] sm:text-[10px] font-sans font-extrabold uppercase px-2 py-0.5 rounded shadow-2xs ${theme.badgeBg}`}
+                        >
+                          {card.badge}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Title & Subtitle */}
+                    <h3 className="font-sans text-xs sm:text-[13px] font-extrabold text-[var(--color-text-main)] leading-snug mb-1">
+                      {card.title}
+                    </h3>
+                    {card.subtitle && (
+                      <p className="font-sans text-[11px] text-slate-600 leading-relaxed line-clamp-2 mb-2.5">
+                        {card.subtitle}
+                      </p>
+                    )}
+
+                    {/* Coupon Code Pill */}
+                    {card.code && (
+                      <div className="mb-3">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(card.code)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${
+                            isCopied
+                              ? 'bg-emerald-600 text-white border-emerald-700'
+                              : 'bg-white/90 text-purple-700 border-purple-200 hover:bg-white'
+                          }`}
+                          title="Click to copy coupon code"
+                        >
+                          {isCopied ? (
+                            <>
+                              <FiCheck className="w-3 h-3 stroke-[2.5]" />
+                              <span>COPIED</span>
+                            </>
+                          ) : (
+                            <>
+                              <FiCopy className="w-2.5 h-2.5" />
+                              <span>CODE : {card.code}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom Row: CTA Button + Image/Icon */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/5 mt-auto">
+                    <Button
+                      variant={theme.btnVariant || 'primary'}
+                      size="xs"
+                      rounded="full"
+                      to={card.link || ROUTES.PRODUCTS_BY_SECTION('deals')}
+                      icon={<FiArrowRight className="w-3 h-3" />}
+                      iconPosition="right"
+                      className={theme.btnCustomClass || ''}
                     >
-                      {card.badge}
-                    </span>
-                  </div>
+                      {card.button_text || 'Shop Deals'}
+                    </Button>
 
-                  {/* Title & Subtitle */}
-                  <h3 className="font-sans text-xs sm:text-[13px] font-extrabold text-[var(--color-text-main)] leading-snug mb-1">
-                    {card.title}
-                  </h3>
-                  <p className="font-sans text-[11px] text-slate-600 leading-relaxed line-clamp-2 mb-2.5">
-                    {card.subtitle}
-                  </p>
-
-                  {/* Coupon Code Pill */}
-                  {card.code && (
-                    <div className="mb-3">
-                      <button
-                        type="button"
-                        onClick={() => handleCopyCode(card.code)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${
-                          isCopied
-                            ? 'bg-emerald-600 text-white border-emerald-700'
-                            : 'bg-white/90 text-purple-700 border-purple-200 hover:bg-white'
-                        }`}
-                        title="Click to copy coupon code"
-                      >
-                        {isCopied ? (
-                          <>
-                            <FiCheck className="w-3 h-3 stroke-[2.5]" />
-                            <span>COPIED</span>
-                          </>
-                        ) : (
-                          <>
-                            <FiCopy className="w-2.5 h-2.5" />
-                            <span>CODE : {card.code}</span>
-                          </>
-                        )}
-                      </button>
+                    {/* Visual: Image or Icon */}
+                    <div className="shrink-0 w-20 h-16 sm:w-22 sm:h-16 flex items-center justify-end">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={card.title}
+                          className="max-h-16 max-w-full object-contain mix-blend-multiply drop-shadow-xs group-hover:scale-108 transition-transform duration-200"
+                        />
+                      ) : (
+                        <span className="text-3xl opacity-80 group-hover:scale-110 transition-transform duration-200">
+                          {renderIcon(card.icon)}
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-
-                {/* Bottom Row: CTA Button + Illustration */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/5 mt-auto">
-                  <Button
-                    variant={card.btnVariant || 'primary'}
-                    size="xs"
-                    rounded="full"
-                    to={card.link}
-                    icon={<FiArrowRight className="w-3 h-3" />}
-                    iconPosition="right"
-                    className={card.btnCustomClass || ''}
-                  >
-                    {card.btnText}
-                  </Button>
-
-                  {/* Mini Visual / Illustration */}
-                  <div className="shrink-0 w-20 h-16 sm:w-22 sm:h-16 flex items-center justify-end">
-                    <img
-                      src={card.image}
-                      alt={card.title}
-                      onError={(e) => {
-                        if (card.fallbackImage && e.currentTarget.src !== card.fallbackImage) {
-                          e.currentTarget.src = card.fallbackImage
-                        }
-                      }}
-                      className="max-h-16 max-w-full object-contain mix-blend-multiply drop-shadow-xs group-hover:scale-108 transition-transform duration-200"
-                    />
                   </div>
-                </div>
 
-              </div>
-            )
-          })}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Floating Right Arrow (Desktop / Tablet) */}
+          {hasMultipleOffers && canScrollRight && (
+            <button
+              type="button"
+              onClick={() => handleScroll('right')}
+              aria-label="Next offers"
+              className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/95 hover:bg-white text-slate-800 shadow-md border border-slate-200 items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95 animate-pulse hover:animate-none"
+            >
+              <FiChevronRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          )}
         </div>
 
       </div>

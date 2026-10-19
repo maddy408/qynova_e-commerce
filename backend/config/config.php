@@ -41,6 +41,14 @@ return [
         'project_id' => $_ENV['FIREBASE_PROJECT_ID'] ?? '',
         'service_account_path' => $_ENV['FIREBASE_SERVICE_ACCOUNT_PATH'] ?? '',
     ],
+    'redis' => [
+        'enabled' => filter_var($_ENV['REDIS_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        'host' => $_ENV['REDIS_HOST'] ?? '127.0.0.1',
+        'port' => (int) ($_ENV['REDIS_PORT'] ?? 6379),
+        'password' => !empty($_ENV['REDIS_PASSWORD']) ? $_ENV['REDIS_PASSWORD'] : null,
+        'queue_name' => $_ENV['REDIS_QUEUE_NAME'] ?? 'adams:push_queue',
+        'timeout' => (float) ($_ENV['REDIS_TIMEOUT'] ?? 1.5),
+    ],
     'image' => [
         'main_target_kb' => (int) ($_ENV['IMAGE_MAIN_TARGET_KB'] ?? 100),
         'thumb_target_kb' => (int) ($_ENV['IMAGE_THUMB_TARGET_KB'] ?? 30),

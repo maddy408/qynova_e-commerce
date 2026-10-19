@@ -131,4 +131,72 @@ final class SettingsController
 
         Response::json(['flash_deal' => $deal ?: null]);
     }
+
+    /** GET /api/settings/notifications - Fetch notification thresholds, daily limits & Redis/FCM status */
+    public function getNotificationSettings(): void
+    {
+        $claims = \App\Middleware\JwtAuthMiddleware::authenticate();
+
+        $notifications = new \App\Services\NotificationService($this->pdo);
+        $deviceTokens = new \App\Services\DeviceTokenService($this->pdo);
+        $fcm = new \App\Services\FcmSenderService($deviceTokens);
+        $broadcastService = new \App\Services\BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+        $priceDropService = new \App\Services\PriceDropNotificationService($this->pdo, $broadcastService);
+        $redis = new \App\Services\RedisQueueService();
+
+        $settings = $priceDropService->getSettings();
+        $redisStats = $redis->getStats();
+        $fcmConfigured = $fcm->isConfigured();
+
+        Response::json([
+            'settings' => $settings,
+            'redis' => $redisStats,
+            'fcm' => [
+                'configured' => $fcmConfigured,
+                'enabled' => \App\Helpers\Config::get('fcm.enabled', false),
+                'project_id' => \App\Helpers\Config::get('fcm.project_id', ''),
+            ],
+        ]);
+    }
+
+    /** PUT /api/settings/notifications - Update discount thresholds and daily notification limits */
+    public function updateNotificationSettings(): void
+    {
+        $claims = \App\Middleware\JwtAuthMiddleware::authenticate();
+        \App\Middleware\PermissionMiddleware::require($claims, 'settings.manage');
+
+        $input = \App\Helpers\Request::json();
+
+        $notifications = new \App\Services\NotificationService($this->pdo);
+        $deviceTokens = new \App\Services\DeviceTokenService($this->pdo);
+        $fcm = new \App\Services\FcmSenderService($deviceTokens);
+        $broadcastService = new \App\Services\BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+        $priceDropService = new \App\Services\PriceDropNotificationService($this->pdo, $broadcastService);
+
+        $priceDropService->updateSettings($input);
+
+        Response::json([
+            'updated' => true,
+            'settings' => $priceDropService->getSettings(),
+            'message' => 'Notification threshold and daily discount limits updated successfully',
+        ]);
+    }
+
+    /** POST /api/settings/notifications/test-redis - Test Redis connection and push capability */
+    public function testRedisConnection(): void
+    {
+        $claims = \App\Middleware\JwtAuthMiddleware::authenticate();
+        \App\Middleware\PermissionMiddleware::require($claims, 'settings.manage');
+
+        $redis = new \App\Services\RedisQueueService();
+        $stats = $redis->getStats();
+
+        Response::json([
+            'success' => $stats['connected'],
+            'redis' => $stats,
+            'message' => $stats['connected']
+                ? "Successfully connected to Redis server ({$stats['host']}:{$stats['port']}) via {$stats['driver']}."
+                : "Unable to connect to Redis server at {$stats['host']}:{$stats['port']}. Failover synchronous dispatch is active.",
+        ]);
+    }
 }
