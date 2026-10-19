@@ -623,13 +623,47 @@ final class ReturnsController
     public function store(): void
     {
         $claims = JwtAuthMiddleware::authenticate();
-        PermissionMiddleware::require($claims, 'orders.manage');
+        $isCustomer = (($claims['type'] ?? '') === 'customer' || ($claims['role'] ?? '') === 'CUSTOMER');
+
+        if (!$isCustomer) {
+            PermissionMiddleware::require($claims, 'orders.manage');
+            $actorUserId = (int) $claims['sub'];
+            $customerId = null;
+        } else {
+            $actorUserId = null;
+            $customerId = (int) $claims['sub'];
+        }
 
         $body = Request::json();
-        $actorUserId = (int) $claims['sub'];
 
         try {
-            $returnId = $this->returnService->createReturn($body, $actorUserId);
+            $returnId = $this->returnService->createReturn($body, $actorUserId, $customerId);
+            $return = $this->returnService->find($returnId);
+            Response::json(['return' => $return], 201);
+        } catch (\Throwable $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    public function storeForOrder(string|int $orderId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        $isCustomer = (($claims['type'] ?? '') === 'customer' || ($claims['role'] ?? '') === 'CUSTOMER');
+
+        if (!$isCustomer) {
+            PermissionMiddleware::require($claims, 'orders.manage');
+            $actorUserId = (int) $claims['sub'];
+            $customerId = null;
+        } else {
+            $actorUserId = null;
+            $customerId = (int) $claims['sub'];
+        }
+
+        $body = Request::json();
+        $body['order_id'] = (int) $orderId;
+
+        try {
+            $returnId = $this->returnService->createReturn($body, $actorUserId, $customerId);
             $return = $this->returnService->find($returnId);
             Response::json(['return' => $return], 201);
         } catch (\Throwable $e) {

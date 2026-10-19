@@ -114,10 +114,15 @@ final class OrderService
      * @param list<array{variant_id: int, quantity: int}> $items
      * @return array<string, mixed>
      */
-    public function checkout(int $customerId, array $items, array $address, ?string $couponCode): array
+    public function checkout(int $customerId, array $items, array $address, ?string $couponCode = null, string $paymentMethod = 'COD'): array
     {
         if ($items === []) {
             throw new RuntimeException('Cart is empty');
+        }
+
+        $normalizedMethod = strtoupper(trim($paymentMethod));
+        if (!in_array($normalizedMethod, ['COD', 'ONLINE', 'RAZORPAY', 'CARD', 'UPI', 'BANK_TRANSFER'], true)) {
+            $normalizedMethod = 'COD';
         }
 
         if (empty($address['line1'])) {
@@ -159,13 +164,13 @@ final class OrderService
 
             $this->pdo->prepare(
                 "INSERT INTO orders (
-                    order_no, customer_id, status, payment_status, subtotal, product_discount_total,
+                    order_no, customer_id, status, payment_status, payment_method, subtotal, product_discount_total,
                     coupon_id, coupon_code, coupon_discount_total, referral_reward_id, referral_discount_total,
                     tax_total, shipping_total, grand_total,
                     shipping_name, shipping_phone, shipping_line1, shipping_line2,
                     shipping_city_district, shipping_state, shipping_pincode
                 ) VALUES (
-                    :order_no, :customer_id, 'PENDING', 'PENDING', :subtotal, :product_discount_total,
+                    :order_no, :customer_id, 'PENDING', 'PENDING', :payment_method, :subtotal, :product_discount_total,
                     :coupon_id, :coupon_code, :coupon_discount_total, :referral_reward_id, :referral_discount_total,
                     :tax_total, :shipping_total, :grand_total,
                     :shipping_name, :shipping_phone, :shipping_line1, :shipping_line2,
@@ -174,6 +179,7 @@ final class OrderService
             )->execute([
                 'order_no' => $orderNo,
                 'customer_id' => $customerId,
+                'payment_method' => $normalizedMethod,
                 'subtotal' => $totals['subtotal'],
                 'product_discount_total' => $totals['product_discount_total'],
                 'coupon_id' => $totals['coupon_id'] ?? null,
@@ -599,7 +605,7 @@ final class OrderService
 
         $stmt = $this->pdo->prepare(
             "SELECT o.id, o.order_no, o.customer_id, c.name AS customer_name, o.status, o.payment_status,
-                    o.grand_total, o.created_at
+                    o.payment_method, o.grand_total, o.created_at
              FROM orders o JOIN customers c ON c.id = o.customer_id
              WHERE {$whereSql} ORDER BY o.created_at DESC, o.id DESC
              LIMIT :limit OFFSET :offset"

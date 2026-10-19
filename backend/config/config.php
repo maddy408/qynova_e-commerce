@@ -35,6 +35,7 @@ return [
     ],
     'shipping' => [
         'provider' => $_ENV['SHIPPING_PROVIDER'] ?? 'mock',
+        'webhook_secret' => $_ENV['SHIPPING_WEBHOOK_SECRET'] ?? '',
     ],
     'fcm' => [
         'enabled' => ($_ENV['FCM_ENABLED'] ?? 'false') === 'true',

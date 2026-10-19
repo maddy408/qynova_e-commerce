@@ -56,11 +56,19 @@ final class InventoryController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'pos.sell');
 
-        $search = isset($_GET['search']) ? (string) $_GET['search'] : null;
+        $search = isset($_GET['search']) ? trim((string) $_GET['search']) : null;
         $page = (int) ($_GET['page'] ?? 1);
-        $limit = (int) ($_GET['limit'] ?? 50);
         $categoryId = (isset($_GET['category_id']) && is_numeric($_GET['category_id'])) ? (int) $_GET['category_id'] : null;
         $sort = isset($_GET['sort']) ? (string) $_GET['sort'] : 'sales';
+        $topSellingDefault = isset($_GET['top_selling_default']) && (string) $_GET['top_selling_default'] === '1';
+
+        // When in default All Items view without search, return exactly top 10 best-selling eligible products
+        if ($topSellingDefault || ($categoryId === null && ($search === null || $search === '') && (!isset($_GET['limit']) || (int) $_GET['limit'] === 10))) {
+            $limit = 10;
+            $sort = 'sales';
+        } else {
+            $limit = (int) ($_GET['limit'] ?? 50);
+        }
 
         Response::json((new InventoryService($this->pdo))->listAllStock($search, $page, $limit, posOnly: true, categoryId: $categoryId, sort: $sort));
     }

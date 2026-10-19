@@ -12,6 +12,7 @@ interface OrderListItem {
   customer_name: string
   status: string
   payment_status: string
+  payment_method?: string
   grand_total: string
   created_at: string
 }
@@ -152,9 +153,14 @@ export function OrdersPage() {
                     <Badge tone={STATUS_TONE[o.status] ?? 'slate'}>{o.status.replace(/_/g, ' ')}</Badge>
                   </td>
                   <td className="px-5 py-3.5">
-                    <Badge tone={o.payment_status === 'PAID' ? 'green' : o.payment_status === 'FAILED' ? 'red' : 'amber'}>
-                      {o.payment_status}
-                    </Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge tone={o.payment_status === 'PAID' ? 'green' : o.payment_status === 'FAILED' ? 'red' : 'amber'}>
+                        {o.payment_status}
+                      </Badge>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        {o.payment_method || 'COD'}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-5 py-3.5 font-serif font-bold text-slate-900">₹{o.grand_total}</td>
                   <td className="px-5 py-3.5 text-slate-500 text-xs">{new Date(o.created_at).toLocaleDateString()}</td>
@@ -174,8 +180,16 @@ export function OrdersPage() {
                       </select>
                       <button
                         type="button"
+                        onClick={() => navigate(`/deliveries?orderId=${o.id}`)}
+                        className="text-[11px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200/80 rounded-lg px-2 py-1 flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Dispatch / Assign to Courier"
+                      >
+                        <span>🚚</span> Dispatch
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => navigate(ROUTES.ORDER_DETAIL(o.id))}
-                        className="text-[11px] font-bold text-[var(--color-primary)] hover:underline px-2 py-1"
+                        className="text-[11px] font-bold text-[var(--color-primary)] hover:underline px-2 py-1 cursor-pointer"
                       >
                         Details →
                       </button>

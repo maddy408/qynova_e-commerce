@@ -28,12 +28,12 @@ assert(isset($summary['delivered_today']['count']), "Summary must have delivered
 assert(isset($summary['cod_pending']['count']), "Summary must have cod_pending count");
 echo "✓ Summary metrics validated: " . json_encode($summary) . "\n";
 
-// 2. Test Drivers List
+// 2. Test Drivers List (Disabled for External Courier Workflow)
 echo "-> Testing drivers list...\n";
 $drivers = $deliverySvc->getDrivers();
 assert(is_array($drivers), "Drivers must be an array");
-assert(count($drivers) > 0, "At least one driver/staff must exist");
-echo "✓ Drivers list verified, found: " . count($drivers) . " driver(s)\n";
+assert(count($drivers) === 0, "Drivers must be empty array in external-courier-only workflow");
+echo "✓ Drivers list verified disabled (returns empty array)\n";
 
 // 3. Create test customer and test order
 $uid = time() . '-' . rand(100, 999);
@@ -125,26 +125,39 @@ assert(count($d1['items']) === 1, "Must contain ordered items");
 assert(count($d1['history']) === 1, "Must contain initial tracking event");
 echo "✓ Courier delivery created successfully: #{$deliveryId1}\n";
 
-// 6. Test Delivery Creation: Own Delivery for COD order
-echo "-> Testing Own Delivery fleet creation for COD order...\n";
-$driver = $drivers[0];
+// 6. Test Rejection of Own Delivery and creation via External Courier
+echo "-> Testing Own Delivery rejection for external courier workflow...\n";
+try {
+    $deliverySvc->createForOrder($codOrderId, [
+        'delivery_channel' => 'OWN_DELIVERY',
+        'driver_id' => 1,
+        'driver_name' => 'Legacy Driver',
+        'driver_phone' => '9988776655',
+        'vehicle_no' => 'TN-01-AB-1234',
+        'expected_delivery_date' => date('Y-m-d', strtotime('+1 day')),
+    ]);
+    assert(false, "Should have rejected OWN_DELIVERY channel");
+} catch (RuntimeException $e) {
+    assert($e->getCode() === 422, "Exception code must be 422 Unprocessable Entity");
+    echo "✓ Correctly rejected OWN_DELIVERY creation: {$e->getMessage()}\n";
+}
+
+echo "-> Testing External Courier delivery creation for COD order...\n";
 $deliveryId2 = $deliverySvc->createForOrder($codOrderId, [
-    'delivery_channel' => 'OWN_DELIVERY',
-    'driver_id' => $driver['id'],
-    'driver_name' => $driver['name'],
-    'driver_phone' => '9988776655',
-    'vehicle_no' => 'TN-01-AB-1234',
+    'delivery_channel' => 'COURIER',
+    'courier_partner' => 'Delhivery',
+    'awb' => "DL-COD-{$uid}",
     'expected_delivery_date' => date('Y-m-d', strtotime('+1 day')),
     'package_weight_kg' => 1.20,
 ]);
 assert($deliveryId2 > 0, "Delivery ID must be positive");
 
 $d2 = $deliverySvc->find($deliveryId2);
-assert($d2['delivery_channel'] === 'OWN_DELIVERY', "Channel must be OWN_DELIVERY");
-assert($d2['driver_name'] === $driver['name'], "Driver name must match");
+assert($d2['delivery_channel'] === 'COURIER', "Channel must be COURIER");
+assert($d2['courier_partner'] === 'Delhivery', "Courier partner must match");
 assert($d2['cod_status'] === 'PENDING', "COD order status must be PENDING");
 assert((float) $d2['cod_amount'] === 750.00, "COD amount must be 750.00");
-echo "✓ Own fleet delivery created successfully: #{$deliveryId2}\n";
+echo "✓ External Courier delivery created successfully for COD: #{$deliveryId2}\n";
 
 // 7. Test Duplicate Prevention
 echo "-> Testing duplicate delivery creation rejection...\n";

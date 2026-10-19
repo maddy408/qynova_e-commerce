@@ -140,7 +140,8 @@ final class DeliveryService
         $whereSql = implode(' AND ', $where);
 
         $stmt = $this->pdo->prepare(
-            "SELECT o.id, o.order_no, o.status, o.payment_status, o.grand_total, o.placed_at,
+            "SELECT o.id, o.order_no, o.status, o.payment_status, COALESCE(o.payment_method, 'COD') AS payment_method,
+                    o.grand_total, o.placed_at,
                     o.shipping_name, o.shipping_phone, o.shipping_line1, o.shipping_line2,
                     o.shipping_city_district, o.shipping_state, o.shipping_pincode,
                     (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS items_count,
@@ -151,8 +152,27 @@ final class DeliveryService
              LIMIT 50"
         );
         $stmt->execute($params);
+        $orders = $stmt->fetchAll();
 
-        return $stmt->fetchAll();
+        foreach ($orders as &$ord) {
+            $oiStmt = $this->pdo->prepare(
+                "SELECT oi.id, oi.product_id, oi.variant_id, oi.product_name_snapshot,
+                        oi.variant_label_snapshot, oi.sku_snapshot, oi.quantity,
+                        oi.unit_price, oi.line_total,
+                        (SELECT COALESCE(vi.image_path, pi.image_path)
+                         FROM product_variants pv
+                         LEFT JOIN variant_images vi ON vi.variant_id = pv.id AND vi.is_primary = 1
+                         LEFT JOIN product_images pi ON pi.product_id = pv.product_id AND pi.is_primary = 1
+                         WHERE pv.id = oi.variant_id LIMIT 1) AS image_path
+                 FROM order_items oi
+                 WHERE oi.order_id = :id"
+            );
+            $oiStmt->execute(['id' => $ord['id']]);
+            $ord['items'] = $oiStmt->fetchAll();
+        }
+        unset($ord);
+
+        return $orders;
     }
 
     /**
@@ -162,15 +182,8 @@ final class DeliveryService
      */
     public function getDrivers(): array
     {
-        $stmt = $this->pdo->query(
-            "SELECT u.id, u.name, u.email, r.code AS role_code, r.name AS role_name
-             FROM users u
-             JOIN roles r ON r.id = u.role_id
-             WHERE u.status = 'ACTIVE' AND u.deleted_at IS NULL
-             ORDER BY (r.code = 'DRIVER') DESC, u.name ASC"
-        );
-
-        return $stmt->fetchAll();
+        // Merchant workflow is external courier providers only. Own-fleet driver assignment is disabled.
+        return [];
     }
 
     /**
@@ -186,7 +199,12 @@ final class DeliveryService
             'expected_delivery_date' => $expectedDeliveryDate,
         ];
 
-        $orderStmt = $this->pdo->prepare('SELECT id, order_no, status, payment_status, grand_total FROM orders WHERE id = :id');
+        // Reject own-fleet / own-delivery assignments server-side
+        if (($data['delivery_channel'] ?? '') === 'OWN_DELIVERY' || !empty($data['driver_id'])) {
+            throw new RuntimeException('Own delivery / fleet assignment is disabled. Only external courier providers are supported.', 422);
+        }
+
+        $orderStmt = $this->pdo->prepare('SELECT id, order_no, status, payment_status, COALESCE(payment_method, \'COD\') AS payment_method, grand_total FROM orders WHERE id = :id');
         $orderStmt->execute(['id' => $orderId]);
         $order = $orderStmt->fetch();
 
@@ -210,22 +228,50 @@ final class DeliveryService
         $itemsStmt->execute(['id' => $orderId]);
         $itemsCount = (int) ($itemsStmt->fetchColumn() ?: 1);
 
-        $deliveryChannel = ($data['delivery_channel'] ?? '') === 'OWN_DELIVERY' ? 'OWN_DELIVERY' : 'COURIER';
-        $courier = !empty($data['courier_partner']) ? (string) $data['courier_partner'] : ($data['courier'] ?? null);
-        $courierPartner = !empty($data['courier_partner']) ? (string) $data['courier_partner'] : ($courier ?? null);
+        // Standardize courier partner references safely
+        $courierPartnerId = null;
+        $courierPartner = null;
+        $courier = null;
 
-        $driverId = !empty($data['driver_id']) ? (int) $data['driver_id'] : null;
-        $driverName = !empty($data['driver_name']) ? trim((string) $data['driver_name']) : null;
-        $driverPhone = !empty($data['driver_phone']) ? trim((string) $data['driver_phone']) : null;
-        $vehicleNo = !empty($data['vehicle_no']) ? trim((string) $data['vehicle_no']) : null;
-
-        // Auto-fetch driver name/phone if driver_id is provided
-        if ($driverId !== null && ($driverName === null || $driverName === '')) {
-            $userStmt = $this->pdo->prepare('SELECT name, email FROM users WHERE id = :id');
-            $userStmt->execute(['id' => $driverId]);
-            $u = $userStmt->fetch();
-            if ($u) {
-                $driverName = $u['name'];
+        if (!empty($data['courier_partner_id'])) {
+            $cpStmt = $this->pdo->prepare('SELECT id, name, code, status FROM courier_partners WHERE id = :id AND deleted_at IS NULL');
+            $cpStmt->execute(['id' => (int) $data['courier_partner_id']]);
+            $cp = $cpStmt->fetch();
+            if (!$cp) {
+                throw new RuntimeException('Selected courier partner does not exist');
+            }
+            if ($cp['status'] !== 'ACTIVE') {
+                throw new RuntimeException("Courier partner '{$cp['name']}' is not active");
+            }
+            $courierPartnerId = (int) $cp['id'];
+            $courierPartner = (string) $cp['name'];
+            $courier = (string) $cp['name'];
+        } elseif (!empty($data['courier_partner']) || !empty($data['courier'])) {
+            $rawPartner = trim((string) (!empty($data['courier_partner']) ? $data['courier_partner'] : $data['courier']));
+            $cpStmt = $this->pdo->prepare('SELECT id, name, code, status FROM courier_partners WHERE (name = :name OR code = :code) AND deleted_at IS NULL LIMIT 1');
+            $cpStmt->execute(['name' => $rawPartner, 'code' => strtoupper($rawPartner)]);
+            $cp = $cpStmt->fetch();
+            if ($cp) {
+                if ($cp['status'] !== 'ACTIVE') {
+                    throw new RuntimeException("Courier partner '{$cp['name']}' is not active");
+                }
+                $courierPartnerId = (int) $cp['id'];
+                $courierPartner = (string) $cp['name'];
+                $courier = (string) $cp['name'];
+            } else {
+                $courierPartner = $rawPartner;
+                $courier = $rawPartner;
+            }
+        } else {
+            $defCpStmt = $this->pdo->query("SELECT id, name FROM courier_partners WHERE status = 'ACTIVE' AND deleted_at IS NULL ORDER BY id ASC LIMIT 1");
+            $defCp = $defCpStmt->fetch();
+            if ($defCp) {
+                $courierPartnerId = (int) $defCp['id'];
+                $courierPartner = (string) $defCp['name'];
+                $courier = (string) $defCp['name'];
+            } else {
+                $courierPartner = 'Standard Courier';
+                $courier = 'Standard Courier';
             }
         }
 
@@ -237,9 +283,11 @@ final class DeliveryService
         $dimensions = $data['package_dimensions'] ?? null;
 
         // COD calculation
+        $payMethod = strtoupper(trim((string) ($order['payment_method'] ?? 'COD')));
         $isPaid = ($order['payment_status'] === 'PAID');
-        $codAmount = $isPaid ? 0.00 : (float) $order['grand_total'];
-        $codStatus = $isPaid ? 'NOT_APPLICABLE' : 'PENDING';
+        $isCod = ($payMethod === 'COD');
+        $codAmount = ($isCod && !$isPaid) ? (float) $order['grand_total'] : 0.00;
+        $codStatus = ($isCod && !$isPaid) ? 'PENDING' : 'NOT_APPLICABLE';
 
         $initialStatus = $data['status'] ?? 'PENDING';
 
@@ -248,14 +296,14 @@ final class DeliveryService
         try {
             $stmt = $this->pdo->prepare(
                 "INSERT INTO deliveries (
-                    order_id, provider, delivery_channel, courier, courier_partner,
+                    order_id, provider, delivery_channel, courier, courier_partner, courier_partner_id,
                     driver_id, driver_name, driver_phone, vehicle_no,
                     awb, tracking_url, status, expected_delivery_date, delivery_notes,
                     package_weight_kg, package_dimensions, package_items_count,
                     cod_amount, cod_collected_amount, cod_status
                 ) VALUES (
-                    :order_id, 'MOCK', :channel, :courier, :courier_partner,
-                    :driver_id, :driver_name, :driver_phone, :vehicle_no,
+                    :order_id, 'MOCK', 'COURIER', :courier, :courier_partner, :courier_partner_id,
+                    NULL, NULL, NULL, NULL,
                     :awb, :tracking_url, :status, :eta, :notes,
                     :weight, :dimensions, :items_count,
                     :cod_amount, 0.00, :cod_status
@@ -263,13 +311,9 @@ final class DeliveryService
             );
             $stmt->execute([
                 'order_id' => $orderId,
-                'channel' => $deliveryChannel,
                 'courier' => $courier,
                 'courier_partner' => $courierPartner,
-                'driver_id' => $driverId,
-                'driver_name' => $driverName,
-                'driver_phone' => $driverPhone,
-                'vehicle_no' => $vehicleNo,
+                'courier_partner_id' => $courierPartnerId,
                 'awb' => $awb,
                 'tracking_url' => $trackingUrl,
                 'status' => $initialStatus,
@@ -463,7 +507,7 @@ final class DeliveryService
     }
 
     /**
-     * Update driver / fleet assignment or courier details for a delivery.
+     * Update courier details for a delivery (External courier providers only).
      *
      * @param array<string, mixed> $data
      * @return array<string, mixed>
@@ -475,23 +519,47 @@ final class DeliveryService
             throw new RuntimeException('Delivery not found');
         }
 
-        $channel = ($data['delivery_channel'] ?? $delivery['delivery_channel']) === 'OWN_DELIVERY' ? 'OWN_DELIVERY' : 'COURIER';
-        $driverId = isset($data['driver_id']) ? (!empty($data['driver_id']) ? (int) $data['driver_id'] : null) : $delivery['driver_id'];
-        $driverName = isset($data['driver_name']) ? trim((string) $data['driver_name']) : $delivery['driver_name'];
-        $driverPhone = isset($data['driver_phone']) ? trim((string) $data['driver_phone']) : $delivery['driver_phone'];
-        $vehicleNo = isset($data['vehicle_no']) ? trim((string) $data['vehicle_no']) : $delivery['vehicle_no'];
+        // Reject own-delivery / own-fleet assignments server-side
+        if (($data['delivery_channel'] ?? '') === 'OWN_DELIVERY' || !empty($data['driver_id'])) {
+            throw new RuntimeException('Own delivery / fleet assignment is disabled. Only external courier providers are supported.', 422);
+        }
 
-        if ($driverId !== null && empty($driverName)) {
-            $uStmt = $this->pdo->prepare('SELECT name FROM users WHERE id = :id');
-            $uStmt->execute(['id' => $driverId]);
-            $u = $uStmt->fetch();
-            if ($u) {
-                $driverName = $u['name'];
+        // Standardize courier partner references safely
+        $courierPartnerId = $delivery['courier_partner_id'];
+        $courierPartner = $delivery['courier_partner'];
+        $courier = $delivery['courier'];
+
+        if (!empty($data['courier_partner_id'])) {
+            $cpStmt = $this->pdo->prepare('SELECT id, name, code, status FROM courier_partners WHERE id = :id AND deleted_at IS NULL');
+            $cpStmt->execute(['id' => (int) $data['courier_partner_id']]);
+            $cp = $cpStmt->fetch();
+            if (!$cp) {
+                throw new RuntimeException('Selected courier partner does not exist');
+            }
+            if ($cp['status'] !== 'ACTIVE') {
+                throw new RuntimeException("Courier partner '{$cp['name']}' is not active");
+            }
+            $courierPartnerId = (int) $cp['id'];
+            $courierPartner = (string) $cp['name'];
+            $courier = (string) $cp['name'];
+        } elseif (!empty($data['courier_partner']) || !empty($data['courier'])) {
+            $rawPartner = trim((string) (!empty($data['courier_partner']) ? $data['courier_partner'] : $data['courier']));
+            $cpStmt = $this->pdo->prepare('SELECT id, name, code, status FROM courier_partners WHERE (name = :name OR code = :code) AND deleted_at IS NULL LIMIT 1');
+            $cpStmt->execute(['name' => $rawPartner, 'code' => strtoupper($rawPartner)]);
+            $cp = $cpStmt->fetch();
+            if ($cp) {
+                if ($cp['status'] !== 'ACTIVE') {
+                    throw new RuntimeException("Courier partner '{$cp['name']}' is not active");
+                }
+                $courierPartnerId = (int) $cp['id'];
+                $courierPartner = (string) $cp['name'];
+                $courier = (string) $cp['name'];
+            } else {
+                $courierPartner = $rawPartner;
+                $courier = $rawPartner;
             }
         }
 
-        $courierPartner = isset($data['courier_partner']) ? trim((string) $data['courier_partner']) : ($data['courier'] ?? $delivery['courier_partner']);
-        $courier = $courierPartner ?: $delivery['courier'];
         $awb = isset($data['awb']) && trim((string) $data['awb']) !== '' ? trim((string) $data['awb']) : $delivery['awb'];
         $trackingUrl = isset($data['tracking_url']) && trim((string) $data['tracking_url']) !== '' ? trim((string) $data['tracking_url']) : $delivery['tracking_url'];
         $eta = isset($data['expected_delivery_date']) ? $data['expected_delivery_date'] : $delivery['expected_delivery_date'];
@@ -508,12 +576,9 @@ final class DeliveryService
             $this->pdo->prepare(
                 'UPDATE deliveries SET
                     delivery_channel = :channel,
-                    driver_id = :driver_id,
-                    driver_name = :driver_name,
-                    driver_phone = :driver_phone,
-                    vehicle_no = :vehicle_no,
                     courier = :courier,
                     courier_partner = :courier_partner,
+                    courier_partner_id = :courier_partner_id,
                     awb = :awb,
                     tracking_url = :tracking_url,
                     expected_delivery_date = :eta,
@@ -521,13 +586,10 @@ final class DeliveryService
                     status = :status
                  WHERE id = :id'
             )->execute([
-                'channel' => $channel,
-                'driver_id' => $driverId,
-                'driver_name' => $driverName,
-                'driver_phone' => $driverPhone,
-                'vehicle_no' => $vehicleNo,
+                'channel' => 'COURIER',
                 'courier' => $courier,
                 'courier_partner' => $courierPartner,
+                'courier_partner_id' => $courierPartnerId,
                 'awb' => $awb,
                 'tracking_url' => $trackingUrl,
                 'eta' => $eta,
@@ -536,9 +598,7 @@ final class DeliveryService
                 'id' => $deliveryId,
             ]);
 
-            $assignNote = ($channel === 'OWN_DELIVERY')
-                ? "Fleet reassigned to driver: {$driverName} (Vehicle: {$vehicleNo})"
-                : "Courier reassigned to: {$courierPartner} (AWB: {$awb})";
+            $assignNote = "Courier reassigned to: {$courierPartner} (AWB: {$awb})";
 
             $this->pdo->prepare(
                 'INSERT INTO delivery_status_history (delivery_id, from_status, to_status, source, note, actor_user_id)
@@ -562,50 +622,89 @@ final class DeliveryService
     }
 
     /**
-     * Record Cash On Delivery collection.
-     * Reconciles COD, records finance transaction, and marks order as PAID.
+     * Record Cash On Delivery collection with full concurrency safety and ledger atomicity.
+     * Reconciles COD, records deterministic finance transaction, and marks order as PAID.
      *
      * @return array<string, mixed>
      */
     public function collectCod(int $deliveryId, float $amount, ?int $actorUserId, ?string $notes = null): array
     {
-        $delivery = $this->find($deliveryId);
-        if ($delivery === null) {
-            throw new RuntimeException('Delivery not found');
-        }
-
-        if ($delivery['cod_status'] === 'COLLECTED' || $delivery['cod_status'] === 'RECONCILED') {
-            throw new RuntimeException('COD is already collected for this delivery');
-        }
-
-        if ($amount <= 0) {
-            throw new RuntimeException('Collected COD amount must be greater than zero');
-        }
-
+        // Concurrency-safe: begin database transaction before reading and locking delivery state
         $this->pdo->beginTransaction();
 
         try {
+            // Row-level lock on delivery
+            $stmt = $this->pdo->prepare('SELECT * FROM deliveries WHERE id = :id FOR UPDATE');
+            $stmt->execute(['id' => $deliveryId]);
+            $delivery = $stmt->fetch();
+
+            if ($delivery === false) {
+                throw new RuntimeException('Delivery not found', 404);
+            }
+
+            // Accept collection only when eligible and COD has not already been collected or reconciled
+            if ($delivery['cod_status'] === 'COLLECTED' || $delivery['cod_status'] === 'RECONCILED') {
+                throw new RuntimeException('COD is already collected or reconciled for this delivery', 409);
+            }
+
+            if ($delivery['cod_status'] === 'NOT_APPLICABLE') {
+                throw new RuntimeException('COD collection is not applicable for this delivery (prepaid order)', 422);
+            }
+
+            if ($delivery['cod_status'] !== 'PENDING') {
+                throw new RuntimeException("COD cannot be collected in '{$delivery['cod_status']}' state", 422);
+            }
+
+            // Validate collection amount
+            if ($amount <= 0.0) {
+                throw new RuntimeException('Collected COD amount must be greater than zero', 422);
+            }
+
+            $expectedCod = (float) $delivery['cod_amount'];
+            if (abs($amount - $expectedCod) > 0.01) {
+                throw new RuntimeException(
+                    sprintf('Collection amount (₹%.2f) does not match expected COD amount (₹%.2f)', $amount, $expectedCod),
+                    422
+                );
+            }
+
+            // Atomic conditional update: verify that exactly one row was affected
             $now = date('Y-m-d H:i:s');
-            $this->pdo->prepare(
+            $upStmt = $this->pdo->prepare(
                 "UPDATE deliveries SET
                     cod_collected_amount = :amount,
                     cod_status = 'COLLECTED',
                     cod_collected_at = :now,
                     cod_collected_by = :actor_id
-                 WHERE id = :id"
-            )->execute([
+                 WHERE id = :id AND cod_status = 'PENDING'"
+            );
+            $upStmt->execute([
                 'amount' => $amount,
                 'now' => $now,
                 'actor_id' => $actorUserId,
                 'id' => $deliveryId,
             ]);
 
-            // Update order payment status
-            $this->pdo->prepare("UPDATE orders SET payment_status = 'PAID' WHERE id = :id")
-                ->execute(['id' => $delivery['order_id']]);
+            if ($upStmt->rowCount() !== 1) {
+                throw new RuntimeException('Concurrent COD collection conflict: delivery was already collected or modified', 409);
+            }
 
-            // Record persistent finance transaction for reconciliation
-            $txNo = 'TX-COD-' . $deliveryId . '-' . strtoupper(bin2hex(random_bytes(3)));
+            // Lock order row and mark PAID only when full payment is genuinely collected
+            $orderStmt = $this->pdo->prepare('SELECT grand_total, payment_status, order_no FROM orders WHERE id = :id FOR UPDATE');
+            $orderStmt->execute(['id' => $delivery['order_id']]);
+            $orderRow = $orderStmt->fetch();
+
+            if ($orderRow && $amount >= (float) $orderRow['grand_total']) {
+                $this->pdo->prepare("UPDATE orders SET payment_status = 'PAID' WHERE id = :id")
+                    ->execute(['id' => $delivery['order_id']]);
+            }
+
+            $orderNo = $orderRow ? (string) $orderRow['order_no'] : "ORD-{$delivery['order_id']}";
+
+            // Deterministic transaction number preventing duplicate income entries: TX-COD-DEL-{$deliveryId}
+            // Enforced by unique index uq_ft_no on finance_transactions(transaction_no)
+            $txNo = "TX-COD-DEL-{$deliveryId}";
+
             $this->pdo->prepare(
                 "INSERT INTO finance_transactions (
                     transaction_no, type, category, amount, payment_method, reference_no, transaction_date, notes, created_by
@@ -615,8 +714,8 @@ final class DeliveryService
             )->execute([
                 'tx_no' => $txNo,
                 'amount' => $amount,
-                'ref_no' => $delivery['order_no'],
-                'notes' => $notes ?: "COD collected for Order {$delivery['order_no']} (AWB: {$delivery['awb']})",
+                'ref_no' => $orderNo,
+                'notes' => $notes ?: "COD collected for Order {$orderNo} (AWB: {$delivery['awb']})",
                 'created_by' => $actorUserId,
             ]);
 
@@ -634,26 +733,91 @@ final class DeliveryService
             ]);
 
             $this->pdo->commit();
+        } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            // Handle duplicate-key/concurrency constraint violation cleanly
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'Duplicate entry') || str_contains($e->getMessage(), 'uq_ft_no')) {
+                throw new RuntimeException('COD collection already recorded in financial ledger for this delivery', 409);
+            }
+            throw $e;
         } catch (\Throwable $e) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $e;
         }
 
         return $this->find($deliveryId) ?? throw new RuntimeException('Delivery not found after COD collection');
     }
 
-    /** Mock webhook entry point. */
-    public function updateByAwb(string $awb, string $newStatus, ?string $note): array
-    {
-        $stmt = $this->pdo->prepare('SELECT id FROM deliveries WHERE awb = :awb');
+    /**
+     * Authenticated courier webhook entry point.
+     * Enforces AWB lookup, status transition validation, and event deduplication.
+     * Does NOT mark COD collected or order paid when webhook reports DELIVERED.
+     *
+     * @return array<string, mixed>
+     */
+    public function updateByAwb(
+        string $awb,
+        string $newStatus,
+        ?string $note = null,
+        ?string $eventId = null,
+        ?string $location = null
+    ): array {
+        $stmt = $this->pdo->prepare('SELECT * FROM deliveries WHERE awb = :awb');
         $stmt->execute(['awb' => $awb]);
-        $deliveryId = $stmt->fetchColumn();
+        $delivery = $stmt->fetch();
 
-        if ($deliveryId === false) {
-            throw new RuntimeException('No delivery found for this AWB');
+        if ($delivery === false) {
+            throw new RuntimeException("No delivery found for AWB: {$awb}", 404);
         }
 
-        return $this->updateStatus((int) $deliveryId, $newStatus, 'SHIPPING_WEBHOOK', $note, null);
+        // Prevent replayed or duplicate events where provider event IDs are available
+        if ($eventId !== null && $eventId !== '') {
+            $logStmt = $this->pdo->prepare("SELECT id FROM courier_sync_logs WHERE JSON_UNQUOTE(JSON_EXTRACT(payload_sanitized, '$.event_id')) = :eid LIMIT 1");
+            $logStmt->execute(['eid' => $eventId]);
+            if ($logStmt->fetchColumn() !== false) {
+                // Idempotent return: event was already processed
+                return $this->find((int) $delivery['id']) ?? throw new RuntimeException('Delivery not found');
+            }
+        }
+
+        // If delivery is already in target status without new note or location, return existing
+        if ($delivery['status'] === $newStatus && empty($note) && empty($location)) {
+            return $this->find((int) $delivery['id']) ?? throw new RuntimeException('Delivery not found');
+        }
+
+        // Validate allowed state machine transition
+        $currentStatus = (string) $delivery['status'];
+        if ($currentStatus !== $newStatus) {
+            $allowed = self::ALLOWED_TRANSITIONS[$currentStatus] ?? [];
+            if (!in_array($newStatus, $allowed, true)) {
+                throw new RuntimeException("Cannot transition delivery from {$currentStatus} to {$newStatus}", 422);
+            }
+        }
+
+        // Record incoming webhook event in courier_sync_logs
+        if (!empty($delivery['courier_partner_id'])) {
+            $this->pdo->prepare(
+                "INSERT INTO courier_sync_logs (courier_partner_id, event_type, status, message, payload_sanitized, created_at)
+                 VALUES (:cpid, 'WEBHOOK_RECEIVED', 'SUCCESS', :msg, :payload, NOW())"
+            )->execute([
+                'cpid' => $delivery['courier_partner_id'],
+                'msg' => "Webhook status update to {$newStatus} for AWB {$awb}",
+                'payload' => json_encode(array_filter([
+                    'event_id' => $eventId ?: null,
+                    'awb' => $awb,
+                    'status' => $newStatus,
+                    'note' => $note,
+                    'location' => $location,
+                ])),
+            ]);
+        }
+
+        // updateStatus only updates delivery & order status. It NEVER alters COD or payment state.
+        return $this->updateStatus((int) $delivery['id'], $newStatus, 'SHIPPING_WEBHOOK', $note, null, null, $location);
     }
 
     /**
@@ -754,7 +918,7 @@ final class DeliveryService
 
         $stmt = $this->pdo->prepare(
             "SELECT d.*,
-                    o.order_no, o.status AS order_status, o.payment_status, o.grand_total, o.placed_at,
+                    o.order_no, o.status AS order_status, o.payment_status, COALESCE(o.payment_method, 'COD') AS payment_method, o.grand_total, o.placed_at,
                     o.shipping_name AS customer_name, o.shipping_phone AS customer_phone,
                     o.shipping_line1, o.shipping_line2, o.shipping_city_district, o.shipping_state, o.shipping_pincode,
                     (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS items_count,
@@ -804,7 +968,7 @@ final class DeliveryService
     {
         $stmt = $this->pdo->prepare(
             'SELECT d.*,
-                    o.order_no, o.status AS order_status, o.payment_status, o.grand_total, o.subtotal,
+                    o.order_no, o.status AS order_status, o.payment_status, COALESCE(o.payment_method, \'COD\') AS payment_method, o.grand_total, o.subtotal,
                     o.product_discount_total, o.coupon_discount_total, o.coupon_code,
                     o.referral_discount_total, o.tax_total, o.shipping_total, o.placed_at,
                     o.shipping_name AS customer_name, o.shipping_phone AS customer_phone,

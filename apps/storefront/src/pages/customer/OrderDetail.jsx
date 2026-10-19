@@ -1006,6 +1006,13 @@ export default function OrderDetail() {
                         {order.payment_status}
                       </span>
                     </div>
+
+                    <div className="flex justify-between items-center text-[11px] text-[var(--color-text-muted)]">
+                      <span>Payment Method</span>
+                      <span className="font-bold text-[var(--color-text-main)]">
+                        {order.payment_method ? (order.payment_method === 'COD' ? 'Cash on Delivery (COD)' : order.payment_method) : 'COD'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

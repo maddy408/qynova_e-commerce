@@ -1,4 +1,5 @@
 import { useEffect, useState, useTransition } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
 
@@ -10,6 +11,7 @@ interface DeliveryItem {
   order_no: string
   order_status: string
   payment_status: 'PAID' | 'PENDING' | 'FAILED' | 'PARTIALLY_REFUNDED' | 'REFUNDED'
+  payment_method?: string
   grand_total: string
   subtotal: string
   placed_at: string
@@ -22,6 +24,7 @@ interface DeliveryItem {
   shipping_pincode: string
   customer_email?: string | null
   delivery_channel: 'OWN_DELIVERY' | 'COURIER'
+  courier_partner_id?: number | null
   courier: string | null
   courier_partner: string | null
   courier_name?: string | null
@@ -85,24 +88,35 @@ interface EligibleOrder {
   order_no: string
   status: string
   payment_status: string
+  payment_method?: string
   grand_total: string
   placed_at: string
   shipping_name: string
   shipping_phone: string
   shipping_line1: string
+  shipping_line2?: string | null
   shipping_city_district: string
   shipping_state: string
   shipping_pincode: string
   items_count: number
   first_item_name: string | null
+  items?: Array<{
+    id: number
+    product_name_snapshot: string
+    variant_label_snapshot: string | null
+    sku_snapshot: string
+    quantity: number
+    unit_price: string
+    line_total: string
+    image_path: string | null
+  }>
 }
 
-interface DriverOption {
+interface CourierPartnerOption {
   id: number
   name: string
-  email: string
-  role_code: string
-  role_name: string
+  code: string
+  status: string
 }
 
 const PAGE_SIZE = 15
@@ -137,18 +151,18 @@ export function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<DeliveryItem[] | null>(null)
   const [total, setTotal] = useState(0)
   const [summary, setSummary] = useState<SummaryMetrics | null>(null)
-  const [tabCounts, setTabCounts] = useState<Record<string, number>>({ all: 0, own_delivery: 0, courier: 0, failed_returns: 0 })
+  const [tabCounts, setTabCounts] = useState<Record<string, number>>({ all: 0, courier: 0, failed_returns: 0 })
   const [loading, setLoading] = useState(true)
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
 
-  // Filter states
-  const [activeTab, setActiveTab] = useState<'all' | 'own_delivery' | 'courier' | 'failed_returns'>('all')
+  const [searchParams] = useSearchParams()
+
+  // Filter states (External courier workflow only)
+  const [activeTab, setActiveTab] = useState<'all' | 'ready_orders' | 'courier' | 'failed_returns'>('all')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [channelFilter, setChannelFilter] = useState('')
   const [courierFilter, setCourierFilter] = useState('')
-  const [driverFilter, setDriverFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [deliveryArea, setDeliveryArea] = useState('')
@@ -167,7 +181,7 @@ export function DeliveriesPage() {
 
   // Form reference data
   const [eligibleOrders, setEligibleOrders] = useState<EligibleOrder[]>([])
-  const [drivers, setDrivers] = useState<DriverOption[]>([])
+  const [courierPartners, setCourierPartners] = useState<CourierPartnerOption[]>([])
 
   // Modal sub-states
   const [statusTargetDelivery, setStatusTargetDelivery] = useState<DeliveryItem | null>(null)
@@ -177,10 +191,8 @@ export function DeliveriesPage() {
   const [statusSubmitting, setStatusSubmitting] = useState(false)
   const [statusModalError, setStatusModalError] = useState<string | null>(null)
 
-  // Reassign form state
-  const [reassignChannel, setReassignChannel] = useState<'OWN_DELIVERY' | 'COURIER'>('COURIER')
-  const [reassignDriverId, setReassignDriverId] = useState<number | ''>('')
-  const [reassignVehicleNo, setReassignVehicleNo] = useState('')
+  // Reassign form state (Courier only)
+  const [reassignCourierPartnerId, setReassignCourierPartnerId] = useState<number | ''>('')
   const [reassignCourier, setReassignCourier] = useState('')
   const [reassignAwb, setReassignAwb] = useState('')
   const [reassignEta, setReassignEta] = useState('')
@@ -191,14 +203,11 @@ export function DeliveriesPage() {
   const [codNotesInput, setCodNotesInput] = useState('')
   const [codSubmitting, setCodSubmitting] = useState(false)
 
-  // Add Delivery Form State
+  // Add Delivery Form State (Courier only)
   const [addSelectedOrder, setAddSelectedOrder] = useState<EligibleOrder | null>(null)
-  const [addChannel, setAddChannel] = useState<'OWN_DELIVERY' | 'COURIER'>('COURIER')
-  const [addCourier, setAddCourier] = useState('Blue Dart Express')
+  const [addCourierPartnerId, setAddCourierPartnerId] = useState<number | ''>('')
+  const [addCourier, setAddCourier] = useState('Delhivery')
   const [addAwb, setAddAwb] = useState('')
-  const [addDriverId, setAddDriverId] = useState<number | ''>('')
-  const [addDriverPhone, setAddDriverPhone] = useState('')
-  const [addVehicleNo, setAddVehicleNo] = useState('')
   const [addEta, setAddEta] = useState(
     new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   )
@@ -217,14 +226,40 @@ export function DeliveriesPage() {
 
   // Initial reference fetch
   useEffect(() => {
-    fetchDrivers()
+    fetchCourierPartners()
     fetchSummary()
+    fetchEligibleOrders()
   }, [])
+
+  // Search param handling (e.g. from Orders page dispatch link)
+  useEffect(() => {
+    const orderIdParam = searchParams.get('orderId')
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'ready_orders') {
+      setActiveTab('ready_orders')
+    }
+    if (orderIdParam) {
+      const orderIdNum = Number(orderIdParam)
+      api
+        .get('/deliveries/eligible-orders')
+        .then((res) => {
+          const list: EligibleOrder[] = res.data.orders || []
+          setEligibleOrders(list)
+          const found = list.find((o) => o.id === orderIdNum)
+          if (found) {
+            openAddModal(found)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [searchParams])
 
   // Main deliveries query
   useEffect(() => {
-    fetchDeliveries()
-  }, [activeTab, page, statusFilter, channelFilter, courierFilter, driverFilter, dateFrom, dateTo, deliveryArea])
+    if (activeTab !== 'ready_orders') {
+      fetchDeliveries()
+    }
+  }, [activeTab, page, statusFilter, courierFilter, dateFrom, dateTo, deliveryArea])
 
   async function fetchSummary() {
     try {
@@ -235,12 +270,19 @@ export function DeliveriesPage() {
     }
   }
 
-  async function fetchDrivers() {
+  async function fetchCourierPartners() {
     try {
-      const res = await api.get('/deliveries/drivers')
-      setDrivers(res.data.drivers || [])
+      const res = await api.get('/courier-partners', { params: { limit: 50 } })
+      const list = res.data.items || []
+      const activeOnly = list.filter((p: any) => p.status === 'ACTIVE')
+      const options = activeOnly.length > 0 ? activeOnly : list
+      setCourierPartners(options)
+      if (options.length > 0 && !addCourierPartnerId) {
+        setAddCourierPartnerId(options[0].id)
+        setAddCourier(options[0].name)
+      }
     } catch {
-      // Handled silently
+      setCourierPartners([])
     }
   }
 
@@ -264,9 +306,7 @@ export function DeliveriesPage() {
       }
       if (search.trim()) params.search = search.trim()
       if (statusFilter) params.status = statusFilter
-      if (channelFilter) params.delivery_channel = channelFilter
       if (courierFilter) params.courier_partner = courierFilter
-      if (driverFilter) params.driver_id = driverFilter
       if (dateFrom) params.date_from = dateFrom
       if (dateTo) params.date_to = dateTo
       if (deliveryArea.trim()) params.delivery_area = deliveryArea.trim()
@@ -305,9 +345,7 @@ export function DeliveriesPage() {
   function handleResetFilters() {
     setSearch('')
     setStatusFilter('')
-    setChannelFilter('')
     setCourierFilter('')
-    setDriverFilter('')
     setDateFrom('')
     setDateTo('')
     setDeliveryArea('')
@@ -318,15 +356,13 @@ export function DeliveriesPage() {
   }
 
   // --- Add Delivery Flow ---
-  function openAddModal() {
+  function openAddModal(orderToSelect?: EligibleOrder) {
     fetchEligibleOrders()
-    setAddSelectedOrder(null)
-    setAddChannel('COURIER')
-    setAddCourier('Blue Dart Express')
+    setAddSelectedOrder(orderToSelect || null)
+    const defaultPartner = courierPartners[0]
+    setAddCourierPartnerId(defaultPartner?.id || '')
+    setAddCourier(defaultPartner?.name || 'Delhivery')
     setAddAwb('')
-    setAddDriverId(drivers[0]?.id || '')
-    setAddDriverPhone('')
-    setAddVehicleNo('')
     setAddNotes('')
     setAddWeight('0.50')
     setAddDimensions('20x15x10 cm')
@@ -344,30 +380,24 @@ export function DeliveriesPage() {
     try {
       const payload: Record<string, any> = {
         order_id: addSelectedOrder.id,
-        delivery_channel: addChannel,
+        delivery_channel: 'COURIER',
+        courier_partner_id: addCourierPartnerId ? Number(addCourierPartnerId) : undefined,
+        courier_partner: addCourier,
+        courier: addCourier,
         expected_delivery_date: addEta || null,
         delivery_notes: addNotes || null,
         package_weight_kg: parseFloat(addWeight) || 0.50,
         package_dimensions: addDimensions || null,
       }
 
-      if (addChannel === 'COURIER') {
-        payload.courier_partner = addCourier
-        payload.courier = addCourier
-        if (addAwb.trim()) payload.awb = addAwb.trim()
-      } else {
-        payload.driver_id = addDriverId ? Number(addDriverId) : null
-        const dObj = drivers.find((d) => d.id === Number(addDriverId))
-        if (dObj) payload.driver_name = dObj.name
-        if (addDriverPhone.trim()) payload.driver_phone = addDriverPhone.trim()
-        if (addVehicleNo.trim()) payload.vehicle_no = addVehicleNo.trim()
-      }
+      if (addAwb.trim()) payload.awb = addAwb.trim()
 
       await api.post(`/orders/${addSelectedOrder.id}/delivery`, payload)
       setIsAddModalOpen(false)
       setActionSuccess(`Delivery created successfully for Order #${addSelectedOrder.order_no}`)
       fetchDeliveries()
       fetchSummary()
+      fetchEligibleOrders()
     } catch (err) {
       setActionError(apiErrorMessage(err, 'Failed to create delivery'))
     } finally {
@@ -419,13 +449,14 @@ export function DeliveriesPage() {
     }
   }
 
-  // --- Reassignment Flow ---
+  // --- Reassignment Flow (Courier only) ---
   function openReassignModal(del: DeliveryItem) {
     setStatusTargetDelivery(del)
-    setReassignChannel(del.delivery_channel)
-    setReassignDriverId(del.driver_id || '')
-    setReassignVehicleNo(del.vehicle_no || '')
-    setReassignCourier(del.courier_partner || del.courier || 'Blue Dart Express')
+    const existingPartner = courierPartners.find(
+      (cp) => cp.name === del.courier_partner || cp.name === del.courier
+    )
+    setReassignCourierPartnerId(del.courier_partner_id || existingPartner?.id || (courierPartners[0]?.id ?? ''))
+    setReassignCourier(del.courier_partner || del.courier || courierPartners[0]?.name || 'Delhivery')
     setReassignAwb(del.awb || '')
     setReassignEta(del.expected_delivery_date || '')
     setIsReassignModalOpen(true)
@@ -438,18 +469,12 @@ export function DeliveriesPage() {
     setReassignSubmitting(true)
     try {
       const payload: Record<string, any> = {
-        delivery_channel: reassignChannel,
+        delivery_channel: 'COURIER',
+        courier_partner_id: reassignCourierPartnerId ? Number(reassignCourierPartnerId) : undefined,
+        courier_partner: reassignCourier,
+        courier: reassignCourier,
+        awb: reassignAwb.trim() || null,
         expected_delivery_date: reassignEta || null,
-      }
-      if (reassignChannel === 'OWN_DELIVERY') {
-        payload.driver_id = reassignDriverId ? Number(reassignDriverId) : null
-        const dObj = drivers.find((d) => d.id === Number(reassignDriverId))
-        if (dObj) payload.driver_name = dObj.name
-        payload.vehicle_no = reassignVehicleNo.trim() || null
-      } else {
-        payload.courier_partner = reassignCourier
-        payload.courier = reassignCourier
-        payload.awb = reassignAwb.trim() || null
       }
 
       const res = await api.put(`/deliveries/${statusTargetDelivery.id}/assignment`, payload)
@@ -534,7 +559,7 @@ export function DeliveriesPage() {
             </span>
           </h1>
           <p className="text-xs text-slate-700 font-bold mt-1">
-            Manage shipments, own delivery fleet, courier partners, dispatch and live tracking.
+            Manage shipments, external courier partners, dispatch and live tracking.
           </p>
         </div>
 
@@ -546,7 +571,7 @@ export function DeliveriesPage() {
             <span>Refresh</span>
           </Button>
 
-          <Button variant="primary" onClick={openAddModal} className="text-xs shadow-md">
+          <Button variant="primary" onClick={() => openAddModal()} className="text-xs shadow-md">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
@@ -579,7 +604,14 @@ export function DeliveriesPage() {
       {/* ================= DATA-DRIVEN SUMMARY CARDS ================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Ready to Dispatch */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div
+          onClick={() => {
+            setActiveTab('ready_orders')
+            setPage(1)
+          }}
+          className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer relative overflow-hidden group"
+          title="Click to view all orders ready for delivery dispatch"
+        >
           <div className="absolute top-0 left-0 h-1 w-full bg-purple-500" />
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">Ready to Dispatch</span>
@@ -591,10 +623,10 @@ export function DeliveriesPage() {
           </div>
           <div className="mt-3">
             <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {summary ? summary.ready_to_dispatch.count : '—'}
+              {eligibleOrders.length > 0 ? eligibleOrders.length : (summary ? summary.ready_to_dispatch.count : '—')}
             </p>
             <p className="text-xs font-bold text-slate-600 mt-0.5">
-              ₹{summary ? summary.ready_to_dispatch.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'} · Orders packed
+              {eligibleOrders.length > 0 ? `${eligibleOrders.length} order(s) waiting to dispatch →` : 'All orders dispatched'}
             </p>
           </div>
         </div>
@@ -665,12 +697,12 @@ export function DeliveriesPage() {
 
       {/* ================= TABS & ADVANCED FILTERS ================= */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 space-y-4">
-        {/* Delivery Tabs */}
+        {/* Delivery Tabs (External courier model) */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-4">
           {[
             { id: 'all', label: 'All Deliveries', count: tabCounts.all },
-            { id: 'own_delivery', label: 'Own Delivery', count: tabCounts.own_delivery },
-            { id: 'courier', label: 'Courier Partner', count: tabCounts.courier },
+            { id: 'ready_orders', label: 'Ready to Dispatch (Orders)', count: eligibleOrders.length },
+            { id: 'courier', label: 'External Couriers', count: tabCounts.courier },
             { id: 'failed_returns', label: 'Failed / Returns', count: tabCounts.failed_returns },
           ].map((tab) => {
             const isActive = activeTab === tab.id
@@ -711,7 +743,7 @@ export function DeliveriesPage() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Order #, Customer, AWB, Driver..."
+                placeholder="Order #, Customer, AWB, Courier..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-9 pl-8 pr-3 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:bg-white transition-colors"
@@ -744,22 +776,6 @@ export function DeliveriesPage() {
             </select>
           </div>
 
-          {/* Delivery Channel */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Channel
-            </label>
-            <select
-              value={channelFilter}
-              onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
-              className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900"
-            >
-              <option value="">All Channels</option>
-              <option value="OWN_DELIVERY">Own Fleet</option>
-              <option value="COURIER">Courier Partner</option>
-            </select>
-          </div>
-
           {/* Courier Partner */}
           <div>
             <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -771,26 +787,13 @@ export function DeliveriesPage() {
               className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900"
             >
               <option value="">All Partners</option>
-              {COURIER_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Driver Filter */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Assigned Driver
-            </label>
-            <select
-              value={driverFilter}
-              onChange={(e) => { setDriverFilter(e.target.value); setPage(1); }}
-              className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-slate-50/50 text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900"
-            >
-              <option value="">All Drivers</option>
-              {drivers.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
+              {courierPartners.length > 0
+                ? courierPartners.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name} ({c.code})</option>
+                  ))
+                : COURIER_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
             </select>
           </div>
 
@@ -848,7 +851,106 @@ export function DeliveriesPage() {
 
       {/* ================= DELIVERY TABLE ================= */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {loading ? (
+        {activeTab === 'ready_orders' ? (
+          <div className="overflow-x-auto">
+            <div className="p-4 bg-purple-50/50 border-b border-purple-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">📦</span>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-xs">Confirmed Orders Awaiting Delivery Dispatch</h3>
+                  <p className="text-[11px] text-slate-500">Select an order and assign an external courier partner (Delhivery, Blue Dart, DTDC, etc.) to generate AWB and initiate delivery tracking.</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-black">
+                {eligibleOrders.length} Order(s) Eligible
+              </span>
+            </div>
+
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-black uppercase text-[10px] tracking-wider">
+                <tr>
+                  <th className="py-4 px-4">Order # &amp; Date</th>
+                  <th className="py-4 px-4">Customer Details</th>
+                  <th className="py-4 px-4">Shipping Destination</th>
+                  <th className="py-4 px-4">Ordered Products</th>
+                  <th className="py-4 px-4">Payment &amp; Mode</th>
+                  <th className="py-4 px-4">Total Amount</th>
+                  <th className="py-4 px-4 text-right">Dispatch Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {eligibleOrders.length > 0 ? (
+                  eligibleOrders.map((ord) => (
+                    <tr key={ord.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                        <span className="text-purple-700 font-black text-xs block">#{ord.order_no}</span>
+                        <span className="text-[11px] text-slate-400 font-sans font-medium">
+                          {new Date(ord.placed_at).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <p className="font-bold text-slate-900 text-xs">{ord.shipping_name}</p>
+                        <p className="text-[11px] text-slate-500 font-medium">+91 {ord.shipping_phone}</p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <p className="text-xs text-slate-800 font-medium truncate max-w-[220px]" title={`${ord.shipping_line1}, ${ord.shipping_city_district}, ${ord.shipping_state} - ${ord.shipping_pincode}`}>
+                          {ord.shipping_line1}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-bold">
+                          {ord.shipping_city_district}, {ord.shipping_state} ({ord.shipping_pincode})
+                        </p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
+                            {ord.items_count} item(s)
+                          </span>
+                          <span className="text-xs text-slate-700 font-medium truncate max-w-[180px]" title={ord.first_item_name || ''}>
+                            {ord.first_item_name || 'Order Items'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <Badge tone={ord.payment_status === 'PAID' ? 'green' : 'amber'}>
+                            {ord.payment_status}
+                          </Badge>
+                          <span className="text-[11px] font-bold text-slate-600 uppercase">
+                            {ord.payment_method || 'COD'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900 text-sm">
+                        ₹{parseFloat(ord.grand_total).toFixed(2)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => openAddModal(ord)}
+                          className="shadow-xs text-xs font-bold"
+                        >
+                          ⚡ Assign Courier
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-400 font-medium text-xs">
+                      No orders waiting for dispatch. All eligible orders have been assigned to deliveries!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-3">
             <Spinner />
             <p className="text-xs font-bold text-slate-500">Loading delivery records...</p>
@@ -869,7 +971,7 @@ export function DeliveriesPage() {
                   <th className="py-4 px-4">Order & Date</th>
                   <th className="py-4 px-4">Items / Product</th>
                   <th className="py-4 px-4">Customer & Area</th>
-                  <th className="py-4 px-4">Channel & Carrier</th>
+                  <th className="py-4 px-4">Courier Partner</th>
                   <th className="py-4 px-4">Tracking / AWB</th>
                   <th className="py-4 px-4">Delivery Status</th>
                   <th className="py-4 px-4">Payment & COD</th>
@@ -950,27 +1052,16 @@ export function DeliveriesPage() {
                           </p>
                         </td>
 
-                        {/* Channel & Carrier */}
+                        {/* Courier Partner */}
                         <td className="py-3.5 px-4">
-                          {d.delivery_channel === 'OWN_DELIVERY' ? (
-                            <div>
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
-                                <span>Fleet</span>
-                              </span>
-                              <p className="text-[11px] font-bold text-slate-800 mt-0.5">
-                                {d.driver_name || 'Unassigned'}
-                              </p>
-                            </div>
-                          ) : (
-                            <div>
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-                                <span>Courier</span>
-                              </span>
-                              <p className="text-[11px] font-bold text-slate-800 mt-0.5">
-                                {d.courier_partner || d.courier || 'Standard Courier'}
-                              </p>
-                            </div>
-                          )}
+                          <div>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                              <span>Courier</span>
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-800 mt-0.5">
+                              {d.courier_partner || d.courier || 'Standard Courier'}
+                            </p>
+                          </div>
                         </td>
 
                         {/* Tracking / AWB */}
@@ -1083,7 +1174,7 @@ export function DeliveriesPage() {
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {activeTab !== 'ready_orders' && totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 text-xs">
             <span className="text-slate-500 font-medium">
               Showing page <strong className="text-slate-900">{page}</strong> of{' '}
@@ -1177,9 +1268,9 @@ export function DeliveriesPage() {
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">Channel</span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Courier Partner</span>
                         <p className="font-extrabold text-slate-900 mt-0.5">
-                          {selectedDelivery.delivery_channel === 'OWN_DELIVERY' ? 'Own Fleet Delivery' : 'Courier Partner'}
+                          {selectedDelivery.courier_partner || selectedDelivery.courier || 'Standard Courier'}
                         </p>
                       </div>
 
@@ -1190,37 +1281,15 @@ export function DeliveriesPage() {
                         </p>
                       </div>
 
-                      {selectedDelivery.delivery_channel === 'OWN_DELIVERY' ? (
-                        <>
-                          <div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Assigned Driver</span>
-                            <p className="font-bold text-slate-900 mt-0.5">{selectedDelivery.driver_name || '—'}</p>
-                            {selectedDelivery.driver_phone && (
-                              <p className="text-[11px] text-slate-500">{selectedDelivery.driver_phone}</p>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Vehicle Number</span>
-                            <p className="font-bold text-slate-900 mt-0.5">{selectedDelivery.vehicle_no || '—'}</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Courier Partner</span>
-                            <p className="font-bold text-slate-900 mt-0.5">{selectedDelivery.courier_partner || selectedDelivery.courier || '—'}</p>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Tracking / AWB</span>
-                            <p className="font-mono font-bold text-purple-700 mt-0.5 flex items-center gap-1">
-                              <span>{selectedDelivery.awb || '—'}</span>
-                              {selectedDelivery.tracking_url && (
-                                <a href={selectedDelivery.tracking_url} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-purple-600">↗</a>
-                              )}
-                            </p>
-                          </div>
-                        </>
-                      )}
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">Tracking / AWB</span>
+                        <p className="font-mono font-bold text-purple-700 mt-0.5 flex items-center gap-1">
+                          <span>{selectedDelivery.awb || '—'}</span>
+                          {selectedDelivery.tracking_url && (
+                            <a href={selectedDelivery.tracking_url} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-purple-600">↗</a>
+                          )}
+                        </p>
+                      </div>
 
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold uppercase">Package Specs</span>
@@ -1431,131 +1500,70 @@ export function DeliveriesPage() {
                     ))}
                   </select>
                 )}
+                {addSelectedOrder && (
+                  <div className="mt-2.5 p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-1.5 text-xs text-slate-700 animate-in fade-in">
+                    <div className="flex items-center justify-between font-bold text-slate-900">
+                      <span>Order #{addSelectedOrder.order_no}</span>
+                      <span className="text-purple-700 font-black">₹{parseFloat(addSelectedOrder.grand_total).toFixed(2)} ({addSelectedOrder.payment_method || 'COD'} / {addSelectedOrder.payment_status})</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600">
+                      <span className="font-semibold text-slate-800">Ship To:</span> {addSelectedOrder.shipping_name} (+91 {addSelectedOrder.shipping_phone}) · {addSelectedOrder.shipping_line1}, {addSelectedOrder.shipping_city_district}, {addSelectedOrder.shipping_state} - {addSelectedOrder.shipping_pincode}
+                    </p>
+                    {addSelectedOrder.first_item_name && (
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        <span className="font-semibold text-slate-700">Items ({addSelectedOrder.items_count}):</span> {addSelectedOrder.first_item_name}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Delivery Channel Radio */}
-              <div>
-                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-800 mb-1.5">
-                  2. Delivery Channel <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label
-                    className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
-                      addChannel === 'COURIER'
-                        ? 'border-purple-600 bg-purple-50/30 font-bold text-purple-900 ring-2 ring-purple-600/20'
-                        : 'border-slate-200 bg-slate-50/50 text-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="channel"
-                      value="COURIER"
-                      checked={addChannel === 'COURIER'}
-                      onChange={() => setAddChannel('COURIER')}
-                      className="text-purple-600"
-                    />
-                    <div>
-                      <span className="block text-xs font-black">Courier Partner</span>
-                      <span className="text-[10px] text-slate-500 font-normal">Blue Dart, Delhivery, DTDC, etc.</span>
-                    </div>
+              {/* Courier Partner Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-800 mb-1.5">
+                    2. Courier Partner <span className="text-red-500">*</span>
                   </label>
-
-                  <label
-                    className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
-                      addChannel === 'OWN_DELIVERY'
-                        ? 'border-purple-600 bg-purple-50/30 font-bold text-purple-900 ring-2 ring-purple-600/20'
-                        : 'border-slate-200 bg-slate-50/50 text-slate-700'
-                    }`}
+                  <select
+                    value={addCourierPartnerId}
+                    onChange={(e) => {
+                      const pid = Number(e.target.value) || ''
+                      setAddCourierPartnerId(pid)
+                      const found = courierPartners.find((cp) => cp.id === pid)
+                      if (found) setAddCourier(found.name)
+                    }}
+                    required
+                    className="w-full h-10 px-3 rounded-2xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-purple-600"
                   >
-                    <input
-                      type="radio"
-                      name="channel"
-                      value="OWN_DELIVERY"
-                      checked={addChannel === 'OWN_DELIVERY'}
-                      onChange={() => setAddChannel('OWN_DELIVERY')}
-                      className="text-purple-600"
-                    />
-                    <div>
-                      <span className="block text-xs font-black">Own Delivery Fleet</span>
-                      <span className="text-[10px] text-slate-500 font-normal">Internal driver & store vehicle</span>
-                    </div>
+                    <option value="">-- Choose Courier Partner --</option>
+                    {courierPartners.length > 0 ? (
+                      courierPartners.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({c.code})
+                        </option>
+                      ))
+                    ) : (
+                      COURIER_OPTIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-800 mb-1.5">
+                    AWB / Tracking Number (Optional)
                   </label>
+                  <input
+                    type="text"
+                    placeholder="Auto-generated if empty"
+                    value={addAwb}
+                    onChange={(e) => setAddAwb(e.target.value)}
+                    className="w-full h-10 px-3 rounded-2xl border border-slate-200 bg-white text-xs font-mono focus:outline-none focus:border-purple-600"
+                  />
                 </div>
               </div>
-
-              {/* Dynamic Channel Fields */}
-              {addChannel === 'COURIER' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Courier Partner
-                    </label>
-                    <select
-                      value={addCourier}
-                      onChange={(e) => setAddCourier(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-white text-xs font-semibold"
-                    >
-                      {COURIER_OPTIONS.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      AWB / Tracking Number (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Auto-generated if empty"
-                      value={addAwb}
-                      onChange={(e) => setAddAwb(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-white text-xs font-mono"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Assign Driver
-                    </label>
-                    <select
-                      value={addDriverId}
-                      onChange={(e) => setAddDriverId(Number(e.target.value) || '')}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-white text-xs font-semibold"
-                    >
-                      <option value="">-- Choose Driver --</option>
-                      {drivers.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name} ({d.role_name})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Driver Phone
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 9940123456"
-                      value={addDriverPhone}
-                      onChange={(e) => setAddDriverPhone(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                      Vehicle Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. TN-09-AB-1234"
-                      value={addVehicleNo}
-                      onChange={(e) => setAddVehicleNo(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 bg-white text-xs"
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* Package Specs & ETA */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1791,79 +1799,48 @@ export function DeliveriesPage() {
 
             <form onSubmit={handleReassignSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Channel</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="rchan"
-                      checked={reassignChannel === 'COURIER'}
-                      onChange={() => setReassignChannel('COURIER')}
-                    />
-                    <span className="font-bold">Courier Partner</span>
-                  </label>
-                  <label className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="rchan"
-                      checked={reassignChannel === 'OWN_DELIVERY'}
-                      onChange={() => setReassignChannel('OWN_DELIVERY')}
-                    />
-                    <span className="font-bold">Own Fleet</span>
-                  </label>
-                </div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  Courier Partner <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={reassignCourierPartnerId}
+                  onChange={(e) => {
+                    const pid = Number(e.target.value) || ''
+                    setReassignCourierPartnerId(pid)
+                    const found = courierPartners.find((cp) => cp.id === pid)
+                    if (found) setReassignCourier(found.name)
+                  }}
+                  required
+                  className="w-full h-9 px-3 rounded-2xl border border-slate-200 font-semibold text-xs bg-white"
+                >
+                  <option value="">-- Choose Courier Partner --</option>
+                  {courierPartners.length > 0 ? (
+                    courierPartners.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.code})
+                      </option>
+                    ))
+                  ) : (
+                    COURIER_OPTIONS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
-
-              {reassignChannel === 'COURIER' ? (
-                <>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Courier Partner</label>
-                    <select
-                      value={reassignCourier}
-                      onChange={(e) => setReassignCourier(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 font-semibold"
-                    >
-                      {COURIER_OPTIONS.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">AWB / Tracking Number</label>
-                    <input
-                      type="text"
-                      value={reassignAwb}
-                      onChange={(e) => setReassignAwb(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 font-mono"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Assign Driver</label>
-                    <select
-                      value={reassignDriverId}
-                      onChange={(e) => setReassignDriverId(Number(e.target.value) || '')}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200 font-semibold"
-                    >
-                      <option value="">-- Choose Driver --</option>
-                      {drivers.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name} ({d.role_name})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Vehicle Number</label>
-                    <input
-                      type="text"
-                      value={reassignVehicleNo}
-                      onChange={(e) => setReassignVehicleNo(e.target.value)}
-                      className="w-full h-9 px-3 rounded-2xl border border-slate-200"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  AWB / Tracking Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="AWB / Waybill number"
+                  value={reassignAwb}
+                  onChange={(e) => setReassignAwb(e.target.value)}
+                  className="w-full h-9 px-3 rounded-2xl border border-slate-200 font-mono text-xs bg-white"
+                />
+              </div>
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Expected Delivery Date</label>

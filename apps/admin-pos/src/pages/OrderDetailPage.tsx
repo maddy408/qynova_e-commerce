@@ -30,6 +30,7 @@ interface OrderDetail {
   customer_phone: string
   status: string
   payment_status: string
+  payment_method?: string
   subtotal: string
   coupon_discount_total: string
   referral_discount_total: string
@@ -148,6 +149,7 @@ export function OrderDetailPage() {
             {order.status.replace(/_/g, ' ')}
           </Badge>
           <Badge tone={order.payment_status === 'PAID' ? 'green' : 'slate'}>{order.payment_status}</Badge>
+          <Badge tone="slate">{order.payment_method || 'COD'}</Badge>
         </div>
       </div>
 
@@ -253,12 +255,12 @@ export function OrderDetailPage() {
                 <Button size="sm" variant="secondary" onClick={() => navigate(ROUTES.DELIVERY_DETAIL(deliveryId))}>
                   View Delivery
                 </Button>
-              ) : order.payment_status === 'PAID' ? (
+              ) : !['CANCELLED', 'RETURNED', 'REFUNDED'].includes(order.status) ? (
                 <Button size="sm" onClick={createDelivery} disabled={creatingDelivery}>
                   {creatingDelivery ? 'Creating…' : 'Create Delivery'}
                 </Button>
               ) : (
-                <p className="text-xs text-slate-500">A delivery can be created once this order is paid.</p>
+                <p className="text-xs text-slate-500">Delivery cannot be created for {order.status.toLowerCase()} order.</p>
               )}
             </Card>
           )}

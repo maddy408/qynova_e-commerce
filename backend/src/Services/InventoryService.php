@@ -317,9 +317,11 @@ final class InventoryService
                         g.gst_percent, g.tax_mode,
                         (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                         COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
-                        COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold
+                        COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold,
+                        COALESCE(u.name, 'Pieces') AS unit_name
                  FROM product_variants v
                  JOIN products p ON p.id = v.product_id
+                 LEFT JOIN units u ON u.id = p.unit_id
                  LEFT JOIN inventory i ON i.variant_id = v.id
                  LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
                  WHERE {$whereSql}
@@ -421,6 +423,7 @@ final class InventoryService
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     COALESCE(i.on_hand, 0) AS on_hand, COALESCE(i.available, 0) AS available,
                     COALESCE(i.low_stock_threshold, 5) AS low_stock_threshold,
+                    COALESCE(u.name, 'Pieces') AS unit_name,
                     b.id AS batch_id,
                     b.batch_no,
                     b.manufacturing_date,
@@ -429,6 +432,7 @@ final class InventoryService
                     b.mrp AS batch_mrp
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
+             LEFT JOIN units u ON u.id = p.unit_id
              LEFT JOIN inventory i ON i.variant_id = v.id
              LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
              LEFT JOIN (

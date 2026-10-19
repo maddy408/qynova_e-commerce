@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Helpers\Config;
 use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
@@ -216,25 +217,76 @@ final class DeliveryController
                 notes: $notes,
             )]);
         } catch (RuntimeException $e) {
-            Response::error($e->getMessage(), 422);
+            $status = ($e->getCode() === 409) ? 409 : 422;
+            Response::error($e->getMessage(), $status);
         }
     }
 
-    /** Mock shipping-provider webhook. */
+    /** Secure shipping-provider inbound webhook. */
     public function webhook(): void
     {
-        $body = Request::json();
-        $awb = (string) ($body['awb'] ?? '');
-        $status = (string) ($body['status'] ?? '');
+        // 1. Authenticate webhook using server-configured secret
+        $configuredSecret = (string) (Config::get('shipping.webhook_secret') ?: ($_ENV['SHIPPING_WEBHOOK_SECRET'] ?? ''));
 
-        if ($awb === '' || $status === '') {
-            Response::error('awb and status are required', 422);
+        // Fail-closed: do not allow unauthenticated status updates if secret is missing on server
+        if ($configuredSecret === '') {
+            Response::error('Shipping webhook secret is not configured on server', 503);
+            return;
         }
 
+        // Support standard webhook authentication headers safely
+        $providedSecret = $_SERVER['HTTP_X_WEBHOOK_SECRET']
+            ?? $_SERVER['HTTP_X_SHIPPING_TOKEN']
+            ?? $_SERVER['HTTP_X_API_KEY']
+            ?? null;
+
+        if ($providedSecret === null && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            $auth = trim((string) $_SERVER['HTTP_AUTHORIZATION']);
+            if (str_starts_with($auth, 'Bearer ')) {
+                $providedSecret = substr($auth, 7);
+            }
+        }
+
+        if ($providedSecret === null || !hash_equals($configuredSecret, (string) $providedSecret)) {
+            Response::error('Invalid or missing webhook signature/secret', 401);
+            return;
+        }
+
+        // 2. Validate payload structure
+        $body = Request::json();
+        if (!is_array($body) || empty($body)) {
+            Response::error('Malformed webhook payload: JSON body is required', 422);
+            return;
+        }
+
+        $awb = trim((string) ($body['awb'] ?? $body['tracking_number'] ?? $body['waybill'] ?? ''));
+        $rawStatus = trim((string) ($body['status'] ?? $body['current_status'] ?? ''));
+        $eventId = trim((string) ($body['event_id'] ?? $body['webhook_id'] ?? ''));
+
+        if ($awb === '' || $rawStatus === '') {
+            Response::error('awb and status are required', 422);
+            return;
+        }
+
+        $status = strtoupper($rawStatus);
+        if (!array_key_exists($status, DeliveryService::DELIVERY_TO_ORDER_STATUS)) {
+            Response::error("Invalid delivery status: {$rawStatus}", 422);
+            return;
+        }
+
+        // 3. Process delivery status update with transition validation and deduplication
         try {
-            Response::json(['delivery' => $this->deliveries->updateByAwb($awb, $status, $body['note'] ?? null)]);
+            $updated = $this->deliveries->updateByAwb(
+                awb: $awb,
+                newStatus: $status,
+                note: $body['note'] ?? $body['message'] ?? null,
+                eventId: $eventId ?: null,
+                location: $body['location'] ?? null,
+            );
+            Response::json(['delivery' => $updated]);
         } catch (RuntimeException $e) {
-            Response::error($e->getMessage(), 422);
+            $code = ($e->getCode() >= 400 && $e->getCode() <= 499) ? $e->getCode() : 422;
+            Response::error($e->getMessage(), $code);
         }
     }
 

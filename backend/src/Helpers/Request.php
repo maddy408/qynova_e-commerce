@@ -10,6 +10,9 @@ final class Request
     public static function json(): array
     {
         $raw = file_get_contents('php://input') ?: '';
+        if ($raw === '' && PHP_SAPI === 'cli') {
+            $raw = file_get_contents('php://stdin') ?: '';
+        }
         $decoded = json_decode($raw, true);
 
         return is_array($decoded) ? $decoded : [];

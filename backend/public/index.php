@@ -160,6 +160,7 @@ $router->post('/api/returns/{id}/replacement', fn ($id) => $returns->createRepla
 $router->get('/api/orders/{orderId}/return', fn ($orderId) => $returns->showForOrder($orderId));
 $router->get('/api/orders/{orderId}/return-eligibility', fn ($orderId) => $returns->customerEligibility($orderId));
 $router->post('/api/orders/{orderId}/return', fn ($orderId) => $returns->customerCreate($orderId));
+$router->post('/api/orders/{orderId}/returns', fn ($orderId) => $returns->storeForOrder($orderId));
 
 // Finance Management (Expense & Income)
 $finance = new \App\Controllers\FinanceController($pdo);

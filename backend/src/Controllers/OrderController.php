@@ -55,6 +55,7 @@ final class OrderController
                 (array) ($body['items'] ?? []),
                 (array) ($body['address'] ?? []),
                 $body['coupon_code'] ?? null,
+                (string) ($body['payment_method'] ?? 'COD'),
             );
             Response::json(['order' => $order], 201);
         } catch (RuntimeException $e) {
