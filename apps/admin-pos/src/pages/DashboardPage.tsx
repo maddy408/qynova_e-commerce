@@ -854,25 +854,25 @@ export function DashboardPage() {
           {/* Row 3: 3 Financial Cards                                  */}
           {/* ========================================================= */}
           <div className="space-y-3.5">
-            {/* ROW 1: EXACTLY 3 EQUAL-WIDTH CARDS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {/* TOP 8 KPI CARDS: ALL IN ONE SINGLE ROW ON DESKTOP */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-3.5">
               {/* 1. Today's Sales */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 text-white shadow-xs text-base">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-600 text-white shadow-xs text-sm">
                     🛒
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     Today's Sales
                   </span>
                 </div>
-                <div className="my-3">
-                  <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                <div className="my-2.5">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {formatCurrency(summary.sales.today_sales)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px]">
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] truncate">
                     ↑ Daily POS
                   </span>
                   <MiniBars color="bg-purple-600" />
@@ -880,159 +880,156 @@ export function DashboardPage() {
               </div>
 
               {/* 2. This Month */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500 text-white shadow-xs text-base">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-500 text-white shadow-xs text-sm">
                     👛
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     This Month
                   </span>
                 </div>
-                <div className="my-3">
-                  <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                <div className="my-2.5">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {formatCurrency(summary.sales.this_month_sales)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[11px]">Current Month</span>
+                  <span className="text-slate-400 font-medium text-[10px] truncate">Current Month</span>
                   <MiniBars color="bg-teal-500" />
                 </div>
               </div>
 
               {/* 3. Total Sales (or Selected Period Sales when filtered) */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white shadow-xs text-base">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-white shadow-xs text-sm">
                     🪙
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                    {summary.filter?.has_filter ? 'Selected Period Sales' : 'Total Sales'}
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
+                    {summary.filter?.has_filter ? 'Selected Period' : 'Total Sales'}
                   </span>
                 </div>
-                <div className="my-3">
-                  <div className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                <div className="my-2.5">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {formatCurrency(summary.sales.period_sales || summary.sales.total_sales)}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[11px]">
+                  <span className="text-slate-400 font-medium text-[10px] truncate">
                     {summary.filter?.has_filter
-                      ? `All-time: ${formatCurrency(summary.sales.all_time_sales || summary.sales.total_sales)}`
+                      ? `All: ${formatCurrency(summary.sales.all_time_sales || summary.sales.total_sales)}`
                       : 'Lifetime Revenue'}
                   </span>
                   <MiniBars color="bg-blue-500" />
                 </div>
               </div>
-            </div>
 
-            {/* ROW 2: EXACTLY 5 EQUAL-WIDTH CARDS */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-              {/* 1. Orders */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              {/* 4. Orders */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs text-sm">
                     📦
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     Orders
                   </span>
                 </div>
                 <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {summary.orders.total_orders}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[10px]">
+                  <span className="text-slate-400 font-medium text-[10px] truncate">
                     {summary.orders.pending_orders} pending
                   </span>
                   <MiniBars color="bg-amber-500" />
                 </div>
               </div>
 
-              {/* 2. Customers */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              {/* 5. Customers */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-white shadow-xs text-sm">
                     👤
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     Customers
                   </span>
                 </div>
                 <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {summary.customers.total_customers}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-emerald-600 font-semibold text-[10px]">
+                  <span className="text-emerald-600 font-semibold text-[10px] truncate">
                     +{summary.customers.new_customers_today} today
                   </span>
                   <MiniBars color="bg-sky-500" />
                 </div>
               </div>
 
-              {/* 3. Products */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              {/* 6. Products */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xs text-sm">
                     🏷️
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     Products
                   </span>
                 </div>
                 <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {summary.products.total_products}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[10px]">Active SKUs</span>
+                  <span className="text-slate-400 font-medium text-[10px] truncate">Active SKUs</span>
                   <MiniBars color="bg-indigo-600" />
                 </div>
               </div>
 
-              {/* 4. Low Stock */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              {/* 7. Low Stock */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-400 text-white shadow-xs text-sm">
                     ⚠️
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     Low Stock
                   </span>
                 </div>
                 <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {summary.products.low_stock_products}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[10px]">Reorder alert</span>
+                  <span className="text-slate-400 font-medium text-[10px] truncate">Reorder alert</span>
                   <MiniBars color="bg-amber-400" />
                 </div>
               </div>
 
-              {/* 5. Out of Stock */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between">
+              {/* 8. Out of Stock */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 sm:p-3.5 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between min-w-0">
                 <div className="flex items-start justify-between">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-rose-400 text-white shadow-xs text-sm">
                     📋
                   </div>
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate ml-1">
                     Out of Stock
                   </span>
                 </div>
                 <div className="my-2.5">
-                  <div className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight truncate">
                     {summary.products.out_of_stock_products}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium text-[10px]">Zero inventory</span>
+                  <span className="text-slate-400 font-medium text-[10px] truncate">Zero inventory</span>
                   <MiniBars color="bg-rose-400" />
                 </div>
               </div>
