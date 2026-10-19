@@ -30,14 +30,14 @@ final class DeliveryService
 
     /** @var array<string, list<string>> */
     private const ALLOWED_TRANSITIONS = [
-        'PENDING' => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'FAILED'],
-        'ASSIGNED' => ['PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'FAILED'],
-        'PICKED_UP' => ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'FAILED'],
+        'PENDING' => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'],
+        'ASSIGNED' => ['PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'],
+        'PICKED_UP' => ['IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'],
         'IN_TRANSIT' => ['OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED'],
-        'OUT_FOR_DELIVERY' => ['DELIVERED', 'FAILED'],
-        'FAILED' => ['ASSIGNED', 'OUT_FOR_DELIVERY', 'RETURN_INITIATED'],
-        'RETURN_INITIATED' => ['RETURNED'],
-        'DELIVERED' => ['RETURN_INITIATED'],
+        'OUT_FOR_DELIVERY' => ['DELIVERED', 'FAILED', 'IN_TRANSIT'],
+        'FAILED' => ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'RETURN_INITIATED', 'RETURNED'],
+        'RETURN_INITIATED' => ['RETURNED', 'DELIVERED'],
+        'DELIVERED' => ['RETURN_INITIATED', 'RETURNED'],
         'RETURNED' => [],
     ];
 
@@ -343,15 +343,18 @@ final class DeliveryService
             throw new RuntimeException("Invalid delivery status: {$newStatus}");
         }
 
-        if ($delivery['status'] === $newStatus) {
+        $currentStatus = $delivery['status'];
+
+        if ($currentStatus === $newStatus && empty($note) && empty($failureReason) && empty($location)) {
             throw new RuntimeException("Delivery is already {$newStatus}");
         }
 
-        $currentStatus = $delivery['status'];
-        $allowed = self::ALLOWED_TRANSITIONS[$currentStatus] ?? [];
+        if ($currentStatus !== $newStatus) {
+            $allowed = self::ALLOWED_TRANSITIONS[$currentStatus] ?? [];
 
-        if (!in_array($newStatus, $allowed, true)) {
-            throw new RuntimeException("Cannot transition delivery from {$currentStatus} to {$newStatus}");
+            if (!in_array($newStatus, $allowed, true)) {
+                throw new RuntimeException("Cannot transition delivery from {$currentStatus} to {$newStatus}");
+            }
         }
 
         if ($newStatus === 'FAILED' && empty($failureReason) && empty($note)) {
