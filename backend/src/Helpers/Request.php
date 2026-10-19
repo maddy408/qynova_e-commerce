@@ -58,6 +58,15 @@ final class Request
         return null;
     }
 
+    public static function query(?string $key = null, mixed $default = null): mixed
+    {
+        if ($key === null) {
+            return $_GET;
+        }
+
+        return $_GET[$key] ?? $default;
+    }
+
     public static function clientIp(): ?string
     {
         return $_SERVER['REMOTE_ADDR'] ?? null;

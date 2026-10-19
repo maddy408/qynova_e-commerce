@@ -19,8 +19,13 @@ $serverPdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $
 ]);
 $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
+$bufferedAttr = defined('\Pdo\Mysql::ATTR_USE_BUFFERED_QUERY')
+    ? \Pdo\Mysql::ATTR_USE_BUFFERED_QUERY
+    : (defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY') ? PDO::MYSQL_ATTR_USE_BUFFERED_QUERY : 1000);
+
 $pdo = new PDO("mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4", $user, $pass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    $bufferedAttr => true,
 ]);
 
 $pdo->exec(
@@ -51,7 +56,20 @@ foreach ($files as $file) {
         if ($statement === '') {
             continue;
         }
-        $pdo->exec($statement);
+        try {
+            $pdo->exec($statement);
+        } catch (PDOException $e) {
+            $msg = $e->getMessage();
+            if (
+                str_contains($msg, 'Duplicate column')
+                || str_contains($msg, 'already exists')
+                || str_contains($msg, 'Duplicate key')
+            ) {
+                // Column or key was already present, safe to continue
+                continue;
+            }
+            throw $e;
+        }
     }
 
     $pdo->prepare('INSERT INTO schema_migrations (filename) VALUES (?)')->execute([$filename]);

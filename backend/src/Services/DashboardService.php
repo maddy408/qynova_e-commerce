@@ -47,6 +47,7 @@ final class DashboardService
             "SELECT
                 COUNT(*) AS total_orders,
                 COALESCE(SUM(status = 'PENDING'), 0) AS pending_orders,
+                COALESCE(SUM(status IN ('CONFIRMED', 'PROCESSING', 'SHIPPED')), 0) AS processing_orders,
                 COALESCE(SUM(status = 'DELIVERED'), 0) AS completed_orders,
                 COALESCE(SUM(status = 'CANCELLED'), 0) AS cancelled_orders,
                 COALESCE(SUM(DATE(created_at) = CURDATE()), 0) AS today_orders
