@@ -61,12 +61,13 @@ export function Layout() {
           <div className="flex items-center justify-between gap-3">
             <Link to={ROUTES.DASHBOARD} className="flex items-center gap-2.5 group shrink-0 pl-1 select-none">
               <img
-                src="/images/logo2.jpeg"
+                src="/images/logo.png"
                 alt="Shop with Adam"
-                className="h-8 sm:h-9 w-auto max-w-[130px] object-contain rounded-lg group-hover:scale-105 transition-transform"
+                title="Shop with Adam"
+                className="h-8 sm:h-9 w-auto max-w-[130px] object-contain group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   e.currentTarget.onerror = null
-                  e.currentTarget.src = '/logo2.jpeg'
+                  e.currentTarget.src = '/logo.png'
                 }}
               />
               <div className="flex flex-col">

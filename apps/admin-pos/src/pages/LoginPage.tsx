@@ -43,11 +43,12 @@ export function LoginPage() {
       <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-3 sm:px-10 sm:py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <img
-            src="/images/logo2.jpeg"
+            src="/images/logo.png"
             alt="Shop with Adam"
-            className="h-9 w-auto max-w-[140px] object-contain rounded-md"
+            title="Shop with Adam"
+            className="h-9 w-auto max-w-[140px] object-contain"
             onError={(e) => {
-              (e.currentTarget as HTMLImageElement).src = '/logo2.jpeg';
+              (e.currentTarget as HTMLImageElement).src = '/logo.png';
             }}
           />
           <div>
@@ -75,11 +76,12 @@ export function LoginPage() {
           {/* Logo in Login Card */}
           <div className="mx-auto mb-3 flex items-center justify-center">
             <img
-              src="/images/logo2.jpeg"
+              src="/images/logo.png"
               alt="Shop with Adam"
+              title="Shop with Adam"
               className="h-11 w-auto max-w-[170px] object-contain drop-shadow-xs"
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = '/logo2.jpeg';
+                (e.currentTarget as HTMLImageElement).src = '/logo.png';
               }}
             />
           </div>

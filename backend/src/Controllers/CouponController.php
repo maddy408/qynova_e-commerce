@@ -13,6 +13,7 @@ use App\Services\CouponService;
 use App\Services\DeviceTokenService;
 use App\Services\FcmSenderService;
 use App\Services\NotificationService;
+use App\Services\PriceDropNotificationService;
 use PDO;
 use RuntimeException;
 
@@ -76,29 +77,38 @@ final class CouponController
                 $deviceTokens = new DeviceTokenService($this->pdo);
                 $fcm = new FcmSenderService($deviceTokens);
                 $broadcastService = new BroadcastService($this->pdo, $notifications, $deviceTokens, $fcm);
+                $priceDropService = new PriceDropNotificationService($this->pdo, $broadcastService);
 
-                $broadcastService->sendToCustomers(
-                    title: $notifyTitle,
-                    body: $notifyBody,
-                    sentByUserId: (int) ($claims['sub'] ?? 1),
-                    targetCustomerIds: $targetCustomerIds,
-                    type: 'COUPON',
-                    data: [
-                        'type' => 'COUPON',
-                        'reference_type' => 'COUPON',
-                        'reference_id' => (string) $id,
-                        'code' => $code,
-                        'url' => '/products',
-                        'click_action' => '/products',
-                    ],
-                    referenceType: 'COUPON',
-                    referenceId: $id,
+                $shouldNotify = $priceDropService->shouldNotifyNewCoupon(
+                    discountType: $discountType,
+                    discountVal: $discountVal,
+                    minOrderAmount: $minOrder,
                 );
+
+                if ($shouldNotify) {
+                    $broadcastService->sendToCustomers(
+                        title: $notifyTitle,
+                        body: $notifyBody,
+                        sentByUserId: (int) ($claims['sub'] ?? 1),
+                        targetCustomerIds: $targetCustomerIds,
+                        type: 'COUPON',
+                        data: [
+                            'type' => 'COUPON',
+                            'reference_type' => 'COUPON',
+                            'reference_id' => (string) $id,
+                            'code' => $code,
+                            'url' => '/products',
+                            'click_action' => '/products',
+                        ],
+                        referenceType: 'COUPON',
+                        referenceId: $id,
+                    );
+                }
             } catch (\Throwable $ne) {
                 error_log('CouponController: push notification failed: ' . $ne->getMessage());
             }
 
-            Response::json(['id' => $id, 'message' => 'Coupon created successfully and push notification sent to customers'], 201);
+            Response::json(['id' => $id, 'message' => 'Coupon created successfully'], 201);
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }

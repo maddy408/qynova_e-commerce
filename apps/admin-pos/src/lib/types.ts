@@ -272,6 +272,7 @@ export interface ProductDetail {
   is_deal: 0 | 1
   returnable: 0 | 1
   return_window_days: number | null
+  return_policy_description: string | null
   warranty_applicable: 0 | 1
   images: ProductImage[]
   categories: { id: number; name: string; is_primary: 0 | 1 }[]

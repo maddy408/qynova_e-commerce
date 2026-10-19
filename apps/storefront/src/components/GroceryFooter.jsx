@@ -79,12 +79,13 @@ export default function GroceryFooter({
           <div className="lg:col-span-2 space-y-4">
             <Link to={ROUTES.HOME} className="flex items-center gap-3 group">
               <img
-                src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
+                src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo.png'}
                 alt={storeName}
-                className="h-14 sm:h-16 w-auto max-w-[240px] sm:max-w-[280px] object-contain rounded-2xl bg-white p-2 border border-zinc-800 shadow-md group-hover:scale-105 transition-transform"
+                title={storeName}
+                className="h-14 sm:h-16 w-auto max-w-[240px] sm:max-w-[280px] object-contain rounded-2xl bg-white/95 p-2 border border-zinc-700 shadow-md group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   e.currentTarget.onerror = null
-                  e.currentTarget.src = '/images/logo2.jpeg'
+                  e.currentTarget.src = '/images/logo.png'
                 }}
               />
             </Link>

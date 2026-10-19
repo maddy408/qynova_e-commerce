@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { 
-  FiAlertCircle, 
+import {
+  FiAlertCircle,
   FiAlertTriangle,
-  FiInfo, 
-  FiTruck, 
-  FiExternalLink, 
-  FiMapPin, 
-  FiX, 
-  FiCheck, 
-  FiPackage, 
-  FiClock, 
+  FiInfo,
+  FiTruck,
+  FiExternalLink,
+  FiMapPin,
+  FiX,
+  FiCheck,
+  FiPackage,
+  FiClock,
   FiShoppingBag,
   FiNavigation,
-  FiRotateCcw
+  FiRotateCcw,
+  FiUpload
 } from 'react-icons/fi'
 import { api, getCustomerToken, isTokenExpired, clearCustomerSession } from '../../lib/api'
 import { ROUTES } from '../../routes/routes'
@@ -24,6 +25,7 @@ export default function OrderDetail() {
   const [order, setOrder] = useState(null)
   const [delivery, setDelivery] = useState(null)
   const [returnData, setReturnData] = useState(null)
+  const [eligibility, setEligibility] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -32,6 +34,32 @@ export default function OrderDetail() {
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelError, setCancelError] = useState('')
+
+  // Return Item modal state
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
+  const [returnTargetItem, setReturnTargetItem] = useState(null)
+  const [returnReason, setReturnReason] = useState('')
+  const [returnDescription, setReturnDescription] = useState('')
+  const [returnQty, setReturnQty] = useState(1)
+  const [returnCondition, setReturnCondition] = useState('')
+  const [returnPackaging, setReturnPackaging] = useState('')
+  const [returnResolution, setReturnResolution] = useState('REFUND')
+  const [returnImages, setReturnImages] = useState([])
+  const [returnConfirmed, setReturnConfirmed] = useState(false)
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false)
+  const [returnError, setReturnError] = useState('')
+
+  const RETURN_REASONS = [
+    'Damaged product',
+    'Defective / not working',
+    'Wrong product received',
+    'Missing parts or accessories',
+    'Product different from description',
+    'Quality not satisfactory',
+    'Size / fit issue',
+    'Ordered by mistake',
+    'Other',
+  ]
 
   const fetchOrderDetails = () => {
     const token = getCustomerToken()
@@ -66,6 +94,14 @@ export default function OrderDetail() {
                     setReturnData(rRes.data.return)
                   }
                 })
+                .catch(() => {})
+
+              // Per-item return eligibility (section 2) — delivered_at
+              // and remaining quantity come from the backend, never
+              // computed from this order's own (possibly stale) status.
+              api
+                .get(`/orders/${id}/return-eligibility`)
+                .then((eRes) => setEligibility(eRes.data))
                 .catch(() => {})
         } else {
           setError('Order details could not be found')
@@ -116,6 +152,87 @@ export default function OrderDetail() {
       setCancelError(err.response?.data?.error || err.message || 'Failed to cancel order')
     } finally {
       setIsCancelling(false)
+    }
+  }
+
+  const openReturnModal = (item, eligItem) => {
+    setReturnTargetItem({ ...item, ...eligItem })
+    setReturnReason('')
+    setReturnDescription('')
+    setReturnQty(1)
+    setReturnCondition('')
+    setReturnPackaging('')
+    setReturnResolution('REFUND')
+    setReturnImages([])
+    setReturnConfirmed(false)
+    setReturnError('')
+    setIsReturnModalOpen(true)
+  }
+
+  const handleReturnImagesChange = (e) => {
+    const files = Array.from(e.target.files || [])
+    const room = Math.max(0, 5 - returnImages.length)
+    const staged = files.slice(0, room).map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))
+    setReturnImages((prev) => [...prev, ...staged])
+    e.target.value = ''
+  }
+
+  const removeReturnImage = (idx) => {
+    setReturnImages((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleSubmitReturn = async (e) => {
+    e.preventDefault()
+    setReturnError('')
+
+    if (!returnReason) {
+      setReturnError('Please select a return reason')
+      return
+    }
+    if (returnReason === 'Other' && !returnDescription.trim()) {
+      setReturnError('Please describe the reason when "Other" is selected')
+      return
+    }
+    if (!returnCondition) {
+      setReturnError('Please select the product condition')
+      return
+    }
+    if (returnPackaging === '') {
+      setReturnError('Please specify whether the package/accessories are available')
+      return
+    }
+    if (!returnConfirmed) {
+      setReturnError('Please confirm the return details are correct')
+      return
+    }
+
+    setIsSubmittingReturn(true)
+    try {
+      const formData = new FormData()
+      formData.append(
+        'payload',
+        JSON.stringify({
+          reason: returnReason,
+          description: returnDescription.trim(),
+          condition: returnCondition,
+          packaging_available: returnPackaging === 'yes',
+          resolution: returnResolution,
+          confirmed: true,
+          items: [{ order_item_id: returnTargetItem.order_item_id, qty: Number(returnQty) }],
+        })
+      )
+      returnImages.forEach((img) => formData.append('images[]', img.file))
+
+      await api.post(`/orders/${id}/return`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+
+      setIsReturnModalOpen(false)
+      fetchOrderDetails()
+    } catch (err) {
+      setReturnError(err.response?.data?.error || 'Failed to submit return request')
+    } finally {
+      setIsSubmittingReturn(false)
     }
   }
 
@@ -547,34 +664,73 @@ export default function OrderDetail() {
                   </h2>
 
                   <div className="divide-y divide-gray-100">
-                    {order.items?.map((item) => (
-                      <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-[var(--color-text-main)] leading-snug">
-                            {item.product_name_snapshot}
-                          </p>
-                          {item.variant_label_snapshot && (
-                            <p className="text-xs font-medium text-[var(--color-brand)] bg-[var(--color-bg-alt)] px-2 py-0.5 rounded-md inline-block">
-                              {item.variant_label_snapshot}
-                            </p>
-                          )}
-                          <p className="text-[11px] text-[var(--color-text-muted)]">
-                            SKU: {item.sku_snapshot} • Qty: {item.quantity}
-                          </p>
-                        </div>
+                    {order.items?.map((item) => {
+                      const eligItem = eligibility?.items?.find((e) => e.order_item_id === item.id)
+                      // Gated on the delivery timestamp, not order.status —
+                      // a return already requested on ANOTHER item in this
+                      // order moves order.status away from DELIVERED, but
+                      // this item's own eligibility must not disappear.
+                      const wasDelivered = Boolean(eligibility?.delivered_at)
 
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-black text-[var(--color-brand)]">
-                            ₹{Number(item.line_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </p>
-                          {Number(item.mrp) > Number(item.unit_price) && (
-                            <p className="text-[11px] text-gray-400 line-through">
-                              ₹{(Number(item.mrp) * Number(item.quantity)).toFixed(2)}
-                            </p>
+                      return (
+                        <div key={item.id} className="py-4 first:pt-0 last:pb-0 space-y-2">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-[var(--color-text-main)] leading-snug">
+                                {item.product_name_snapshot}
+                              </p>
+                              {item.variant_label_snapshot && (
+                                <p className="text-xs font-medium text-[var(--color-brand)] bg-[var(--color-bg-alt)] px-2 py-0.5 rounded-md inline-block">
+                                  {item.variant_label_snapshot}
+                                </p>
+                              )}
+                              <p className="text-[11px] text-[var(--color-text-muted)]">
+                                SKU: {item.sku_snapshot} • Qty: {item.quantity}
+                              </p>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-black text-[var(--color-brand)]">
+                                ₹{Number(item.line_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </p>
+                              {Number(item.mrp) > Number(item.unit_price) && (
+                                <p className="text-[11px] text-gray-400 line-through">
+                                  ₹{(Number(item.mrp) * Number(item.quantity)).toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {wasDelivered && eligItem && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              {eligItem.eligible ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => openReturnModal(item, eligItem)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-300 text-purple-700 hover:bg-purple-50 text-[11px] font-bold transition-colors cursor-pointer"
+                                  >
+                                    <FiRotateCcw className="w-3 h-3" />
+                                    <span>Return Item</span>
+                                  </button>
+                                  {eligItem.return_deadline && (
+                                    <span className="text-[10px] text-[var(--color-text-muted)]">
+                                      Return by {formatDate(eligItem.return_deadline)}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 font-medium">
+                                  {eligItem.reason === 'Return window expired.'
+                                    ? 'Return window expired'
+                                    : eligItem.reason || 'This item is not eligible for return'}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -758,6 +914,208 @@ export default function OrderDetail() {
                   className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition-colors shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return Item Modal */}
+      {isReturnModalOpen && returnTargetItem && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-[var(--color-border-subtle)] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-[var(--color-text-main)]">Return Item</h3>
+              <button
+                type="button"
+                onClick={() => setIsReturnModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-purple-50/60 border border-purple-200/80 rounded-2xl text-xs space-y-1">
+              <p className="font-bold text-purple-950">{returnTargetItem.product_name_snapshot}</p>
+              {returnTargetItem.return_policy_description && (
+                <p className="text-purple-700/80">{returnTargetItem.return_policy_description}</p>
+              )}
+              {returnTargetItem.return_deadline && (
+                <p className="text-purple-700/80">
+                  Return window: {returnTargetItem.return_window_days} day(s) — deadline{' '}
+                  {formatDate(returnTargetItem.return_deadline)}
+                </p>
+              )}
+              <p className="text-purple-700/80">Eligible to return: up to {returnTargetItem.remaining_qty} unit(s)</p>
+            </div>
+
+            {returnError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold flex items-center gap-1.5">
+                <FiAlertCircle className="w-4 h-4 shrink-0" />
+                <span>{returnError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitReturn} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Return Reason <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  className="w-full p-2.5 border border-[var(--color-border-subtle)] rounded-xl text-xs text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-brand)] bg-white"
+                >
+                  <option value="">Select a reason…</option>
+                  {RETURN_REASONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Description {returnReason === 'Other' && <span className="text-red-500">*</span>}
+                  {returnReason !== 'Other' && <span className="text-gray-400 font-normal">(optional)</span>}
+                </label>
+                <textarea
+                  value={returnDescription}
+                  onChange={(e) => setReturnDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Tell us more about the issue…"
+                  className="w-full p-3 border border-[var(--color-border-subtle)] rounded-xl text-xs text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-brand)]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Return Quantity <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={returnQty}
+                    onChange={(e) => setReturnQty(e.target.value)}
+                    className="w-full p-2.5 border border-[var(--color-border-subtle)] rounded-xl text-xs focus:outline-none focus:border-[var(--color-brand)] bg-white"
+                  >
+                    {Array.from({ length: returnTargetItem.remaining_qty }, (_, i) => i + 1).map((q) => (
+                      <option key={q} value={q}>
+                        {q}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Product Condition <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={returnCondition}
+                    onChange={(e) => setReturnCondition(e.target.value)}
+                    className="w-full p-2.5 border border-[var(--color-border-subtle)] rounded-xl text-xs focus:outline-none focus:border-[var(--color-brand)] bg-white"
+                  >
+                    <option value="">Select…</option>
+                    <option value="UNOPENED">Unopened</option>
+                    <option value="OPENED_UNUSED">Opened but unused</option>
+                    <option value="USED">Used</option>
+                    <option value="DAMAGED_ON_ARRIVAL">Damaged on arrival</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Package / Accessories Available <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input
+                      type="radio"
+                      name="packaging_available"
+                      checked={returnPackaging === 'yes'}
+                      onChange={() => setReturnPackaging('yes')}
+                    />
+                    <span>Yes</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input
+                      type="radio"
+                      name="packaging_available"
+                      checked={returnPackaging === 'no'}
+                      onChange={() => setReturnPackaging('no')}
+                    />
+                    <span>No</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Preferred Resolution</label>
+                <select
+                  value={returnResolution}
+                  onChange={(e) => setReturnResolution(e.target.value)}
+                  className="w-full p-2.5 border border-[var(--color-border-subtle)] rounded-xl text-xs focus:outline-none focus:border-[var(--color-brand)] bg-white"
+                >
+                  <option value="REFUND">Refund</option>
+                  <option value="REPLACEMENT">Replacement</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Supporting Images <span className="text-gray-400 font-normal">(optional, up to 5)</span>
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {returnImages.map((img, idx) => (
+                    <div key={idx} className="relative w-16 h-16">
+                      <img src={img.previewUrl} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+                      <button
+                        type="button"
+                        onClick={() => removeReturnImage(idx)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gray-700 text-white flex items-center justify-center text-[10px]"
+                      >
+                        <FiX className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {returnImages.length < 5 && (
+                    <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] transition-colors">
+                      <FiUpload className="w-4 h-4" />
+                      <span className="text-[9px] mt-0.5">Add</span>
+                      <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={handleReturnImagesChange} />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              <label className="flex items-start gap-2 text-[11px] text-gray-600 cursor-pointer pt-1 border-t border-gray-100">
+                <input
+                  type="checkbox"
+                  checked={returnConfirmed}
+                  onChange={(e) => setReturnConfirmed(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>I confirm that the return details provided are correct.</span>
+              </label>
+
+              <div className="flex items-center justify-end gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsReturnModalOpen(false)}
+                  disabled={isSubmittingReturn}
+                  className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingReturn}
+                  className="px-5 py-2 rounded-full bg-purple-700 hover:bg-purple-800 text-white text-xs font-black transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingReturn ? 'Submitting...' : 'Submit Return Request'}
                 </button>
               </div>
             </form>

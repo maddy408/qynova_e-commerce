@@ -39,8 +39,29 @@ final class ReturnService
         'REJECTED' => null,
     ];
 
-    public function __construct(private readonly PDO $pdo)
+    private readonly NotificationDispatcher $notifications;
+
+    public function __construct(private readonly PDO $pdo, ?NotificationDispatcher $notifications = null)
     {
+        $this->notifications = $notifications ?? new NotificationDispatcher($pdo);
+    }
+
+    /** Admins who should hear about return activity — ADMIN role or explicit orders.manage, same set OrderService notifies for new orders. */
+    private function returnManagerUserIds(): array
+    {
+        return $this->pdo->query(
+            "SELECT DISTINCT u.id FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.status = 'ACTIVE' AND u.deleted_at IS NULL
+               AND (
+                    r.code = 'ADMIN'
+                    OR EXISTS (
+                        SELECT 1 FROM role_permissions rp
+                        JOIN permissions p ON p.id = rp.permission_id
+                        WHERE rp.role_id = r.id AND p.code = 'orders.manage'
+                    )
+               )"
+        )->fetchAll(PDO::FETCH_COLUMN);
     }
 
     /**
@@ -360,6 +381,12 @@ final class ReturnService
         $itemStmt->execute(['ret_id' => $id]);
         $return['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Customer-uploaded supporting photos (distinct from each item's
+        // own catalog image_path — see migration 0045's docblock).
+        $imgStmt = $this->pdo->prepare('SELECT id, image_path, thumb_path, created_at FROM sale_return_images WHERE return_id = :ret_id ORDER BY id ASC');
+        $imgStmt->execute(['ret_id' => $id]);
+        $return['images'] = $imgStmt->fetchAll(PDO::FETCH_ASSOC);
+
         // Fetch chronological tracking history
         $histStmt = $this->pdo->prepare(
             "SELECT 
@@ -477,11 +504,25 @@ final class ReturnService
      * Enforces item eligibility, quantity caps, RMA generation, initial tracking history,
      * and transactional consistency.
      *
+     * $reportedCondition/$packagingAvailable/$imagePaths are the customer's
+     * own self-reported condition and evidence photos at request time —
+     * distinct from sale_return_items.condition, which is the ADMIN's
+     * post-inspection assessment set later via updateStatus(). Both are
+     * optional (null/empty) for the admin-initiated POS-counter return path,
+     * which has no such form.
+     *
      * @param array<string, mixed> $data
+     * @param list<array{path: string, thumb_path: string}> $imagePaths
      * @return int Created return ID
      */
-    public function createReturn(array $data, ?int $createdByUserId = null, ?int $customerId = null): int
-    {
+    public function createReturn(
+        array $data,
+        ?int $createdByUserId = null,
+        ?int $customerId = null,
+        ?string $reportedCondition = null,
+        ?bool $packagingAvailable = null,
+        array $imagePaths = [],
+    ): int {
         $orderId = !empty($data['order_id']) ? (int) $data['order_id'] : null;
         $reason = trim((string) ($data['reason'] ?? ''));
         $returnType = strtoupper(trim((string) ($data['return_type'] ?? 'REFUND')));
@@ -504,6 +545,10 @@ final class ReturnService
             throw new RuntimeException('At least one item must be selected for return');
         }
 
+        if ($reportedCondition !== null && !in_array($reportedCondition, ['UNOPENED', 'OPENED_UNUSED', 'USED', 'DAMAGED_ON_ARRIVAL'], true)) {
+            throw new RuntimeException('Invalid product condition');
+        }
+
         // Fetch order
         $orderStmt = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id');
         $orderStmt->execute(['id' => $orderId]);
@@ -519,29 +564,41 @@ final class ReturnService
         }
 
         $orderCustomerId = (int) $order['customer_id'];
-
-        // Fetch original order items
-        $oiStmt = $this->pdo->prepare('SELECT * FROM order_items WHERE order_id = :order_id');
-        $oiStmt->execute(['order_id' => $orderId]);
-        $orderItemsMap = [];
-        foreach ($oiStmt->fetchAll(PDO::FETCH_ASSOC) as $oi) {
-            $orderItemsMap[(int) $oi['id']] = $oi;
-        }
-
-        // Fetch previously returned quantities for items of this order (excluding REJECTED)
-        $pastRetStmt = $this->pdo->prepare(
-            "SELECT sri.order_item_id, COALESCE(SUM(sri.qty), 0) AS total_returned
-             FROM sale_return_items sri
-             JOIN sale_returns sr ON sr.id = sri.return_id
-             WHERE sr.order_id = :order_id AND sr.status != 'REJECTED'
-             GROUP BY sri.order_item_id"
-        );
-        $pastRetStmt->execute(['order_id' => $orderId]);
-        $pastReturned = array_column($pastRetStmt->fetchAll(PDO::FETCH_ASSOC), 'total_returned', 'order_item_id');
+        $orderItemIds = array_values(array_unique(array_map(fn ($i) => (int) ($i['order_item_id'] ?? 0), $items)));
+        $orderItemIds = array_filter($orderItemIds, fn ($id) => $id > 0);
 
         $this->pdo->beginTransaction();
 
         try {
+            // Row-locked for the lifetime of this transaction: a second,
+            // concurrent return request against any of the SAME order
+            // items (duplicate double-click, two browser tabs, a retried
+            // request) blocks here until this transaction commits or rolls
+            // back, then re-reads an up-to-date "already returned" total —
+            // without this lock, two simultaneous requests could both read
+            // the same "remaining = N" and both be allowed to return N,
+            // over-crediting stock and double-refunding.
+            $orderItemsMap = [];
+            if ($orderItemIds !== []) {
+                $placeholders = implode(',', array_fill(0, count($orderItemIds), '?'));
+                $oiStmt = $this->pdo->prepare("SELECT * FROM order_items WHERE id IN ({$placeholders}) FOR UPDATE");
+                $oiStmt->execute($orderItemIds);
+                foreach ($oiStmt->fetchAll(PDO::FETCH_ASSOC) as $oi) {
+                    $orderItemsMap[(int) $oi['id']] = $oi;
+                }
+            }
+
+            // Fetch previously returned quantities for items of this order (excluding REJECTED)
+            $pastRetStmt = $this->pdo->prepare(
+                "SELECT sri.order_item_id, COALESCE(SUM(sri.qty), 0) AS total_returned
+                 FROM sale_return_items sri
+                 JOIN sale_returns sr ON sr.id = sri.return_id
+                 WHERE sr.order_id = :order_id AND sr.status != 'REJECTED'
+                 GROUP BY sri.order_item_id"
+            );
+            $pastRetStmt->execute(['order_id' => $orderId]);
+            $pastReturned = array_column($pastRetStmt->fetchAll(PDO::FETCH_ASSOC), 'total_returned', 'order_item_id');
+
             $totalAmount = 0.0;
             $processedItems = [];
 
@@ -606,10 +663,12 @@ final class ReturnService
             $insertRet = $this->pdo->prepare(
                 "INSERT INTO sale_returns (
                     return_no, order_id, customer_id, status, return_type,
-                    total_amount, refund_amount, refund_status, reason, notes, created_by
+                    total_amount, refund_amount, refund_status, reason, notes,
+                    reported_condition, packaging_available, created_by
                 ) VALUES (
                     :return_no, :order_id, :customer_id, 'PENDING_REVIEW', :return_type,
-                    :total_amount, :refund_amount, :refund_status, :reason, :notes, :created_by
+                    :total_amount, :refund_amount, :refund_status, :reason, :notes,
+                    :reported_condition, :packaging_available, :created_by
                 )"
             );
 
@@ -625,10 +684,22 @@ final class ReturnService
                 'refund_status' => $refundStatus,
                 'reason' => $reason,
                 'notes' => $notes ?: null,
+                'reported_condition' => $reportedCondition,
+                'packaging_available' => $packagingAvailable === null ? null : (int) $packagingAvailable,
                 'created_by' => $createdByUserId,
             ]);
 
             $returnId = (int) $this->pdo->lastInsertId();
+
+            foreach ($imagePaths as $img) {
+                $this->pdo->prepare(
+                    'INSERT INTO sale_return_images (return_id, image_path, thumb_path) VALUES (:return_id, :path, :thumb)'
+                )->execute([
+                    'return_id' => $returnId,
+                    'path' => $img['path'],
+                    'thumb' => $img['thumb_path'] ?? null,
+                ]);
+            }
 
             // Insert sale_return_items
             $insertItem = $this->pdo->prepare(
@@ -687,6 +758,22 @@ final class ReturnService
             }
 
             $this->pdo->commit();
+
+            // Fired after commit(), outside the transaction — see
+            // NotificationDispatcher's own docblock for why. Once per
+            // successfully submitted request, since createReturn() only
+            // reaches here once per call and is never retried internally.
+            $firstItemName = $processedItems[0]['product_name_snapshot'] ?? 'an item';
+            $this->notifications->notifyMany(
+                recipientType: 'USER',
+                recipientIds: $this->returnManagerUserIds(),
+                type: 'RETURN_REQUESTED',
+                title: 'New return request',
+                body: "{$returnNo} for order #{$order['order_no']} — {$firstItemName}" . (count($processedItems) > 1 ? ' and more' : ''),
+                referenceType: 'RETURN',
+                referenceId: $returnId,
+                data: ['return_no' => $returnNo, 'order_id' => $orderId],
+            );
 
             return $returnId;
         } catch (\Throwable $e) {
@@ -900,6 +987,19 @@ final class ReturnService
 
             $this->pdo->commit();
 
+            if ($return['customer_id']) {
+                $this->notifications->notify(
+                    recipientType: 'CUSTOMER',
+                    recipientId: (int) $return['customer_id'],
+                    type: 'RETURN_STATUS_UPDATED',
+                    title: $this->customerTitleForStatus($newStatus),
+                    body: $histNote,
+                    referenceType: 'RETURN',
+                    referenceId: $returnId,
+                    data: ['return_no' => $return['return_no'], 'status' => $newStatus],
+                );
+            }
+
             return $this->find($returnId) ?? throw new RuntimeException('Return not found after status update');
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
@@ -1002,11 +1102,38 @@ final class ReturnService
 
             $this->pdo->commit();
 
+            if ($return['customer_id']) {
+                $this->notifications->notify(
+                    recipientType: 'CUSTOMER',
+                    recipientId: (int) $return['customer_id'],
+                    type: 'RETURN_REFUNDED',
+                    title: 'Your refund has been processed',
+                    body: "Rs. " . number_format($refundAmount, 2) . " has been refunded for return {$return['return_no']}.",
+                    referenceType: 'RETURN',
+                    referenceId: $returnId,
+                    data: ['return_no' => $return['return_no'], 'refund_amount' => (string) $refundAmount],
+                );
+            }
+
             return $this->find($returnId) ?? throw new RuntimeException('Return not found after refund');
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
             throw $e;
         }
+    }
+
+    private function customerTitleForStatus(string $status): string
+    {
+        return match ($status) {
+            'APPROVED' => 'Your return request was approved',
+            'REJECTED' => 'Your return request was rejected',
+            'PICKUP_SCHEDULED' => 'Pickup scheduled for your return',
+            'ITEM_RECEIVED' => 'We received your returned item',
+            'INSPECTION' => 'Your return is being inspected',
+            'PROCESSING' => 'Your return is being processed',
+            'COMPLETED' => 'Your return is complete',
+            default => 'Your return status has been updated',
+        };
     }
 
     /**
@@ -1027,5 +1154,271 @@ final class ReturnService
         }
 
         return $this->find((int) $id);
+    }
+
+    /**
+     * Per-order-item return eligibility for the customer-facing "Return
+     * Item" button/form — section 2 of the return-management spec.
+     *
+     * The delivery timestamp is read from deliveries.delivered_at (set
+     * once, by DeliveryService, the moment a delivery's status actually
+     * becomes DELIVERED), NEVER from the order's current `status` column:
+     * order.status can move on to RETURN_REQUESTED/RETURNED afterward
+     * (createReturn()/updateStatus() above both do exactly that), and if
+     * eligibility were computed from the live order.status a customer
+     * would lose the ability to view their own deadline, or an admin
+     * re-opening a rejected return's window, the instant the first return
+     * request existed. delivered_at is a one-way fact set once and never
+     * cleared, which is what "use the delivery timestamp as the source of
+     * truth" in the spec actually requires.
+     *
+     * @return array<string, mixed>
+     */
+    public function eligibilityForOrder(int $orderId, int $customerId): array
+    {
+        $orderStmt = $this->pdo->prepare('SELECT id, order_no, customer_id FROM orders WHERE id = :id');
+        $orderStmt->execute(['id' => $orderId]);
+        $order = $orderStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($order === false) {
+            throw new RuntimeException('Order not found');
+        }
+
+        if ((int) $order['customer_id'] !== $customerId) {
+            throw new RuntimeException('Unauthorized: this order does not belong to you');
+        }
+
+        $deliveredAt = $this->pdo->prepare(
+            "SELECT delivered_at FROM deliveries WHERE order_id = :id AND delivered_at IS NOT NULL ORDER BY delivered_at DESC LIMIT 1"
+        );
+        $deliveredAt->execute(['id' => $orderId]);
+        $deliveredAtValue = $deliveredAt->fetchColumn();
+        $deliveredAtValue = $deliveredAtValue === false ? null : (string) $deliveredAtValue;
+
+        $itemsStmt = $this->pdo->prepare(
+            "SELECT oi.id AS order_item_id, oi.product_id, oi.variant_id, oi.product_name_snapshot,
+                    oi.variant_label_snapshot, oi.sku_snapshot, oi.quantity,
+                    p.returnable, p.return_window_days, p.return_policy_description
+             FROM order_items oi
+             JOIN products p ON p.id = oi.product_id
+             WHERE oi.order_id = :order_id"
+        );
+        $itemsStmt->execute(['order_id' => $orderId]);
+        $orderItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $pastRetStmt = $this->pdo->prepare(
+            "SELECT sri.order_item_id, COALESCE(SUM(sri.qty), 0) AS total_returned
+             FROM sale_return_items sri
+             JOIN sale_returns sr ON sr.id = sri.return_id
+             WHERE sr.order_id = :order_id AND sr.status != 'REJECTED'
+             GROUP BY sri.order_item_id"
+        );
+        $pastRetStmt->execute(['order_id' => $orderId]);
+        $pastReturned = array_column($pastRetStmt->fetchAll(PDO::FETCH_ASSOC), 'total_returned', 'order_item_id');
+
+        $items = [];
+        foreach ($orderItems as $oi) {
+            $orderItemId = (int) $oi['order_item_id'];
+            $alreadyReturned = (int) ($pastReturned[$orderItemId] ?? 0);
+            $remainingQty = max(0, (int) $oi['quantity'] - $alreadyReturned);
+            $returnable = (bool) $oi['returnable'];
+            $windowDays = $oi['return_window_days'] !== null ? (int) $oi['return_window_days'] : null;
+
+            $deadline = null;
+            if ($deliveredAtValue !== null && $windowDays !== null) {
+                $deadline = date('Y-m-d H:i:s', strtotime($deliveredAtValue) + ($windowDays * 86400));
+            }
+
+            $eligible = true;
+            $reason = null;
+
+            if ($deliveredAtValue === null) {
+                $eligible = false;
+                $reason = 'This order has not been delivered yet.';
+            } elseif (!$returnable || $windowDays === null || $windowDays <= 0) {
+                $eligible = false;
+                $reason = 'This item is not eligible for return.';
+            } elseif ($remainingQty <= 0) {
+                $eligible = false;
+                $reason = 'This item has already been returned or has a return request in progress.';
+            } elseif ($deadline !== null && strtotime($deadline) < time()) {
+                $eligible = false;
+                $reason = 'Return window expired.';
+            }
+
+            $items[] = [
+                'order_item_id' => $orderItemId,
+                'product_id' => (int) $oi['product_id'],
+                'variant_id' => (int) $oi['variant_id'],
+                'product_name_snapshot' => $oi['product_name_snapshot'],
+                'variant_label_snapshot' => $oi['variant_label_snapshot'],
+                'sku_snapshot' => $oi['sku_snapshot'],
+                'quantity' => (int) $oi['quantity'],
+                'returned_qty' => $alreadyReturned,
+                'remaining_qty' => $remainingQty,
+                'returnable' => $returnable,
+                'return_window_days' => $windowDays,
+                'return_policy_description' => $oi['return_policy_description'],
+                'return_deadline' => $deadline,
+                'eligible' => $eligible,
+                'reason' => $reason,
+            ];
+        }
+
+        return [
+            'order_id' => $orderId,
+            'order_no' => $order['order_no'],
+            'delivered_at' => $deliveredAtValue,
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * Admin action: for an APPROVED/PROCESSING return registered as
+     * REPLACEMENT, create a new linked fulfillment order carrying the
+     * approved items at zero additional charge (the customer already paid
+     * for them once) and hand it off to the SAME order-status workflow
+     * every other order already uses (Packed -> Shipped -> Delivered) —
+     * this return's own status and the replacement order's status are
+     * two separate, independently tracked things from this point on (see
+     * class docblock / updateStatus(), which never touches order.status
+     * except the one COMPLETED sync already there).
+     *
+     * @return array<string, mixed>
+     */
+    public function createReplacementOrder(int $returnId, int $actorUserId): array
+    {
+        $return = $this->find($returnId);
+
+        if ($return === null) {
+            throw new RuntimeException('Return request not found');
+        }
+
+        if ($return['return_type'] !== 'REPLACEMENT') {
+            throw new RuntimeException('This return was registered for refund, not replacement');
+        }
+
+        if (!in_array($return['status'], ['APPROVED', 'PROCESSING'], true)) {
+            throw new RuntimeException('A replacement can only be created for an approved return');
+        }
+
+        if ($return['replacement_order_id'] !== null) {
+            throw new RuntimeException('A replacement order has already been created for this return');
+        }
+
+        $orderStmt = $this->pdo->prepare('SELECT * FROM orders WHERE id = :id');
+        $orderStmt->execute(['id' => $return['order_id']]);
+        $originalOrder = $orderStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($originalOrder === false) {
+            throw new RuntimeException('Original order not found');
+        }
+
+        $this->pdo->beginTransaction();
+
+        try {
+            $orderNo = 'REPL-' . date('YmdHis') . '-' . random_int(100, 999);
+            $subtotal = 0.0;
+            foreach ($return['items'] as $item) {
+                $subtotal += (float) $item['unit_price'] * (int) $item['qty'];
+            }
+
+            $this->pdo->prepare(
+                "INSERT INTO orders (
+                    order_no, customer_id, status, payment_status,
+                    subtotal, grand_total,
+                    shipping_name, shipping_phone, shipping_line1, shipping_line2,
+                    shipping_city_district, shipping_state, shipping_pincode
+                ) VALUES (
+                    :order_no, :customer_id, 'CONFIRMED', 'PAID',
+                    :subtotal, :grand_total,
+                    :shipping_name, :shipping_phone, :shipping_line1, :shipping_line2,
+                    :shipping_city_district, :shipping_state, :shipping_pincode
+                )"
+            )->execute([
+                'order_no' => $orderNo,
+                'customer_id' => $originalOrder['customer_id'],
+                'subtotal' => $subtotal,
+                'grand_total' => $subtotal,
+                'shipping_name' => $originalOrder['shipping_name'],
+                'shipping_phone' => $originalOrder['shipping_phone'],
+                'shipping_line1' => $originalOrder['shipping_line1'],
+                'shipping_line2' => $originalOrder['shipping_line2'],
+                'shipping_city_district' => $originalOrder['shipping_city_district'],
+                'shipping_state' => $originalOrder['shipping_state'],
+                'shipping_pincode' => $originalOrder['shipping_pincode'],
+            ]);
+            $replacementOrderId = (int) $this->pdo->lastInsertId();
+
+            $this->pdo->prepare(
+                "INSERT INTO order_status_history (order_id, from_status, to_status, source, note)
+                 VALUES (:order_id, NULL, 'CONFIRMED', 'SYSTEM', :note)"
+            )->execute([
+                'order_id' => $replacementOrderId,
+                'note' => "Replacement for return {$return['return_no']} (order #{$originalOrder['order_no']})",
+            ]);
+
+            $insertItem = $this->pdo->prepare(
+                "INSERT INTO order_items (
+                    order_id, product_id, variant_id, product_name_snapshot, variant_label_snapshot,
+                    sku_snapshot, quantity, mrp, unit_price, line_total
+                ) VALUES (
+                    :order_id, :product_id, :variant_id, :product_name_snapshot, :variant_label_snapshot,
+                    :sku_snapshot, :quantity, :mrp, :unit_price, :line_total
+                )"
+            );
+
+            foreach ($return['items'] as $item) {
+                $qty = (int) $item['qty'];
+                $unitPrice = (float) $item['unit_price'];
+                $insertItem->execute([
+                    'order_id' => $replacementOrderId,
+                    'product_id' => $item['product_id'],
+                    'variant_id' => $item['variant_id'],
+                    'product_name_snapshot' => $item['product_name_snapshot'],
+                    'variant_label_snapshot' => $item['variant_label_snapshot'],
+                    'sku_snapshot' => $item['sku_snapshot'],
+                    'quantity' => $qty,
+                    'mrp' => $unitPrice,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $unitPrice * $qty,
+                ]);
+            }
+
+            $this->pdo->prepare(
+                "UPDATE sale_returns SET replacement_order_id = :order_id, replacement_status = 'PROCESSING' WHERE id = :id"
+            )->execute(['order_id' => $replacementOrderId, 'id' => $returnId]);
+
+            $this->pdo->prepare(
+                "INSERT INTO sale_return_status_history (return_id, from_status, to_status, source, note, actor_user_id)
+                 VALUES (:ret_id, :from_status, :to_status, 'ADMIN', :note, :actor_user_id)"
+            )->execute([
+                'ret_id' => $returnId,
+                'from_status' => $return['status'],
+                'to_status' => $return['status'],
+                'note' => "Replacement order {$orderNo} created",
+                'actor_user_id' => $actorUserId,
+            ]);
+
+            $this->pdo->commit();
+
+            if ($return['customer_id']) {
+                $this->notifications->notify(
+                    recipientType: 'CUSTOMER',
+                    recipientId: (int) $return['customer_id'],
+                    type: 'RETURN_REPLACEMENT_PROCESSING',
+                    title: 'Your replacement is being processed',
+                    body: "A replacement order ({$orderNo}) has been created for return {$return['return_no']}.",
+                    referenceType: 'ORDER',
+                    referenceId: $replacementOrderId,
+                    data: ['return_no' => $return['return_no'], 'order_id' => (string) $replacementOrderId],
+                );
+            }
+
+            return $this->find($returnId) ?? throw new RuntimeException('Return not found after replacement creation');
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
     }
 }

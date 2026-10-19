@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Alert, Badge, Button, Card, Modal, Spinner, TextField } from '../components/ui'
+import { Alert, Badge, Button, Card, Modal, Spinner, TextArea, TextField } from '../components/ui'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
 import type { Brand, Category, ProductDetail, ProductVariant, Subcategory, VariantAttribute } from '../lib/types'
@@ -164,6 +164,7 @@ function ProductInformationSection({
   const [isDeal, setIsDeal] = useState(Boolean(product.is_deal))
   const [returnable, setReturnable] = useState(Boolean(product.returnable))
   const [returnDays, setReturnDays] = useState(String(product.return_window_days || '7'))
+  const [returnPolicyDescription, setReturnPolicyDescription] = useState(product.return_policy_description || '')
 
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [allSubcategories, setAllSubcategories] = useState<Subcategory[]>([])
@@ -193,6 +194,7 @@ function ProductInformationSection({
     setIsDeal(Boolean(product.is_deal))
     setReturnable(Boolean(product.returnable))
     setReturnDays(String(product.return_window_days || '7'))
+    setReturnPolicyDescription(product.return_policy_description || '')
   }, [product])
 
   async function handleSave(e: React.FormEvent) {
@@ -219,6 +221,7 @@ function ProductInformationSection({
         is_deal: isDeal ? 1 : 0,
         returnable: returnable ? 1 : 0,
         return_window_days: returnable ? Number(returnDays) || 7 : null,
+        return_policy_description: returnPolicyDescription.trim() || null,
       })
       setIsEditing(false)
       onChange()
@@ -435,6 +438,15 @@ function ProductInformationSection({
               <TextField label="Return Window (Days)" type="number" value={returnDays} onChange={(e) => setReturnDays(e.target.value)} />
             )}
           </div>
+
+          {returnable && (
+            <TextArea
+              label="Return Policy Description (Optional)"
+              value={returnPolicyDescription}
+              onChange={(e) => setReturnPolicyDescription(e.target.value)}
+              rows={2}
+            />
+          )}
 
           <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-100">
             <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-800">

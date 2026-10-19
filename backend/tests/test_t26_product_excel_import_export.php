@@ -710,6 +710,111 @@ $zipExtractor->cleanup($dedupImagesDir);
 @unlink($dedupSheetPath);
 @unlink($dedupZipPath);
 
+// ---------------------------------------------------------------------
+// GROUP 15: Selling Price and Variant SKU are optional cells (bug fix —
+// previously both were wrongly mandatory for every import row).
+// ---------------------------------------------------------------------
+echo "\n-- Optional Selling Price / Variant SKU --\n";
+
+// 15a: blank Selling Price on a brand-new variant -> succeeds, retail_price
+// defaults to MRP (never 0, never the empty string cast to a float).
+$blankPriceRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Blank Price ' . $uid,
+    'Product Code' => 'T26-BLANKPRICE-' . $uid,
+    'Variant SKU' => 'T26-BLANKPRICE-SKU-' . $uid,
+    'MRP' => '650', 'Selling Price' => '',
+]);
+$blankPriceSheetPath = $tmpDir . '/t26-blankprice-' . $uid . '.xlsx';
+writeImportSheet($blankPriceSheetPath, [$blankPriceRow]);
+$blankPriceResult = $importer->commit($blankPriceSheetPath, true, $cashierUserId);
+assertTest('Row with blank Selling Price succeeds (no longer mandatory)', $blankPriceResult['successful_rows'] === 1, json_encode($blankPriceResult['errors']));
+$blankPriceRetail = (float) $pdo->query("SELECT retail_price FROM product_variants WHERE sku = 'T26-BLANKPRICE-SKU-{$uid}'")->fetchColumn();
+assertTest('Blank Selling Price on a NEW variant defaults to MRP (650), not 0', $blankPriceRetail === 650.0, (string) $blankPriceRetail);
+@unlink($blankPriceSheetPath);
+
+// 15b: blank Variant SKU on a brand-new variant -> succeeds, a SKU is
+// auto-assigned (Product Code based) instead of being left blank/duplicated.
+$blankSkuRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Blank Sku ' . $uid,
+    'Product Code' => 'T26-BLANKSKU-' . $uid,
+    'Variant SKU' => '',
+]);
+$blankSkuSheetPath = $tmpDir . '/t26-blanksku-' . $uid . '.xlsx';
+writeImportSheet($blankSkuSheetPath, [$blankSkuRow]);
+$blankSkuResult = $importer->commit($blankSkuSheetPath, true, $cashierUserId);
+assertTest('Row with blank Variant SKU succeeds (no longer mandatory)', $blankSkuResult['successful_rows'] === 1, json_encode($blankSkuResult['errors']));
+$autoSku = $pdo->query("SELECT sku FROM product_variants WHERE product_id = (SELECT id FROM products WHERE product_code = 'T26-BLANKSKU-{$uid}')")->fetchColumn();
+assertTest('An auto-generated SKU was assigned, derived from the Product Code', is_string($autoSku) && str_starts_with(mb_strtoupper($autoSku), mb_strtoupper('T26-BLANKSKU-' . $uid)), (string) $autoSku);
+@unlink($blankSkuSheetPath);
+
+// 15c: BOTH Selling Price and Variant SKU blank on one new-product row ->
+// succeeds, both safe defaults applied together.
+$bothBlankRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Both Blank ' . $uid,
+    'Product Code' => 'T26-BOTHBLANK-' . $uid,
+    'Variant SKU' => '', 'MRP' => '300', 'Selling Price' => '',
+]);
+$bothBlankSheetPath = $tmpDir . '/t26-bothblank-' . $uid . '.xlsx';
+writeImportSheet($bothBlankSheetPath, [$bothBlankRow]);
+$bothBlankResult = $importer->commit($bothBlankSheetPath, true, $cashierUserId);
+assertTest('Row with BOTH Selling Price and Variant SKU blank succeeds', $bothBlankResult['successful_rows'] === 1, json_encode($bothBlankResult['errors']));
+$bothBlankVariant = $pdo->query("SELECT sku, retail_price FROM product_variants WHERE product_id = (SELECT id FROM products WHERE product_code = 'T26-BOTHBLANK-{$uid}')")->fetch();
+assertTest('Both defaults applied together (auto SKU + retail_price = MRP 300)', $bothBlankVariant !== false && $bothBlankVariant['sku'] !== '' && (float) $bothBlankVariant['retail_price'] === 300.0, json_encode($bothBlankVariant));
+@unlink($bothBlankSheetPath);
+
+// 15d: two rows of the SAME new product both leaving SKU blank -> each
+// gets its OWN distinct auto-generated SKU, never a duplicate-key crash.
+$dualBlankSkuCode = 'T26-DUALBLANKSKU-' . $uid;
+$dualBlankRowA = array_merge($baseRow, [
+    'Product Name' => 'T26 Dual Blank Sku ' . $uid, 'Product Code' => $dualBlankSkuCode,
+    'Variant SKU' => '', 'Size' => 'L', 'Color' => 'Red',
+]);
+$dualBlankRowB = array_merge($baseRow, [
+    'Product Name' => 'T26 Dual Blank Sku ' . $uid, 'Product Code' => $dualBlankSkuCode,
+    'Variant SKU' => '', 'Size' => 'XL', 'Color' => 'Blue',
+]);
+$dualBlankSheetPath = $tmpDir . '/t26-dualblanksku-' . $uid . '.xlsx';
+writeImportSheet($dualBlankSheetPath, [$dualBlankRowA, $dualBlankRowB]);
+$dualBlankResult = $importer->commit($dualBlankSheetPath, true, $cashierUserId);
+assertTest('Two blank-SKU rows for the same new product both succeed', $dualBlankResult['successful_rows'] === 2 && $dualBlankResult['failed_rows'] === 0, json_encode($dualBlankResult['errors']));
+$dualBlankSkus = $pdo->query("SELECT sku FROM product_variants WHERE product_id = (SELECT id FROM products WHERE product_code = '{$dualBlankSkuCode}') ORDER BY id")->fetchAll(PDO::FETCH_COLUMN);
+assertTest('The two auto-generated SKUs are distinct (no collision)', count($dualBlankSkus) === 2 && $dualBlankSkus[0] !== $dualBlankSkus[1], json_encode($dualBlankSkus));
+@unlink($dualBlankSheetPath);
+
+// 15e: update mode — a blank Selling Price on a row updating an EXISTING
+// variant must leave that variant's current price untouched, never reset
+// it to MRP (matches the existing "blank cell = no change" convention
+// already used for barcode/cost price/description/status/stock).
+$updatePriceBeforeRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Update Blank Price ' . $uid, 'Product Code' => 'T26-UPDBLANKPRICE-' . $uid,
+    'Variant SKU' => 'T26-UPDBLANKPRICE-SKU-' . $uid, 'MRP' => '500', 'Selling Price' => '420',
+]);
+$updatePriceSheet1 = $tmpDir . '/t26-updblankprice-1-' . $uid . '.xlsx';
+writeImportSheet($updatePriceSheet1, [$updatePriceBeforeRow]);
+$importer->commit($updatePriceSheet1, true, $cashierUserId);
+@unlink($updatePriceSheet1);
+
+$updatePriceAfterRow = array_merge($updatePriceBeforeRow, ['Selling Price' => '', 'Status' => 'ACTIVE']);
+$updatePriceSheet2 = $tmpDir . '/t26-updblankprice-2-' . $uid . '.xlsx';
+writeImportSheet($updatePriceSheet2, [$updatePriceAfterRow]);
+$updatePriceResult = $importer->commit($updatePriceSheet2, true, $cashierUserId, true);
+assertTest('Update row with blank Selling Price succeeds', $updatePriceResult['successful_rows'] === 1, json_encode($updatePriceResult['errors']));
+$updatePriceRetailAfter = (float) $pdo->query("SELECT retail_price FROM product_variants WHERE sku = 'T26-UPDBLANKPRICE-SKU-{$uid}'")->fetchColumn();
+assertTest('Blank Selling Price on an UPDATE row left the existing price (420) untouched, did NOT reset to MRP', $updatePriceRetailAfter === 420.0, (string) $updatePriceRetailAfter);
+@unlink($updatePriceSheet2);
+
+// 15f: a Selling Price cell that holds genuine garbage (not blank) is
+// still rejected — "optional" must not mean "unvalidated".
+$garbagePriceRow = array_merge($baseRow, [
+    'Product Name' => 'T26 Garbage Price ' . $uid, 'Product Code' => 'T26-GARBAGEPRICE-' . $uid,
+    'Variant SKU' => 'T26-GARBAGEPRICE-SKU-' . $uid, 'Selling Price' => 'not-a-number',
+]);
+$garbagePriceSheetPath = $tmpDir . '/t26-garbageprice-' . $uid . '.xlsx';
+writeImportSheet($garbagePriceSheetPath, [$garbagePriceRow]);
+$garbagePriceResult = $importer->preview($garbagePriceSheetPath, true, false);
+assertTest('A non-numeric (but non-blank) Selling Price is still rejected', $garbagePriceResult['failed_rows'] === 1 && $garbagePriceResult['errors'][0]['reason'] === 'Selling Price must be numeric', json_encode($garbagePriceResult['errors']));
+@unlink($garbagePriceSheetPath);
+
 // Authoritative, whole-suite orphan check — every group above cleans up
 // after itself individually, but this is the one check that actually
 // catches a leak regardless of which group's manual cleanup was wrong.

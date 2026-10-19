@@ -3,6 +3,7 @@ import { PencilIcon, TrashIcon, ImageIcon } from '../components/Icons'
 import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextField } from '../components/ui'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
+import { env } from '../config/env'
 
 export interface TopOffer {
   id: number
@@ -25,7 +26,7 @@ function imageUrl(path: string | null | undefined): string | null {
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
     return path
   }
-  const base = (import.meta.env.VITE_API_ORIGIN as string | undefined) ?? 'http://localhost:8000'
+  const base = env.API_ORIGIN || 'http://192.168.1.103:8080'
   return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
 }
 
@@ -37,6 +38,7 @@ const ICON_OPTIONS = [
   { value: 'zap', label: '⚡ Flash / Zap (Lightning Deals)' },
   { value: 'star', label: '⭐ Star (Featured Offer)' },
 ]
+
 
 export function TopOffersPage() {
   const [offers, setOffers] = useState<TopOffer[] | null>(null)

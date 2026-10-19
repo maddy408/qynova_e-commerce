@@ -68,6 +68,11 @@ export interface ReturnRecord {
   inspection_notes?: string | null
   stock_credited?: number | boolean
   rejection_reason?: string | null
+  reported_condition?: 'UNOPENED' | 'OPENED_UNUSED' | 'USED' | 'DAMAGED_ON_ARRIVAL' | null
+  packaging_available?: number | boolean | null
+  replacement_order_id?: number | null
+  replacement_status?: 'NOT_APPLICABLE' | 'PENDING' | 'PROCESSING' | 'DISPATCHED' | 'COMPLETED'
+  images?: { id: number; image_path: string; thumb_path: string | null }[]
   first_item_name?: string | null
   first_item_image?: string | null
   total_returned_qty?: number
@@ -515,6 +520,20 @@ export function ReturnsPage() {
       fetchSummary()
     } catch (err) {
       setActionError(apiErrorMessage(err, 'Failed to approve return'))
+    }
+  }
+
+  // Create a linked replacement fulfillment order for an approved REPLACEMENT return
+  async function handleCreateReplacement(ret: ReturnRecord) {
+    try {
+      const res = await api.post(`/returns/${ret.id}/replacement`, {})
+      setActionSuccess(`Replacement order created for ${ret.return_no}!`)
+      if (res.data?.return) {
+        setSelectedReturn(res.data.return)
+      }
+      fetchReturns()
+    } catch (err) {
+      setActionError(apiErrorMessage(err, 'Failed to create replacement order'))
     }
   }
 
@@ -1369,7 +1388,35 @@ export function ReturnsPage() {
                         {selectedReturn.rejection_reason}
                       </div>
                     )}
+                    {selectedReturn.reported_condition && (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200">
+                        <span className="text-slate-500">Customer-Reported Condition:</span>
+                        <span className="font-semibold text-slate-700">{selectedReturn.reported_condition.replace(/_/g, ' ')}</span>
+                      </div>
+                    )}
+                    {selectedReturn.packaging_available !== undefined && selectedReturn.packaging_available !== null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Package/Accessories Available:</span>
+                        <span className="font-semibold text-slate-700">{Number(selectedReturn.packaging_available) === 1 ? 'Yes' : 'No'}</span>
+                      </div>
+                    )}
                   </div>
+                  {selectedReturn.images && selectedReturn.images.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Supporting Photos</span>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedReturn.images.map((img) => (
+                          <a key={img.id} href={imageUrl(img.image_path) || '#'} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={imageUrl(img.thumb_path || img.image_path) || undefined}
+                              alt="Return evidence"
+                              className="w-16 h-16 rounded-lg object-cover border border-slate-200"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 4. Return Tracking (Vertical Timeline) */}
@@ -1617,6 +1664,23 @@ export function ReturnsPage() {
                       <span>Reject</span>
                     </button>
                   </div>
+
+                  {selectedReturn.return_type === 'REPLACEMENT' &&
+                    ['APPROVED', 'PROCESSING'].includes(selectedReturn.status) &&
+                    !selectedReturn.replacement_order_id && (
+                      <button
+                        type="button"
+                        onClick={() => handleCreateReplacement(selectedReturn)}
+                        className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                      >
+                        Process Replacement — Create Fulfillment Order
+                      </button>
+                    )}
+                  {selectedReturn.replacement_order_id && (
+                    <p className="text-[11px] text-center text-slate-500 font-semibold">
+                      Replacement order #{selectedReturn.replacement_order_id} created ({selectedReturn.replacement_status})
+                    </p>
+                  )}
                 </div>
               </>
             )}

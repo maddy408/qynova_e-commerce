@@ -29,12 +29,16 @@ final class BroadcastService
 {
     private const MIN_SECONDS_BETWEEN_CAMPAIGNS = 10;
 
+    private readonly RedisQueueService $redis;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly NotificationService $notifications,
         private readonly DeviceTokenService $deviceTokens,
         private readonly FcmSenderService $fcm,
+        ?RedisQueueService $redis = null,
     ) {
+        $this->redis = $redis ?? new RedisQueueService();
     }
 
     /**
@@ -137,19 +141,44 @@ final class BroadcastService
         $tokens = array_values(array_unique(array_column($tokenRows, 'token')));
 
         $result = ['attempted' => 0, 'sent' => 0];
-        if ($tokens !== [] && $this->fcm->isConfigured()) {
+        $isQueuedRedis = false;
+
+        if ($tokens !== []) {
             $fcmData = array_merge([
                 'type' => $normalizedType,
                 'campaign_id' => (string) $campaignId,
                 'click_action' => $data['url'] ?? '/',
             ], $data ?? []);
-            $result = $this->fcm->sendBatch($tokens, $title, $body, $fcmData);
+
+            // Check if Redis queue is active and available
+            if ($this->redis->isAvailable()) {
+                $queued = $this->redis->push([
+                    'campaign_id' => $campaignId,
+                    'title' => $title,
+                    'body' => $body,
+                    'tokens' => $tokens,
+                    'data' => $fcmData,
+                    'type' => $normalizedType,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+                if ($queued) {
+                    $isQueuedRedis = true;
+                    $result = ['attempted' => count($tokens), 'sent' => count($tokens)];
+                }
+            }
+
+            // Synchronous fallback if Redis is disabled or unavailable
+            if (!$isQueuedRedis && $this->fcm->isConfigured()) {
+                $result = $this->fcm->sendBatch($tokens, $title, $body, $fcmData);
+            }
         }
 
         $failureCount = $result['attempted'] - $result['sent'];
         $this->completeCampaign($campaignId, count($tokens), $result['sent'], $failureCount);
 
-        $message = $this->resultMessage(count($tokens), $result['sent'], $failureCount, $this->fcm->isConfigured());
+        $message = $isQueuedRedis
+            ? "Notification queued via Redis for background push delivery (" . count($tokens) . " devices)."
+            : $this->resultMessage(count($tokens), $result['sent'], $failureCount, $this->fcm->isConfigured());
 
         return [
             'campaign_id' => $campaignId,
@@ -258,15 +287,36 @@ final class BroadcastService
             $tokenRows = $this->deviceTokens->activeTokensForMany('CUSTOMER', $customerIds);
             $tokens = array_values(array_unique(array_column($tokenRows, 'token')));
 
-            // 4. Send FCM push batch
+            // 4. Send FCM push batch or queue via Redis
             $result = ['attempted' => 0, 'sent' => 0];
-            if ($tokens !== [] && $this->fcm->isConfigured()) {
+            $isQueuedRedis = false;
+
+            if ($tokens !== []) {
                 $fcmData = array_merge([
                     'type' => $normalizedType,
                     'campaign_id' => (string) $campaignId,
                     'click_action' => $data['click_action'] ?? $data['url'] ?? '/',
                 ], $data ?? []);
-                $result = $this->fcm->sendBatch($tokens, $title, $body, $fcmData);
+
+                if ($this->redis->isAvailable()) {
+                    $queued = $this->redis->push([
+                        'campaign_id' => $campaignId,
+                        'title' => $title,
+                        'body' => $body,
+                        'tokens' => $tokens,
+                        'data' => $fcmData,
+                        'type' => $normalizedType,
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ]);
+                    if ($queued) {
+                        $isQueuedRedis = true;
+                        $result = ['attempted' => count($tokens), 'sent' => count($tokens)];
+                    }
+                }
+
+                if (!$isQueuedRedis && $this->fcm->isConfigured()) {
+                    $result = $this->fcm->sendBatch($tokens, $title, $body, $fcmData);
+                }
             }
 
             $failureCount = $result['attempted'] - $result['sent'];

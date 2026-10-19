@@ -8,16 +8,211 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\ImageUploadService;
 use PDO;
 use Exception;
+use RuntimeException;
 
 final class ReturnsController
 {
     private readonly \App\Services\ReturnService $returnService;
+    private readonly ImageUploadService $uploader;
 
     public function __construct(private readonly PDO $pdo)
     {
         $this->returnService = new \App\Services\ReturnService($pdo);
+        $this->uploader = new ImageUploadService();
+    }
+
+    private function assertOrderOwnership(array $claims, int $orderId): void
+    {
+        PermissionMiddleware::requireCustomer($claims);
+
+        $stmt = $this->pdo->prepare('SELECT customer_id FROM orders WHERE id = :id');
+        $stmt->execute(['id' => $orderId]);
+        $ownerId = $stmt->fetchColumn();
+
+        if ($ownerId === false) {
+            Response::error('Order not found', 404);
+            return;
+        }
+
+        if ((int) $ownerId !== (int) $claims['sub']) {
+            Response::error('Forbidden', 403);
+        }
+    }
+
+    /** Customer-facing: per-item return eligibility for one of their own orders (spec section 2). */
+    public function customerEligibility(string|int $orderId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        $this->assertOrderOwnership($claims, (int) $orderId);
+
+        try {
+            Response::json($this->returnService->eligibilityForOrder((int) $orderId, (int) $claims['sub']));
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Customer-facing: submit a return request for one of their own
+     * orders (spec sections 2-3). Everything that actually determines
+     * eligibility, remaining quantity, pricing and the customer's
+     * identity is re-derived server-side from the authenticated session
+     * and the database — the request body only supplies which items/qty
+     * the customer picked and their answers to the request form.
+     *
+     * multipart/form-data: a `payload` field holding the JSON-encoded
+     * form fields, plus 0+ files under an `images[]` field — mirrors the
+     * existing VariantImageController's plain-file-upload pattern, with
+     * the structured fields carried as one JSON string since standard
+     * multipart form fields can't nest objects/arrays.
+     */
+    public function customerCreate(string|int $orderId): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        $this->assertOrderOwnership($claims, (int) $orderId);
+
+        $payload = json_decode((string) ($_POST['payload'] ?? '{}'), true);
+        if (!is_array($payload)) {
+            $payload = [];
+        }
+
+        $reason = trim((string) ($payload['reason'] ?? ''));
+        $otherReasonText = trim((string) ($payload['description'] ?? ''));
+        $condition = strtoupper(trim((string) ($payload['condition'] ?? '')));
+        $packagingAvailable = array_key_exists('packaging_available', $payload) ? (bool) $payload['packaging_available'] : null;
+        $resolution = strtoupper(trim((string) ($payload['resolution'] ?? 'REFUND')));
+        $confirmed = (bool) ($payload['confirmed'] ?? false);
+        $items = (array) ($payload['items'] ?? []);
+
+        if (!$confirmed) {
+            Response::error('Please confirm the return details are correct before submitting', 422);
+            return;
+        }
+
+        if ($reason === 'Other' && $otherReasonText === '') {
+            Response::error('Please describe the reason when "Other" is selected', 422);
+            return;
+        }
+
+        // The reason dropdown's value IS the stored reason; the optional
+        // description is appended as notes (section 3, item 2) so neither
+        // the dropdown choice nor the free-text explanation is lost.
+        $data = [
+            'order_id' => (int) $orderId,
+            'reason' => $reason,
+            'notes' => $otherReasonText,
+            'return_type' => $resolution,
+            'items' => $items,
+        ];
+
+        $imagePaths = [];
+        $uploadedFiles = $this->normalizeFiles($_FILES['images'] ?? null);
+
+        try {
+            if (count($uploadedFiles) > 5) {
+                throw new RuntimeException('A maximum of 5 supporting images is allowed');
+            }
+
+            foreach ($uploadedFiles as $file) {
+                $imagePaths[] = $this->uploader->store($file, 'returns');
+            }
+
+            // Eligibility (delivered, within window, remaining quantity)
+            // is re-verified here against the database for every item,
+            // using the exact same source of truth the GET endpoint above
+            // shows the customer — never the frontend's own judgement of
+            // which items/qty are returnable.
+            $eligibility = $this->returnService->eligibilityForOrder((int) $orderId, (int) $claims['sub']);
+            $eligibleByItemId = [];
+            foreach ($eligibility['items'] as $eligItem) {
+                $eligibleByItemId[$eligItem['order_item_id']] = $eligItem;
+            }
+
+            foreach ($items as $item) {
+                $orderItemId = (int) ($item['order_item_id'] ?? 0);
+                $qty = (int) ($item['qty'] ?? 0);
+                $eligItem = $eligibleByItemId[$orderItemId] ?? null;
+
+                if ($eligItem === null) {
+                    throw new RuntimeException("Item #{$orderItemId} does not belong to this order");
+                }
+                if (!$eligItem['eligible']) {
+                    throw new RuntimeException("'{$eligItem['product_name_snapshot']}' is not eligible for return: " . ($eligItem['reason'] ?? 'not eligible'));
+                }
+                if ($qty <= 0 || $qty > $eligItem['remaining_qty']) {
+                    throw new RuntimeException("Invalid quantity for '{$eligItem['product_name_snapshot']}' — up to {$eligItem['remaining_qty']} may be returned");
+                }
+            }
+
+            $returnId = $this->returnService->createReturn(
+                $data,
+                createdByUserId: null,
+                customerId: (int) $claims['sub'],
+                reportedCondition: $condition !== '' ? $condition : null,
+                packagingAvailable: $packagingAvailable,
+                imagePaths: $imagePaths,
+            );
+
+            Response::json(['return' => $this->returnService->find($returnId)], 201);
+        } catch (RuntimeException $e) {
+            // The request failed after some images may already have been
+            // uploaded — those files would otherwise be orphaned on disk
+            // with nothing in the database ever referencing them.
+            foreach ($imagePaths as $img) {
+                $this->uploader->delete($img['path']);
+                $this->uploader->delete($img['thumb_path'] ?? null);
+            }
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Normalizes PHP's parallel-array $_FILES shape for a multi-file
+     * input (`images[]`) into a list of individual file arrays.
+     *
+     * @return list<array{tmp_name: string, size: int, error: int, name: string}>
+     */
+    private function normalizeFiles(?array $filesField): array
+    {
+        if ($filesField === null || !isset($filesField['name'])) {
+            return [];
+        }
+
+        if (!is_array($filesField['name'])) {
+            return $filesField['error'] === UPLOAD_ERR_NO_FILE ? [] : [$filesField];
+        }
+
+        $normalized = [];
+        foreach ($filesField['name'] as $i => $name) {
+            if ($filesField['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $normalized[] = [
+                'name' => $name,
+                'tmp_name' => $filesField['tmp_name'][$i],
+                'size' => $filesField['size'][$i],
+                'error' => $filesField['error'][$i],
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /** Admin-facing: create a linked replacement fulfillment order for an approved REPLACEMENT return (spec section 7). */
+    public function createReplacement(string|int $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        try {
+            $updated = $this->returnService->createReplacementOrder((int) $id, (int) $claims['sub']);
+            Response::json(['return' => $updated]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
     }
 
     public function indexSaleReturns(): void
