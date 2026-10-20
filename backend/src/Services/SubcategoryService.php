@@ -141,6 +141,10 @@ final class SubcategoryService
 
             $subcategoryId = (int) $this->pdo->lastInsertId();
             $this->syncCategories($subcategoryId, $categoryIds);
+            $seo = array_intersect_key($data, array_flip(['meta_title', 'meta_description', 'seo_keywords', 'seo_content']));
+            if ($seo !== []) {
+                $this->update($subcategoryId, $seo, null);
+            }
 
             $this->pdo->commit();
 
@@ -157,7 +161,7 @@ final class SubcategoryService
      */
     public function update(int $id, array $data, ?array $categoryIds): void
     {
-        $fields = ['name', 'description', 'sort_order', 'status'];
+        $fields = ['name', 'description', 'sort_order', 'status', 'meta_title', 'meta_description', 'seo_keywords', 'seo_content'];
         $sets = [];
         $params = ['id' => $id];
 

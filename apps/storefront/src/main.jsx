@@ -14,10 +14,6 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   }).catch(() => {})
 }
 
-if (typeof document !== 'undefined') {
-  document.title = 'Shop with Adam — Fresh Daily Essentials'
-}
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

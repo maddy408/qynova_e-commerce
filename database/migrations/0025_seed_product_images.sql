@@ -56,6 +56,6 @@ SELECT * FROM (
     UNION ALL SELECT 17, 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=900&auto=format&fit=crop&q=80', NULL, 1, 0, NOW()
     -- Product 18
     UNION ALL SELECT 18, 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=900&auto=format&fit=crop&q=80', NULL, 0, 1, NOW()
-    UNION ALL SELECT 18, 'https://images.unsplash.com/photo-1513094735237-8f2714d57c13?w=900&auto=format&fit=crop&q=80', NULL, 1, 0, NOW()
 ) AS tmp
-WHERE NOT EXISTS (SELECT 1 FROM product_images);
+WHERE EXISTS (SELECT 1 FROM products p WHERE p.id = tmp.product_id)
+  AND NOT EXISTS (SELECT 1 FROM product_images);

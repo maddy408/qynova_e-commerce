@@ -65,4 +65,12 @@ return [
         // optional override; defaults to https://<account_id>.r2.cloudflarestorage.com
         'endpoint' => $_ENV['R2_ENDPOINT'] ?? '',
     ],
+    'seo' => [
+        // public storefront address used in canonical URLs, sitemap, share previews
+        'site_url' => $_ENV['SITE_URL'] ?? 'https://shopadams.in',
+        // brand shown in page titles; empty = store name from admin Store Settings
+        'site_name' => $_ENV['SITE_NAME'] ?? '',
+        // where non-R2 images (uploads/...) are served from; empty = SITE_URL
+        'asset_url' => $_ENV['ASSET_URL'] ?? '',
+    ],
 ];

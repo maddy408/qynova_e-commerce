@@ -4,6 +4,7 @@ import { Alert, Button, Modal, Spinner } from '../components/ui'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category, Subcategory } from '../lib/types'
+import { EMPTY_SEO, SeoFields, seoFrom, type SeoValues } from '../components/SeoFields'
 
 function imageUrl(path: string | null) {
   if (!path) return null
@@ -31,6 +32,7 @@ export function SubcategoriesPage() {
   const [topErrorMessage, setTopErrorMessage] = useState('')
 
   const [name, setName] = useState('')
+  const [seo, setSeo] = useState<SeoValues>(EMPTY_SEO)
   const [categoryIds, setCategoryIds] = useState<number[]>([])
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -128,6 +130,7 @@ export function SubcategoriesPage() {
   function openCreateModal() {
     setName('')
     setCategoryIds([])
+    setSeo(EMPTY_SEO)
     setError('')
     resetImageState()
     setShowForm(true)
@@ -137,6 +140,7 @@ export function SubcategoriesPage() {
     setEditingSubcategory(s)
     setName(s.name)
     setCategoryIds(s.category_ids ?? [])
+    setSeo(seoFrom(s))
     setError('')
     resetImageState()
   }
@@ -169,10 +173,10 @@ export function SubcategoriesPage() {
     try {
       let subcategoryId: number
       if (editingSubcategory) {
-        await api.put(`/subcategories/${editingSubcategory.id}`, { name, category_ids: categoryIds })
+        await api.put(`/subcategories/${editingSubcategory.id}`, { name, category_ids: categoryIds, ...seo })
         subcategoryId = editingSubcategory.id
       } else {
-        const res = await api.post('/subcategories', { name, category_ids: categoryIds })
+        const res = await api.post('/subcategories', { name, category_ids: categoryIds, ...seo })
         subcategoryId = res.data.id
       }
 
@@ -776,6 +780,8 @@ export function SubcategoriesPage() {
                 })}
               </div>
             </div>
+
+            <SeoFields value={seo} onChange={setSeo} name={name} path={editingSubcategory ? `/category/…/${editingSubcategory.slug}` : undefined} />
 
             {/* Image Uploader Card */}
             <div className="rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]/70 p-4 transition-colors">

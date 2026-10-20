@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { usePageTitle } from '../lib/seo'
 import {
   FiStar,
   FiTag,
@@ -44,6 +45,7 @@ let inMemoryRecentlyViewed = []
 export default function ProductDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
 
   // Product Data & Status
   const [product, setProduct] = useState(null)
@@ -220,9 +222,18 @@ export default function ProductDetails() {
         const res = await api.get(`/products/${id}`)
         if (res.data?.product) {
           const prod = res.data.product
+          // Old /product/<id> links -> the SEO slug URL (the server also 301-redirects these).
+          if (prod.slug && String(id) !== String(prod.slug)) {
+            navigate(`/product/${encodeURIComponent(prod.slug)}${location.search}`, { replace: true })
+          }
           setProduct(prod)
           setReviews(Array.isArray(prod.reviews) ? prod.reviews : [])
-          const initialVar = prod.variants?.find((v) => v.is_default) || prod.variants?.[0]
+          // ?variant=<id> (Google Shopping / shared links) preselects that exact variant & price
+          const wantedVariant = new URLSearchParams(location.search).get('variant')
+          const initialVar =
+            prod.variants?.find((v) => String(v.id) === String(wantedVariant)) ||
+            prod.variants?.find((v) => v.is_default) ||
+            prod.variants?.[0]
           if (initialVar?.id) {
             setSelectedVariantId(initialVar.id)
           }
@@ -398,7 +409,8 @@ export default function ProductDetails() {
   const activeImage = imageGallery[selectedImageIndex] || imageGallery[0] || ''
 
   // Primary Category Info
-  const primaryCategory = product?.categories?.[0]
+  usePageTitle(product ? product.meta_title || `${product.name} - Buy Online at Best Price` : null)
+  const primaryCategory = product?.categories?.find((c) => Number(c.is_primary) === 1) || product?.categories?.[0]
 
   // Wishlist handler (Persisted in MySQL via PHP REST API)
   const isWishlisted = product ? wishlistIds.includes(product.id) : false
@@ -741,7 +753,7 @@ export default function ProductDetails() {
           <>
             <span className="text-[#E9DFFF]">/</span>
             <Link
-              to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id)}
+              to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory)}
               className="text-[#6C4EFF] hover:text-[#1B133F] font-medium hover:underline"
             >
               {primaryCategory.name}
@@ -752,7 +764,7 @@ export default function ProductDetails() {
           <>
             <span className="text-[#E9DFFF]">/</span>
             <Link
-              to={ROUTES.PRODUCTS_BY_SUBCATEGORY(product.subcategories[0].id)}
+              to={(primaryCategory ? ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(primaryCategory, product.subcategories[0]) : ROUTES.PRODUCTS_BY_SUBCATEGORY(product.subcategories[0].id))}
               className="text-[#6C4EFF] hover:text-[#1B133F] font-medium hover:underline"
             >
               {product.subcategories[0].name}
@@ -942,7 +954,7 @@ export default function ProductDetails() {
                   <div className="flex items-center gap-2 flex-wrap mb-2">
                     {primaryCategory && (
                       <Link
-                        to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id)}
+                        to={ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory)}
                         className="text-xs font-bold text-[var(--color-brand)] uppercase tracking-wider bg-[var(--color-bg-main)] px-2.5 py-1 rounded-md hover:bg-[var(--color-primary-tint)] transition-colors"
                       >
                         {primaryCategory.name}
@@ -1808,7 +1820,7 @@ export default function ProductDetails() {
             title="You May Also Like"
             subtitle="Curated matching accessories and essentials"
             products={relatedProducts}
-            viewAllLink={primaryCategory ? ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory.id) : '/products'}
+            viewAllLink={primaryCategory ? ROUTES.PRODUCTS_BY_CATEGORY(primaryCategory) : '/products'}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
             onAddToCart={handleAddToCart}
@@ -2180,7 +2192,7 @@ export default function ProductDetails() {
                 {categories.length > 0 ? (
                   categories.slice(0, 6).map((c) => (
                     <li key={c.id}>
-                      <Link to={ROUTES.PRODUCTS_BY_CATEGORY(c.id)} className="hover:text-white transition-colors">
+                      <Link to={ROUTES.PRODUCTS_BY_CATEGORY(c)} className="hover:text-white transition-colors">
                         {c.name}
                       </Link>
                     </li>

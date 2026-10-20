@@ -878,7 +878,7 @@ export default function Navbar({
                         {searchSuggestions.categories.map((cat) => (
                           <Link
                             key={cat.id}
-                            to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
+                            to={ROUTES.PRODUCTS_BY_CATEGORY(cat)}
                             onClick={() => setIsSearchFocused(false)}
                             className="px-2.5 py-1 bg-white hover:bg-[var(--color-primary-tint)] border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] rounded-full text-xs font-bold text-[var(--color-text-main)] transition-colors inline-flex items-center gap-1.5"
                           >
@@ -936,7 +936,7 @@ export default function Navbar({
                         {searchSuggestions.products.map((prod) => (
                           <Link
                             key={prod.id}
-                            to={ROUTES.PRODUCT_DETAIL(prod.id)}
+                            to={ROUTES.PRODUCT_DETAIL(prod)}
                             onClick={() => setIsSearchFocused(false)}
                             className="flex items-center gap-3 p-2.5 hover:bg-[var(--color-bg-alt)] transition-colors"
                           >
@@ -1412,7 +1412,7 @@ export default function Navbar({
 
                         <div className="flex items-center gap-2 shrink-0">
                           <Link
-                            to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
+                            to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
                             onClick={() => setIsMegaMenuOpen(false)}
                             className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
                           >
@@ -1448,7 +1448,7 @@ export default function Navbar({
                               {selectedCategorySubcategories.slice(0, 5).map((subcat) => (
                                 <Link
                                   key={subcat.id}
-                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(activeCategoryObj.id, subcat.id)}
+                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(activeCategoryObj, subcat)}
                                   onClick={() => setIsMegaMenuOpen(false)}
                                   className="group p-3 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
@@ -1484,7 +1484,7 @@ export default function Navbar({
                                 Popular in {activeCategoryObj.name}
                               </span>
                               <Link
-                                to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
+                                to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
                                 onClick={() => setIsMegaMenuOpen(false)}
                                 className="text-xs font-extrabold text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
                               >
@@ -1496,7 +1496,7 @@ export default function Navbar({
                               {activeCategoryProducts.slice(0, 5).map((prod) => (
                                 <Link
                                   key={prod.id}
-                                  to={ROUTES.PRODUCT_DETAIL(prod.id)}
+                                  to={ROUTES.PRODUCT_DETAIL(prod)}
                                   onClick={() => setIsMegaMenuOpen(false)}
                                   className="group p-2.5 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
@@ -1533,7 +1533,7 @@ export default function Navbar({
                               Browse all available products in this category from our store catalog.
                             </p>
                             <Link
-                              to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj.id)}
+                              to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
                               onClick={() => setIsMegaMenuOpen(false)}
                               className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black shadow-xs transition-all flex items-center gap-2"
                             >
@@ -1727,7 +1727,7 @@ export default function Navbar({
                         <div key={cat.id} className="rounded-xl border border-[var(--color-border-subtle)]/80 overflow-hidden bg-white">
                           <div className="flex items-center justify-between p-2.5">
                             <Link
-                              to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
+                              to={ROUTES.PRODUCTS_BY_CATEGORY(cat)}
                               onClick={() => setIsMobileMenuOpen(false)}
                               className="flex items-center gap-2.5 flex-1 min-w-0"
                             >
@@ -1776,7 +1776,7 @@ export default function Navbar({
                           {catSubs.length > 0 && isExpanded && (
                             <div className="bg-[var(--color-bg-main)] px-3 py-2 border-t border-[var(--color-border-subtle)] space-y-1">
                               <Link
-                                to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
+                                to={ROUTES.PRODUCTS_BY_CATEGORY(cat)}
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="block py-1 px-2 text-[11px] font-extrabold text-[var(--color-brand)] hover:underline"
                               >
@@ -1785,7 +1785,7 @@ export default function Navbar({
                               {catSubs.map((subcat) => (
                                 <Link
                                   key={subcat.id}
-                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(cat.id, subcat.id)}
+                                  to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(cat, subcat)}
                                   onClick={() => setIsMobileMenuOpen(false)}
                                   className="flex items-center justify-between py-1 px-2 rounded-lg text-[11px] font-semibold text-gray-700 hover:bg-[var(--color-primary-tint)] hover:text-[var(--color-brand)] transition-colors"
                                 >

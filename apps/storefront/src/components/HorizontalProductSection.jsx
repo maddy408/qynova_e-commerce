@@ -178,7 +178,7 @@ export default function HorizontalProductSection({
                   isWishlist={wishlistIds.includes(product.id)}
                   onToggleWishlist={onToggleWishlist}
                   onAddToCart={onAddToCart}
-                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product.id))}
+                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product))}
                 />
               </div>
             ))}

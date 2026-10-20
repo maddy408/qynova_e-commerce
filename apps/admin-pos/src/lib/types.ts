@@ -10,6 +10,10 @@ export interface Category {
   name: string
   slug: string
   description: string | null
+  meta_title?: string | null
+  meta_description?: string | null
+  seo_keywords?: string | null
+  seo_content?: string | null
   image_path: string | null
   thumb_path: string | null
   sort_order: number
@@ -24,6 +28,10 @@ export interface Subcategory {
   name: string
   slug: string
   description: string | null
+  meta_title?: string | null
+  meta_description?: string | null
+  seo_keywords?: string | null
+  seo_content?: string | null
   image_path: string | null
   thumb_path: string | null
   sort_order: number

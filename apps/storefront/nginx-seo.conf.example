@@ -1,0 +1,30 @@
+# Storefront on Nginx + PHP-FPM (VPS). Apache/cPanel users: dist/.htaccess
+# already does all of this. Adjust server_name, root and the PHP-FPM socket.
+server {
+    listen 80;
+    server_name shopadams.in www.shopadams.in;
+    root /var/www/shopadams/storefront/dist;
+
+    # www -> bare domain (one canonical host for SEO)
+    if ($host = www.shopadams.in) { return 301 https://shopadams.in$request_uri; }
+
+    location ~* -[A-Za-z0-9_-]{8}\.(js|css)$ { expires 1y; add_header Cache-Control "public, immutable"; try_files $uri =404; }
+
+    location = /robots.txt               { rewrite ^ /index.php?__seo=robots.txt last; }
+    location = /sitemap.xml              { rewrite ^ /index.php?__seo=sitemap.xml last; }
+    location ~ ^/(sitemap-[a-z0-9-]+\.xml)$ { rewrite ^ /index.php?__seo=$1 last; }
+    location = /feeds/google-merchant.xml { rewrite ^ /index.php?__seo=google-merchant.xml last; }
+    location = /index.html               { return 301 /; }
+    location = /seo.config.php           { deny all; }
+
+    location / { try_files $uri $uri/ /index.php$is_args$args; }
+
+    location = /index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root/index.php;
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript application/json application/xml text/plain image/svg+xml;
+}

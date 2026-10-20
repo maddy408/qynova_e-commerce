@@ -8,6 +8,8 @@
  * Any navigate()/<Link>/<NavLink> in a page or component should use a
  * ROUTES constant or helper, never a raw path string.
  */
+import { productPath, categoryPath } from '../lib/seo'
+
 export const ROUTES = {
   HOME: '/',
   PRODUCTS: '/products',
@@ -15,13 +17,16 @@ export const ROUTES = {
   CATALOG: '/catalog',
   WISHLIST: '/wishlist',
   CART: '/cart',
-  PRODUCT_DETAIL: (id) => `/product/${id}`,
+  // Pass the product object (uses its SEO slug) or an id (page then swaps to the slug URL).
+  PRODUCT_DETAIL: (productOrId) => productPath(productOrId),
+  // SEO category landing pages: /category/<slug> and /category/<slug>/<subSlug>
+  CATEGORY: (category, subcategory) => categoryPath(category, subcategory),
 
   PRODUCTS_BY_SECTION: (section) => `/products?section=${section}`,
-  PRODUCTS_BY_CATEGORY: (categoryId) => `/products?category_id=${categoryId}`,
+  // Category object -> /category/<slug>; plain id -> old query URL (server 301-redirects it to the slug URL).
+  PRODUCTS_BY_CATEGORY: (categoryOrId) => categoryPath(categoryOrId),
   PRODUCTS_BY_SUBCATEGORY: (subcategoryId) => `/products?subcategory_id=${subcategoryId}`,
-  PRODUCTS_BY_CATEGORY_SUBCATEGORY: (categoryId, subcategoryId) =>
-    `/products?category_id=${categoryId}&subcategory_id=${subcategoryId}`,
+  PRODUCTS_BY_CATEGORY_SUBCATEGORY: (categoryOrId, subcategoryOrId) => categoryPath(categoryOrId, subcategoryOrId),
   PRODUCTS_WISHLIST: '/products?wishlist=1',
   PRODUCTS_SEARCH: (query) => `/products?search=${encodeURIComponent(query)}`,
 
@@ -49,6 +54,8 @@ export const ROUTES = {
  * ROUTES.*_DETAIL functions above for that). */
 export const ROUTE_PATTERNS = {
   PRODUCT_DETAIL: '/product/:id',
+  CATEGORY: '/category/:categorySlug',
+  CATEGORY_SUB: '/category/:categorySlug/:subcategorySlug',
   POLICY_PAGE: '/pages/:slug',
   POLICY_TERMS: '/policy/:slug',
   CUSTOMER_PROFILE_ALIAS: '/customer/profile',

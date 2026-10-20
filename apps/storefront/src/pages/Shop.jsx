@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { FiShoppingBag, FiPhone, FiMail } from 'react-icons/fi'
 import { api, fetchStoreSettings, fetchDeliverySettings, resolveImageUrl } from '../lib/api'
 import Navbar from '../components/Navbar'
@@ -11,6 +11,7 @@ import ReferralModal from '../components/ReferralModal'
 import { addToCart, getCartCount, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist, toggleWishlist } from '../lib/wishlist'
 import { ROUTES } from '../routes/routes'
+import { usePageTitle, categoryPath } from '../lib/seo'
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -19,8 +20,15 @@ export default function Shop() {
   // URL query state
   const pageParam = parseInt(searchParams.get('page') || '1', 10)
   const sectionParam = searchParams.get('section') || ''
-  const categoryIdParam = searchParams.get('category_id') || ''
-  const subcategoryIdParam = searchParams.get('subcategory_id') || ''
+  // SEO landing URLs /category/:categorySlug(/:subcategorySlug) resolve to ids once the lists load.
+  const { categorySlug = '', subcategorySlug = '' } = useParams()
+  const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
+  const slugCategory = categorySlug ? categories.find((c) => c.slug === categorySlug) : null
+  const slugSubcategory = subcategorySlug ? subcategories.find((s) => s.slug === subcategorySlug) : null
+  const slugPending = (categorySlug && !slugCategory && categories.length === 0) || (subcategorySlug && !slugSubcategory && subcategories.length === 0)
+  const categoryIdParam = searchParams.get('category_id') || (slugCategory ? String(slugCategory.id) : '')
+  const subcategoryIdParam = searchParams.get('subcategory_id') || (slugSubcategory ? String(slugSubcategory.id) : '')
   const brandIdParam = searchParams.get('brand_id') || ''
   const sortParam = searchParams.get('sort') || 'newest'
   const searchParam = searchParams.get('search') || ''
@@ -38,8 +46,6 @@ export default function Shop() {
     hasNextPage: false,
     hasPreviousPage: false,
   })
-  const [categories, setCategories] = useState([])
-  const [subcategories, setSubcategories] = useState([])
   const [brands, setBrands] = useState([])
   const [categoryBanners, setCategoryBanners] = useState([])
   const [storeSettings, setStoreSettings] = useState(null)
@@ -130,6 +136,7 @@ export default function Shop() {
   // SERVER-SIDE PAGINATION: Fetch products directly from MySQL + PHP API whenever filters change
   useEffect(() => {
     async function fetchServerProducts() {
+      if (slugPending) return // wait until /category/<slug> is resolved to an id
       setIsLoading(true)
 
       // Build query string for /api/products
@@ -222,6 +229,7 @@ export default function Shop() {
     isWishlistParam,
     minPriceParam,
     maxPriceParam,
+    slugPending,
   ])
 
   // Filter handlers updating URL
@@ -235,10 +243,18 @@ export default function Shop() {
     const next = new URLSearchParams(searchParams)
     next.set('page', '1')
     next.delete('subcategory_id')
-    if (catId) {
-      next.set('category_id', String(catId))
-    } else {
-      next.delete('category_id')
+    next.delete('category_id')
+    const cat = catId ? categories.find((c) => String(c.id) === String(catId)) : null
+    const rest = next.toString()
+    if (cat?.slug) {
+      // go to the category's SEO landing URL
+      navigate(`${categoryPath(cat)}${rest ? `?${rest}` : ''}`)
+      return
+    }
+    if (catId) next.set('category_id', String(catId))
+    if (categorySlug) {
+      navigate(`${ROUTES.PRODUCTS}?${next.toString()}`)
+      return
     }
     setSearchParams(next)
   }
@@ -246,11 +262,18 @@ export default function Shop() {
   const handleSubcategoryChange = (subcatId) => {
     const next = new URLSearchParams(searchParams)
     next.set('page', '1')
-    if (subcatId) {
-      next.set('subcategory_id', String(subcatId))
-    } else {
-      next.delete('subcategory_id')
+    next.delete('subcategory_id')
+    const sub = subcatId ? subcategories.find((s) => String(s.id) === String(subcatId)) : null
+    if (categorySlug && slugCategory) {
+      // stay on the SEO URLs: /category/<cat>/<sub> or back to /category/<cat>
+      next.delete('category_id')
+      const rest = next.toString()
+      if (!subcatId || sub?.slug) {
+        navigate(`${categoryPath(slugCategory, sub?.slug ? sub : null)}${rest ? `?${rest}` : ''}`)
+        return
+      }
     }
+    if (subcatId) next.set('subcategory_id', String(subcatId))
     setSearchParams(next)
   }
 
@@ -273,6 +296,10 @@ export default function Shop() {
   }
 
   const handleClearFilters = () => {
+    if (categorySlug) {
+      navigate(ROUTES.PRODUCTS)
+      return
+    }
     setSearchParams(new URLSearchParams())
   }
 
@@ -335,6 +362,9 @@ export default function Shop() {
     if (sectionParam === 'deals') return 'Flash Deals & Special Offers'
     return 'All Products Catalog'
   }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, currentBrandObj, sectionParam])
+
+  const seoEntity = currentSubcategoryObj || currentCategoryObj
+  usePageTitle(seoEntity?.meta_title || (seoEntity && !searchParam && !currentBrandObj ? `${pageTitle} - Buy Online at Best Prices` : pageTitle))
 
   // Dynamic Category Banner: only active banners assigned to current category & valid date
   const currentCategoryBanner = useMemo(() => {
@@ -586,7 +616,7 @@ export default function Shop() {
                   isWishlist={wishlistIds.includes(product.id)}
                   onToggleWishlist={handleToggleWishlist}
                   onAddToCart={handleAddToCart}
-                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product.id))}
+                  onClick={() => navigate(ROUTES.PRODUCT_DETAIL(product))}
                 />
               ))}
             </div>
@@ -649,6 +679,22 @@ export default function Shop() {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Category intro + SEO copy - the same text search engines get from the server render */}
+          {seoEntity && !searchParam && pageParam === 1 && (seoEntity.description || seoEntity.seo_content) && (
+            <section className="mt-12 border-t border-[#E9DFFF] pt-8 font-sans text-sm text-[#555555] leading-relaxed space-y-3 max-w-4xl">
+              <h2 className="font-serif text-xl font-bold text-[#1B133F]">About {seoEntity.name}</h2>
+              {[seoEntity.description, seoEntity.seo_content]
+                .filter(Boolean)
+                .join('\n\n')
+                .split(/\n\s*\n/)
+                .map((para) => para.trim())
+                .filter(Boolean)
+                .map((para, i) => (
+                  <p key={i}>{para}</p>
+                ))}
+            </section>
           )}
 
         </main>

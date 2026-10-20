@@ -4,6 +4,7 @@ import { Alert, Button, Modal, Spinner } from '../components/ui'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category } from '../lib/types'
+import { EMPTY_SEO, SeoFields, seoFrom, type SeoValues } from '../components/SeoFields'
 
 function imageUrl(path: string | null) {
   if (!path) return null
@@ -30,6 +31,7 @@ export function CategoriesPage() {
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [seo, setSeo] = useState<SeoValues>(EMPTY_SEO)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -122,6 +124,7 @@ export function CategoriesPage() {
   function openCreateModal() {
     setName('')
     setDescription('')
+    setSeo(EMPTY_SEO)
     setError('')
     resetImageState()
     setShowForm(true)
@@ -131,6 +134,7 @@ export function CategoriesPage() {
     setEditingCategory(c)
     setName(c.name)
     setDescription(c.description ?? '')
+    setSeo(seoFrom(c))
     setError('')
     resetImageState()
   }
@@ -155,10 +159,10 @@ export function CategoriesPage() {
     try {
       let categoryId: number
       if (editingCategory) {
-        await api.put(`/categories/${editingCategory.id}`, { name, description })
+        await api.put(`/categories/${editingCategory.id}`, { name, description, ...seo })
         categoryId = editingCategory.id
       } else {
-        const res = await api.post('/categories', { name, description })
+        const res = await api.post('/categories', { name, description, ...seo })
         categoryId = res.data.id
       }
 
@@ -708,6 +712,8 @@ export function CategoriesPage() {
                 className="w-full rounded-xl border border-[var(--color-surface-muted)] bg-[var(--color-extra-002)] px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all shadow-2xs resize-none"
               />
             </div>
+
+            <SeoFields value={seo} onChange={setSeo} name={name} path={editingCategory ? `/category/${editingCategory.slug}` : undefined} />
 
             {/* Image Uploader Card */}
             <div className="rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]/70 p-4 transition-colors">

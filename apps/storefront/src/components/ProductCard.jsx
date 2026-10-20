@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { resolveImageUrl } from '../lib/api'
 import { FiHeart, FiPlus, FiCheck } from 'react-icons/fi'
 import Button from './common/Button'
+import { Link } from 'react-router-dom'
+import { productPath } from '../lib/seo'
 
 export default function ProductCard({
   product,
@@ -188,7 +190,10 @@ export default function ProductCard({
           className="font-sans text-xs sm:text-[13px] font-medium text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors mt-1 min-h-[34px] sm:min-h-[38px]"
           title={product.name}
         >
-          {product.name}
+          {/* real link so search engines can discover product pages */}
+          <Link to={productPath(product)} onClick={(e) => e.stopPropagation()} className="text-inherit no-underline">
+            {product.name}
+          </Link>
         </h3>
       </div>
     </div>

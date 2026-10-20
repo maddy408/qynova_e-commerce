@@ -182,6 +182,14 @@ $router->post('/api/products/import/preview', fn () => $productImport->preview()
 $router->post('/api/products/import', fn () => $productImport->commit());
 $router->post('/api/products/import/error-report', fn () => $productImport->errorReport());
 
+// Storefront SEO: server-rendered meta/JSON-LD per URL, sitemap, robots, Google Merchant feed
+$seo = new App\Controllers\SeoController($pdo);
+$router->get('/api/seo/render', fn () => $seo->render());
+$router->get('/api/seo/robots.txt', fn () => $seo->robots());
+$router->get('/api/seo/sitemap.xml', fn () => $seo->sitemapIndex());
+$router->get('/api/seo/sitemap-{part}.xml', fn ($part) => $seo->sitemapPart($part));
+$router->get('/api/seo/google-merchant.xml', fn () => $seo->merchantFeed());
+
 // Import history (recent Excel/ZIP imports): rename, view/replace/remove images, replace ZIP, delete images
 $importBatches = new App\Controllers\ProductImportBatchController($pdo);
 $router->get('/api/product-imports', fn () => $importBatches->index());

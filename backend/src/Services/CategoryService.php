@@ -93,13 +93,16 @@ final class CategoryService
             'sort_order' => (int) ($data['sort_order'] ?? 0),
         ]);
 
-        return (int) $this->pdo->lastInsertId();
+        $id = (int) $this->pdo->lastInsertId();
+        $this->update($id, array_intersect_key($data, array_flip(['meta_title', 'meta_description', 'seo_keywords', 'seo_content'])));
+
+        return $id;
     }
 
     /** @param array<string, mixed> $data */
     public function update(int $id, array $data): void
     {
-        $fields = ['name', 'description', 'sort_order', 'status'];
+        $fields = ['name', 'description', 'sort_order', 'status', 'meta_title', 'meta_description', 'seo_keywords', 'seo_content'];
 
         $sets = [];
         $params = ['id' => $id];

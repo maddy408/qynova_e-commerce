@@ -160,7 +160,7 @@ export default function CircularCategoriesRow({
                     return (
                       <Link
                         key={cat.id}
-                        to={ROUTES.PRODUCTS_BY_CATEGORY(cat.id)}
+                        to={ROUTES.PRODUCTS_BY_CATEGORY(cat)}
                         className="group flex flex-col items-center shrink-0 w-24 sm:w-28 text-center cursor-pointer transition-transform hover:-translate-y-1"
                         title={cat.name}
                       >

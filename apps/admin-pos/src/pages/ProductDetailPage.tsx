@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SeoFields, seoFrom, type SeoValues } from '../components/SeoFields'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Spinner, TextArea, TextField } from '../components/ui'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
@@ -155,6 +156,7 @@ function ProductInformationSection({
   const [shortDesc, setShortDesc] = useState(product.short_description || '')
   const [description, setDescription] = useState(product.description || '')
   const [tags, setTags] = useState(product.tags || '')
+  const [seo, setSeo] = useState<SeoValues>(() => seoFrom(product as any))
   const [expiryDate, setExpiryDate] = useState((product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : '')
   const [isActive, setIsActive] = useState(Boolean(product.is_active))
   const [isPosEnabled, setIsPosEnabled] = useState(Boolean(product.is_pos_enabled))
@@ -185,6 +187,7 @@ function ProductInformationSection({
     setShortDesc(product.short_description || '')
     setDescription(product.description || '')
     setTags(product.tags || '')
+    setSeo(seoFrom(product as any))
     setExpiryDate((product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : '')
     setIsActive(Boolean(product.is_active))
     setIsPosEnabled(Boolean(product.is_pos_enabled))
@@ -211,6 +214,9 @@ function ProductInformationSection({
         short_description: shortDesc.trim() || null,
         description: description.trim() || null,
         tags: tags.trim() || null,
+        meta_title: seo.meta_title.trim() || null,
+        meta_description: seo.meta_description.trim() || null,
+        seo_keywords: seo.seo_keywords.trim() || null,
         expiry_date: expiryDate || null,
         expiry_applicable: expiryDate ? 1 : 0,
         is_active: isActive ? 1 : 0,
@@ -430,6 +436,8 @@ function ProductInformationSection({
               />
             </div>
           </div>
+
+          <SeoFields kind="product" value={seo} onChange={setSeo} name={name} path={`/product/${product.slug}`} />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <TextField label="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} />
