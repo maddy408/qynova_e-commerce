@@ -100,6 +100,9 @@ final class ProductImportService
      */
     private array $imageCache = [];
 
+    /** Import-history batch the current commit() writes images into (null during preview). */
+    private ?int $batchId = null;
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly InventoryService $inventory,
@@ -117,9 +120,34 @@ final class ProductImportService
     }
 
     /** @return array<string, mixed> */
-    public function commit(string $filePath, bool $autoCreateMasters, int $userId, bool $updateExisting = false, ?string $imagesDir = null): array
+    /**
+     * @param array{name?: string, excel_filename?: string, zip_filename?: ?string, zip_size_bytes?: ?int} $batchMeta
+     *        recorded in the import history (product_import_batches)
+     */
+    public function commit(string $filePath, bool $autoCreateMasters, int $userId, bool $updateExisting = false, ?string $imagesDir = null, array $batchMeta = []): array
     {
-        return $this->run($filePath, $autoCreateMasters, $updateExisting, $userId, true, $imagesDir);
+        $excel = $batchMeta['excel_filename'] ?? null;
+        $zip = $batchMeta['zip_filename'] ?? null;
+        $name = trim((string) ($batchMeta['name'] ?? '')) ?: (($zip ?: $excel ?: 'Product import') . ' - ' . date('d M Y, h:i A'));
+        $this->pdo->prepare(
+            'INSERT INTO product_import_batches (name, excel_filename, zip_filename, zip_size_bytes, created_by) VALUES (:n, :e, :z, :s, :u)'
+        )->execute(['n' => mb_substr($name, 0, 190), 'e' => $excel, 'z' => $zip, 's' => $batchMeta['zip_size_bytes'] ?? null, 'u' => $userId]);
+        $this->batchId = (int) $this->pdo->lastInsertId();
+
+        try {
+            $result = $this->run($filePath, $autoCreateMasters, $updateExisting, $userId, true, $imagesDir);
+        } catch (\Throwable $e) {
+            $this->pdo->prepare('DELETE FROM product_import_batches WHERE id = :id')->execute(['id' => $this->batchId]);
+            $this->batchId = null;
+            throw $e;
+        }
+
+        $this->pdo->prepare('UPDATE product_import_batches SET total_rows = :t, successful_rows = :ok, failed_rows = :f WHERE id = :id')
+            ->execute(['t' => $result['total_rows'], 'ok' => $result['successful_rows'], 'f' => $result['failed_rows'], 'id' => $this->batchId]);
+        $result['import_batch_id'] = $this->batchId;
+        $this->batchId = null;
+
+        return $result;
     }
 
     /**
@@ -755,13 +783,15 @@ final class ProductImportService
             }
 
             $this->pdo->prepare(
-                'INSERT INTO product_images (product_id, image_path, thumb_path, sort_order, is_primary) VALUES (:p, :path, :thumb, :sort, :primary)'
+                'INSERT INTO product_images (product_id, image_path, thumb_path, sort_order, is_primary, import_batch_id, source_filename) VALUES (:p, :path, :thumb, :sort, :primary, :batch, :src)'
             )->execute([
                 'p' => $productId,
                 'path' => $stored['path'],
                 'thumb' => $stored['thumb_path'],
                 'sort' => $i,
                 'primary' => $i === 0 ? 1 : 0,
+                'batch' => $this->batchId,
+                'src' => mb_substr($token, 0, 255),
             ]);
             // downloadAndStore() itself tracks pendingUploadedFiles — only
             // for a fresh store, never for a cache hit (see its docblock),
@@ -797,13 +827,15 @@ final class ProductImportService
             }
 
             $this->pdo->prepare(
-                'INSERT INTO variant_images (variant_id, image_path, thumb_path, sort_order, is_primary) VALUES (:v, :path, :thumb, :sort, :primary)'
+                'INSERT INTO variant_images (variant_id, image_path, thumb_path, sort_order, is_primary, import_batch_id, source_filename) VALUES (:v, :path, :thumb, :sort, :primary, :batch, :src)'
             )->execute([
                 'v' => $variantId,
                 'path' => $stored['path'],
                 'thumb' => $stored['thumb_path'],
                 'sort' => $i,
                 'primary' => $i === 0 ? 1 : 0,
+                'batch' => $this->batchId,
+                'src' => mb_substr($token, 0, 255),
             ]);
             // See the matching comment in maybeImportProductImages().
         }
@@ -938,7 +970,9 @@ final class ProductImportService
      */
     private function resolveZipFilename(string $imagesDir, string $token): ?string
     {
-        $wanted = basename($token); // defensively re-applied even though $token is an Excel cell, not a zip entry
+        // Excel cell may hold a full Windows path (C:\Photos\shirt.jpg) or a
+        // folder path (shirts/front.jpg) - only the file name is matched.
+        $wanted = basename(str_replace('\\', '/', $token)); // defensively re-applied even though $token is an Excel cell, not a zip entry
         $exact = $imagesDir . '/' . $wanted;
 
         if (is_file($exact)) {

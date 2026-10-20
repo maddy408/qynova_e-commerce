@@ -4,6 +4,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '../components/Icons'
 import { Badge, Button, Card, EmptyState, PageHeader, Spinner } from '../components/ui'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ProductImportExportPanel } from '../components/ProductImportExportPanel'
+import { ImportHistoryPanel } from '../components/ImportHistoryPanel'
 import { api, getApiOrigin } from '../lib/api'
 import type { ProductListItem } from '../lib/types'
 import { ROUTES } from '../routes/routes'
@@ -126,6 +127,7 @@ export function ProductsPage() {
             </div>
 
             <ProductImportExportPanel onImported={() => load(page, limit, search)} />
+            <ImportHistoryPanel onChanged={() => load(page, limit, search)} />
 
             <Link to={ROUTES.PRODUCT_NEW}>
               <Button>+ New Product</Button>

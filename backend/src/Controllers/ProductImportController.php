@@ -38,6 +38,7 @@ final class ProductImportController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
+        self::allowLongRun();
         $path = $this->uploadedFilePath();
         $autoCreate = ($_POST['auto_create_masters'] ?? '') === '1';
         $updateExisting = ($_POST['update_existing'] ?? '') === '1';
@@ -60,13 +61,19 @@ final class ProductImportController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
+        self::allowLongRun();
         $path = $this->uploadedFilePath();
         $autoCreate = ($_POST['auto_create_masters'] ?? '') === '1';
         $updateExisting = ($_POST['update_existing'] ?? '') === '1';
         $imagesDir = $this->extractImagesZipIfPresent();
 
         try {
-            Response::json($this->importer->commit($path, $autoCreate, (int) $claims['sub'], $updateExisting, $imagesDir));
+            Response::json($this->importer->commit($path, $autoCreate, (int) $claims['sub'], $updateExisting, $imagesDir, [
+                'name' => (string) ($_POST['import_name'] ?? ''),
+                'excel_filename' => (string) ($_FILES['file']['name'] ?? ''),
+                'zip_filename' => $imagesDir !== null ? (string) $_FILES['images_zip']['name'] : null,
+                'zip_size_bytes' => $imagesDir !== null ? (int) $_FILES['images_zip']['size'] : null,
+            ]));
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         } finally {
@@ -83,6 +90,7 @@ final class ProductImportController
         $claims = JwtAuthMiddleware::authenticate();
         PermissionMiddleware::require($claims, 'catalog.manage');
 
+        self::allowLongRun();
         $path = $this->uploadedFilePath();
         $autoCreate = ($_POST['auto_create_masters'] ?? '') === '1';
         $updateExisting = ($_POST['update_existing'] ?? '') === '1';
@@ -108,6 +116,14 @@ final class ProductImportController
         }
 
         return $_FILES['file']['tmp_name'];
+    }
+
+    /** Bulk imports compress and upload every image (to R2) - don't let PHP kill it at 30s. */
+    private static function allowLongRun(): void
+    {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+        ignore_user_abort(true);
     }
 
     /**

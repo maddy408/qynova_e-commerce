@@ -54,6 +54,7 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
   const [modalOpen, setModalOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [imagesZip, setImagesZip] = useState<File | null>(null)
+  const [importName, setImportName] = useState('')
   const [autoCreate, setAutoCreate] = useState(false)
   const [updateExisting, setUpdateExisting] = useState(false)
   const [preview, setPreview] = useState<ImportResult | null>(null)
@@ -70,6 +71,7 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
   function resetModal() {
     setFile(null)
     setImagesZip(null)
+    setImportName('')
     setPreview(null)
     setCommittedResult(null)
     setAutoCreate(false)
@@ -103,11 +105,15 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
     }
   }
 
+  // Bulk imports compress + upload every ZIP image to R2 - can take minutes.
+  const IMPORT_TIMEOUT_MS = 30 * 60 * 1000
+
   function buildFormData() {
     const formData = new FormData()
     formData.append('file', file as File)
     formData.append('auto_create_masters', autoCreate ? '1' : '0')
     formData.append('update_existing', updateExisting ? '1' : '0')
+    if (importName.trim()) formData.append('import_name', importName.trim())
     if (imagesZip) {
       formData.append('images_zip', imagesZip)
     }
@@ -117,7 +123,7 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
   async function handlePreview() {
     if (!file) return
     try {
-      const res = await api.post<ImportResult>('/products/import/preview', buildFormData())
+      const res = await api.post<ImportResult>('/products/import/preview', buildFormData(), { timeout: IMPORT_TIMEOUT_MS })
       setPreview(res.data)
       setCommittedResult(null)
       push('info', 'Validation completed. Please review the preview.')
@@ -130,7 +136,7 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
   async function handleConfirmImport() {
     if (!file || !preview) return
     try {
-      const res = await api.post<ImportResult>('/products/import', buildFormData())
+      const res = await api.post<ImportResult>('/products/import', buildFormData(), { timeout: IMPORT_TIMEOUT_MS })
       setCommittedResult(res.data)
       if (res.data.failed_rows === 0) {
         push('success', `Import completed: ${res.data.total_rows} products processed, ${res.data.successful_rows} successful, 0 failed.`)
@@ -216,6 +222,18 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
                   {imagesZip.name} · {(imagesZip.size / 1024).toFixed(1)} KB
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-800">Import name (Optional)</label>
+              <input
+                type="text"
+                value={importName}
+                maxLength={190}
+                onChange={(e) => setImportName(e.target.value)}
+                placeholder="e.g. Diwali stock batch — shown in Import History"
+                className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
+              />
             </div>
 
             <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border-muted)] bg-[var(--color-surface)]/40 p-3">

@@ -54,4 +54,15 @@ return [
         'main_target_kb' => (int) ($_ENV['IMAGE_MAIN_TARGET_KB'] ?? 100),
         'thumb_target_kb' => (int) ($_ENV['IMAGE_THUMB_TARGET_KB'] ?? 30),
     ],
+    'r2' => [
+        'enabled' => filter_var($_ENV['R2_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        'account_id' => $_ENV['R2_ACCOUNT_ID'] ?? '',
+        'access_key_id' => $_ENV['R2_ACCESS_KEY_ID'] ?? '',
+        'secret_access_key' => $_ENV['R2_SECRET_ACCESS_KEY'] ?? '',
+        'bucket' => $_ENV['R2_BUCKET'] ?? '',
+        // public base URL for the bucket: https://pub-xxxx.r2.dev or a custom domain
+        'public_url' => $_ENV['R2_PUBLIC_URL'] ?? '',
+        // optional override; defaults to https://<account_id>.r2.cloudflarestorage.com
+        'endpoint' => $_ENV['R2_ENDPOINT'] ?? '',
+    ],
 ];

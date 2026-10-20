@@ -25,9 +25,9 @@ use ZipArchive;
  */
 final class SafeZipExtractor
 {
-    private const MAX_ENTRIES = 500;
-    private const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
-    private const MAX_FILE_BYTES = 5 * 1024 * 1024;
+    private const MAX_ENTRIES = 2000;
+    private const MAX_TOTAL_BYTES = 500 * 1024 * 1024;
+    private const MAX_FILE_BYTES = 10 * 1024 * 1024;
     private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
 
     /** @return string path to a fresh temp directory of flattened image files — caller must cleanup() it */
@@ -85,12 +85,34 @@ final class SafeZipExtractor
 
             // basename() only — see class docblock on why this is the
             // zip-slip defense, not an incidental detail.
-            file_put_contents($destDir . '/' . basename($name), $contents);
+            file_put_contents($destDir . '/' . basename(str_replace('\\', '/', $name)), $contents); // some Windows zip tools store \ separators
         }
 
         $zip->close();
 
         return $destDir;
+    }
+
+    /**
+     * Finds the file an Excel cell refers to inside an extracted ZIP dir.
+     * Only the file name counts (folders / C:\ paths ignored), case-insensitive.
+     */
+    public static function findInDir(string $dir, string $token): ?string
+    {
+        $wanted = basename(str_replace('\\', '/', trim($token)));
+        if ($wanted === '' || $wanted === '.' || $wanted === '..') {
+            return null;
+        }
+        if (is_file($dir . '/' . $wanted)) {
+            return $dir . '/' . $wanted;
+        }
+        foreach (@scandir($dir) ?: [] as $entry) {
+            if ($entry !== '.' && $entry !== '..' && strcasecmp($entry, $wanted) === 0) {
+                return $dir . '/' . $entry;
+            }
+        }
+
+        return null;
     }
 
     public function cleanup(string $dir): void

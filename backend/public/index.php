@@ -182,6 +182,16 @@ $router->post('/api/products/import/preview', fn () => $productImport->preview()
 $router->post('/api/products/import', fn () => $productImport->commit());
 $router->post('/api/products/import/error-report', fn () => $productImport->errorReport());
 
+// Import history (recent Excel/ZIP imports): rename, view/replace/remove images, replace ZIP, delete images
+$importBatches = new App\Controllers\ProductImportBatchController($pdo);
+$router->get('/api/product-imports', fn () => $importBatches->index());
+$router->get('/api/product-imports/{id}', fn ($id) => $importBatches->show($id));
+$router->patch('/api/product-imports/{id}', fn ($id) => $importBatches->update($id));
+$router->delete('/api/product-imports/{id}', fn ($id) => $importBatches->destroy($id));
+$router->post('/api/product-imports/{id}/zip', fn ($id) => $importBatches->replaceZip($id));
+$router->post('/api/product-imports/{id}/images/{type}/{imageId}', fn ($id, $type, $imageId) => $importBatches->replaceImage($id, $type, $imageId));
+$router->delete('/api/product-imports/{id}/images/{type}/{imageId}', fn ($id, $type, $imageId) => $importBatches->removeImage($id, $type, $imageId));
+
 $productExport = new ProductExportController($pdo);
 $router->get('/api/products/export/stock-report', fn () => $productExport->exportStockReport());
 $router->get('/api/products/export', fn () => $productExport->export());
