@@ -317,7 +317,7 @@ export default function Orders() {
 
                       {/* Payment Status Badge */}
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${paymentBadgeClass}`}>
-                        {order.payment_status || 'PENDING'}
+                        Payment: {order.payment_status || 'PENDING'}
                       </span>
                     </div>
                   </div>

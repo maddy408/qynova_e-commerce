@@ -23,6 +23,7 @@ export const ROUTES = {
   CATEGORY: (category, subcategory) => categoryPath(category, subcategory),
 
   PRODUCTS_BY_SECTION: (section) => `/products?section=${section}`,
+  PRODUCTS_BY_OFFER: (offerId) => `/products?offer_id=${offerId}`,
   // Category object -> /category/<slug>; plain id -> old query URL (server 301-redirects it to the slug URL).
   PRODUCTS_BY_CATEGORY: (categoryOrId) => categoryPath(categoryOrId),
   PRODUCTS_BY_SUBCATEGORY: (subcategoryId) => `/products?subcategory_id=${subcategoryId}`,

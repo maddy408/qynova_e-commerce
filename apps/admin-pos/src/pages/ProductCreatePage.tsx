@@ -454,9 +454,10 @@ export function ProductCreatePage() {
         shipping_required: shippingRequired,
         cod_available: codAvailable,
         meta_title: metaTitle || null,
-        meta_description: metaDescription || null,
-        is_featured: isFeatured,
-        is_active: statusMode === 'ACTIVE',
+        is_featured: isFeatured ? 1 : 0,
+        is_active: statusMode === 'ACTIVE' ? 1 : 0,
+        is_ecommerce_enabled: 1,
+        is_pos_enabled: 1,
         show_discount: showDiscount,
       })
       const productId = res.data.id

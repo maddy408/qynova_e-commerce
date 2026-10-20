@@ -92,6 +92,12 @@ final class ProductService
             }
         }
 
+        if (!empty($filters['offer_id']) || !empty($filters['top_offer_id'])) {
+            $offerId = (int) (!empty($filters['offer_id']) ? $filters['offer_id'] : $filters['top_offer_id']);
+            $where[] = 'EXISTS (SELECT 1 FROM top_offer_products top WHERE top.top_offer_id = :offer_id AND top.product_id = p.id)';
+            $params['offer_id'] = $offerId;
+        }
+
         $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
 
         if (!empty($filters['min_price'])) {
@@ -361,9 +367,14 @@ final class ProductService
             throw new RuntimeException('Product name is required');
         }
 
+        $returnable = (bool) ($data['returnable'] ?? true);
+        $returnWindowDays = array_key_exists('return_window_days', $data) && $data['return_window_days'] !== null && $data['return_window_days'] !== ''
+            ? $data['return_window_days']
+            : ($returnable ? 7 : null);
+
         $this->assertValidReturnWindow(
-            returnable: (bool) ($data['returnable'] ?? true),
-            returnWindowDays: array_key_exists('return_window_days', $data) ? $data['return_window_days'] : null,
+            returnable: $returnable,
+            returnWindowDays: $returnWindowDays,
         );
 
         $slug = $this->uniqueSlug($this->slugify($data['slug'] ?? $name));
@@ -416,8 +427,8 @@ final class ProductService
             'warranty_period' => $data['warranty_period'] ?? null,
             'warranty_unit' => $data['warranty_unit'] ?? null,
             'warranty_description' => $data['warranty_description'] ?? null,
-            'returnable' => (int) (bool) ($data['returnable'] ?? true),
-            'return_window_days' => $data['return_window_days'] ?? null,
+            'returnable' => (int) $returnable,
+            'return_window_days' => $returnWindowDays,
             'return_policy_description' => $data['return_policy_description'] ?? null,
             'replacement_available' => (int) (bool) ($data['replacement_available'] ?? false),
             'refund_available' => (int) (bool) ($data['refund_available'] ?? true),

@@ -12,6 +12,11 @@ export interface TopOffer {
   title: string
   subtitle: string | null
   image_path?: string | null
+  product_id?: number | null
+  product_name?: string | null
+  product_code?: string | null
+  product_ids?: number[]
+  products?: ProductSummary[]
   code: string | null
   button_text: string
   link: string
@@ -21,12 +26,26 @@ export interface TopOffer {
   updated_at?: string
 }
 
+export interface ProductSummary {
+  id: number
+  name: string
+  product_code?: string | null
+  slug?: string | null
+  retail_price?: number | string | null
+  min_price?: number | string | null
+  mrp?: number | string | null
+  image_url?: string | null
+  image_path?: string | null
+  images?: Array<{ id?: number; image_path: string }>
+  status?: string
+}
+
 function imageUrl(path: string | null | undefined): string | null {
   if (!path) return null
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
     return path
   }
-  const base = env.API_ORIGIN || 'http://192.168.1.103:8080'
+  const base = env.API_ORIGIN
   return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
 }
 
@@ -57,6 +76,14 @@ export function TopOffersPage() {
   const [sortOrder, setSortOrder] = useState('0')
   const [isActive, setIsActive] = useState(true)
 
+  // Multiple Products Mapping Fields
+  const [selectedProducts, setSelectedProducts] = useState<ProductSummary[]>([])
+  const [productSearch, setProductSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<ProductSummary[]>([])
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
+
   // Image Upload Fields
   const [imagePath, setImagePath] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -79,6 +106,65 @@ export function TopOffersPage() {
     load()
   }, [])
 
+  // Close product search dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Search products when modal is open and user types in search box
+  useEffect(() => {
+    if (!showForm) return
+    const term = productSearch.trim()
+    const timer = setTimeout(() => {
+      setIsSearchingProducts(true)
+      api.get(`/products?limit=25${term ? `&search=${encodeURIComponent(term)}` : ''}`)
+        .then((res) => {
+          const items = res.data?.items || res.data?.data || []
+          setSearchResults(items)
+        })
+        .catch(() => {})
+        .finally(() => setIsSearchingProducts(false))
+    }, 180)
+
+    return () => clearTimeout(timer)
+  }, [productSearch, showForm])
+
+  function handleToggleProduct(p: ProductSummary) {
+    const isChosen = selectedProducts.some((item) => item.id === p.id)
+    if (isChosen) {
+      setSelectedProducts((prev) => prev.filter((item) => item.id !== p.id))
+    } else {
+      setSelectedProducts((prev) => [...prev, p])
+      // Auto-fill title if empty or default
+      if (!title.trim() || title === 'Offer Card Title') {
+        setTitle(p.name)
+      }
+      // Auto-fill card image if empty
+      const firstImg = p.images?.[0]?.image_path || (p as any).image_path || (p as any).thumbnail
+      if (!imagePath && !imageFile && firstImg) {
+        setImagePath(firstImg)
+      }
+    }
+  }
+
+  function handleRemoveProduct(id: number) {
+    setSelectedProducts((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  function handleClearAllProducts() {
+    setSelectedProducts([])
+    setProductSearch('')
+    if (link.startsWith('/product/')) {
+      setLink('/products?section=deals')
+    }
+  }
+
   function openCreateModal() {
     setEditingOffer(null)
     setBadge('FLAT ₹50 OFF')
@@ -94,6 +180,9 @@ export function TopOffersPage() {
     setLink('/products?section=deals')
     setSortOrder(String((offers?.length || 0) + 1))
     setIsActive(true)
+    setSelectedProducts([])
+    setProductSearch('')
+    setIsDropdownOpen(false)
     setError('')
     setSuccessMessage('')
     setShowForm(true)
@@ -111,9 +200,32 @@ export function TopOffersPage() {
     setImagePreview(null)
     setImageRemoved(false)
     setButtonText(offer.button_text || 'Shop Deals')
-    setLink(offer.link || '/products?section=deals')
+    setLink(offer.link && !offer.link.startsWith('/product/') ? offer.link : '/products?section=deals')
     setSortOrder(String(offer.sort_order ?? 0))
     setIsActive(Boolean(offer.is_active))
+    setProductSearch('')
+    setIsDropdownOpen(false)
+
+    // Load multiple mapped products if present, else fallback to single product
+    if (offer.products && offer.products.length > 0) {
+      setSelectedProducts(offer.products)
+    } else if (offer.product_id) {
+      const initial: ProductSummary[] = [{
+        id: offer.product_id,
+        name: offer.product_name || `Item #${offer.product_id}`,
+        product_code: offer.product_code || null,
+      }]
+      setSelectedProducts(initial)
+      api.get(`/products/${offer.product_id}`)
+        .then((res) => {
+          const p = res.data?.product || res.data
+          if (p) setSelectedProducts([p])
+        })
+        .catch(() => {})
+    } else {
+      setSelectedProducts([])
+    }
+
     setError('')
     setSuccessMessage('')
     setShowForm(true)
@@ -148,14 +260,19 @@ export function TopOffersPage() {
     setSubmitting(true)
     setError('')
 
+    const productIds = selectedProducts.map((p) => p.id)
+    const primaryProductId = productIds[0] || null
+
     const payload: any = {
       badge: badge.trim(),
       icon,
       title: title.trim(),
       subtitle: subtitle.trim() || null,
       code: code.trim() ? code.trim().toUpperCase() : null,
+      product_id: primaryProductId,
+      product_ids: productIds,
       button_text: buttonText.trim() || 'Shop Deals',
-      link: link.trim() || '/products?section=deals',
+      link: link.trim() && !link.trim().startsWith('/product/') ? link.trim() : '/products?section=deals',
       sort_order: parseInt(sortOrder, 10) || 0,
       is_active: isActive ? 1 : 0,
       image_path: imageRemoved ? null : (imageFile ? undefined : (imagePath.trim() || null)),
@@ -324,6 +441,45 @@ export function TopOffersPage() {
                           <div className="text-xs text-slate-500 line-clamp-1 mt-0.5">{offer.subtitle}</div>
                         )}
                         <div className="text-[11px] text-purple-600 font-mono mt-0.5">{offer.link}</div>
+                        {offer.products && offer.products.length > 0 ? (
+                          <div className="mt-1.5 flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                📦 {offer.products.length} {offer.products.length === 1 ? 'Item' : 'Items'} Mapped
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 overflow-hidden">
+                              {offer.products.slice(0, 4).map((p) => {
+                                const pImg = p.image_path || (p as any).thumbnail || p.images?.[0]?.image_path
+                                return (
+                                  <div
+                                    key={p.id}
+                                    className="w-6 h-6 rounded border border-slate-200 bg-white overflow-hidden shrink-0"
+                                    title={`${p.name} (₹${p.retail_price || 0})`}
+                                  >
+                                    {pImg ? (
+                                      <img src={imageUrl(pImg)!} alt={p.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-[10px] flex items-center justify-center h-full">📦</span>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                              {offer.products.length > 4 && (
+                                <span className="text-[10px] font-bold text-slate-500">+{offer.products.length - 4}</span>
+                              )}
+                              <span className="text-[11px] text-slate-600 font-medium truncate max-w-[220px] ml-1">
+                                {offer.products.map((p) => p.name).join(', ')}
+                              </span>
+                            </div>
+                          </div>
+                        ) : offer.product_id ? (
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              📦 Linked Product: {offer.product_name || `Item #${offer.product_id}`}
+                            </span>
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -548,6 +704,218 @@ export function TopOffersPage() {
               </div>
             </div>
 
+            {/* MULTI-ITEM MAPPING WITH SEARCHABLE DROPDOWN */}
+            <div className="p-3.5 rounded-xl border border-indigo-200/80 bg-indigo-50/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">📦</span>
+                    <label className="block text-xs font-bold text-slate-900">
+                      Map Store Items / Products ({selectedProducts.length} Selected)
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Select multiple products to feature on this offer card. Storefront customers can view and add these items directly to cart without navigating to a separate details page.
+                  </p>
+                </div>
+                {selectedProducts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllProducts}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded border border-rose-200 bg-white hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    ✕ Clear All ({selectedProducts.length})
+                  </button>
+                )}
+              </div>
+
+              {/* Selected Products Grid / Row */}
+              {selectedProducts.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                    <span>Selected Products ({selectedProducts.length}):</span>
+                    <span className="text-slate-400 font-normal">Click ✕ to remove any product</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-indigo-100 rounded-lg bg-white/60">
+                    {selectedProducts.map((p, idx) => {
+                      const pImg = p.image_path || (p as any).thumbnail || p.images?.[0]?.image_path
+                      return (
+                        <div
+                          key={p.id}
+                          className="p-2 rounded-lg bg-white border border-indigo-100 flex items-center justify-between gap-2 shadow-2xs hover:border-indigo-300 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-700 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
+                            </span>
+                            <div className="w-9 h-9 rounded bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                              {pImg ? (
+                                <img
+                                  src={imageUrl(pImg)!}
+                                  alt={p.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm">📦</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-900 truncate" title={p.name}>
+                                {p.name}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
+                                {p.retail_price && (
+                                  <span className="font-bold text-indigo-700">₹{p.retail_price}</span>
+                                )}
+                                {p.product_code && <span className="font-mono">({p.product_code})</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {idx === 0 && title !== p.name && (
+                              <button
+                                type="button"
+                                onClick={() => setTitle(p.name)}
+                                className="text-[10px] px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-semibold cursor-pointer"
+                                title="Use product name as offer title"
+                              >
+                                Name
+                              </button>
+                            )}
+                            {idx === 0 && pImg && !imagePath && !imageFile && (
+                              <button
+                                type="button"
+                                onClick={() => setImagePath(pImg)}
+                                className="text-[10px] px-1.5 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded border border-purple-200 font-semibold cursor-pointer"
+                                title="Use product image for card"
+                              >
+                                Image
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProduct(p.id)}
+                              className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Remove this item"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Search input with live dropdown */}
+              <div className="relative" ref={dropdownRef}>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => {
+                        setProductSearch(e.target.value)
+                        setIsDropdownOpen(true)
+                      }}
+                      onFocus={() => setIsDropdownOpen(true)}
+                      placeholder="🔍 Search items by name, barcode, or SKU to map..."
+                      className="w-full text-xs rounded-lg border border-slate-300 p-2 pl-8 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                    />
+                    <span className="absolute left-2.5 top-2.5 text-xs text-slate-400">🔍</span>
+                    {productSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setProductSearch('')}
+                        className="absolute right-2.5 top-2 text-xs text-slate-400 hover:text-slate-600 font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="px-3 py-2 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    {isDropdownOpen ? '▲ Close Dropdown' : `▼ Browse Items (${selectedProducts.length} added)`}
+                  </button>
+                </div>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-xl border border-slate-200 shadow-2xl max-h-64 overflow-y-auto divide-y divide-slate-100">
+                    <div className="p-2 bg-slate-50 text-[11px] font-semibold text-slate-500 border-b border-slate-100 flex items-center justify-between">
+                      <span>Click any item to select or unselect (supports multiple)</span>
+                      <span>{selectedProducts.length} selected</span>
+                    </div>
+                    {isSearchingProducts ? (
+                      <div className="p-4 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                        <span className="inline-block w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                        <span>Searching products catalog...</span>
+                      </div>
+                    ) : searchResults.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-slate-500">
+                        No products found matching "{productSearch}"
+                      </div>
+                    ) : (
+                      searchResults.map((p) => {
+                        const isChosen = selectedProducts.some((item) => item.id === p.id)
+                        const pImg = p.images?.[0]?.image_path || (p as any).image_path || (p as any).thumbnail
+                        return (
+                          <div
+                            key={p.id}
+                            onClick={() => handleToggleProduct(p)}
+                            className={`p-2.5 flex items-center justify-between gap-3 hover:bg-indigo-50/70 cursor-pointer transition-colors ${
+                              isChosen ? 'bg-indigo-50/90 border-l-4 border-indigo-600' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-10 h-10 rounded-md bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                                {pImg ? (
+                                  <img
+                                    src={imageUrl(pImg)!}
+                                    alt={p.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-base text-slate-400">📦</span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 truncate">{p.name}</p>
+                                <p className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
+                                  {p.product_code && <span>SKU: {p.product_code}</span>}
+                                  {p.retail_price && <span className="font-bold text-emerald-700">₹{p.retail_price}</span>}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleToggleProduct(p)
+                              }}
+                              className={`shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-md transition-colors ${
+                                isChosen
+                                  ? 'bg-indigo-600 text-white shadow-2xs'
+                                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700'
+                              }`}
+                            >
+                              {isChosen ? '✓ Selected' : '+ Add Item'}
+                            </button>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <TextField
@@ -615,11 +983,16 @@ export function TopOffersPage() {
               </div>
               <div>
                 <TextField
-                  label="Target Link"
+                  label={selectedProducts.length > 0 ? `Target Link (${selectedProducts.length} Items Mapped)` : "Target Link"}
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
-                  placeholder="e.g. /products?section=deals"
+                  placeholder="/products?section=deals"
                 />
+                {selectedProducts.length > 0 && (
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-1">
+                    ✓ {selectedProducts.length} items mapped. Storefront customers can view and add items to cart right from the card without redirecting to a single product page!
+                  </p>
+                )}
               </div>
             </div>
 

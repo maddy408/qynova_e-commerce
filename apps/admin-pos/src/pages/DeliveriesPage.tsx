@@ -2,6 +2,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, Spinner } from '../components/ui'
 import { api, apiErrorMessage } from '../lib/api'
+import { env } from '../config/env'
 
 // --- Interfaces ---
 
@@ -150,7 +151,7 @@ export function DeliveriesPage() {
   // Data states
   const [deliveries, setDeliveries] = useState<DeliveryItem[] | null>(null)
   const [total, setTotal] = useState(0)
-  const [summary, setSummary] = useState<SummaryMetrics | null>(null)
+  const [, setSummary] = useState<SummaryMetrics | null>(null)
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({ all: 0, courier: 0, failed_returns: 0 })
   const [loading, setLoading] = useState(true)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -601,99 +602,8 @@ export function DeliveriesPage() {
         </div>
       )}
 
-      {/* ================= DATA-DRIVEN SUMMARY CARDS ================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Ready to Dispatch */}
-        <div
-          onClick={() => {
-            setActiveTab('ready_orders')
-            setPage(1)
-          }}
-          className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer relative overflow-hidden group"
-          title="Click to view all orders ready for delivery dispatch"
-        >
-          <div className="absolute top-0 left-0 h-1 w-full bg-purple-500" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">Ready to Dispatch</span>
-            <div className="w-9 h-9 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-3">
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {eligibleOrders.length > 0 ? eligibleOrders.length : (summary ? summary.ready_to_dispatch.count : '—')}
-            </p>
-            <p className="text-xs font-bold text-slate-600 mt-0.5">
-              {eligibleOrders.length > 0 ? `${eligibleOrders.length} order(s) waiting to dispatch →` : 'All orders dispatched'}
-            </p>
-          </div>
-        </div>
 
-        {/* Card 2: In Transit */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-blue-500" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">In Transit</span>
-            <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-3">
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {summary ? summary.in_transit.count : '—'}
-            </p>
-            <p className="text-xs font-bold text-slate-600 mt-0.5">
-              ₹{summary ? summary.in_transit.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'} · Active on route
-            </p>
-          </div>
-        </div>
 
-        {/* Card 3: Delivered Today */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-emerald-500" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">Delivered Today</span>
-            <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-3">
-            <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              {summary ? summary.delivered_today.count : '—'}
-            </p>
-            <p className="text-xs font-bold text-slate-600 mt-0.5">
-              ₹{summary ? summary.delivered_today.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'} · Completed
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: COD Pending */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 left-0 h-1 w-full bg-amber-500" />
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">COD Pending</span>
-            <div className="w-9 h-9 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-3">
-            <p className="text-2xl sm:text-3xl font-black text-amber-700 tracking-tight">
-              ₹{summary ? summary.cod_pending.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
-            </p>
-            <p className="text-xs font-bold text-slate-600 mt-0.5">
-              {summary ? summary.cod_pending.count : '—'} shipment(s) to collect
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* ================= TABS & ADVANCED FILTERS ================= */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 space-y-4">
@@ -1022,7 +932,7 @@ export function DeliveriesPage() {
                             <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
                               {d.first_item_image ? (
                                 <img
-                                  src={d.first_item_image.startsWith('http') ? d.first_item_image : `http://localhost:8080/${d.first_item_image.replace(/^\/+/, '')}`}
+                                  src={d.first_item_image.startsWith('http') ? d.first_item_image : `${env.API_ORIGIN}/${d.first_item_image.replace(/^\/+/, '')}`}
                                   alt={d.first_item_name || 'Product'}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
@@ -1094,22 +1004,42 @@ export function DeliveriesPage() {
                         </td>
 
                         {/* Payment & COD */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                           {d.cod_status === 'PENDING' ? (
-                            <div className="space-y-0.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-800 border border-amber-200">
-                                COD: ₹{parseFloat(d.cod_amount || d.grand_total).toFixed(2)}
-                              </span>
-                              <p className="text-[10px] font-semibold text-amber-700">Collection Pending</p>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openCodModal(d)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-xs hover:shadow transition-all cursor-pointer border border-amber-600 group"
+                              title="Click to Record COD Collection"
+                            >
+                              <svg className="w-3.5 h-3.5 text-amber-100 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span>Collect COD (₹{parseFloat(d.cod_amount || d.grand_total).toFixed(2)})</span>
+                              <span className="text-[10px] bg-amber-600/90 text-amber-100 px-1.5 py-0.5 rounded font-black uppercase">Collect</span>
+                            </button>
                           ) : d.cod_status === 'COLLECTED' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              COD Paid (₹{parseFloat(d.cod_collected_amount || d.grand_total).toFixed(2)})
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openDrawer(d.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-50 hover:bg-emerald-100 active:scale-95 text-emerald-800 border border-emerald-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                              title="COD Collected - Click to view details"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <span>COD Paid (₹{parseFloat(d.cod_collected_amount || d.grand_total).toFixed(2)})</span>
+                              <span className="text-emerald-600 text-[11px] group-hover:translate-x-0.5 transition-transform font-bold">↗</span>
+                            </button>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              Prepaid (PAID)
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openDrawer(d.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-800 border border-slate-300 shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                              title="Prepaid Order - Click to view details"
+                            >
+                              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <span>Prepaid (PAID)</span>
+                              <span className="text-slate-400 text-[11px] group-hover:translate-x-0.5 transition-transform font-bold">↗</span>
+                            </button>
                           )}
                         </td>
 
@@ -1361,7 +1291,7 @@ export function DeliveriesPage() {
                             <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
                               {item.image_path ? (
                                 <img
-                                  src={item.image_path.startsWith('http') ? item.image_path : `http://localhost:8080/${item.image_path.replace(/^\/+/, '')}`}
+                                  src={item.image_path.startsWith('http') ? item.image_path : `${env.API_ORIGIN}/${item.image_path.replace(/^\/+/, '')}`}
                                   alt={item.product_name_snapshot}
                                   className="w-full h-full object-cover"
                                   onError={(e) => { (e.target as HTMLElement).style.display = 'none' }}

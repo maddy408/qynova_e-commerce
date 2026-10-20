@@ -5,20 +5,27 @@
  */
 function resolveApiBaseUrl() {
   if (typeof window !== 'undefined' && localStorage.getItem('api_base_url')) {
-    return localStorage.getItem('api_base_url')
+    try {
+      localStorage.removeItem('api_base_url')
+    } catch {
+      // ignore
+    }
   }
+
   const envUrl = import.meta.env.VITE_API_BASE_URL
-  if (envUrl && !envUrl.includes('localhost') && envUrl.trim() !== '') {
-    return envUrl
+  if (envUrl && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '')
   }
-  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost') {
+
+  if (typeof window !== 'undefined' && window.location.hostname) {
     return `http://${window.location.hostname}:8080/api`
   }
-  return 'http://192.168.1.103:8080/api'
+
+  return 'http://localhost:8080/api'
 }
 
 export const env = {
-  /** e.g. http://192.168.1.103:8080/api */
+  /** e.g. http://localhost:8080/api */
   get API_BASE_URL() {
     return resolveApiBaseUrl()
   },

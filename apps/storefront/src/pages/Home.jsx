@@ -160,14 +160,14 @@ export default function Home() {
           const type = section.type
           const key = section.section_key
 
+          if (type === 'FEATURED' || key === 'featured') {
+            return `/products?section=featured&limit=${limit}`
+          }
           if (type === 'BEST_SELLERS' || key === 'best_sellers') {
             return `/products?section=best_sellers&limit=${limit}`
           }
           if (type === 'NEW_ARRIVALS' || key === 'new_arrivals') {
             return `/products?section=new_arrivals&limit=${limit}`
-          }
-          if (type === 'FEATURED' || key === 'featured') {
-            return `/products?section=featured&limit=${limit}`
           }
           if (type === 'DEALS' || key === 'deals' || key === 'flash_deals') {
             return `/products?section=deals&limit=${limit}`

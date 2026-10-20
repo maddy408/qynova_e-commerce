@@ -38,19 +38,37 @@ final class HomeSectionService
             throw new RuntimeException('Invalid type');
         }
 
+        $defaultKeys = [
+            'FEATURED' => 'featured',
+            'BEST_SELLERS' => 'best_sellers',
+            'NEW_ARRIVALS' => 'new_arrivals',
+            'DEALS' => 'deals',
+            'COMBOS' => 'combos',
+        ];
+        $defaultLinks = [
+            'FEATURED' => '/products?section=featured',
+            'BEST_SELLERS' => '/products?section=best_sellers',
+            'NEW_ARRIVALS' => '/products?section=new_arrivals',
+            'DEALS' => '/products?section=deals',
+            'COMBOS' => '/products?category_slug=combo-offers',
+        ];
+
+        $sectionKey = $data['section_key'] ?? ($defaultKeys[$type] ?? null);
+        $viewAllLink = $data['view_all_link'] ?? ($defaultLinks[$type] ?? null);
+
         $this->pdo->prepare(
             'INSERT INTO home_sections (type, section_key, title, subtitle, badge_text, item_limit, sort_order, is_active, view_all_link)
              VALUES (:type, :section_key, :title, :subtitle, :badge_text, :item_limit, :sort_order, :is_active, :view_all_link)'
         )->execute([
             'type' => $type,
-            'section_key' => $data['section_key'] ?? null,
+            'section_key' => $sectionKey,
             'title' => $data['title'] ?? null,
             'subtitle' => $data['subtitle'] ?? null,
             'badge_text' => $data['badge_text'] ?? null,
             'item_limit' => (int) ($data['item_limit'] ?? 10),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_active' => (int) (bool) ($data['is_active'] ?? true),
-            'view_all_link' => $data['view_all_link'] ?? null,
+            'view_all_link' => $viewAllLink,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -59,6 +77,36 @@ final class HomeSectionService
     /** @param array<string, mixed> $data */
     public function update(int $id, array $data): void
     {
+        $existing = $this->find($id);
+        if ($existing === null) {
+            throw new RuntimeException('Home section not found');
+        }
+
+        $defaultKeys = [
+            'FEATURED' => 'featured',
+            'BEST_SELLERS' => 'best_sellers',
+            'NEW_ARRIVALS' => 'new_arrivals',
+            'DEALS' => 'deals',
+            'COMBOS' => 'combos',
+        ];
+        $defaultLinks = [
+            'FEATURED' => '/products?section=featured',
+            'BEST_SELLERS' => '/products?section=best_sellers',
+            'NEW_ARRIVALS' => '/products?section=new_arrivals',
+            'DEALS' => '/products?section=deals',
+            'COMBOS' => '/products?category_slug=combo-offers',
+        ];
+
+        if (isset($data['type']) && in_array($data['type'], self::TYPES, true)) {
+            $newType = $data['type'];
+            if (!array_key_exists('section_key', $data)) {
+                $data['section_key'] = $defaultKeys[$newType] ?? $newType;
+            }
+            if (!array_key_exists('view_all_link', $data) && empty($existing['view_all_link'])) {
+                $data['view_all_link'] = $defaultLinks[$newType] ?? null;
+            }
+        }
+
         $fields = ['type', 'section_key', 'title', 'subtitle', 'badge_text', 'item_limit', 'sort_order', 'is_active', 'image_path', 'view_all_link'];
         $sets = [];
         $params = ['id' => $id];
@@ -74,9 +122,8 @@ final class HomeSectionService
 
             if ($field === 'image_path') {
                 if ($data['image_path'] === null) {
-                    $section = $this->find($id);
-                    if ($section !== null && !empty($section['image_path'])) {
-                        $this->uploader->delete($section['image_path']);
+                    if (!empty($existing['image_path'])) {
+                        $this->uploader->delete($existing['image_path']);
                     }
                     $sets[] = 'image_path = NULL';
                 }
@@ -93,10 +140,6 @@ final class HomeSectionService
 
         $stmt = $this->pdo->prepare('UPDATE home_sections SET ' . implode(', ', $sets) . ' WHERE id = :id');
         $stmt->execute($params);
-
-        if ($stmt->rowCount() === 0 && $this->find($id) === null) {
-            throw new RuntimeException('Home section not found');
-        }
     }
 
     /** @param array{tmp_name: string, size: int, error: int, name: string} $file */

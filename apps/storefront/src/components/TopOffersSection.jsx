@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
 import { resolveImageUrl } from '../lib/api'
 import { FiArrowRight, FiCopy, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
@@ -7,10 +7,9 @@ import Button from './common/Button'
 
 /**
  * Top Offers for You Section
- * Purely database-driven: Only displays offers created by Admin.
- * Displays exactly 4 cards on desktop at a time in a sleek single-row slider.
- * Additional cards (> 4) are revealed via Next/Prev navigation or View More Deals.
- * Never wraps cards to a 2nd row below.
+ * Displays offer banners created by Admin in a sleek single-row slider.
+ * Clicking any offer navigates directly to /products?offer_id={id}
+ * where the mapped products are displayed in the full catalog grid.
  */
 export default function TopOffersSection({
   topOffers = [],
@@ -18,6 +17,7 @@ export default function TopOffersSection({
   activeOffers = [],
   isLoading = false,
 }) {
+  const navigate = useNavigate()
   const [copiedCode, setCopiedCode] = useState(null)
   const scrollRef = useRef(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -67,25 +67,25 @@ export default function TopOffersSection({
   // 4 Rotating visual themes for styling dynamic cards
   const CARD_THEMES = [
     {
-      bgGradient: 'from-[#E0F7FA]/70 via-[#E8F8FC]/60 to-[#DCFCE7]/50 border-emerald-100',
+      bgGradient: 'from-[#E0F7FA]/80 via-[#E8F8FC]/70 to-[#DCFCE7]/60 border-emerald-100',
       badgeBg: 'bg-[#E0F2FE] text-[#0284C7]',
       btnVariant: 'primary',
       btnCustomClass: '',
     },
     {
-      bgGradient: 'from-[#FFEDD5]/70 via-[#FFF1F2]/60 to-[#FEE2E2]/50 border-rose-100',
+      bgGradient: 'from-[#FFEDD5]/80 via-[#FFF1F2]/70 to-[#FEE2E2]/60 border-rose-100',
       badgeBg: 'bg-rose-100 text-rose-600',
       btnVariant: 'secondary',
       btnCustomClass: 'bg-rose-600 hover:bg-rose-700 text-white',
     },
     {
-      bgGradient: 'from-[#E0F2FE]/80 via-[#F0F9FF]/70 to-[#E0F7FA]/50 border-sky-100',
+      bgGradient: 'from-[#E0F2FE]/85 via-[#F0F9FF]/75 to-[#E0F7FA]/60 border-sky-100',
       badgeBg: 'bg-sky-100 text-sky-700',
       btnVariant: 'primary',
       btnCustomClass: '',
     },
     {
-      bgGradient: 'from-[#F3E8FF]/70 via-[#FAF5FF]/70 to-[#EDE9FE]/50 border-purple-100',
+      bgGradient: 'from-[#F3E8FF]/80 via-[#FAF5FF]/75 to-[#EDE9FE]/60 border-purple-100',
       badgeBg: 'bg-purple-100 text-purple-700',
       btnVariant: 'primary',
       btnCustomClass: 'bg-purple-600 hover:bg-purple-700 text-white',
@@ -123,7 +123,7 @@ export default function TopOffersSection({
     )
   }
 
-  // If no top offers exist in database, do not render any fake/static cards
+  // If no top offers exist in database, do not render any cards
   if (!Array.isArray(topOffers) || topOffers.length === 0) {
     return null
   }
@@ -221,6 +221,7 @@ export default function TopOffersSection({
             {topOffers.map((card, idx) => {
               const theme = CARD_THEMES[idx % CARD_THEMES.length]
               const isCopied = copiedCode === card.code
+              const targetLink = ROUTES.PRODUCTS_BY_OFFER(card.id)
 
               let imageUrl = null
               if (card.image_path) {
@@ -235,44 +236,57 @@ export default function TopOffersSection({
                 }
               }
 
+              const mappedCount = Array.isArray(card.products)
+                ? card.products.length
+                : Array.isArray(card.product_ids)
+                ? card.product_ids.length
+                : 0
+
               return (
                 <div
                   key={card.id || `live-offer-${idx}`}
                   data-offer-card="true"
-                  className={`w-[calc(100%-24px)] min-w-[240px] sm:w-[calc(50%-10px)] lg:w-[calc(25%-12px)] shrink-0 rounded-2xl p-4 sm:p-4.5 border bg-gradient-to-br ${theme.bgGradient} shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[175px]`}
+                  onClick={() => navigate(targetLink)}
+                  className={`w-[calc(100%-24px)] min-w-[270px] sm:w-[calc(50%-10px)] lg:w-[calc(25%-12px)] shrink-0 rounded-2xl p-4 sm:p-4.5 border bg-gradient-to-br ${theme.bgGradient} shadow-2xs hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden group min-h-[175px] cursor-pointer hover:scale-[1.01] active:scale-[0.99]`}
                 >
                   <div>
-                    {/* Badge */}
-                    {card.badge && (
-                      <div className="flex items-center justify-between mb-2">
+                    {/* Badge & Icon Header */}
+                    <div className="flex items-center justify-between mb-2">
+                      {card.badge && (
                         <span
                           className={`text-[9.5px] sm:text-[10px] font-sans font-extrabold uppercase px-2 py-0.5 rounded shadow-2xs ${theme.badgeBg}`}
                         >
                           {card.badge}
                         </span>
-                      </div>
-                    )}
+                      )}
+                      <span className="text-xl opacity-90">
+                        {renderIcon(card.icon)}
+                      </span>
+                    </div>
 
                     {/* Title & Subtitle */}
-                    <h3 className="font-sans text-xs sm:text-[13px] font-extrabold text-[var(--color-text-main)] leading-snug mb-1">
+                    <h3 className="font-sans text-xs sm:text-[13px] font-extrabold text-[var(--color-text-main)] leading-snug mb-1 group-hover:text-purple-700 transition-colors">
                       {card.title}
                     </h3>
                     {card.subtitle && (
-                      <p className="font-sans text-[11px] text-slate-600 leading-relaxed line-clamp-2 mb-2.5">
+                      <p className="font-sans text-[11px] text-slate-600 leading-relaxed line-clamp-2 mb-2">
                         {card.subtitle}
                       </p>
                     )}
 
                     {/* Coupon Code Pill */}
                     {card.code && (
-                      <div className="mb-3">
+                      <div className="mb-2">
                         <button
                           type="button"
-                          onClick={() => handleCopyCode(card.code)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCopyCode(card.code)
+                          }}
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${
                             isCopied
                               ? 'bg-emerald-600 text-white border-emerald-700'
-                              : 'bg-white/90 text-purple-700 border-purple-200 hover:bg-white'
+                              : 'bg-white/90 text-purple-700 border-purple-200 hover:bg-white shadow-2xs'
                           }`}
                           title="Click to copy coupon code"
                         >
@@ -292,19 +306,30 @@ export default function TopOffersSection({
                     )}
                   </div>
 
-                  {/* Bottom Row: CTA Button + Image/Icon */}
+                  {/* Bottom Row: Shop Deals Button + Image Preview */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-black/5 mt-auto">
-                    <Button
-                      variant={theme.btnVariant || 'primary'}
-                      size="xs"
-                      rounded="full"
-                      to={card.link || ROUTES.PRODUCTS_BY_SECTION('deals')}
-                      icon={<FiArrowRight className="w-3 h-3" />}
-                      iconPosition="right"
-                      className={theme.btnCustomClass || ''}
-                    >
-                      {card.button_text || 'Shop Deals'}
-                    </Button>
+                    <div className="flex flex-col items-start">
+                      <Button
+                        variant={theme.btnVariant || 'primary'}
+                        size="xs"
+                        rounded="full"
+                        to={targetLink}
+                        icon={<FiArrowRight className="w-3 h-3" />}
+                        iconPosition="right"
+                        className={theme.btnCustomClass || ''}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(targetLink)
+                        }}
+                      >
+                        {card.button_text || 'Shop Deals'}
+                      </Button>
+                      {mappedCount > 0 && (
+                        <span className="text-[9.5px] font-semibold text-slate-500 mt-1">
+                          {mappedCount} items included
+                        </span>
+                      )}
+                    </div>
 
                     {/* Visual: Image or Icon */}
                     <div className="shrink-0 w-20 h-16 sm:w-22 sm:h-16 flex items-center justify-end">
@@ -321,7 +346,6 @@ export default function TopOffersSection({
                       )}
                     </div>
                   </div>
-
                 </div>
               )
             })}

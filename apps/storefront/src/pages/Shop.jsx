@@ -27,6 +27,7 @@ export default function Shop() {
   const slugCategory = categorySlug ? categories.find((c) => c.slug === categorySlug) : null
   const slugSubcategory = subcategorySlug ? subcategories.find((s) => s.slug === subcategorySlug) : null
   const slugPending = (categorySlug && !slugCategory && categories.length === 0) || (subcategorySlug && !slugSubcategory && subcategories.length === 0)
+  const offerIdParam = searchParams.get('offer_id') || searchParams.get('top_offer_id') || ''
   const categoryIdParam = searchParams.get('category_id') || (slugCategory ? String(slugCategory.id) : '')
   const subcategoryIdParam = searchParams.get('subcategory_id') || (slugSubcategory ? String(slugSubcategory.id) : '')
   const brandIdParam = searchParams.get('brand_id') || ''
@@ -38,6 +39,7 @@ export default function Shop() {
 
   // Data states from DB
   const [products, setProducts] = useState([])
+  const [currentOffer, setCurrentOffer] = useState(null)
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,
@@ -133,6 +135,29 @@ export default function Shop() {
     }
   }, [])
 
+  // Fetch current offer details if offerIdParam is present
+  useEffect(() => {
+    if (!offerIdParam) {
+      setCurrentOffer(null)
+      return
+    }
+    let isCurrent = true
+    api
+      .get(`/top-offers/${offerIdParam}`)
+      .then((res) => {
+        if (isCurrent) {
+          const found = res.data?.top_offer || res.data?.offer || null
+          setCurrentOffer(found)
+        }
+      })
+      .catch(() => {
+        if (isCurrent) setCurrentOffer(null)
+      })
+    return () => {
+      isCurrent = false
+    }
+  }, [offerIdParam])
+
   // SERVER-SIDE PAGINATION: Fetch products directly from MySQL + PHP API whenever filters change
   useEffect(() => {
     async function fetchServerProducts() {
@@ -146,6 +171,7 @@ export default function Shop() {
       params.set('channel', 'ecommerce')
       params.set('is_active', '1')
 
+      if (offerIdParam) params.set('offer_id', offerIdParam)
       if (sectionParam) params.set('section', sectionParam)
       if (categoryIdParam) params.set('category_id', categoryIdParam)
       if (subcategoryIdParam) params.set('subcategory_id', subcategoryIdParam)
@@ -221,6 +247,7 @@ export default function Shop() {
   }, [
     pageParam,
     sectionParam,
+    offerIdParam,
     categoryIdParam,
     subcategoryIdParam,
     brandIdParam,
@@ -350,6 +377,8 @@ export default function Shop() {
   const pageTitle = useMemo(() => {
     if (isWishlistParam) return 'My Saved Wishlist'
     if (searchParam) return `Search Results for "${searchParam}"`
+    if (currentOffer) return `Offers Products: ${currentOffer.title}`
+    if (offerIdParam) return 'Offers Products'
     if (currentBrandObj && currentCategoryObj) return `${currentBrandObj.name} — ${currentCategoryObj.name}`
     if (currentBrandObj) return `Brand: ${currentBrandObj.name}`
     if (currentCategoryObj && currentSubcategoryObj) return `${currentCategoryObj.name} — ${currentSubcategoryObj.name}`
@@ -361,7 +390,7 @@ export default function Shop() {
     if (sectionParam === 'trending') return 'Trending Products'
     if (sectionParam === 'deals') return 'Flash Deals & Special Offers'
     return 'All Products Catalog'
-  }, [isWishlistParam, searchParam, currentCategoryObj, currentSubcategoryObj, currentBrandObj, sectionParam])
+  }, [isWishlistParam, searchParam, currentOffer, offerIdParam, currentCategoryObj, currentSubcategoryObj, currentBrandObj, sectionParam])
 
   const seoEntity = currentSubcategoryObj || currentCategoryObj
   usePageTitle(seoEntity?.meta_title || (seoEntity && !searchParam && !currentBrandObj ? `${pageTitle} - Buy Online at Best Prices` : pageTitle))
@@ -438,6 +467,62 @@ export default function Shop() {
             <span className="text-[#1B133F] font-semibold">{pageTitle}</span>
           </div>
 
+          {/* Top Offer Highlight Banner */}
+          {offerIdParam && (
+            <div className="mb-6 rounded-2xl p-4 sm:p-6 bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border border-purple-200/80 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-sans font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-600 text-white shadow-2xs">
+                    {currentOffer?.badge || 'EXCLUSIVE OFFER'}
+                  </span>
+                  <span className="text-xs font-bold text-purple-700 bg-white/90 border border-purple-200 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    🔥 Offers Products
+                  </span>
+                  {currentOffer?.code && (
+                    <span className="font-mono text-xs font-bold bg-white text-slate-800 border border-purple-200 px-2.5 py-0.5 rounded-md shadow-2xs">
+                      CODE: {currentOffer.code}
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-black text-[#1B133F] tracking-tight">
+                  {currentOffer?.title || 'Offer Mapped Products'}
+                </h2>
+
+                {currentOffer?.subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-2xl leading-relaxed">
+                    {currentOffer.subtitle}
+                  </p>
+                )}
+
+                <p className="text-xs text-purple-700 font-bold flex items-center gap-1.5 pt-1">
+                  <span>✨</span>
+                  <span>
+                    Showing {pagination.total} exclusive product{pagination.total === 1 ? '' : 's'} mapped to this offer
+                  </span>
+                </p>
+              </div>
+
+              <div className="shrink-0 flex items-center gap-3 self-end md:self-center">
+                {currentOffer?.image_path && (
+                  <img
+                    src={resolveImageUrl(currentOffer.image_path)}
+                    alt={currentOffer?.title || 'Offer'}
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-xs mix-blend-multiply"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                >
+                  <span>All Products</span>
+                  <span>✕</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Dynamic Category Banner: Positioned below breadcrumbs, above category heading (Hidden if no active banner) */}
           {currentCategoryBanner && (
             <CategoryBanner
@@ -453,7 +538,13 @@ export default function Shop() {
           <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E9DFFF] mb-6">
             <div>
               <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] bg-[#FAF8FF] px-3.5 py-1 rounded-full border border-[#E9DFFF]">
-                {sectionParam ? `Section: ${sectionParam.replace('_', ' ')}` : currentCategoryObj ? currentCategoryObj.name : 'All Groceries & Essentials'}
+                {offerIdParam
+                  ? 'Offers Products'
+                  : sectionParam
+                  ? `Section: ${sectionParam.replace('_', ' ')}`
+                  : currentCategoryObj
+                  ? currentCategoryObj.name
+                  : 'All Groceries & Essentials'}
               </span>
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1B133F] tracking-tight mt-3">
                 {pageTitle}
@@ -486,7 +577,7 @@ export default function Shop() {
                 <option value="name_asc">Name: A to Z</option>
               </select>
 
-              {(categoryIdParam || subcategoryIdParam || brandIdParam || sectionParam || searchParam || isWishlistParam || minPriceParam || maxPriceParam) && (
+              {(categoryIdParam || subcategoryIdParam || brandIdParam || sectionParam || searchParam || isWishlistParam || minPriceParam || maxPriceParam || offerIdParam) && (
                 <button
                   type="button"
                   onClick={handleClearFilters}
@@ -497,6 +588,32 @@ export default function Shop() {
               )}
             </div>
           </div>
+
+          {/* Active Offer Chip Filter */}
+          {offerIdParam && (
+            <div className="pt-3 pb-1 flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black uppercase text-purple-700 tracking-wider">
+                Active Offer Filter:
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs">
+                <span>🎁 {currentOffer?.title || 'Offer Products'}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = new URLSearchParams(searchParams)
+                    next.delete('offer_id')
+                    next.delete('top_offer_id')
+                    next.set('page', '1')
+                    setSearchParams(next)
+                  }}
+                  className="ml-1 w-4 h-4 rounded-full bg-purple-200 hover:bg-purple-300 text-purple-900 flex items-center justify-center font-bold text-[10px] cursor-pointer"
+                  title="Remove offer filter"
+                >
+                  ✕
+                </button>
+              </span>
+            </div>
+          )}
 
           {/* Category Quick Chips Filter (Top 5 Categories) */}
           <div className="py-3.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-2">

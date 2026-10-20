@@ -456,6 +456,7 @@ $router->delete('/api/home-sections/{id}', fn ($id) => $homeSections->destroy($i
 // Top Offers (Top Offers for You section)
 $topOffers = new TopOfferController($pdo);
 $router->get('/api/top-offers', fn () => $topOffers->index());
+$router->get('/api/top-offers/{id}', fn ($id) => $topOffers->publicShow($id));
 $router->get('/api/admin/top-offers', fn () => $topOffers->adminIndex());
 $router->get('/api/admin/top-offers/{id}', fn ($id) => $topOffers->show($id));
 $router->post('/api/admin/top-offers', fn () => $topOffers->store());
