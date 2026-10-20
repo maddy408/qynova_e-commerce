@@ -1,0 +1,3 @@
+# Admin / POS panel - keep out of search engines
+User-agent: *
+Disallow: /

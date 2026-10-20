@@ -437,7 +437,7 @@ function ProductInformationSection({
             </div>
           </div>
 
-          <SeoFields kind="product" value={seo} onChange={setSeo} name={name} path={`/product/${product.slug}`} />
+          <SeoFields value={seo} onChange={setSeo} name={name} path={`/product/${product.slug}`} />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <TextField label="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} />
