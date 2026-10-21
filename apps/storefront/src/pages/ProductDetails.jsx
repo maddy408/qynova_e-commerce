@@ -987,11 +987,17 @@ export default function ProductDetails() {
                       }}
                       className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-md text-amber-900 font-bold transition-colors cursor-pointer"
                     >
-                      <FiStar className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span>{Number(reviewStats.average) > 0 ? reviewStats.average : '4.8'}</span>
-                      <span className="text-gray-500 font-normal">
-                        ({reviewStats.total} {reviewStats.total === 1 ? 'review' : 'reviews'})
-                      </span>
+                      <FiStar className={`w-3.5 h-3.5 ${Number(reviewStats.total) > 0 ? 'text-amber-500 fill-amber-500' : 'text-amber-400'}`} />
+                      {Number(reviewStats.total) > 0 ? (
+                        <>
+                          <span>{reviewStats.average}</span>
+                          <span className="text-gray-500 font-normal">
+                            ({reviewStats.total} {reviewStats.total === 1 ? 'review' : 'reviews'})
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-gray-600 font-medium">New (No reviews yet)</span>
+                      )}
                     </button>
                     <span className="text-gray-400">•</span>
                     <span className="text-gray-600 font-medium">100% Genuine Quality</span>
@@ -1589,7 +1595,7 @@ export default function ProductDetails() {
                     <div className="md:col-span-4 text-center md:text-left flex flex-col items-center md:items-start">
                       <div className="flex items-baseline gap-2">
                         <span className="text-5xl font-black text-[var(--color-text-main)] tracking-tight">
-                          {Number(reviewStats.average) > 0 ? reviewStats.average : '4.8'}
+                          {Number(reviewStats.total) > 0 ? reviewStats.average : '0.0'}
                         </span>
                         <span className="text-base text-gray-400 font-bold">/ 5.0</span>
                       </div>
@@ -1599,7 +1605,7 @@ export default function ProductDetails() {
                           <FiStar
                             key={star}
                             className={`w-5 h-5 ${
-                              star <= Math.round(Number(reviewStats.average) || 4.8)
+                              Number(reviewStats.total) > 0 && star <= Math.round(Number(reviewStats.average))
                                 ? 'fill-amber-500 text-amber-500'
                                 : 'text-gray-300'
                             }`}
@@ -1608,7 +1614,9 @@ export default function ProductDetails() {
                       </div>
 
                       <p className="text-xs text-gray-500 font-medium">
-                        Based on {reviewStats.total} verified customer {reviewStats.total === 1 ? 'rating' : 'ratings'}
+                        {Number(reviewStats.total) > 0
+                          ? `Based on ${reviewStats.total} verified customer ${reviewStats.total === 1 ? 'rating' : 'ratings'}`
+                          : 'No ratings yet — be the first to review!'}
                       </p>
 
                       <button

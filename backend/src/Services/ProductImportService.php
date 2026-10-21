@@ -547,6 +547,14 @@ final class ProductImportService
             $this->pdo->prepare('INSERT INTO product_subcategories (product_id, subcategory_id) VALUES (:p, :s)')
                 ->execute(['p' => $productId, 's' => $subcategoryId]);
         }
+        // Make sure each subcategory is listed under this row's categories (category menus,
+        // filters and /category/<cat>/<sub> pages rely on category_subcategory).
+        foreach ($categoryIds as $categoryId) {
+            foreach ($subcategoryIds as $subcategoryId) {
+                $this->pdo->prepare('INSERT IGNORE INTO category_subcategory (category_id, subcategory_id) VALUES (:c, :s)')
+                    ->execute(['c' => $categoryId, 's' => $subcategoryId]);
+            }
+        }
 
         return $productId;
     }
@@ -1096,12 +1104,22 @@ final class ProductImportService
             throw new RuntimeException("GST rate {$percent}% ({$taxMode}) not found");
         }
 
+        // gst_rates.name is UNIQUE: an EXCLUSIVE "GST 5%" usually exists already (seed data),
+        // so an auto-created INCLUSIVE rate needs its own name or the insert fails.
+        $name = $taxMode === 'INCLUSIVE' ? "GST {$percent}% (Inclusive)" : "GST {$percent}%";
+        $byName = $this->pdo->prepare('SELECT id FROM gst_rates WHERE name = :name');
+        $byName->execute(['name' => $name]);
+        $existing = $byName->fetchColumn();
+        if ($existing !== false) {
+            return (int) $existing;
+        }
+
         $half = (string) ((float) $percent / 2);
         $this->pdo->prepare(
             'INSERT INTO gst_rates (name, gst_percent, cgst_percent, sgst_percent, igst_percent, tax_mode)
              VALUES (:name, :percent, :half, :half2, :percent2, :mode)'
         )->execute([
-            'name' => "GST {$percent}%",
+            'name' => $name,
             'percent' => $percent,
             'half' => $half,
             'half2' => $half,
