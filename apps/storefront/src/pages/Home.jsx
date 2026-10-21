@@ -330,30 +330,29 @@ export default function Home() {
         />
 
         {/* 8. DYNAMIC DATABASE-DRIVEN HOME SECTIONS (Configured in MySQL home_sections) */}
-        {sections.map((section, index) => (
-          <React.Fragment key={section.id}>
-            <DynamicHomeSection
-              section={section}
-              products={sectionProductsMap[section.id] || []}
-              isLoading={isLoadingSections}
-              categories={categories}
-              middleBanners={middleBanners}
-              isBannersLoading={isBannersLoading}
-              wishlistIds={wishlistIds}
-              onToggleWishlist={handleToggleWishlist}
-              onAddToCart={handleAddToCart}
-            />
-            {/* If middle banners exist, place between sections */}
-            {!sections.some((s) => s.type === 'BANNER') &&
-              middleBanners.length > 0 &&
-              index === Math.min(1, sections.length - 1) && (
-                <LowerPromotionalBanners
-                  banners={middleBanners}
-                  isLoading={isBannersLoading}
-                />
-              )}
-          </React.Fragment>
+        {sections.map((section) => (
+          <DynamicHomeSection
+            key={section.id}
+            section={section}
+            products={sectionProductsMap[section.id] || []}
+            isLoading={isLoadingSections}
+            categories={categories}
+            middleBanners={middleBanners}
+            isBannersLoading={isBannersLoading}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
+            onAddToCart={handleAddToCart}
+          />
         ))}
+
+        {/* Standalone middle banners when no existing home section of type BANNER handles them */}
+        {!sections.some((s) => s.type === 'BANNER') &&
+          (middleBanners.length > 0 || isBannersLoading) && (
+            <LowerPromotionalBanners
+              banners={middleBanners}
+              isLoading={isBannersLoading}
+            />
+          )}
 
         {/* 9. POPUP BANNER MODAL (Real MySQL Data via PHP REST API) */}
         {popupBanner && <PopupBannerModal banner={popupBanner} />}

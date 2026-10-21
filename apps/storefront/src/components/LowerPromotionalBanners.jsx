@@ -1,47 +1,76 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TbSparkles } from 'react-icons/tb'
 import { resolveImageUrl } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
-// Admin-managed banner theme presets — preserved untouched
-const THEME_MAP = {
+// Admin-managed banner theme presets — solid, vibrant gradients matching Admin Panel COLOR_THEMES
+const THEME_CONFIG = {
   purple: {
-    gradient: 'from-[var(--color-referral-alt)] via-[var(--color-extra-008)] to-[var(--color-referral)]',
-    badgeBg: 'bg-white/20 text-white border-white/30',
-    buttonBg: 'from-white to-[var(--color-referral-tint)] text-[var(--color-referral)] font-black',
-    subtitleColor: 'text-[var(--color-referral-tint)]',
+    background: 'linear-gradient(135deg, #3b0764 0%, #581c87 50%, #312e81 100%)',
+    backgroundColor: '#581c87',
+    badgeBg: 'bg-purple-950/40 text-purple-200 border-purple-400/30',
+    buttonBg: 'bg-white text-purple-950 hover:bg-purple-50',
+    subtitleColor: 'text-purple-200',
   },
   blue: {
-    gradient: 'from-[var(--color-extra-009)] via-[var(--color-extra-010)] to-[var(--color-extra-001)]',
-    badgeBg: 'bg-cyan-500/25 text-cyan-200 border-cyan-400/40',
-    buttonBg: 'from-[var(--color-extra-011)] to-[var(--color-extra-012)] text-slate-950 font-black',
+    background: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #1e40af 100%)',
+    backgroundColor: '#0369a1',
+    badgeBg: 'bg-sky-950/40 text-cyan-200 border-cyan-400/30',
+    buttonBg: 'bg-white text-sky-950 hover:bg-sky-50',
     subtitleColor: 'text-cyan-200',
   },
   orange: {
-    gradient: 'from-[var(--color-extra-013)] via-[var(--color-extra-014)] to-[var(--color-warning)]',
-    badgeBg: 'bg-amber-500/25 text-amber-200 border-amber-400/40',
-    buttonBg: 'from-[var(--color-extra-015)] to-[var(--color-extra-003)] text-white',
-    subtitleColor: 'text-amber-200',
+    background: 'linear-gradient(135deg, #9a3412 0%, #ea580c 50%, #c2410c 100%)',
+    backgroundColor: '#ea580c',
+    badgeBg: 'bg-amber-950/40 text-amber-200 border-amber-400/30',
+    buttonBg: 'bg-white text-orange-950 hover:bg-orange-50',
+    subtitleColor: 'text-amber-100',
   },
   pink: {
-    gradient: 'from-[var(--color-extra-016)] via-[var(--color-extra-017)] to-[var(--color-extra-018)]',
-    badgeBg: 'bg-rose-400/25 text-rose-200 border-rose-300/40',
-    buttonBg: 'from-[var(--color-extra-019)] to-[var(--color-error)] text-white',
+    background: 'linear-gradient(135deg, #881337 0%, #e11d48 50%, #9f1239 100%)',
+    backgroundColor: '#e11d48',
+    badgeBg: 'bg-rose-950/40 text-rose-200 border-rose-400/30',
+    buttonBg: 'bg-white text-rose-950 hover:bg-rose-50',
     subtitleColor: 'text-rose-200',
   },
   teal: {
-    gradient: 'from-[var(--color-extra-020)] via-[var(--color-extra-021)] to-[var(--color-extra-002)]',
-    badgeBg: 'bg-teal-400/25 text-teal-200 border-teal-300/40',
-    buttonBg: 'from-[var(--color-info)] to-[var(--color-extra-022)] text-slate-950 font-black',
+    background: 'linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #065f46 100%)',
+    backgroundColor: '#0d9488',
+    badgeBg: 'bg-teal-950/40 text-teal-200 border-teal-400/30',
+    buttonBg: 'bg-white text-teal-950 hover:bg-teal-50',
     subtitleColor: 'text-teal-200',
   },
   lavender: {
-    gradient: 'from-[var(--color-referral)] via-[var(--color-referral-alt)] to-[var(--color-extra-023)]',
-    badgeBg: 'bg-white/25 text-white border-white/35',
-    buttonBg: 'from-white to-[var(--color-referral-tint)] text-[var(--color-referral)] font-black',
-    subtitleColor: 'text-[var(--color-referral-tint)]',
+    background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 50%, #5b21b6 100%)',
+    backgroundColor: '#7c3aed',
+    badgeBg: 'bg-violet-950/40 text-violet-200 border-violet-400/30',
+    buttonBg: 'bg-white text-purple-950 hover:bg-purple-50',
+    subtitleColor: 'text-violet-200',
   },
+}
+
+function resolveBannerStyle(banner) {
+  const rawTheme = banner?.color_theme || banner?.background_color || 'purple'
+  const key = String(rawTheme).trim().toLowerCase()
+
+  if (THEME_CONFIG[key]) {
+    return THEME_CONFIG[key]
+  }
+
+  // Handle direct hex, rgb, or hsl values
+  if (key.startsWith('#') || key.startsWith('rgb') || key.startsWith('hsl')) {
+    return {
+      background: rawTheme,
+      backgroundColor: rawTheme,
+      badgeBg: 'bg-black/30 text-white border-white/30',
+      buttonBg: 'bg-white text-slate-900 hover:bg-slate-100',
+      subtitleColor: 'text-white/90',
+    }
+  }
+
+  // Fallback preset
+  return THEME_CONFIG.purple
 }
 
 export default function LowerPromotionalBanners({
@@ -53,7 +82,8 @@ export default function LowerPromotionalBanners({
   id = 'lower-promotional-banners',
 }) {
   const navigate = useNavigate()
-  const scrollContainerRef = useRef(null)
+  const trackRef = useRef(null)
+  const [duration, setDuration] = useState(25)
 
   // Filter only active banners from database
   const activeBanners = useMemo(() => {
@@ -61,6 +91,26 @@ export default function LowerPromotionalBanners({
       ? banners.filter((b) => Number(b.is_active) === 1)
       : []
   }, [banners])
+
+  // Calculate dynamic animation duration based on actual track width for constant, steady speed (~40px/s)
+  useEffect(() => {
+    if (!trackRef.current || activeBanners.length === 0) return
+
+    const computeDuration = () => {
+      if (!trackRef.current) return
+      const totalWidth = trackRef.current.scrollWidth
+      const loopDistance = totalWidth / 2 // The distance of one full seamless sequence
+      if (loopDistance > 0) {
+        // ~40px per second gives a steady, readable, continuous crawl like JioMart
+        const calculatedDuration = Math.max(10, Math.round(loopDistance / 40))
+        setDuration(calculatedDuration)
+      }
+    }
+
+    computeDuration()
+    window.addEventListener('resize', computeDuration)
+    return () => window.removeEventListener('resize', computeDuration)
+  }, [activeBanners])
 
   const handleNavigate = (banner) => {
     if (!banner) return
@@ -97,13 +147,6 @@ export default function LowerPromotionalBanners({
     navigate(ROUTES.PRODUCTS)
   }
 
-  // Handle manual arrow nudge
-  const handleScroll = (direction) => {
-    if (!scrollContainerRef.current) return
-    const offset = direction === 'left' ? -380 : 380
-    scrollContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' })
-  }
-
   // 1. Loading state (storefront UI)
   if (isLoading) {
     return (
@@ -122,12 +165,12 @@ export default function LowerPromotionalBanners({
     return null
   }
 
-  // Double array for continuous seamless infinite loop
+  // Duplicate the sequence internally only as needed to create a seamless loop
   const displayItems = [...activeBanners, ...activeBanners]
 
   return (
     <section id={id} className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-8 overflow-hidden">
-      {/* Header (rendered if title or badgeText provided — styled with storefront burgundy theme) */}
+      {/* Header (rendered if title or badgeText provided — styled with storefront theme) */}
       {(title || badgeText) && (
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
           <div>
@@ -147,49 +190,35 @@ export default function LowerPromotionalBanners({
               </p>
             )}
           </div>
-
-          {/* Desktop Controls to pause / manually nudge */}
-          <div className="hidden sm:flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleScroll('left')}
-              className="w-9 h-9 rounded-full border border-[var(--color-border-subtle)] bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
-              aria-label="Scroll promotional banners left"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScroll('right')}
-              className="w-9 h-9 rounded-full border border-[var(--color-border-subtle)] bg-white hover:bg-[var(--color-primary-tint)] text-[var(--color-text-main)] flex items-center justify-center shadow-xs cursor-pointer transition-all active:scale-95"
-              aria-label="Scroll promotional banners right"
-            >
-              ›
-            </button>
-          </div>
         </div>
       )}
 
-      {/* Continuous Auto-Scrolling Marquee Track (Preserves admin-configured banner gradients and styling) */}
-      <div
-        ref={scrollContainerRef}
-        className="relative overflow-x-hidden no-scrollbar rounded-3xl"
-      >
-        <div className="animate-continuous-scroll flex gap-4 sm:gap-5 py-2">
+      {/* Continuous Marquee Track (Smooth, uninterrupted continuous horizontal movement) */}
+      <div className="relative overflow-hidden no-scrollbar rounded-3xl w-full">
+        <div
+          ref={trackRef}
+          className="animate-continuous-scroll flex gap-4 sm:gap-5 py-2 w-max will-change-transform"
+          style={{
+            animationDuration: `${duration}s`,
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
+          }}
+        >
           {displayItems.map((banner, index) => {
-            const themeKey = (banner.color_theme || 'purple').toLowerCase()
-            const theme = THEME_MAP[themeKey] || THEME_MAP.purple
+            const theme = resolveBannerStyle(banner)
             const image = resolveImageUrl(banner.image_desktop_path)
 
             return (
               <div
                 key={`${banner.id}-${index}`}
+                data-banner-card="true"
                 onClick={() => handleNavigate(banner)}
-                className={`w-[290px] sm:w-[360px] lg:w-[400px] shrink-0 rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-gradient-to-r ${theme.gradient} text-white shadow-md hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer flex flex-col justify-between border border-white/20 relative overflow-hidden group select-none`}
+                style={{
+                  background: theme.background,
+                  backgroundColor: theme.backgroundColor,
+                }}
+                className="w-[290px] sm:w-[360px] lg:w-[420px] shrink-0 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-md hover:shadow-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer flex flex-col justify-between border border-white/20 relative overflow-hidden group select-none"
               >
-                {/* Ambient glow in background */}
-                <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-
                 {/* Top Badge & Title Area */}
                 <div className="z-10">
                   {banner.discount_text && (
@@ -220,7 +249,7 @@ export default function LowerPromotionalBanners({
                       e.stopPropagation()
                       handleNavigate(banner)
                     }}
-                    className={`px-3.5 sm:px-4 py-1.5 rounded-full bg-gradient-to-r ${theme.buttonBg} text-xs font-black tracking-wide shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer`}
+                    className={`px-3.5 sm:px-4 py-1.5 rounded-full ${theme.buttonBg} text-xs font-black tracking-wide shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer`}
                   >
                     {banner.cta_text || 'Claim Offer →'}
                   </button>
