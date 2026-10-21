@@ -34,9 +34,9 @@ export const ROUTES = {
   POLICY_PAGE: (slug) => `/pages/${slug}`,
   POLICY_SHIPPING: '/pages/shipping-policy',
   POLICY_PRIVACY: '/pages/privacy-policy',
-  POLICY_RETURNS: '/pages/return-exchange-policy',
+  POLICY_RETURNS: '/pages/return-policy',
   POLICY_TERMS_PAGE: '/pages/terms-and-conditions',
-  POLICY_TERMS: '/policy/terms',
+  POLICY_TERMS: '/pages/terms-and-conditions',
 
   REGISTER: '/register',
   LOGIN: '/login',

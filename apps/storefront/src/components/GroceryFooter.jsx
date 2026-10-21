@@ -10,14 +10,15 @@ export default function GroceryFooter({
   storeSettings = null,
   categories = [],
 }) {
-  const storeName = storeSettings?.store_name || 'Shop with Adam'
+  const storeName = storeSettings?.store_name || 'Shop with Adams'
   const storeTagline = storeSettings?.tagline || 'FRESH • DAILY • ESSENTIALS'
   const storeDesc =
     storeSettings?.description ||
     'Your trusted neighborhood supermarket delivering farm-fresh fruits, vegetables, dairy, pantry staples, and daily household essentials right to your doorstep.'
-  const phone = storeSettings?.phone || '+91 98765 01234'
-  const whatsappNum = (storeSettings?.whatsapp_number || storeSettings?.phone || '919876501234').replace(/[^0-9]/g, '')
-  const email = storeSettings?.email || 'support@shopwithadam.com'
+  // contact details come only from Admin > Store Settings - no placeholder numbers
+  const phone = storeSettings?.phone || ''
+  const whatsappNum = (storeSettings?.whatsapp_number || storeSettings?.phone || '').replace(/[^0-9]/g, '')
+  const email = storeSettings?.email || ''
   const address = storeSettings?.address
     ? `${storeSettings.address}${storeSettings.city ? `, ${storeSettings.city}` : ''}`
     : '123 Market Road, Main City Bazaar'
@@ -49,6 +50,7 @@ export default function GroceryFooter({
 
           <div className="flex flex-wrap items-center gap-3.5 shrink-0">
             {/* WhatsApp Chat Button */}
+            {whatsappNum && (
             <a
               href={`https://wa.me/${whatsappNum}?text=Hello%2C%20I%20have%20an%20inquiry%20regarding%20my%20grocery%20order.`}
               target="_blank"
@@ -58,8 +60,10 @@ export default function GroceryFooter({
               <FaWhatsapp className="w-4 h-4" />
               <span>Chat on WhatsApp</span>
             </a>
+            )}
 
             {/* Phone Call Button */}
+            {phone && (
             <a
               href={`tel:${phone.replace(/[^0-9+]/g, '')}`}
               className="px-7 py-3 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-600 font-sans text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
@@ -67,6 +71,7 @@ export default function GroceryFooter({
               <FiPhone className="w-4 h-4 text-purple-400" />
               <span>{phone}</span>
             </a>
+            )}
           </div>
         </div>
       </div>
@@ -159,22 +164,28 @@ export default function GroceryFooter({
               Store & Support
             </h4>
             <div className="space-y-2 text-xs font-sans text-zinc-400">
+              {address && (
               <p className="flex items-start gap-2">
                 <FiMapPin className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
                 <span>{address}</span>
               </p>
+              )}
+              {phone && (
               <p className="flex items-center gap-2">
                 <FiPhone className="w-4 h-4 text-purple-400 shrink-0" />
                 <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`} className="hover:text-white">
                   {phone}
                 </a>
               </p>
+              )}
+              {email && (
               <p className="flex items-center gap-2">
                 <FiMail className="w-4 h-4 text-purple-400 shrink-0" />
                 <a href={`mailto:${email}`} className="hover:text-white">
                   {email}
                 </a>
               </p>
+              )}
             </div>
           </div>
 

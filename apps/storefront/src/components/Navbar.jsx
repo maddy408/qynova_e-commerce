@@ -511,7 +511,7 @@ export default function Navbar({
     }
   }
 
-  const storeName = storeSettings?.store_name || 'Shop with Adam'
+  const storeName = storeSettings?.store_name || 'Shop with Adams'
   const storeTagline = storeSettings?.tagline || 'Fresh • Daily • Essentials'
   const storeLogo = storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo.png'
   const whatsappClean = (storeSettings?.whatsapp_number || storeSettings?.phone || '').replace(/[^0-9]/g, '')
@@ -562,16 +562,19 @@ export default function Navbar({
               <span className="truncate max-w-[120px] sm:max-w-none font-medium">
                 {userDeliveryLocation?.shortDisplay
                   ? `Delivering Happiness to ${userDeliveryLocation.shortDisplay}`
-                  : storeSettings?.city
-                  ? `Delivering Happiness to ${storeSettings.city} and nearby`
-                  : 'Delivering Happiness to Jaipur and nearby'}
+                  : 'Delivering across India'}
               </span>
             </button>
-            <span className="hidden sm:inline text-sky-300">|</span>
-            <span className="hidden sm:flex font-medium text-[#0369A1] items-center gap-1.5">
-              <FiPhone className="w-3 h-3 text-[var(--color-primary)] shrink-0" />
-              <span>{helplineText || '+91 98765 01234'}</span>
-            </span>
+            {/* phone comes from Admin > Store Settings; hidden until it is set */}
+            {helplineText && (
+              <>
+                <span className="hidden sm:inline text-sky-300">|</span>
+                <span className="hidden sm:flex font-medium text-[#0369A1] items-center gap-1.5">
+                  <FiPhone className="w-3 h-3 text-[var(--color-primary)] shrink-0" />
+                  <span>{helplineText}</span>
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -585,8 +588,8 @@ export default function Navbar({
             <Link to={ROUTES.HOME} className="flex items-center gap-2.5 sm:gap-3 group select-none">
               <img
                 src={storeLogo || '/images/logo.png'}
-                alt={storeName || 'Shop with Adam'}
-                title="Shop with Adam"
+                alt={storeName || 'Shop with Adams'}
+                title="Shop with Adams"
                 className="h-10 sm:h-12 w-auto max-w-[190px] sm:max-w-[230px] object-contain group-hover:scale-105 transition-transform"
                 onError={(e) => {
                   e.currentTarget.onerror = null
@@ -1572,8 +1575,8 @@ export default function Navbar({
               <div className="flex items-center gap-2.5">
                 <img
                   src={storeLogo || '/images/logo.png'}
-                  alt={storeName || 'Shop with Adam'}
-                  title="Shop with Adam"
+                  alt={storeName || 'Shop with Adams'}
+                  title="Shop with Adams"
                   className="h-8 w-auto max-w-[130px] object-contain"
                   onError={(e) => {
                     e.currentTarget.onerror = null

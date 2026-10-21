@@ -5,7 +5,7 @@ import { resolveImageUrl } from '../lib/api'
 import { FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
 /**
- * Dynamic Shop with Adam Hero Banner
+ * Dynamic Shop with Adams Hero Banner
  * - Renders ONLY active banners created in the Admin Panel (3, 5, 6, etc.)
  * - Zero fallback/hardcoded placeholder images
  * - Full-width background coverage edge-to-edge
@@ -138,7 +138,7 @@ export default function GroceryHeroBanner({
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      aria-label="Shop with Adam Grocery Promotion"
+      aria-label="Shop with Adams Grocery Promotion"
     >
       <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-2.5 pb-2">
         {/* Sleek Panoramic Hero Container */}

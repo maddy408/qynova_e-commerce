@@ -87,7 +87,7 @@ final class SeoService
         $store = $this->store();
         $name = $this->siteName();
         $tagline = trim((string) ($store['tagline'] ?? ''));
-        $city = trim((string) ($store['city'] ?? ''));
+        $city = $this->area();
 
         $title = $name . ' - ' . ($tagline !== '' ? $tagline : 'Online Shopping for Daily Essentials')
             . ($city !== '' ? " in {$city}" : '');
@@ -165,7 +165,7 @@ final class SeoService
         }
 
         [$primaryCat, $sub] = $this->primaryCategory($product);
-        $city = trim((string) ($this->store()['city'] ?? ''));
+        $city = $this->area();
 
         $images = [];
         foreach (array_merge($product['images'] ?? [], ...array_map(fn ($v) => $v['images'] ?? [], $variants)) as $img) {
@@ -178,11 +178,17 @@ final class SeoService
 
         // Title: admin's meta_title, else "Brand Name - Buy Online at Best Price in City | Store"
         $title = trim((string) ($product['meta_title'] ?? ''));
-        if ($title === '') {
-            $title = ($brand !== '' && stripos($name, $brand) === false ? "{$brand} {$name}" : $name)
-                . ' - Buy Online at Best Price' . ($city !== '' ? " in {$city}" : '');
+        if ($title !== '') {
+            $title = $this->fitTitle([$title]);
+        } else {
+            $base = $brand !== '' && stripos($name, $brand) === false ? "{$brand} {$name}" : $name;
+            $title = $this->fitTitle(array_filter([
+                $city !== '' ? "{$base} - Buy Online at Best Price in {$city}" : null,
+                "{$base} - Buy Online at Best Price",
+                "{$base} - Buy Online",
+                $base,
+            ]));
         }
-        $title = $this->withSiteName($title);
 
         $description = trim((string) ($product['meta_description'] ?? ''));
         if ($description === '') {
@@ -190,6 +196,10 @@ final class SeoService
             $priceText = 'Buy ' . $name . ' online for ₹' . $this->money($minPrice)
                 . ($mrp > $minPrice ? ' (MRP ₹' . $this->money($mrp) . ', save ' . (int) round((1 - $minPrice / $mrp) * 100) . '%)' : '')
                 . '.';
+            $lead = rtrim($lead);
+            if ($lead !== '' && !preg_match('/[.!?…]$/u', $lead)) {
+                $lead .= '.';
+            }
             $description = $this->truncate($priceText . ' ' . $lead . ' ' . $this->deliveryPitch(), 300);
         }
 
@@ -332,20 +342,27 @@ final class SeoService
             $params,
         );
         $brandNames = array_column($brands, 'name');
-        $city = trim((string) ($this->store()['city'] ?? ''));
+        $city = $this->area();
 
         $baseUrl = $sub ? $this->categoryUrl($cat['slug'], $sub['slug']) : $this->categoryUrl($cat['slug']);
         $canonical = $baseUrl . ($page > 1 ? '?page=' . $page : '');
         $filtered = array_diff_key($query, ['page' => 1]) !== [];
 
+        $pageSuffix = $page > 1 ? " - Page {$page}" : '';
         $title = trim((string) ($entity['meta_title'] ?? ''));
-        if ($title === '') {
-            $title = ($sub ? "{$sub['name']} - {$cat['name']}" : $label) . ' - Buy Online at Best Prices' . ($city !== '' ? " in {$city}" : '');
+        if ($title !== '') {
+            $title = $this->fitTitle([$title . $pageSuffix]);
+        } else {
+            $names = $sub ? ["{$sub['name']} - {$cat['name']}", $sub['name']] : [$label];
+            $tails = array_filter([$city !== '' ? " - Buy Online at Best Prices in {$city}" : null, ' - Buy Online at Best Prices', ' Online', '']);
+            $candidates = [];
+            foreach ($tails as $tail) {
+                foreach ($names as $n) {
+                    $candidates[] = $n . $tail . $pageSuffix;
+                }
+            }
+            $title = $this->fitTitle($candidates);
         }
-        if ($page > 1) {
-            $title .= " - Page {$page}";
-        }
-        $title = $this->withSiteName($title);
 
         $description = trim((string) ($entity['meta_description'] ?? ''));
         if ($description === '') {
@@ -464,7 +481,9 @@ final class SeoService
 
         return $this->page(200, [
             'title' => $this->withSiteName($title),
-            'description' => $this->defaultDescription(),
+            'description' => $isSearch
+                ? $this->defaultDescription()
+                : $this->truncate('Browse all products at ' . $this->siteName() . ' - groceries, staples, snacks, beverages, personal and home care at the best prices. ' . $this->deliveryPitch(), 300),
             'canonical' => $this->siteUrl . '/products',
             // search results & filter combinations must not be indexed (thin/duplicate content)
             'robots' => $filtered ? 'noindex, follow' : null,
@@ -484,7 +503,8 @@ final class SeoService
             'title' => $this->withSiteName((string) $page['title']),
             'description' => $this->truncate($text, 160),
             'canonical' => $this->siteUrl . '/pages/' . rawurlencode($slug),
-            'body' => '<h1>' . $this->e((string) $page['title']) . '</h1><div>' . $this->safeHtml((string) $page['content']) . '</div>',
+            // pages.content is plain text (the storefront shows it with whitespace-pre-line)
+            'body' => '<h1>' . $this->e((string) $page['title']) . '</h1>' . $this->paragraphs((string) $page['content']),
         ]);
     }
 
@@ -509,10 +529,8 @@ final class SeoService
         foreach (self::PRIVATE_PREFIXES as $p) {
             $lines[] = 'Disallow: ' . $p;
         }
-        $lines[] = 'Disallow: /*?*search=';
-        $lines[] = 'Disallow: /*?*sort=';
-        $lines[] = 'Disallow: /*?*min_price=';
-        $lines[] = 'Disallow: /*?*max_price=';
+        // Search/sort/filter URLs are NOT blocked here on purpose: they carry
+        // "noindex, follow" + a canonical, which Google can only see if it may crawl them.
         $lines[] = '';
         $lines[] = 'Sitemap: ' . $this->siteUrl . '/sitemap.xml';
 
@@ -616,6 +634,7 @@ final class SeoService
         $store = $this->store();
         $delivery = $this->delivery();
         $shippingPrice = (float) ($delivery['delivery_charge'] ?? 0);
+        $freeAbove = (float) ($delivery['free_delivery_threshold'] ?? 0);
 
         $rows = $this->fetchAll(
             "SELECT p.id AS product_id, p.slug, p.name, p.short_description, p.description, b.name AS brand,
@@ -690,7 +709,8 @@ final class SeoService
                 . ($gtin ? '<g:gtin>' . $gtin . '</g:gtin>' : '<g:mpn>' . $this->x((string) $r['sku']) . '</g:mpn>')
                 . (!$gtin && !$r['brand'] ? '<g:identifier_exists>no</g:identifier_exists>' : '')
                 . ($category !== '' ? '<g:product_type>' . $this->x($category) . '</g:product_type>' : '')
-                . '<g:shipping><g:country>IN</g:country><g:price>' . $this->money($shippingPrice, false) . ' INR</g:price></g:shipping>'
+                . '<g:shipping><g:country>IN</g:country><g:price>'
+                . $this->money($freeAbove > 0 && $price >= $freeAbove ? 0.0 : $shippingPrice, false) . ' INR</g:price></g:shipping>'
                 . "</item>\n";
         }
 
@@ -1092,7 +1112,40 @@ final class SeoService
         }
         $name = trim((string) ($this->store()['store_name'] ?? ''));
 
-        return $name !== '' ? $name : 'Shop Adams';
+        return $name !== '' ? $name : 'Shop with Adams';
+    }
+
+    /**
+     * Picks the most descriptive title that still fits Google's ~65 character display:
+     * first one that fits WITH " | Brand", else first that fits alone, else the shortest cut.
+     *
+     * @param list<string> $candidates most descriptive first
+     */
+    private function fitTitle(array $candidates): string
+    {
+        $candidates = array_values($candidates);
+        $suffix = ' | ' . $this->siteName();
+        foreach ($candidates as $c) {
+            if (mb_strlen($c . $suffix) <= 65) {
+                return $c . $suffix;
+            }
+        }
+        foreach ($candidates as $c) {
+            if (mb_strlen($c) <= 65) {
+                return $c;
+            }
+        }
+
+        return $this->truncate(end($candidates) ?: '', 65);
+    }
+
+    /**
+     * Where you sell, used in titles ("... at Best Price in India") and descriptions.
+     * SEO_AREA in .env: "India" (default, ships all-India), a city for a local store, or empty.
+     */
+    private function area(): string
+    {
+        return trim((string) Config::get('seo.area', 'India'));
     }
 
     private function withSiteName(string $title): string
@@ -1120,10 +1173,10 @@ final class SeoService
     private function deliveryPitch(): string
     {
         $d = $this->delivery();
-        $city = trim((string) ($this->store()['city'] ?? ''));
+        $city = $this->area();
         $free = (float) ($d['free_delivery_threshold'] ?? 0);
         $parts = [];
-        $parts[] = 'Fast home delivery' . ($city !== '' ? " in {$city}" : '');
+        $parts[] = $city === '' ? 'Fast home delivery' : (strcasecmp($city, 'India') === 0 ? 'Delivery across India' : "Fast home delivery in {$city}");
         if ($free > 0) {
             $parts[] = 'free delivery above ₹' . $this->money($free);
         }

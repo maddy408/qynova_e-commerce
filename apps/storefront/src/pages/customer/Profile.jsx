@@ -424,7 +424,7 @@ export default function Profile() {
           <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0 select-none">
             <img
               src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
-              alt={storeSettings?.store_name || 'Shop with Adam'}
+              alt={storeSettings?.store_name || 'Shop with Adams'}
               className="h-10 sm:h-11 w-auto max-w-[180px] sm:max-w-[210px] object-contain group-hover:scale-105 transition-transform"
               onError={(e) => {
                 e.currentTarget.onerror = null

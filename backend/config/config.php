@@ -72,5 +72,7 @@ return [
         'site_name' => $_ENV['SITE_NAME'] ?? '',
         // where non-R2 images (uploads/...) are served from; empty = SITE_URL
         'asset_url' => $_ENV['ASSET_URL'] ?? '',
+        // where you sell: 'India' (all-India shipping), a city name for a local store, or ''
+        'area' => $_ENV['SEO_AREA'] ?? 'India',
     ],
 ];

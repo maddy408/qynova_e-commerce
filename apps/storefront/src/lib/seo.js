@@ -16,7 +16,7 @@ let siteNameCache = null
 export function siteName() {
   if (siteNameCache) return siteNameCache
   const meta = typeof document !== 'undefined' ? document.querySelector('meta[property="og:site_name"]') : null
-  siteNameCache = meta?.getAttribute('content') || import.meta.env.VITE_SITE_NAME || 'Shop Adams'
+  siteNameCache = meta?.getAttribute('content') || import.meta.env.VITE_SITE_NAME || 'Shop with Adams'
   return siteNameCache
 }
 siteName() // read it now, before the server tags are removed
@@ -25,6 +25,9 @@ siteName() // read it now, before the server tags are removed
 export function usePageTitle(title) {
   useEffect(() => {
     if (!title) return
+    // On the page the visitor/Googlebot landed on, keep the server's SEO title (it is
+    // length-fitted with brand & city); only set titles after in-app navigation.
+    if (document.querySelector('title[data-seo="ssr"]')) return
     const brand = siteName()
     document.title = title.includes(brand) ? title : `${title} | ${brand}`
   }, [title])

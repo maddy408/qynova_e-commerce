@@ -24,7 +24,8 @@ export default function PolicyPage() {
     setIsLoading(true)
     fetchPage(slug)
       .then((res) => {
-        setPage(res?.page || null)
+        // fetchPage() already returns the page object itself
+        setPage(res?.slug ? res : res?.page || null)
       })
       .catch(() => {
         setPage(null)
