@@ -51,3 +51,9 @@ database/backups/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Deployment script & server credentials (private to server administrator)
+deploy.py
+.deploy*
+*.deploy.*
+deploy_secrets.*
