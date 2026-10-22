@@ -87,7 +87,32 @@ final class ProductService
                      WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
                        AND COALESCE(i.available, 0) <= 0) AS out_of_stock_variant_count,
                     (SELECT ROUND(AVG(cr.rating), 1) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) AS avg_rating,
-                    (SELECT COUNT(*) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) AS review_count
+                    (SELECT COUNT(*) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) AS review_count,
+                    -- Product card hover line ('Size: S, M, L'). One
+                    -- GROUP_CONCAT per product (same correlated-subquery
+                    -- pattern as every other per-product aggregate
+                    -- above), not per-variant — stays flat regardless of
+                    -- how many variants a product has. MariaDB 10.4 here
+                    -- has no JSON_ARRAYAGG, hence the delimited string;
+                    -- parseVariantsSummary() below turns it back into a
+                    -- clean nested structure before the response goes out.
+                    (SELECT GROUP_CONCAT(
+                        CONCAT_WS('\x1f', sub.attr_name, sub.attr_value, COALESCE(sub.color_hex, ''), sub.in_stock)
+                        SEPARATOR '\x1e'
+                     )
+                     FROM (
+                        SELECT va.name AS attr_name, vav.value AS attr_value, vav.color_hex AS color_hex,
+                               MAX(CASE WHEN COALESCE(i.available, 0) > 0 THEN 1 ELSE 0 END) AS in_stock
+                        FROM product_variants v
+                        JOIN product_variant_values pvv ON pvv.variant_id = v.id
+                        JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                        JOIN variant_attributes va ON va.id = vav.attribute_id
+                        LEFT JOIN inventory i ON i.variant_id = v.id
+                        WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+                        GROUP BY va.name, vav.value, vav.color_hex
+                        ORDER BY va.sort_order, vav.sort_order
+                     ) sub
+                    ) AS variants_summary_raw
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
              WHERE {$whereSql}
@@ -103,6 +128,11 @@ final class ProductService
         $stmt->execute();
 
         $items = $stmt->fetchAll();
+        foreach ($items as &$item) {
+            $item['variants_summary'] = self::parseVariantsSummary($item['variants_summary_raw'] ?? null);
+            unset($item['variants_summary_raw']);
+        }
+        unset($item);
         $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
         $pagination = [
             'page' => $page,
@@ -539,6 +569,42 @@ final class ProductService
             'attributes' => $attributeFacets,
             'specs' => $specFacets,
         ];
+    }
+
+    /**
+     * Turns the GROUP_CONCAT'd "Name\x1fValue\x1fHex\x1fInStock\x1e..."
+     * string from list()'s query into [{name, values: [{value, color_hex,
+     * in_stock}]}] — grouped by attribute name, in the order the SQL
+     * already sorted them (attribute sort_order, then value sort_order).
+     *
+     * @return list<array{name: string, values: list<array{value: string, color_hex: ?string, in_stock: bool}>}>
+     */
+    public static function parseVariantsSummary(?string $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        $byName = [];
+        foreach (explode("\x1e", $raw) as $entry) {
+            $parts = explode("\x1f", $entry);
+            if (count($parts) !== 4) {
+                continue;
+            }
+            [$name, $value, $colorHex, $inStock] = $parts;
+            $byName[$name][] = [
+                'value' => $value,
+                'color_hex' => $colorHex !== '' ? $colorHex : null,
+                'in_stock' => $inStock === '1',
+            ];
+        }
+
+        $result = [];
+        foreach ($byName as $name => $values) {
+            $result[] = ['name' => $name, 'values' => $values];
+        }
+
+        return $result;
     }
 
     /** @return array<string, mixed>|null */

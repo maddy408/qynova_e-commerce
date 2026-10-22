@@ -122,7 +122,24 @@ final class CustomerActivityService
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE') AS max_price,
                     (SELECT mrp FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE' ORDER BY is_default DESC, id ASC LIMIT 1) AS mrp,
                     (SELECT ps.view_count FROM product_stats ps WHERE ps.product_id = p.id) AS view_count,
-                    (SELECT ps.units_sold_30d FROM product_stats ps WHERE ps.product_id = p.id) AS units_sold
+                    (SELECT ps.units_sold_30d FROM product_stats ps WHERE ps.product_id = p.id) AS units_sold,
+                    (SELECT GROUP_CONCAT(
+                        CONCAT_WS('\x1f', sub.attr_name, sub.attr_value, COALESCE(sub.color_hex, ''), sub.in_stock)
+                        SEPARATOR '\x1e'
+                     )
+                     FROM (
+                        SELECT va.name AS attr_name, vav.value AS attr_value, vav.color_hex AS color_hex,
+                               MAX(CASE WHEN COALESCE(i.available, 0) > 0 THEN 1 ELSE 0 END) AS in_stock
+                        FROM product_variants v3
+                        JOIN product_variant_values pvv ON pvv.variant_id = v3.id
+                        JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                        JOIN variant_attributes va ON va.id = vav.attribute_id
+                        LEFT JOIN inventory i ON i.variant_id = v3.id
+                        WHERE v3.product_id = p.id AND v3.deleted_at IS NULL
+                        GROUP BY va.name, vav.value, vav.color_hex
+                        ORDER BY va.sort_order, vav.sort_order
+                     ) sub
+                    ) AS variants_summary_raw
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
              WHERE p.id IN ($placeholders) AND p.deleted_at IS NULL AND p.is_active = 1
@@ -131,6 +148,13 @@ final class CustomerActivityService
 
         $bindings = array_merge($resolvedIds, $resolvedIds);
         $stmt->execute($bindings);
-        return $stmt->fetchAll();
+        $items = $stmt->fetchAll();
+        foreach ($items as &$item) {
+            $item['variants_summary'] = ProductService::parseVariantsSummary($item['variants_summary_raw'] ?? null);
+            unset($item['variants_summary_raw']);
+        }
+        unset($item);
+
+        return $items;
     }
 }

@@ -63,6 +63,13 @@ export default function ProductCard({
   // Compact discount badge label (Crimson/Red as in reference image or primary tint)
   const badgeLabel = product.badge || (discountPercent > 0 ? `${discountPercent}% OFF` : product.is_featured ? 'BESTSELLER' : null)
 
+  // Flipkart-style hover line: real attribute/value pairs from variants_summary,
+  // e.g. [{name:'Size', values:[{value:'S', in_stock:true}, ...]}]. Capped at 2
+  // attribute groups and 5 values per group so the overlay stays compact.
+  const variantGroups = Array.isArray(product.variants_summary) ? product.variants_summary.slice(0, 2) : []
+  const hasVariantSummary = variantGroups.length > 0
+  const totalOptionCount = variantGroups.reduce((sum, g) => sum + (g.values?.length || 0), 0)
+
   return (
     <div
       onClick={onClick}
@@ -186,15 +193,72 @@ export default function ProductCard({
         </div>
 
         {/* 4. PRODUCT TITLE */}
-        <h3
-          className="font-sans text-xs sm:text-[13px] font-medium text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors mt-1 min-h-[34px] sm:min-h-[38px]"
-          title={product.name}
-        >
-          {/* real link so search engines can discover product pages */}
-          <Link to={productPath(product)} onClick={(e) => e.stopPropagation()} className="text-inherit no-underline">
-            {product.name}
-          </Link>
-        </h3>
+        <div className="relative">
+          <h3
+            className="font-sans text-xs sm:text-[13px] font-medium text-[var(--color-text-main)] line-clamp-2 leading-snug group-hover:text-[var(--color-primary)] transition-colors mt-1 min-h-[34px] sm:min-h-[38px]"
+            title={product.name}
+          >
+            {/* real link so search engines can discover product pages */}
+            <Link to={productPath(product)} onClick={(e) => e.stopPropagation()} className="text-inherit no-underline">
+              {product.name}
+            </Link>
+          </h3>
+
+          {hasVariantSummary && (
+            <>
+              {/* Touch/mobile: static, always-visible label (no real :hover there) */}
+              <div className="sm:hidden mt-1 text-[10px] text-[var(--color-text-muted)] font-medium truncate">
+                {totalOptionCount} option{totalOptionCount === 1 ? '' : 's'}
+              </div>
+
+              {/* Desktop: absolutely-positioned overlay revealed on hover.
+                  Taken out of flow so expanding it never shifts the grid. */}
+              <div className="hidden sm:block absolute left-0 right-0 top-full z-20 pt-1 opacity-0 invisible -translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 pointer-events-none">
+                <div className="bg-white border border-[var(--color-border-subtle)] rounded-lg shadow-lg px-2 py-1.5 space-y-1">
+                  {variantGroups.map((group) => {
+                    const values = group.values || []
+                    const shown = values.slice(0, 5)
+                    const extra = values.length - shown.length
+                    const isColorGroup = shown.some((v) => v.color_hex)
+
+                    return (
+                      <div
+                        key={group.name}
+                        className="text-[10px] leading-tight text-[var(--color-text-muted)] truncate flex items-center gap-1"
+                      >
+                        <span className="font-semibold text-[var(--color-text-main)] shrink-0">{group.name}:</span>
+                        {isColorGroup ? (
+                          <span className="flex items-center gap-1 flex-wrap">
+                            {shown.map((v, i) => (
+                              <span
+                                key={i}
+                                className={`inline-block w-2.5 h-2.5 rounded-full border border-slate-300 ${
+                                  v.in_stock === false ? 'opacity-35' : ''
+                                }`}
+                                style={{ backgroundColor: v.color_hex || '#ccc' }}
+                                title={v.in_stock === false ? `${v.value} (Out of stock)` : v.value}
+                              />
+                            ))}
+                          </span>
+                        ) : (
+                          <span className="truncate">
+                            {shown.map((v, i) => (
+                              <span key={i} className={v.in_stock === false ? 'opacity-50 line-through' : ''}>
+                                {v.value}
+                                {i < shown.length - 1 ? ', ' : ''}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                        {extra > 0 && <span className="shrink-0">+{extra} more</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
