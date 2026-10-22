@@ -27,6 +27,7 @@ interface StockItem {
 interface InlineOpeningRow {
   batch_id: number | null
   batch_no: string
+  barcode: string
   quantity: string
   selling_price: string
   mrp: string
@@ -166,6 +167,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
               next[item.variant_id] = {
                 batch_id: item.batch_id ?? null,
                 batch_no: item.batch_no || 'OPENING-001',
+                barcode: item.barcode || '',
                 quantity: String(Number(item.on_hand) || 0),
                 selling_price: item.batch_selling_price ? String(Number(item.batch_selling_price)) : (item.retail_price ? String(Number(item.retail_price)) : ''),
                 mrp: item.batch_mrp ? String(Number(item.batch_mrp)) : (item.mrp ? String(Number(item.mrp)) : ''),
@@ -241,6 +243,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
   const [batchForm, setBatchForm] = useState({
     batch_id: null as number | null,
     batch_no: '',
+    barcode: '',
     quantity: '',
     selling_price: '',
     mrp: '',
@@ -262,6 +265,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       const existing = prev[variantId] || {
         batch_id: null,
         batch_no: 'OPENING-001',
+        barcode: '',
         quantity: '0',
         selling_price: '',
         mrp: '',
@@ -326,6 +330,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       const payload = {
         batch_id: row.batch_id,
         batch_no: row.batch_no || 'OPENING-001',
+        barcode: row.barcode?.trim() || null,
         quantity: Number(row.quantity) || 0,
         selling_price: Number(row.selling_price) || 0,
         mrp: Number(row.mrp) || 0,
@@ -343,7 +348,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       })
       showFeedback(`Opening stock for ${productTitle || 'item'} saved successfully (${newOnHand} units)!`, 'green')
       setOpeningItems((prev) =>
-        prev.map((it) => it.variant_id === variantId ? { ...it, on_hand: String(newOnHand) } : it)
+        prev.map((it) => it.variant_id === variantId ? { ...it, on_hand: String(newOnHand), barcode: payload.barcode ?? it.barcode } : it)
       )
       if (res.data.batch?.id) {
         setOpeningRowData((prev) => ({
@@ -398,6 +403,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
           setBatchForm({
             batch_id: active.id,
             batch_no: currentRow?.batch_no || active.batch_no || '',
+            barcode: currentRow?.barcode ?? (item.barcode || ''),
             quantity: currentRow?.quantity || String(Number(active.quantity) || 0),
             selling_price: currentRow?.selling_price !== undefined && currentRow.selling_price !== ''
               ? currentRow.selling_price
@@ -412,6 +418,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
           setBatchForm({
             batch_id: currentRow?.batch_id ?? null,
             batch_no: currentRow?.batch_no || 'OPENING-001',
+            barcode: currentRow?.barcode ?? (item.barcode || ''),
             quantity: currentRow?.quantity ?? (openingInputs[item.variant_id] ?? String(Number(item.on_hand) || 0)),
             selling_price: currentRow?.selling_price ?? (item.retail_price ? String(Number(item.retail_price)) : ''),
             mrp: currentRow?.mrp ?? (item.mrp ? String(Number(item.mrp)) : ''),
@@ -448,6 +455,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
       const res = await api.post(`/inventory/${editingItem.variant_id}/batches`, {
         batch_id: batchForm.batch_id,
         batch_no: batchForm.batch_no,
+        barcode: batchForm.barcode.trim() || null,
         quantity: qtyNum,
         selling_price: Number(batchForm.selling_price) || 0,
         mrp: Number(batchForm.mrp) || 0,
@@ -465,6 +473,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         [editingItem.variant_id]: {
           batch_id: res.data.batch?.id ?? batchForm.batch_id,
           batch_no: batchForm.batch_no,
+          barcode: batchForm.barcode,
           quantity: String(qtyNum),
           selling_price: batchForm.selling_price,
           mrp: batchForm.mrp,
@@ -505,6 +514,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         [itemToReset.variant_id]: {
           batch_id: null,
           batch_no: 'OPENING-001',
+          barcode: itemToReset.barcode || '',
           quantity: '0',
           selling_price: '',
           mrp: '',
@@ -546,6 +556,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
           [editingItem.variant_id]: {
             batch_id: null,
             batch_no: current?.batch_no || 'OPENING-001',
+            barcode: current?.barcode || editingItem.barcode || '',
             quantity: String(Number(newOnHand) || 0),
             selling_price: current?.selling_price || '',
             mrp: current?.mrp || '',
@@ -566,6 +577,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
         setBatchForm({
           batch_id: null,
           batch_no: 'OPENING-001',
+          barcode: editingItem.barcode || '',
           quantity: String(Number(newOnHand) || 0),
           selling_price: editingItem.retail_price ? String(Number(editingItem.retail_price)) : '',
           mrp: editingItem.mrp ? String(Number(editingItem.mrp)) : '',
@@ -772,6 +784,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       <th className="px-5 py-3.5 font-black">SKU / Barcode</th>
                       <th className="px-5 py-3.5 font-black text-right">Current On-Hand</th>
                       <th className="px-3 py-3.5 font-black">Batch Number</th>
+                      <th className="px-3 py-3.5 font-black">Barcode</th>
                       <th className="px-3 py-3.5 font-black">Opening Qty</th>
                       <th className="px-3 py-3.5 font-black">MRP (₹)</th>
                       <th className="px-3 py-3.5 font-black">Mfg Date</th>
@@ -786,6 +799,7 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       const row = openingRowData[item.variant_id] || {
                         batch_id: item.batch_id ?? null,
                         batch_no: item.batch_no || 'OPENING-001',
+                        barcode: item.barcode || '',
                         quantity: String(Number(item.on_hand) || 0),
                         selling_price: item.batch_selling_price ? String(Number(item.batch_selling_price)) : (item.retail_price ? String(Number(item.retail_price)) : ''),
                         mrp: item.batch_mrp ? String(Number(item.batch_mrp)) : (item.mrp ? String(Number(item.mrp)) : ''),
@@ -829,6 +843,21 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                               placeholder="e.g. B-001"
                               title="Enter Batch Number (e.g. B-001)"
                               className="w-28 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
+                            />
+                          </td>
+
+                          {/* Inline Barcode — the customer's barcode changes with new
+                              batches, so it's entered/updated right alongside the
+                              batch this opening stock belongs to. */}
+                          <td className="px-3 py-3.5">
+                            <input
+                              type="text"
+                              value={row.barcode}
+                              onChange={(e) => handleInlineRowChange(item.variant_id, 'barcode', e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, item.variant_id, item.product_name)}
+                              placeholder="Scan or type barcode"
+                              title="Barcode for this batch — updates the item's resolvable scan code"
+                              className="w-32 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-2.5 py-1.5 text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                             />
                           </td>
 
@@ -1443,6 +1472,10 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                       setBatchForm({
                         batch_id: null,
                         batch_no: 'OPENING-' + (batchList.length + 1).toString().padStart(3, '0'),
+                        // Deliberately blank, not the old batch's barcode — a
+                        // new batch typically arrives with its own new
+                        // barcode (see the field's own helper text).
+                        barcode: '',
                         quantity: '',
                         selling_price: editingItem.retail_price ? String(Number(editingItem.retail_price)) : '',
                         mrp: editingItem.mrp ? String(Number(editingItem.mrp)) : '',
@@ -1505,6 +1538,10 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                                     setBatchForm({
                                       batch_id: b.id,
                                       batch_no: b.batch_no || '',
+                                      // Barcode is variant-level, not per-batch
+                                      // (InventoryBatch has no barcode column) —
+                                      // always the variant's current barcode.
+                                      barcode: editingItem.barcode || '',
                                       quantity: String(Number(b.quantity) || 0),
                                       selling_price: b.selling_price ? String(Number(b.selling_price)) : '',
                                       mrp: b.mrp ? String(Number(b.mrp)) : '',
@@ -1563,6 +1600,18 @@ export function StockAdjustmentsPage({ defaultTab }: { defaultTab?: 'OPENING_STO
                     onChange={(e) => handleBatchFormChange('batch_no', e.target.value)}
                     placeholder="e.g. BATCH-001"
                     className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
+                  />
+                </div>
+
+                {/* Barcode — changes with new batches, saved/updated alongside this one */}
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Barcode</label>
+                  <input
+                    type="text"
+                    value={batchForm.barcode}
+                    onChange={(e) => handleBatchFormChange('barcode', e.target.value)}
+                    placeholder="Scan or type barcode"
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/30 px-3.5 py-2 text-xs font-mono font-semibold text-slate-950 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-strong)]"
                   />
                 </div>
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use PDO;
+use PDOException;
 use RuntimeException;
 
 final class BatchService
@@ -383,6 +384,10 @@ final class BatchService
             throw new RuntimeException('Expiry date must not be earlier than manufacturing date');
         }
 
+        if (array_key_exists('barcode', $data)) {
+            $this->updateVariantBarcode($variantId, $data['barcode'] !== null ? (string) $data['barcode'] : null);
+        }
+
         $invService = new InventoryService($this->pdo);
 
         if ($batchId !== null && $batchId > 0) {
@@ -475,6 +480,41 @@ final class BatchService
             'batch' => $batchRow,
             'on_hand' => $stock !== null ? (string) $stock['on_hand'] : '0.000',
         ];
+    }
+
+    /**
+     * Barcode lives on product_variants (not inventory_batches — batches
+     * have no barcode column) — a shop's customer-facing barcode changes
+     * with new stock batches, so entering it in the opening-stock form
+     * updates the variant's current resolvable barcode, same one POS scan
+     * lookup (VariantService::lookup()) matches against. Applied before
+     * the batch itself is touched so a duplicate-barcode conflict never
+     * leaves a half-saved batch behind.
+     */
+    private function updateVariantBarcode(int $variantId, ?string $barcode): void
+    {
+        $barcode = $barcode !== null ? trim($barcode) : null;
+        if ($barcode === '') {
+            $barcode = null;
+        }
+
+        try {
+            $this->pdo->prepare('UPDATE product_variants SET barcode = :barcode WHERE id = :id')
+                ->execute(['barcode' => $barcode, 'id' => $variantId]);
+        } catch (PDOException $e) {
+            if ((int) $e->getCode() === 23000) {
+                $owner = $this->pdo->prepare(
+                    'SELECT p.name AS product_name, v.sku
+                     FROM product_variants v JOIN products p ON p.id = v.product_id
+                     WHERE v.barcode = :barcode AND v.id != :id LIMIT 1'
+                );
+                $owner->execute(['barcode' => $barcode, 'id' => $variantId]);
+                $existing = $owner->fetch();
+                $ownerLabel = $existing ? "{$existing['product_name']} ({$existing['sku']})" : 'another product';
+                throw new RuntimeException("Barcode '{$barcode}' is already assigned to {$ownerLabel}.");
+            }
+            throw $e;
+        }
     }
 
     /**
