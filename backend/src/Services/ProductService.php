@@ -236,7 +236,7 @@ final class ProductService
             if ($section === 'best_sellers' || $section === 'bestsellers') {
                 $where[] = 'p.is_best_seller_override = 1';
             } elseif ($section === 'new_arrivals' || $section === 'newarrivals') {
-                $where[] = 'p.is_new_arrival_override = 1';
+                $where[] = '(COALESCE(p.is_new_arrival_override, 0) = 1 OR p.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY))';
             } elseif ($section === 'featured') {
                 $where[] = 'p.is_featured = 1';
             } elseif ($section === 'trending') {
