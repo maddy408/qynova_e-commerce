@@ -163,8 +163,54 @@ h1, h2, h3, .font-editorial {
 
 /* Accessible visible focus states */
 :focus-visible {
-  outline: 2px solid #6C4EFF;
+  outline: 2px solid #0284C7;
   outline-offset: 2px;
+}
+form:focus-visible, div:focus-visible, form:focus, div:focus {
+  outline: none !important;
+}
+
+/* Search pill inputs — the global :focus-visible rule above draws a
+   sharp, un-rounded rectangle around the plain <input> element itself,
+   which pokes out past its rounded pill container (Tailwind v4's utility
+   classes live inside @layer, so an unlayered rule like the one above
+   always wins over a component's own focus:outline-none utility,
+   regardless of specificity). These two classes move the visible focus
+   ring onto the pill shape (via box-shadow, which follows border-radius)
+   instead of the browser's own square outline.
+   - .search-input: the inner <input> sits inside a separate rounded
+     wrapper (.search-pill) that owns the border/background/ring.
+   - .search-input-standalone: the <input> IS the rounded pill itself
+     (no wrapper), so it gets its own ring directly. */
+.search-input,
+.search-input:hover,
+.search-input:focus,
+.search-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.search-pill:focus-within {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-tint) !important;
+  outline: none !important;
+}
+.search-input-standalone,
+.search-input-standalone:hover {
+  outline: none !important;
+}
+.search-input-standalone:focus,
+.search-input-standalone:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--color-primary-tint) !important;
+}
+
+/* Button-like elements should never show the blue/grey text-selection
+   highlight on click-drag (e.g. the sticky "View Cart" bar). */
+button, [type="button"], [type="submit"], [type="reset"], [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Responsive Image and SVG Defaults */

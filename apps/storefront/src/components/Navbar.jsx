@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
   api,
@@ -51,6 +52,7 @@ import {
   FiSearch,
   FiMenu,
   FiChevronDown,
+  FiChevronRight,
   FiPercent,
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa6'
@@ -127,7 +129,42 @@ export default function Navbar({
   const [subcategoryList, setSubcategoryList] = useState([])
   const [selectedCategoryId, setSelectedCategoryId] = useState(null)
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false)
+  const [categoryModalFilter, setCategoryModalFilter] = useState('')
   const [expandedMobileCatId, setExpandedMobileCatId] = useState(null)
+
+  // Keep categoryList synchronized with incoming categories prop
+  useEffect(() => {
+    if (Array.isArray(categories) && categories.length > 0) {
+      setCategoryList(categories)
+      setSelectedCategoryId((prev) => prev || categories[0]?.id)
+    }
+  }, [categories])
+
+  // Prevent background page scrolling when Category Modal is open
+  useEffect(() => {
+    if (isMegaMenuOpen) {
+      const prevOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      if (!categoryList || categoryList.length === 0) {
+        fetchCategories().then((cats) => {
+          if (cats && cats.length > 0) {
+            setCategoryList(cats)
+            setSelectedCategoryId((prev) => prev || cats[0]?.id)
+          }
+        })
+      }
+      if (!subcategoryList || subcategoryList.length === 0) {
+        fetchSubcategories().then((subs) => {
+          if (subs && subs.length > 0) setSubcategoryList(subs)
+        })
+      }
+      return () => {
+        document.body.style.overflow = prevOverflow
+      }
+    } else {
+      setCategoryModalFilter('')
+    }
+  }, [isMegaMenuOpen])
 
   // Refs
   const accountDropdownRef = useRef(null)
@@ -265,30 +302,55 @@ export default function Navbar({
     })
   }, [localSearch, allProductsCache, categoryList, subcategoryList])
 
+  // Filtered categories based on search filter in modal
+  const filteredCategoryList = useMemo(() => {
+    const q = categoryModalFilter.trim().toLowerCase()
+    if (!q) return categoryList
+    return categoryList.filter((cat) => {
+      const nameMatch = (cat.name || '').toLowerCase().includes(q)
+      const descMatch = (cat.description || '').toLowerCase().includes(q)
+      const subMatch = subcategoryList.some((s) => {
+        const catIds = Array.isArray(s.category_ids)
+          ? s.category_ids.map(Number)
+          : s.category_id ? [Number(s.category_id)] : []
+        return catIds.includes(Number(cat.id)) && (s.name || '').toLowerCase().includes(q)
+      })
+      return nameMatch || descMatch || subMatch
+    })
+  }, [categoryList, subcategoryList, categoryModalFilter])
+
   // Active Category Object in Mega Menu
   const activeCategoryObj = useMemo(() => {
-    if (!categoryList || categoryList.length === 0) return null
-    if (!selectedCategoryId) return categoryList[0]
-    return categoryList.find((c) => String(c.id) === String(selectedCategoryId)) || categoryList[0] || null
-  }, [selectedCategoryId, categoryList])
+    const list = filteredCategoryList.length > 0 ? filteredCategoryList : categoryList
+    if (!list || list.length === 0) return null
+    if (!selectedCategoryId) return list[0]
+    return (
+      list.find((c) => String(c.id) === String(selectedCategoryId)) ||
+      list[0] ||
+      null
+    )
+  }, [selectedCategoryId, filteredCategoryList, categoryList])
 
   // Subcategories belonging to the active category
   const selectedCategorySubcategories = useMemo(() => {
     if (!activeCategoryObj) return []
-    return subcategoryList.filter((s) => {
+    const q = categoryModalFilter.trim().toLowerCase()
+    const allSubs = subcategoryList.filter((s) => {
       const catIds = Array.isArray(s.category_ids)
         ? s.category_ids.map(Number)
         : s.category_id ? [Number(s.category_id)] : []
       return catIds.includes(Number(activeCategoryObj.id))
     })
-  }, [activeCategoryObj, subcategoryList])
+    if (!q) return allSubs
+    return allSubs.filter((s) => (s.name || '').toLowerCase().includes(q))
+  }, [activeCategoryObj, subcategoryList, categoryModalFilter])
 
   // Real products belonging to the active category (used when subcategories are empty)
   const activeCategoryProducts = useMemo(() => {
     if (!activeCategoryObj || allProductsCache.length === 0) return []
     return allProductsCache
       .filter((p) => Number(p.category_id) === Number(activeCategoryObj.id))
-      .slice(0, 8)
+      .slice(0, 12)
   }, [activeCategoryObj, allProductsCache])
 
   // Sync cart count & subtotal via DB API & window event
@@ -830,7 +892,7 @@ export default function Navbar({
           {/* CENTER: Wide Grocery Search Bar (Desktop / Tablet) */}
           <div className="flex-1 max-w-2xl mx-2 lg:mx-6 hidden md:block" ref={searchContainerRef}>
             <form onSubmit={handleSearchSubmit} className="relative">
-              <div className="relative flex items-center h-11 rounded-full border border-slate-200 focus-within:border-[var(--color-primary)] bg-slate-50 focus-within:bg-white px-4 transition-all shadow-2xs">
+              <div className="search-pill relative flex items-center h-11 rounded-full border border-slate-200 bg-slate-50 focus-within:bg-white px-4 transition-all shadow-2xs">
                 <FiSearch className="w-4 h-4 text-[var(--color-primary)] shrink-0 mr-2.5" />
 
                 <input
@@ -842,7 +904,7 @@ export default function Navbar({
                     if (onSearchChange) onSearchChange(e.target.value)
                   }}
                   placeholder="Search for products, groceries, daily essentials..."
-                  className="w-full h-full bg-transparent border-none pl-1 pr-24 text-xs font-sans font-medium text-[var(--color-text-main)] placeholder-slate-400 focus:outline-none"
+                  className="search-input w-full h-full pl-1 pr-24 text-xs font-sans font-medium text-[var(--color-text-main)] placeholder-slate-400"
                 />
 
                 {localSearch && (
@@ -1168,7 +1230,7 @@ export default function Navbar({
                 if (onSearchChange) onSearchChange(e.target.value)
               }}
               placeholder="Search for products, groceries, daily essentials..."
-              className="w-full h-10 pl-10 pr-9 rounded-full bg-slate-50 border border-slate-200 text-xs text-[var(--color-text-main)] placeholder-slate-400 focus:outline-none focus:border-[var(--color-primary)] focus:bg-white focus:ring-1 focus:ring-[var(--color-primary)]/20 transition-all"
+              className="search-input-standalone w-full h-10 pl-10 pr-9 rounded-full bg-slate-50 border border-slate-200 text-xs text-[var(--color-text-main)] placeholder-slate-400 focus:border-[var(--color-primary)] focus:bg-white transition-all"
             />
             <button
               type="submit"
@@ -1301,64 +1363,158 @@ export default function Navbar({
           </div>
         </nav>
 
-        {/* JIOMART-INSPIRED CATEGORY MEGA MENU DROPDOWN PANEL */}
-        {isMegaMenuOpen && (
-          <>
-            {/* Backdrop Dimmer overlay */}
+        {/* FULL-SCREEN CATEGORY MODAL OVERLAY (Portal directly to document.body) */}
+        {isMegaMenuOpen && typeof document !== 'undefined' && createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-0 sm:p-4 md:p-6 transition-all duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shop by Category Modal"
+          >
+            {/* Clickable Backdrop to dismiss */}
             <div
-              className="fixed inset-0 bg-slate-900/35 backdrop-blur-[1px] z-40 transition-opacity"
+              className="fixed inset-0"
               onClick={() => setIsMegaMenuOpen(false)}
               aria-hidden="true"
             />
 
-            {/* Mega Menu Dropdown */}
+            {/* Grand Modal Card: Full viewport bounded, zero page scrolling */}
             <div
               ref={megaMenuRef}
-              className="absolute top-full left-0 right-0 z-50 px-2 sm:px-6 lg:px-8 xl:px-12 pt-2 pb-4"
-              role="region"
-              aria-label="Category mega menu"
+              className="relative z-10 w-full h-full sm:h-[92vh] sm:max-h-[840px] max-w-7xl bg-white sm:rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
             >
-              <div className="w-full mx-auto bg-white rounded-3xl shadow-2xl border border-[var(--color-border-subtle)] overflow-hidden flex flex-col md:flex-row min-h-[460px] max-h-[580px] animate-in fade-in slide-in-from-top-2 duration-150">
-                {/* LEFT SIDE: Vertical list of categories (JioMart vertical tabs) */}
-                <div className="w-full md:w-36 lg:w-44 bg-[var(--color-bg-main)] border-r border-[var(--color-border-subtle)] flex flex-col shrink-0">
-                  <div className="px-3 py-2.5 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-[var(--color-bg-alt)]/60">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--color-brand)]">
-                      Top Categories
-                    </span>
+              {/* TOP HEADER BAR OF MODAL */}
+              <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0">
+                {/* Left: Title + Category Count */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-lg font-bold shadow-2xs">
+                    <FiGrid className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                        Shop by Category
+                      </h2>
+                      <span className="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-brand)]/20">
+                        {categoryList.length} Categories
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 hidden sm:block">
+                      Browse all departments, subcategories, and curated grocery essentials
+                    </p>
+                  </div>
+                </div>
+
+                {/* Center: Search Filter */}
+                <div className="hidden md:flex items-center flex-1 max-w-md mx-4">
+                  <div className="relative w-full">
+                    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={categoryModalFilter}
+                      onChange={(e) => setCategoryModalFilter(e.target.value)}
+                      placeholder="Search categories or subcategories..."
+                      className="search-input-standalone w-full pl-9 pr-8 py-2 text-xs bg-slate-50 hover:bg-slate-100/80 focus:bg-white rounded-full border border-slate-200 focus:border-[var(--color-brand)] transition-all placeholder:text-slate-400"
+                    />
+                    {categoryModalFilter && (
+                      <button
+                        type="button"
+                        onClick={() => setCategoryModalFilter('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title="Clear filter"
+                      >
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Browse All Products + Close Button */}
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  <Link
+                    to={ROUTES.PRODUCTS}
+                    onClick={() => setIsMegaMenuOpen(false)}
+                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <span>All Products</span>
+                    <span>→</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsMegaMenuOpen(false)}
+                    className="p-2 sm:px-3 sm:py-1.5 rounded-full hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 shadow-2xs"
+                    title="Close categories (Esc)"
+                    aria-label="Close categories modal"
+                  >
+                    <FiX className="w-5 h-5 text-slate-700" />
+                    <span className="hidden sm:inline text-xs font-bold text-slate-700">Close</span>
+                    <kbd className="hidden lg:inline text-[10px] bg-slate-100 text-slate-400 px-1 py-0.5 rounded border border-slate-200">
+                      ESC
+                    </kbd>
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Search Filter (Below header on small screens) */}
+              <div className="md:hidden px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                <div className="relative w-full">
+                  <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={categoryModalFilter}
+                    onChange={(e) => setCategoryModalFilter(e.target.value)}
+                    placeholder="Search categories or subcategories..."
+                    className="search-input-standalone w-full pl-9 pr-8 py-2 text-xs bg-white rounded-full border border-slate-200 placeholder:text-slate-400"
+                  />
+                  {categoryModalFilter && (
                     <button
                       type="button"
-                      onClick={() => setIsMegaMenuOpen(false)}
-                      className="md:hidden p-1 rounded-full hover:bg-gray-200 text-gray-500 cursor-pointer"
-                      title="Close"
+                      onClick={() => setCategoryModalFilter('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
-                      <FiX className="w-4 h-4" />
+                      <FiX className="w-3.5 h-3.5" />
                     </button>
+                  )}
+                </div>
+              </div>
+
+              {/* MAIN CONTENT AREA: TWO-COLUMN FULL SCREEN VIEW */}
+              <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden bg-white">
+                {/* LEFT SIDEBAR: ALL CATEGORIES */}
+                <div className="w-full md:w-60 lg:w-72 bg-slate-50/70 border-r border-slate-200 flex flex-col shrink-0 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-200/80 bg-slate-100/50 flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-slate-500">
+                    <span>Departments ({filteredCategoryList.length})</span>
+                    <Link
+                      to={ROUTES.PRODUCTS}
+                      onClick={() => setIsMegaMenuOpen(false)}
+                      className="text-[10px] font-black text-[var(--color-brand)] hover:underline capitalize"
+                    >
+                      View All →
+                    </Link>
                   </div>
 
-                  {/* Vertical scrollable list of categories (Top 5) */}
-                  <div className="overflow-y-auto flex-1 divide-y divide-[var(--color-border-subtle)]/40 py-1">
-                    {categoryList.slice(0, 5).map((cat) => {
-                      const isSelected = String(cat.id) === String(selectedCategoryId)
+                  {/* Scrollable list of ALL categories */}
+                  <div className="overflow-y-auto flex-1 p-2 space-y-1">
+                    {filteredCategoryList.map((cat) => {
+                      const isSelected = String(cat.id) === String(activeCategoryObj?.id)
                       return (
                         <button
                           key={cat.id}
                           type="button"
                           onClick={() => setSelectedCategoryId(cat.id)}
                           onMouseEnter={() => setSelectedCategoryId(cat.id)}
-                          className={`w-full px-2 py-3.5 flex flex-col items-center justify-center text-center cursor-pointer transition-all relative group select-none ${
+                          className={`w-full px-3 py-2.5 rounded-2xl flex items-center gap-3 text-left cursor-pointer transition-all select-none relative group ${
                             isSelected
-                              ? 'bg-white text-[var(--color-brand)] font-black shadow-xs'
-                              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-main)] hover:bg-white/60 font-semibold'
+                              ? 'bg-white text-[var(--color-brand)] shadow-sm border border-slate-200 font-bold border-l-4 border-l-[var(--color-brand)]'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-white/70 font-semibold'
                           }`}
                         >
-                          {isSelected && (
-                            <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-[var(--color-brand)] rounded-r-full" />
-                          )}
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl overflow-hidden mb-1.5 transition-transform group-hover:scale-105 ${
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden text-base transition-transform group-hover:scale-105 ${
                               isSelected
-                                ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)]'
-                                : 'bg-white text-gray-600 border border-[var(--color-border-subtle)]'
+                                ? 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] ring-2 ring-[var(--color-brand)]/20'
+                                : 'bg-white text-slate-500 border border-slate-200'
                             }`}
                           >
                             {cat.image_path ? (
@@ -1371,91 +1527,82 @@ export default function Navbar({
                               <span>{getCategoryIcon(cat)}</span>
                             )}
                           </div>
-                          <span className="text-[11px] leading-tight px-1 line-clamp-2 max-w-[120px]">
-                            {cat.name}
-                          </span>
+
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs font-bold block truncate leading-snug">
+                              {cat.name}
+                            </span>
+                            {cat.product_count !== undefined && Number(cat.product_count) > 0 && (
+                              <span className="text-[10px] text-slate-400 block">
+                                {cat.product_count} items
+                              </span>
+                            )}
+                          </div>
+
+                          {isSelected && (
+                            <FiChevronRight className="w-4 h-4 text-[var(--color-brand)] shrink-0" />
+                          )}
                         </button>
                       )
                     })}
                   </div>
-
-                  <div className="p-2 border-t border-[var(--color-border-subtle)] bg-white text-center">
-                    <Link
-                      to={ROUTES.PRODUCTS}
-                      onClick={() => setIsMegaMenuOpen(false)}
-                      className="text-[10px] font-black text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
-                    >
-                      All Catalog →
-                    </Link>
-                  </div>
                 </div>
 
-                {/* RIGHT SIDE: Subcategories belonging to the selected category (JioMart Card Grid) */}
+                {/* RIGHT SIDE: SUBCATEGORIES GRID / PRODUCTS SHOWCASE */}
                 <div className="flex-1 min-w-0 bg-white flex flex-col overflow-hidden">
                   {activeCategoryObj ? (
                     <>
-                      {/* Category Header with explicit Close button */}
-                      <div className="p-4 sm:p-5 border-b border-[var(--color-border-subtle)] bg-gradient-to-r from-white to-[var(--color-bg-main)] flex items-center justify-between gap-3">
+                      {/* Active Category Header Bar */}
+                      <div className="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50/60 to-white flex items-center justify-between gap-3 shrink-0">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-base sm:text-lg font-black text-[var(--color-text-main)] truncate">
+                          <div className="flex items-center gap-2.5">
+                            <h3 className="text-base sm:text-lg font-black text-slate-900 truncate">
                               {activeCategoryObj.name}
                             </h3>
                             {activeCategoryObj.product_count !== undefined && (
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 shrink-0">
-                                {activeCategoryObj.product_count} Items
+                              <span className="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-brand)]/20 shrink-0">
+                                {activeCategoryObj.product_count} Products
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-0.5 truncate">
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">
                             {activeCategoryObj.description ||
                               `Explore subcategories and collections in ${activeCategoryObj.name}`}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Link
-                            to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
-                            onClick={() => setIsMegaMenuOpen(false)}
-                            className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
-                          >
-                            <span>View All</span>
-                            <span>→</span>
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => setIsMegaMenuOpen(false)}
-                            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer border border-gray-200"
-                            title="Close categories drawer"
-                            aria-label="Close categories drawer"
-                          >
-                            <FiX className="w-5 h-5" />
-                          </button>
-                        </div>
+                        <Link
+                          to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
+                          onClick={() => setIsMegaMenuOpen(false)}
+                          className="shrink-0 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-black transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                        >
+                          <span>Browse All</span>
+                          <span>→</span>
+                        </Link>
                       </div>
 
-                      {/* Subcategories Grid or Direct Browse */}
+                      {/* Scrollable Subcategories Content */}
                       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                         {selectedCategorySubcategories.length > 0 ? (
                           <div>
-                            <div className="flex items-center justify-between mb-3.5">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)]">
-                                Top Subcategories ({Math.min(5, selectedCategorySubcategories.length)})
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-xs font-black uppercase tracking-wider text-[var(--color-brand)]">
+                                All Subcategories ({selectedCategorySubcategories.length})
                               </span>
-                              <span className="text-xs text-gray-400">
-                                Click a subcategory to browse targeted items
+                              <span className="text-xs text-slate-400">
+                                Click any subcategory to browse targeted items
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                              {selectedCategorySubcategories.slice(0, 5).map((subcat) => (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                              {selectedCategorySubcategories.map((subcat) => (
                                 <Link
                                   key={subcat.id}
                                   to={ROUTES.PRODUCTS_BY_CATEGORY_SUBCATEGORY(activeCategoryObj, subcat)}
                                   onClick={() => setIsMegaMenuOpen(false)}
-                                  className="group p-3 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                                  className="group p-3.5 rounded-2xl border border-slate-200 hover:border-[var(--color-brand)] bg-white hover:bg-slate-50/60 transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
-                                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-2 group-hover:scale-105 transition-transform border border-gray-100">
+                                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden mb-2.5 group-hover:scale-105 transition-transform border border-slate-100">
                                     {subcat.image_path ? (
                                       <img
                                         src={resolveImageUrl(subcat.image_path)}
@@ -1464,15 +1611,17 @@ export default function Navbar({
                                       />
                                     ) : (
                                       <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
-                                        <span className="text-2xl font-black">{getCategoryIcon(activeCategoryObj)}</span>
+                                        <span className="text-2xl font-black">
+                                          {getCategoryIcon(activeCategoryObj)}
+                                        </span>
                                       </div>
                                     )}
                                   </div>
-                                  <h4 className="text-xs font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand)] line-clamp-2">
+                                  <h4 className="text-xs font-bold text-slate-800 group-hover:text-[var(--color-brand)] line-clamp-2 leading-tight">
                                     {subcat.name}
                                   </h4>
                                   {subcat.product_count !== undefined && (
-                                    <span className="text-[10px] text-gray-400 mt-0.5">
+                                    <span className="text-[10px] text-slate-400 mt-1">
                                       {subcat.product_count} products
                                     </span>
                                   )}
@@ -1482,28 +1631,28 @@ export default function Navbar({
                           </div>
                         ) : activeCategoryProducts.length > 0 ? (
                           <div>
-                            <div className="flex items-center justify-between mb-3.5">
-                              <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)]">
-                                Popular in {activeCategoryObj.name}
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-xs font-black uppercase tracking-wider text-[var(--color-brand)]">
+                                Popular Items in {activeCategoryObj.name}
                               </span>
                               <Link
                                 to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
                                 onClick={() => setIsMegaMenuOpen(false)}
-                                className="text-xs font-extrabold text-[var(--color-brand)] hover:text-[var(--color-brand)] hover:underline"
+                                className="text-xs font-extrabold text-[var(--color-brand)] hover:underline"
                               >
-                                Browse All Products →
+                                View All Products →
                               </Link>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                              {activeCategoryProducts.slice(0, 5).map((prod) => (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                              {activeCategoryProducts.map((prod) => (
                                 <Link
                                   key={prod.id}
                                   to={ROUTES.PRODUCT_DETAIL(prod)}
                                   onClick={() => setIsMegaMenuOpen(false)}
-                                  className="group p-2.5 rounded-2xl border border-[var(--color-border-subtle)] hover:border-[var(--color-brand)] bg-white hover:bg-[var(--color-bg-main)] transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                                  className="group p-3 rounded-2xl border border-slate-200 hover:border-[var(--color-brand)] bg-white hover:bg-slate-50/60 transition-all flex flex-col items-center text-center shadow-2xs hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                                 >
-                                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden mb-2 group-hover:scale-105 transition-transform border border-gray-100">
+                                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-50 flex items-center justify-center overflow-hidden mb-2 group-hover:scale-105 transition-transform border border-slate-100">
                                     {prod.primary_image ? (
                                       <img
                                         src={resolveImageUrl(prod.primary_image)}
@@ -1514,10 +1663,10 @@ export default function Navbar({
                                       <span className="text-2xl">{getCategoryIcon(activeCategoryObj)}</span>
                                     )}
                                   </div>
-                                  <h4 className="text-[11px] font-bold text-[var(--color-text-main)] group-hover:text-[var(--color-brand)] line-clamp-2">
+                                  <h4 className="text-xs font-bold text-slate-800 group-hover:text-[var(--color-brand)] line-clamp-2 leading-tight">
                                     {prod.name}
                                   </h4>
-                                  <span className="text-xs font-black text-[var(--color-brand)] mt-1">
+                                  <span className="text-xs font-black text-[var(--color-brand)] mt-1.5">
                                     ₹{prod.min_price || prod.mrp || '—'}
                                   </span>
                                 </Link>
@@ -1525,20 +1674,20 @@ export default function Navbar({
                             </div>
                           </div>
                         ) : (
-                          <div className="h-full flex flex-col items-center justify-center py-10 px-4 text-center">
+                          <div className="h-full flex flex-col items-center justify-center py-12 px-4 text-center">
                             <div className="w-16 h-16 rounded-2xl bg-[var(--color-primary-tint)] text-[var(--color-brand)] flex items-center justify-center text-3xl font-black mb-3 shadow-xs">
                               {getCategoryIcon(activeCategoryObj)}
                             </div>
-                            <h4 className="text-base font-black text-[var(--color-text-main)]">
+                            <h4 className="text-base font-black text-slate-800">
                               Explore {activeCategoryObj.name}
                             </h4>
-                            <p className="text-xs text-gray-500 max-w-md mt-1 mb-5">
-                              Browse all available products in this category from our store catalog.
+                            <p className="text-xs text-slate-500 max-w-md mt-1 mb-5">
+                              Browse all available products in this department from our full supermarket catalog.
                             </p>
                             <Link
                               to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}
                               onClick={() => setIsMegaMenuOpen(false)}
-                              className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand)] text-white text-xs font-black shadow-xs transition-all flex items-center gap-2"
+                              className="px-6 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-black shadow-xs transition-all flex items-center gap-2 cursor-pointer"
                             >
                               <span>Browse All {activeCategoryObj.name} Products</span>
                               <span>→</span>
@@ -1548,14 +1697,15 @@ export default function Navbar({
                       </div>
                     </>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-gray-400 text-xs">
+                    <div className="h-full flex items-center justify-center text-slate-400 text-xs">
                       Select a category to view subcategories
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          </>
+          </div>,
+          document.body
         )}
       </header>
 
