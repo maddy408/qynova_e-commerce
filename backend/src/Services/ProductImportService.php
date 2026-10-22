@@ -506,14 +506,20 @@ final class ProductImportService
         $gstRateId = $this->resolveGstRate(trim($row['Tax'] ?? ''), trim($row['Tax Type'] ?? 'EXCLUSIVE'), $autoCreate);
         [$returnable, $returnWindowDays] = $this->resolveReturnPolicy($row);
 
+        $mfgDate = $this->parseDate($row['Manufacturing Date'] ?? '');
+        $expiryDate = $this->parseDate($row['Expiry Date'] ?? '');
+        $expiryApplicable = ($expiryDate !== null && $expiryDate >= date('Y-m-d') && ($mfgDate === null || $expiryDate > $mfgDate)) ? 1 : 0;
+
         $this->pdo->prepare(
             'INSERT INTO products (
                 name, slug, product_code, brand_id, unit_id, hsn_code_id, gst_rate_id,
                 description, short_description, material, manufacturer, manufacturing_date, expiry_date,
+                expiry_applicable, is_active, is_pos_enabled, is_ecommerce_enabled,
                 returnable, return_window_days
             ) VALUES (
                 :name, :slug, :product_code, :brand_id, :unit_id, :hsn_code_id, :gst_rate_id,
                 :description, :short_description, :material, :manufacturer, :manufacturing_date, :expiry_date,
+                :expiry_applicable, 1, 1, 1,
                 :returnable, :return_window_days
             )'
         )->execute([
@@ -528,8 +534,9 @@ final class ProductImportService
             'short_description' => $row['Short Description'] ?? null ?: null,
             'material' => $row['Material'] ?? null ?: null,
             'manufacturer' => $row['Manufacturer'] ?? null ?: null,
-            'manufacturing_date' => $this->parseDate($row['Manufacturing Date'] ?? ''),
-            'expiry_date' => $this->parseDate($row['Expiry Date'] ?? ''),
+            'manufacturing_date' => $mfgDate,
+            'expiry_date' => $expiryDate,
+            'expiry_applicable' => $expiryApplicable,
             'returnable' => $returnable,
             'return_window_days' => $returnWindowDays,
         ]);

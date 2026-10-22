@@ -22,7 +22,7 @@ final class ProductService
         $page = max(1, (int) ($filters['page'] ?? 1));
         $limit = min(100, max(1, (int) ($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
+        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (COALESCE(p.expiry_applicable, 0) = 0 OR v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
 
         [$where, $params] = $this->buildFilterConditions($filters);
         $whereSql = implode(' AND ', $where);
@@ -212,8 +212,8 @@ final class ProductService
         } elseif (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') {
             $where[] = 'p.is_ecommerce_enabled = 1';
             $where[] = 'p.is_active = 1';
-            $where[] = '(p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())';
-            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE()))";
+            $where[] = '(COALESCE(p.expiry_applicable, 0) = 0 OR p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())';
+            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE' AND (COALESCE(p.expiry_applicable, 0) = 0 OR v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE()))";
         }
 
         if (($filters['is_featured'] ?? null) !== null) {
@@ -265,7 +265,7 @@ final class ProductService
             $where[] = 'p.is_deal = 1';
         }
 
-        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
+        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (COALESCE(p.expiry_applicable, 0) = 0 OR v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
 
         if ($excludeKey !== 'price') {
             if (!empty($filters['min_price'])) {
