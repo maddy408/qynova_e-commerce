@@ -151,6 +151,8 @@ export interface VariantAttributeValue {
 export interface VariantAttribute {
   id: number
   name: string
+  input_type: 'color' | 'select' | 'number_with_unit' | 'text'
+  unit_options: string | null
   values: VariantAttributeValue[]
 }
 

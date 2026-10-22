@@ -31,12 +31,14 @@ final class VariantController
 
         $body = Request::json();
         $name = trim((string) ($body['name'] ?? ''));
+        $inputType = trim((string) ($body['input_type'] ?? 'select'));
+        $unitOptions = isset($body['unit_options']) ? trim((string) $body['unit_options']) : null;
 
         if ($name === '') {
             Response::error('name is required', 422);
         }
 
-        $id = (new VariantService($this->pdo))->createAttribute($name);
+        $id = (new VariantService($this->pdo))->createAttribute($name, $inputType, $unitOptions !== '' ? $unitOptions : null);
         Response::json(['id' => $id], 201);
     }
 
@@ -52,8 +54,12 @@ final class VariantController
             Response::error('value is required', 422);
         }
 
-        $id = (new VariantService($this->pdo))->createAttributeValue((int) $attributeId, $value, $body['color_hex'] ?? null);
-        Response::json(['id' => $id], 201);
+        try {
+            $id = (new VariantService($this->pdo))->createAttributeValue((int) $attributeId, $value, $body['color_hex'] ?? null);
+            Response::json(['id' => $id], 201);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
     }
 
     public function store(string $productId): void

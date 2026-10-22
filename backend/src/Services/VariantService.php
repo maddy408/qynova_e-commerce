@@ -173,15 +173,38 @@ final class VariantService
         return $attributes;
     }
 
-    public function createAttribute(string $name): int
+    public function createAttribute(string $name, string $inputType = 'select', ?string $unitOptions = null): int
     {
-        $this->pdo->prepare('INSERT INTO variant_attributes (name) VALUES (:name)')->execute(['name' => $name]);
+        if (!in_array($inputType, ['color', 'select', 'number_with_unit', 'text'], true)) {
+            $inputType = 'select';
+        }
+
+        $this->pdo->prepare(
+            'INSERT INTO variant_attributes (name, input_type, unit_options) VALUES (:name, :input_type, :unit_options)'
+        )->execute(['name' => $name, 'input_type' => $inputType, 'unit_options' => $unitOptions]);
 
         return (int) $this->pdo->lastInsertId();
     }
 
+    /**
+     * $value is the final display string stored against the variant
+     * (e.g. "500 g" for a number_with_unit attribute) — the admin UI is
+     * responsible for combining an entered amount + chosen unit before
+     * calling this, since variant_attribute_values only ever stores one
+     * plain string per option, same as every other attribute type.
+     */
     public function createAttributeValue(int $attributeId, string $value, ?string $colorHex = null): int
     {
+        $existing = $this->pdo->prepare(
+            'SELECT id FROM variant_attribute_values WHERE attribute_id = :attribute_id AND value = :value'
+        );
+        $existing->execute(['attribute_id' => $attributeId, 'value' => $value]);
+        $existingId = $existing->fetchColumn();
+
+        if ($existingId !== false) {
+            throw new RuntimeException("'{$value}' already exists for this attribute");
+        }
+
         $this->pdo->prepare(
             'INSERT INTO variant_attribute_values (attribute_id, value, color_hex) VALUES (:attribute_id, :value, :color_hex)'
         )->execute(['attribute_id' => $attributeId, 'value' => $value, 'color_hex' => $colorHex]);

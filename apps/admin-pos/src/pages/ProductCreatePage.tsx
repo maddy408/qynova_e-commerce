@@ -144,6 +144,10 @@ export function ProductCreatePage() {
   const [activeAttributeIds, setActiveAttributeIds] = useState<number[]>([])
   const [selectedValueIds, setSelectedValueIds] = useState<number[]>([])
   const [variantRows, setVariantRows] = useState<VariantRow[]>([])
+  const [newOptionDrafts, setNewOptionDrafts] = useState<Record<number, { text: string; color: string; amount: string; unit: string }>>({})
+  const [addingOptionForAttr, setAddingOptionForAttr] = useState<number | null>(null)
+  const [addOptionError, setAddOptionError] = useState<{ attrId: number; message: string } | null>(null)
+  const [isAttrDropdownOpen, setIsAttrDropdownOpen] = useState(false)
 
   // Submit & Progress
   const [submitting, setSubmitting] = useState(false)
@@ -295,6 +299,67 @@ export function ProductCreatePage() {
     if (attr) {
       const valIds = attr.values.map((v) => v.id)
       setSelectedValueIds((prev) => prev.filter((id) => !valIds.includes(id)))
+    }
+  }
+
+  function getOptionDraft(attrId: number) {
+    return newOptionDrafts[attrId] ?? { text: '', color: '#2563EB', amount: '', unit: '' }
+  }
+
+  function updateOptionDraft(attrId: number, patch: Partial<{ text: string; color: string; amount: string; unit: string }>) {
+    setNewOptionDrafts((prev) => ({ ...prev, [attrId]: { ...getOptionDraft(attrId), ...patch } }))
+  }
+
+  // Creates a new option for an attribute inline (color swatch, plain
+  // select value, or a number+unit combo like "500 g") via the existing
+  // VariantController::storeAttributeValue endpoint, then merges the
+  // result into variantAttributes so the chip list and option count
+  // update immediately without a full refetch, and auto-selects it.
+  async function addInlineOption(attr: VariantAttribute) {
+    const draft = getOptionDraft(attr.id)
+    let value = ''
+    let colorHex: string | null = null
+
+    if (attr.input_type === 'color') {
+      value = draft.text.trim()
+      colorHex = draft.color
+    } else if (attr.input_type === 'number_with_unit') {
+      const amount = draft.amount.trim()
+      const unit = draft.unit || (attr.unit_options?.split(',')[0] ?? '')
+      if (!amount || isNaN(Number(amount))) {
+        setAddOptionError({ attrId: attr.id, message: 'Enter a valid number' })
+        return
+      }
+      value = `${amount} ${unit}`.trim()
+    } else {
+      value = draft.text.trim()
+    }
+
+    if (!value) {
+      setAddOptionError({ attrId: attr.id, message: 'Enter a value' })
+      return
+    }
+    if (attr.values.some((v) => v.value.toLowerCase() === value.toLowerCase())) {
+      setAddOptionError({ attrId: attr.id, message: `"${value}" already exists` })
+      return
+    }
+
+    setAddOptionError(null)
+    setAddingOptionForAttr(attr.id)
+    try {
+      const res = await api.post(`/variant-attributes/${attr.id}/values`, { value, color_hex: colorHex })
+      const newId = res.data.id as number
+      setVariantAttributes((prev) =>
+        prev.map((a) =>
+          a.id === attr.id ? { ...a, values: [...a.values, { id: newId, value, color_hex: colorHex }] } : a
+        )
+      )
+      setSelectedValueIds((prev) => [...prev, newId])
+      setNewOptionDrafts((prev) => ({ ...prev, [attr.id]: { text: '', color: '#2563EB', amount: '', unit: '' } }))
+    } catch (err) {
+      setAddOptionError({ attrId: attr.id, message: apiErrorMessage(err, 'Could not add option') })
+    } finally {
+      setAddingOptionForAttr(null)
     }
   }
 
@@ -1029,30 +1094,55 @@ export function ProductCreatePage() {
 
             {productType === 'VARIABLE' && (
               <div className="space-y-4 pt-2 border-t border-slate-100">
-                {/* Attribute Selection Dropdown Header */}
+                {/* Attribute Selection Dropdown Header — a styled custom
+                    dropdown (not the native <select>, which renders long
+                    "Name (N options)" labels poorly and has no control
+                    over hover/disabled styling). */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[var(--color-surface)]/60 p-3 rounded-2xl border border-[var(--color-border)]">
                   <label className="text-xs font-bold text-[var(--color-primary-strong)]">
                     + Add Variant Attribute Type:
                   </label>
-                  <select
-                    className="w-full sm:w-72 rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--color-primary)] shadow-2xs focus:border-[var(--color-primary)] focus:outline-none"
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        addAttributeOption(Number(e.target.value))
-                        e.target.value = ''
-                      }
-                    }}
-                  >
-                    <option value="" disabled>Choose Attribute (e.g. Color, Size, Weight...)</option>
-                    {variantAttributes
-                      .filter((attr) => !activeAttributeIds.includes(attr.id))
-                      .map((attr) => (
-                        <option key={attr.id} value={attr.id}>
-                          {attr.name} ({attr.values.length} options)
-                        </option>
-                      ))}
-                  </select>
+                  <div className="relative w-full sm:w-72">
+                    <button
+                      type="button"
+                      onClick={() => setIsAttrDropdownOpen((prev) => !prev)}
+                      className="w-full flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--color-primary)] shadow-2xs focus:border-[var(--color-primary)] focus:outline-none cursor-pointer"
+                    >
+                      <span>Choose Attribute (e.g. Color, Size, Weight...)</span>
+                      <span className={`transition-transform ${isAttrDropdownOpen ? 'rotate-180' : ''}`}>▾</span>
+                    </button>
+                    {isAttrDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsAttrDropdownOpen(false)} />
+                        <div className="absolute right-0 left-0 top-full mt-1 z-20 max-h-72 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-white shadow-lg py-1">
+                          {variantAttributes.map((attr) => {
+                            const isActive = activeAttributeIds.includes(attr.id)
+                            return (
+                              <button
+                                key={attr.id}
+                                type="button"
+                                disabled={isActive}
+                                onClick={() => {
+                                  addAttributeOption(attr.id)
+                                  setIsAttrDropdownOpen(false)
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs ${
+                                  isActive
+                                    ? 'text-slate-300 cursor-not-allowed'
+                                    : 'text-slate-800 font-semibold hover:bg-[var(--color-surface)] cursor-pointer'
+                                }`}
+                              >
+                                <span>{attr.name}{isActive ? ' (added)' : ''}</span>
+                                <span className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 ${attr.values.length > 0 ? 'bg-[var(--color-surface)] text-[var(--color-primary)]' : 'bg-slate-100 text-slate-400'}`}>
+                                  {attr.values.length} options
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Only Render Cards for Selected Active Attributes */}
@@ -1105,6 +1195,76 @@ export function ProductCreatePage() {
                             )
                           })}
                         </div>
+
+                        {/* Inline "add a new option" row — shape depends
+                            on the attribute's input_type. Saves to the
+                            attribute options table immediately via POST
+                            /variant-attributes/{id}/values. */}
+                        <div className="pt-2 border-t border-dashed border-[var(--color-border)] flex flex-wrap items-center gap-2">
+                          {attr.input_type === 'color' ? (
+                            <>
+                              <input
+                                type="color"
+                                value={getOptionDraft(attr.id).color}
+                                onChange={(e) => updateOptionDraft(attr.id, { color: e.target.value })}
+                                className="w-8 h-8 rounded border border-[var(--color-border)] cursor-pointer p-0.5 bg-white"
+                                title="Pick a color"
+                              />
+                              <input
+                                type="text"
+                                value={getOptionDraft(attr.id).text}
+                                onChange={(e) => updateOptionDraft(attr.id, { text: e.target.value })}
+                                placeholder="Color name, e.g. Sky Blue"
+                                className="flex-1 min-w-[140px] rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs"
+                              />
+                            </>
+                          ) : attr.input_type === 'number_with_unit' ? (
+                            <>
+                              <input
+                                type="number"
+                                value={getOptionDraft(attr.id).amount}
+                                onChange={(e) => updateOptionDraft(attr.id, { amount: e.target.value })}
+                                placeholder="Amount"
+                                className="w-24 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs"
+                              />
+                              <select
+                                value={getOptionDraft(attr.id).unit || attr.unit_options?.split(',')[0] || ''}
+                                onChange={(e) => updateOptionDraft(attr.id, { unit: e.target.value })}
+                                className="rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs bg-white"
+                              >
+                                {(attr.unit_options ?? '').split(',').filter(Boolean).map((u) => (
+                                  <option key={u} value={u}>{u}</option>
+                                ))}
+                              </select>
+                            </>
+                          ) : (
+                            <input
+                              type="text"
+                              value={getOptionDraft(attr.id).text}
+                              onChange={(e) => updateOptionDraft(attr.id, { text: e.target.value })}
+                              placeholder={`Add a new ${attr.name.toLowerCase()} option`}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  addInlineOption(attr)
+                                }
+                              }}
+                              className="flex-1 min-w-[160px] rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-xs"
+                            />
+                          )}
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={addingOptionForAttr === attr.id}
+                            onClick={() => addInlineOption(attr)}
+                          >
+                            {addingOptionForAttr === attr.id ? 'Adding…' : '+ Add'}
+                          </Button>
+                        </div>
+                        {addOptionError?.attrId === attr.id && (
+                          <p className="text-[11px] font-semibold text-rose-600">{addOptionError.message}</p>
+                        )}
                       </div>
                     )
                   })}
