@@ -47,7 +47,19 @@ final class ProductController
             $filters['channel'] = 'ecommerce';
             $filters['is_active'] = 1;
         }
-        Response::json((new ProductService($this->pdo))->list($filters));
+
+        $service = new ProductService($this->pdo);
+        $result = $service->list($filters);
+
+        // Facets are a handful of extra GROUP BY queries — worth skipping
+        // for the many callers (home-page carousels, search-suggestion
+        // previews, admin price tools) that only ever want the plain
+        // product list, not the filter sidebar's counts.
+        if (!empty($filters['include_facets'])) {
+            $result['facets'] = $service->facets($filters);
+        }
+
+        Response::json($result);
     }
 
     public function show(string $id): void

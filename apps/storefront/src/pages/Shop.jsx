@@ -5,6 +5,7 @@ import { api, fetchStoreSettings, fetchDeliverySettings, resolveImageUrl } from 
 import Navbar from '../components/Navbar'
 import ProductCard from '../components/ProductCard'
 import CategoryBanner from '../components/CategoryBanner'
+import FilterSidebar, { MobileFilterButton } from '../components/FilterSidebar'
 import CartDrawer from '../components/CartDrawer'
 import CheckoutModal from '../components/CheckoutModal'
 import ReferralModal from '../components/ReferralModal'
@@ -36,9 +37,25 @@ export default function Shop() {
   const isWishlistParam = searchParams.get('wishlist') === '1' || location.pathname === '/wishlist'
   const minPriceParam = searchParams.get('min_price') || ''
   const maxPriceParam = searchParams.get('max_price') || ''
+  const ratingMinParam = searchParams.get('rating_min') || ''
+  const discountMinParam = searchParams.get('discount_min') || ''
+  const inStockParam = searchParams.get('in_stock') || ''
+  const offerFacetParam = searchParams.get('offer') || ''
+  const newArrivalParam = searchParams.get('new_arrival') || ''
+  const countryParam = searchParams.get('country_of_origin') || ''
+  // attr_<Name>=v1,v2 / spec_<Name>=v1,v2 — a flat URL-param convention
+  // (URLSearchParams doesn't do PHP-style attr[Name]=... brackets
+  // cleanly); converted to the backend's attr[...]/spec[...] shape only
+  // when building the actual API request below.
+  const attrParamsKey = Array.from(searchParams.entries())
+    .filter(([k]) => k.startsWith('attr_') || k.startsWith('spec_'))
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&')
 
   // Data states from DB
   const [products, setProducts] = useState([])
+  const [facets, setFacets] = useState(null)
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [currentOffer, setCurrentOffer] = useState(null)
   const [pagination, setPagination] = useState({
     page: 1,
@@ -180,10 +197,24 @@ export default function Shop() {
       if (searchParam) params.set('search', searchParam)
       if (minPriceParam) params.set('min_price', minPriceParam)
       if (maxPriceParam) params.set('max_price', maxPriceParam)
+      if (ratingMinParam) params.set('rating_min', ratingMinParam)
+      if (discountMinParam) params.set('discount_min', discountMinParam)
+      if (inStockParam) params.set('in_stock', inStockParam)
+      if (offerFacetParam) params.set('offer', offerFacetParam)
+      if (newArrivalParam) params.set('new_arrival', newArrivalParam)
+      if (countryParam) params.set('country_of_origin', countryParam)
+      params.set('include_facets', '1')
+      // attr_Color=Red,Blue (URL) -> attr[Color]=Red,Blue (API) — PHP
+      // parses the bracket form into $_GET['attr']['Color'] natively.
+      for (const [key, value] of searchParams.entries()) {
+        if (key.startsWith('attr_') && value) params.set(`attr[${key.slice(5)}]`, value)
+        if (key.startsWith('spec_') && value) params.set(`spec[${key.slice(5)}]`, value)
+      }
 
       try {
         const res = await api.get(`/products?${params.toString()}`)
         const items = res.data?.items || res.data?.data || []
+        setFacets(res.data?.facets || null)
         const pag = res.data?.pagination || {
           page: res.data?.page || pageParam,
           limit: res.data?.limit || 12,
@@ -256,6 +287,13 @@ export default function Shop() {
     isWishlistParam,
     minPriceParam,
     maxPriceParam,
+    ratingMinParam,
+    discountMinParam,
+    inStockParam,
+    offerFacetParam,
+    newArrivalParam,
+    countryParam,
+    attrParamsKey,
     slugPending,
   ])
 
@@ -319,6 +357,15 @@ export default function Shop() {
     const next = new URLSearchParams(searchParams)
     next.set('page', '1')
     next.set('sort', newSort)
+    setSearchParams(next)
+  }
+
+  // Generic URL-param mutator for the filter sidebar — every sidebar
+  // control resets to page 1, same as every other filter change here.
+  const handleFilterParamsChange = (mutate) => {
+    const next = new URLSearchParams(searchParams)
+    mutate(next)
+    next.set('page', '1')
     setSearchParams(next)
   }
 
@@ -534,6 +581,24 @@ export default function Shop() {
             />
           )}
 
+          {/* Filter Sidebar + Listing: sidebar is sticky on desktop with
+              its own scroll, a full-screen drawer on mobile (opened via
+              the Filter button next to Sort below). */}
+          <div className="lg:flex lg:gap-6 lg:items-start">
+            <FilterSidebar
+              facets={facets}
+              categories={categories}
+              subcategories={subcategories}
+              currentCategory={currentCategoryObj}
+              currentSubcategory={currentSubcategoryObj}
+              searchParams={searchParams}
+              onChangeParams={handleFilterParamsChange}
+              isOpenMobile={isMobileFilterOpen}
+              onCloseMobile={() => setIsMobileFilterOpen(false)}
+              resultCount={pagination.total}
+            />
+
+          <div className="flex-1 min-w-0">
           {/* Page Header / Category Heading */}
           <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E9DFFF] mb-6">
             <div>
@@ -550,16 +615,23 @@ export default function Shop() {
                 {pageTitle}
               </h1>
               <p className="font-sans text-xs sm:text-sm text-[#666666] mt-2">
-                Showing{' '}
-                <strong className="text-[#6C4EFF] font-bold">
-                  {pagination.total}
-                </strong>{' '}
-                fresh item{pagination.total === 1 ? '' : 's'} in store
+                {pagination.total > 0 ? (
+                  <>
+                    Showing{' '}
+                    <strong className="text-[#6C4EFF] font-bold">
+                      {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)}
+                    </strong>{' '}
+                    of <strong className="text-[#6C4EFF] font-bold">{pagination.total}</strong> product{pagination.total === 1 ? '' : 's'}
+                  </>
+                ) : (
+                  'No products found'
+                )}
               </p>
             </div>
 
             {/* Sort & Filter Controls */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <MobileFilterButton onClick={() => setIsMobileFilterOpen(true)} activeCount={Array.from(searchParams.keys()).filter((k) => !['page', 'section', 'sort'].includes(k)).length} />
               <label htmlFor="shop-sort" className="text-xs font-bold text-[var(--color-text-muted)]">
                 Sort by:
               </label>
@@ -574,6 +646,7 @@ export default function Shop() {
                 <option value="popular">Popular & Featured</option>
                 <option value="price_asc">Price: Low to High</option>
                 <option value="price_desc">Price: High to Low</option>
+                <option value="rating">Rating</option>
                 <option value="name_asc">Name: A to Z</option>
               </select>
 
@@ -797,6 +870,8 @@ export default function Shop() {
               </div>
             </div>
           )}
+          </div>
+          </div>
 
           {/* Category intro + SEO copy - the same text search engines get from the server render */}
           {seoEntity && !searchParam && pageParam === 1 && (seoEntity.description || seoEntity.seo_content) && (

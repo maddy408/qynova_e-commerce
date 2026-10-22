@@ -22,116 +22,9 @@ final class ProductService
         $page = max(1, (int) ($filters['page'] ?? 1));
         $limit = min(100, max(1, (int) ($filters['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-
-        $where = ['p.deleted_at IS NULL'];
-        $params = [];
-
-        if (($filters['is_active'] ?? null) !== null) {
-            $where[] = 'p.is_active = :is_active';
-            $params['is_active'] = (int) (bool) $filters['is_active'];
-        }
-
-        if (!empty($filters['category_id'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND pc.category_id = :category_id AND c.status = "ACTIVE" AND c.deleted_at IS NULL)';
-            $params['category_id'] = (int) $filters['category_id'];
-        }
-
-        if (!empty($filters['category_slug'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND c.slug = :category_slug AND c.status = "ACTIVE" AND c.deleted_at IS NULL)';
-            $params['category_slug'] = (string) $filters['category_slug'];
-        }
-
-        if (!empty($filters['subcategory_id'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM product_subcategories ps JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = p.id AND ps.subcategory_id = :subcategory_id AND s.status = "ACTIVE" AND s.deleted_at IS NULL)';
-            $params['subcategory_id'] = (int) $filters['subcategory_id'];
-        }
-
-        if (!empty($filters['brand_id'])) {
-            $where[] = 'p.brand_id = :brand_id';
-            $params['brand_id'] = (int) $filters['brand_id'];
-        }
-
-        if (!empty($filters['channel']) && $filters['channel'] === 'pos') {
-            $where[] = 'p.is_pos_enabled = 1';
-        } elseif (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') {
-            $where[] = 'p.is_ecommerce_enabled = 1';
-            $where[] = 'p.is_active = 1';
-            $where[] = '(p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())';
-            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE()))";
-        }
-
-        if (($filters['is_featured'] ?? null) !== null) {
-            $where[] = 'p.is_featured = :is_featured';
-            $params['is_featured'] = (int) (bool) $filters['is_featured'];
-        }
-
-        if (($filters['is_trending'] ?? null) !== null) {
-            $where[] = 'p.is_trending = :is_trending';
-            $params['is_trending'] = (int) (bool) $filters['is_trending'];
-        }
-
-        if (($filters['is_deal'] ?? null) !== null) {
-            $where[] = 'p.is_deal = :is_deal';
-            $params['is_deal'] = (int) (bool) $filters['is_deal'];
-        }
-
-        if (!empty($filters['section'])) {
-            $section = strtolower(trim((string) $filters['section']));
-            if ($section === 'best_sellers' || $section === 'bestsellers') {
-                $where[] = 'p.is_best_seller_override = 1';
-            } elseif ($section === 'new_arrivals' || $section === 'newarrivals') {
-                $where[] = 'p.is_new_arrival_override = 1';
-            } elseif ($section === 'featured') {
-                $where[] = 'p.is_featured = 1';
-            } elseif ($section === 'trending') {
-                $where[] = 'p.is_trending = 1';
-            } elseif ($section === 'deals' || $section === 'flash_deals') {
-                $where[] = 'p.is_deal = 1';
-            } elseif ($section === 'popular_sale' || $section === 'popular') {
-                // T15: Popular sale section calculated from order sales data
-            }
-        }
-
-        if (!empty($filters['offer_id']) || !empty($filters['top_offer_id'])) {
-            $offerId = (int) (!empty($filters['offer_id']) ? $filters['offer_id'] : $filters['top_offer_id']);
-            $where[] = 'EXISTS (SELECT 1 FROM top_offer_products top WHERE top.top_offer_id = :offer_id AND top.product_id = p.id)';
-            $params['offer_id'] = $offerId;
-        }
-
         $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
 
-        if (!empty($filters['min_price'])) {
-            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price >= :min_price)";
-            $params['min_price'] = (float) $filters['min_price'];
-        }
-
-        if (!empty($filters['max_price'])) {
-            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price <= :max_price)";
-            $params['max_price'] = (float) $filters['max_price'];
-        }
-
-        if (!empty($filters['search'])) {
-            $searchTerm = trim((string) $filters['search']);
-            $needle = '%' . $searchTerm . '%';
-            $where[] = '(
-                p.name LIKE :search_like 
-                OR p.product_code LIKE :search_like 
-                OR p.tags LIKE :search_like 
-                OR p.short_description LIKE :search_like
-                OR EXISTS (
-                    SELECT 1 FROM product_categories pc 
-                    JOIN categories c ON c.id = pc.category_id 
-                    WHERE pc.product_id = p.id AND c.name LIKE :search_like AND c.status = "ACTIVE" AND c.deleted_at IS NULL
-                )
-                OR EXISTS (
-                    SELECT 1 FROM product_subcategories ps 
-                    JOIN subcategories s ON s.id = ps.subcategory_id 
-                    WHERE ps.product_id = p.id AND s.name LIKE :search_like AND s.status = "ACTIVE" AND s.deleted_at IS NULL
-                )
-            )';
-            $params['search_like'] = $needle;
-        }
-
+        [$where, $params] = $this->buildFilterConditions($filters);
         $whereSql = implode(' AND ', $where);
 
         $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM products p WHERE {$whereSql}");
@@ -154,6 +47,14 @@ final class ProductService
             $orderBy = 'COALESCE((SELECT ps.units_sold_30d FROM product_stats ps WHERE ps.product_id = p.id), 0) DESC, p.is_featured DESC, p.id DESC';
         } elseif ($sort === 'newest') {
             $orderBy = 'p.created_at DESC';
+        } elseif ($sort === 'rating') {
+            $orderBy = "(SELECT AVG(cr.rating) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) DESC";
+        } elseif ($sort === 'discount') {
+            $orderBy = "(
+                SELECT (v.mrp - v.retail_price) / NULLIF(v.mrp, 0)
+                FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+                ORDER BY is_default DESC, id ASC LIMIT 1
+            ) DESC";
         } elseif (!empty($filters['section']) && ($filters['section'] === 'best_sellers' || $filters['section'] === 'bestsellers')) {
             $orderBy = 'COALESCE(p.is_best_seller_override, 0) DESC, p.is_featured DESC, p.created_at DESC';
         } elseif (!empty($filters['section']) && in_array(strtolower((string) $filters['section']), ['popular_sale', 'popular'], true)) {
@@ -163,7 +64,7 @@ final class ProductService
         $stmt = $this->pdo->prepare(
             "SELECT p.id, p.name, p.slug, p.product_code, p.is_active, p.is_pos_enabled, p.is_ecommerce_enabled,
                     p.is_featured, p.is_trending, p.is_deal, p.show_discount, p.is_best_seller_override, p.is_new_arrival_override,
-                    p.short_description, p.created_at, p.brand_id, p.unit_id, b.name AS brand_name,
+                    p.short_description, p.created_at, p.brand_id, p.unit_id, p.country_of_origin, b.name AS brand_name,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS min_price,
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS max_price,
@@ -219,6 +120,424 @@ final class ProductService
             'page' => $page,
             'limit' => $limit,
             'pagination' => $pagination,
+        ];
+    }
+
+    /**
+     * Shared by list() (builds every condition) and facets() (builds
+     * every condition EXCEPT one group, so a facet group can report
+     * counts as if its own selection weren't applied yet — standard
+     * faceted-search behavior, letting a customer pick several Colors
+     * instead of the list collapsing to just the one already chosen).
+     *
+     * $excludeKey is either a plain group name ('brand', 'price',
+     * 'rating', 'discount', 'stock', 'new_arrival', 'country') or
+     * 'attr:<Attribute Name>' / 'spec:<Spec Name>' for one dynamic facet.
+     *
+     * @param array<string, mixed> $filters
+     * @return array{0: list<string>, 1: array<string, mixed>}
+     */
+    private function buildFilterConditions(array $filters, string $excludeKey = ''): array
+    {
+        $where = ['p.deleted_at IS NULL'];
+        $params = [];
+
+        if (($filters['is_active'] ?? null) !== null) {
+            $where[] = 'p.is_active = :is_active';
+            $params['is_active'] = (int) (bool) $filters['is_active'];
+        }
+
+        if ($excludeKey !== 'category') {
+            if (!empty($filters['category_id'])) {
+                $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND pc.category_id = :category_id AND c.status = "ACTIVE" AND c.deleted_at IS NULL)';
+                $params['category_id'] = (int) $filters['category_id'];
+            }
+
+            if (!empty($filters['category_slug'])) {
+                $where[] = 'EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id AND c.slug = :category_slug AND c.status = "ACTIVE" AND c.deleted_at IS NULL)';
+                $params['category_slug'] = (string) $filters['category_slug'];
+            }
+
+            if (!empty($filters['subcategory_id'])) {
+                $where[] = 'EXISTS (SELECT 1 FROM product_subcategories ps JOIN subcategories s ON s.id = ps.subcategory_id WHERE ps.product_id = p.id AND ps.subcategory_id = :subcategory_id AND s.status = "ACTIVE" AND s.deleted_at IS NULL)';
+                $params['subcategory_id'] = (int) $filters['subcategory_id'];
+            }
+        }
+
+        if ($excludeKey !== 'brand' && !empty($filters['brand_id'])) {
+            $brandIds = array_filter(array_map('intval', explode(',', (string) $filters['brand_id'])));
+            if ($brandIds !== []) {
+                $placeholders = [];
+                foreach ($brandIds as $i => $id) {
+                    $key = "brand_id_{$i}";
+                    $placeholders[] = ":{$key}";
+                    $params[$key] = $id;
+                }
+                $where[] = 'p.brand_id IN (' . implode(',', $placeholders) . ')';
+            }
+        }
+
+        if (!empty($filters['channel']) && $filters['channel'] === 'pos') {
+            $where[] = 'p.is_pos_enabled = 1';
+        } elseif (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') {
+            $where[] = 'p.is_ecommerce_enabled = 1';
+            $where[] = 'p.is_active = 1';
+            $where[] = '(p.expiry_date IS NULL OR p.expiry_date >= CURRENT_DATE())';
+            $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE()))";
+        }
+
+        if (($filters['is_featured'] ?? null) !== null) {
+            $where[] = 'p.is_featured = :is_featured';
+            $params['is_featured'] = (int) (bool) $filters['is_featured'];
+        }
+
+        if (($filters['is_trending'] ?? null) !== null) {
+            $where[] = 'p.is_trending = :is_trending';
+            $params['is_trending'] = (int) (bool) $filters['is_trending'];
+        }
+
+        if (($filters['is_deal'] ?? null) !== null) {
+            $where[] = 'p.is_deal = :is_deal';
+            $params['is_deal'] = (int) (bool) $filters['is_deal'];
+        }
+
+        if (!empty($filters['section'])) {
+            $section = strtolower(trim((string) $filters['section']));
+            if ($section === 'best_sellers' || $section === 'bestsellers') {
+                $where[] = 'p.is_best_seller_override = 1';
+            } elseif ($section === 'new_arrivals' || $section === 'newarrivals') {
+                $where[] = 'p.is_new_arrival_override = 1';
+            } elseif ($section === 'featured') {
+                $where[] = 'p.is_featured = 1';
+            } elseif ($section === 'trending') {
+                $where[] = 'p.is_trending = 1';
+            } elseif ($section === 'deals' || $section === 'flash_deals') {
+                $where[] = 'p.is_deal = 1';
+            } elseif ($section === 'popular_sale' || $section === 'popular') {
+                // T15: Popular sale section calculated from order sales data
+            }
+        }
+
+        if ($excludeKey !== 'offer' && (!empty($filters['offer_id']) || !empty($filters['top_offer_id']))) {
+            $offerId = (int) (!empty($filters['offer_id']) ? $filters['offer_id'] : $filters['top_offer_id']);
+            $where[] = 'EXISTS (SELECT 1 FROM top_offer_products top WHERE top.top_offer_id = :offer_id AND top.product_id = p.id)';
+            $params['offer_id'] = $offerId;
+        }
+
+        // "Offers" facet (spec section "Offers (Special Price, Buy More
+        // Save More, Combo offers) based on what the backend supports")
+        // — only Special Price (the existing is_deal flag) has real,
+        // queryable backing data today; the other two aren't modeled
+        // anywhere in the schema, so exposing them as filters would be
+        // either a no-op or silently wrong. offer=special_price is the
+        // one honest mapping.
+        if ($excludeKey !== 'offer' && !empty($filters['offer']) && strtolower((string) $filters['offer']) === 'special_price') {
+            $where[] = 'p.is_deal = 1';
+        }
+
+        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
+
+        if ($excludeKey !== 'price') {
+            if (!empty($filters['min_price'])) {
+                $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price >= :min_price)";
+                $params['min_price'] = (float) $filters['min_price'];
+            }
+
+            if (!empty($filters['max_price'])) {
+                $where[] = "EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND v.retail_price <= :max_price)";
+                $params['max_price'] = (float) $filters['max_price'];
+            }
+        }
+
+        if ($excludeKey !== 'rating' && !empty($filters['rating_min'])) {
+            $where[] = "(SELECT AVG(cr.rating) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) >= :rating_min";
+            $params['rating_min'] = (float) $filters['rating_min'];
+        }
+
+        if ($excludeKey !== 'discount' && !empty($filters['discount_min'])) {
+            $where[] = "EXISTS (
+                SELECT 1 FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+                AND v.mrp > 0 AND ((v.mrp - v.retail_price) / v.mrp) * 100 >= :discount_min
+            )";
+            $params['discount_min'] = (float) $filters['discount_min'];
+        }
+
+        // Availability: hides out-of-stock by default, same as every
+        // storefront listing already implicitly assumed — an explicit
+        // in_stock=0 (the sidebar's "Include out of stock" toggle) turns
+        // this condition off entirely rather than inverting it.
+        if ($excludeKey !== 'stock' && (($filters['in_stock'] ?? '1') !== '0' && ($filters['in_stock'] ?? true) !== false)) {
+            $where[] = "EXISTS (
+                SELECT 1 FROM product_variants v LEFT JOIN inventory i ON i.variant_id = v.id
+                WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause} AND COALESCE(i.available, 0) > 0
+            )";
+        }
+
+        if ($excludeKey !== 'new_arrival' && !empty($filters['new_arrival'])) {
+            $where[] = 'p.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        }
+
+        if ($excludeKey !== 'country' && !empty($filters['country_of_origin'])) {
+            $countries = array_filter(array_map('trim', explode(',', (string) $filters['country_of_origin'])));
+            if ($countries !== []) {
+                $placeholders = [];
+                foreach (array_values($countries) as $i => $country) {
+                    $key = "country_{$i}";
+                    $placeholders[] = ":{$key}";
+                    $params[$key] = $country;
+                }
+                $where[] = 'p.country_of_origin IN (' . implode(',', $placeholders) . ')';
+            }
+        }
+
+        // Dynamic variant-attribute facets: attr[Color]=Red,Blue means
+        // "any variant of this product has a Color value of Red OR Blue"
+        // — ANDed across different attribute names (Color AND Size),
+        // ORed within one name's own selected values.
+        foreach ((array) ($filters['attr'] ?? []) as $attrName => $rawValues) {
+            if ($excludeKey === "attr:{$attrName}") {
+                continue;
+            }
+            $values = array_filter(array_map('trim', explode(',', (string) $rawValues)));
+            if ($values === []) {
+                continue;
+            }
+            $placeholders = [];
+            foreach (array_values($values) as $i => $value) {
+                $key = 'attrval_' . preg_replace('/[^a-zA-Z0-9]/', '', $attrName) . "_{$i}";
+                $placeholders[] = ":{$key}";
+                $params[$key] = $value;
+            }
+            $nameKey = 'attrname_' . preg_replace('/[^a-zA-Z0-9]/', '', (string) $attrName);
+            $params[$nameKey] = (string) $attrName;
+            $where[] = "EXISTS (
+                SELECT 1 FROM product_variants v
+                JOIN product_variant_values pvv ON pvv.variant_id = v.id
+                JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                JOIN variant_attributes va ON va.id = vav.attribute_id
+                WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+                  AND va.name = :{$nameKey} AND vav.value IN (" . implode(',', $placeholders) . ")
+            )";
+        }
+
+        // Dynamic product-spec facets: spec[Gender]=Men,Women.
+        foreach ((array) ($filters['spec'] ?? []) as $specName => $rawValues) {
+            if ($excludeKey === "spec:{$specName}") {
+                continue;
+            }
+            $values = array_filter(array_map('trim', explode(',', (string) $rawValues)));
+            if ($values === []) {
+                continue;
+            }
+            $placeholders = [];
+            foreach (array_values($values) as $i => $value) {
+                $key = 'specval_' . preg_replace('/[^a-zA-Z0-9]/', '', (string) $specName) . "_{$i}";
+                $placeholders[] = ":{$key}";
+                $params[$key] = $value;
+            }
+            $nameKey = 'specname_' . preg_replace('/[^a-zA-Z0-9]/', '', (string) $specName);
+            $params[$nameKey] = (string) $specName;
+            $where[] = "EXISTS (
+                SELECT 1 FROM product_specifications psf
+                WHERE psf.product_id = p.id AND psf.name = :{$nameKey} AND psf.value IN (" . implode(',', $placeholders) . ")
+            )";
+        }
+
+        if (!empty($filters['search'])) {
+            $searchTerm = trim((string) $filters['search']);
+            $needle = '%' . $searchTerm . '%';
+            $where[] = '(
+                p.name LIKE :search_like
+                OR p.product_code LIKE :search_like
+                OR p.tags LIKE :search_like
+                OR p.short_description LIKE :search_like
+                OR EXISTS (
+                    SELECT 1 FROM product_categories pc
+                    JOIN categories c ON c.id = pc.category_id
+                    WHERE pc.product_id = p.id AND c.name LIKE :search_like AND c.status = "ACTIVE" AND c.deleted_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1 FROM product_subcategories ps
+                    JOIN subcategories s ON s.id = ps.subcategory_id
+                    WHERE ps.product_id = p.id AND s.name LIKE :search_like AND s.status = "ACTIVE" AND s.deleted_at IS NULL
+                )
+            )';
+            $params['search_like'] = $needle;
+        }
+
+        return [$where, $params];
+    }
+
+    /**
+     * Facets for the current filtered result set — each group is
+     * computed against every OTHER active filter (its own selection
+     * excluded, see buildFilterConditions()) so picking one value in a
+     * group never collapses that same group's other options to zero.
+     * One bounded query per facet group/dynamic attribute-or-spec name
+     * actually present in the current results — not a per-product query,
+     * so this stays flat regardless of how many products match.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function facets(array $filters): array
+    {
+        $variantActiveClause = (!empty($filters['channel']) && $filters['channel'] === 'ecommerce') ? " AND v.status = 'ACTIVE' AND (v.expiry_date IS NULL OR v.expiry_date >= CURRENT_DATE())" : "";
+
+        $run = function (string $sql, array $params): array {
+            $stmt = $this->pdo->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue(":{$key}", $value);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll();
+        };
+
+        // Brands
+        [$where, $params] = $this->buildFilterConditions($filters, 'brand');
+        $whereSql = implode(' AND ', $where);
+        $brands = $run(
+            "SELECT p.brand_id AS id, b.name, COUNT(DISTINCT p.id) AS count
+             FROM products p JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
+             WHERE {$whereSql} AND p.brand_id IS NOT NULL
+             GROUP BY p.brand_id, b.name ORDER BY count DESC",
+            $params
+        );
+
+        // Price bounds (min/max of the current result set, ignoring the
+        // price filter itself, so the slider's own range doesn't shrink
+        // every time the admin — sorry, the customer — adjusts it)
+        [$where, $params] = $this->buildFilterConditions($filters, 'price');
+        $whereSql = implode(' AND ', $where);
+        $priceBounds = $run(
+            "SELECT MIN(v.retail_price) AS min_price, MAX(v.retail_price) AS max_price
+             FROM products p JOIN product_variants v ON v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+             WHERE {$whereSql}",
+            $params
+        );
+
+        // Rating buckets (4+, 3+, 2+, 1+)
+        [$where, $params] = $this->buildFilterConditions($filters, 'rating');
+        $whereSql = implode(' AND ', $where);
+        $ratingRows = $run(
+            "SELECT ROUND(avg_rating.rating) AS bucket, COUNT(*) AS count FROM (
+                SELECT p.id, (SELECT AVG(cr.rating) FROM customer_reviews cr WHERE cr.product_id = p.id AND cr.status = 'APPROVED' AND cr.deleted_at IS NULL) AS rating
+                FROM products p WHERE {$whereSql}
+             ) avg_rating WHERE avg_rating.rating IS NOT NULL GROUP BY bucket",
+            $params
+        );
+        $ratingBuckets = [];
+        foreach ([4, 3, 2, 1] as $threshold) {
+            $count = 0;
+            foreach ($ratingRows as $row) {
+                if ((float) $row['bucket'] >= $threshold) {
+                    $count += (int) $row['count'];
+                }
+            }
+            $ratingBuckets[] = ['min_rating' => $threshold, 'count' => $count];
+        }
+
+        // Discount buckets (10/20/30/40/50 % or more)
+        [$where, $params] = $this->buildFilterConditions($filters, 'discount');
+        $whereSql = implode(' AND ', $where);
+        $discountRows = $run(
+            "SELECT best.pct AS pct, COUNT(*) AS count FROM (
+                SELECT p.id, (
+                    SELECT MAX((v.mrp - v.retail_price) / NULLIF(v.mrp, 0)) * 100
+                    FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+                ) AS pct
+                FROM products p WHERE {$whereSql}
+             ) best WHERE best.pct IS NOT NULL GROUP BY pct",
+            $params
+        );
+        $discountBuckets = [];
+        foreach ([10, 20, 30, 40, 50] as $threshold) {
+            $count = 0;
+            foreach ($discountRows as $row) {
+                if ((float) $row['pct'] >= $threshold) {
+                    $count += (int) $row['count'];
+                }
+            }
+            $discountBuckets[] = ['min_discount' => $threshold, 'count' => $count];
+        }
+
+        // Countries of origin
+        [$where, $params] = $this->buildFilterConditions($filters, 'country');
+        $whereSql = implode(' AND ', $where);
+        $countries = $run(
+            "SELECT p.country_of_origin AS name, COUNT(*) AS count
+             FROM products p WHERE {$whereSql} AND p.country_of_origin IS NOT NULL AND p.country_of_origin != ''
+             GROUP BY p.country_of_origin ORDER BY count DESC",
+            $params
+        );
+
+        // Dynamic variant-attribute facets — only for attribute names
+        // that actually have at least one value among the CURRENTLY
+        // filtered products' variants (per the task: "show only groups
+        // that have values for the current category").
+        [$baseWhere, $baseParams] = $this->buildFilterConditions($filters);
+        $baseWhereSql = implode(' AND ', $baseWhere);
+        $presentAttrNames = $run(
+            "SELECT DISTINCT va.name
+             FROM products p
+             JOIN product_variants v ON v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+             JOIN product_variant_values pvv ON pvv.variant_id = v.id
+             JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+             JOIN variant_attributes va ON va.id = vav.attribute_id
+             WHERE {$baseWhereSql}",
+            $baseParams
+        );
+
+        $attributeFacets = [];
+        foreach ($presentAttrNames as $row) {
+            $attrName = (string) $row['name'];
+            [$where, $params] = $this->buildFilterConditions($filters, "attr:{$attrName}");
+            $whereSql = implode(' AND ', $where);
+            $params['facet_attr_name'] = $attrName;
+            $values = $run(
+                "SELECT vav.value, vav.color_hex, COUNT(DISTINCT p.id) AS count
+                 FROM products p
+                 JOIN product_variants v ON v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
+                 JOIN product_variant_values pvv ON pvv.variant_id = v.id
+                 JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                 JOIN variant_attributes va ON va.id = vav.attribute_id
+                 WHERE {$whereSql} AND va.name = :facet_attr_name
+                 GROUP BY vav.value, vav.color_hex ORDER BY count DESC",
+                $params
+            );
+            $attributeFacets[] = ['name' => $attrName, 'values' => $values];
+        }
+
+        // Dynamic product-spec facets — same "only if present" rule.
+        $presentSpecNames = $run(
+            "SELECT DISTINCT psf.name FROM products p JOIN product_specifications psf ON psf.product_id = p.id WHERE {$baseWhereSql}",
+            $baseParams
+        );
+
+        $specFacets = [];
+        foreach ($presentSpecNames as $row) {
+            $specName = (string) $row['name'];
+            [$where, $params] = $this->buildFilterConditions($filters, "spec:{$specName}");
+            $whereSql = implode(' AND ', $where);
+            $params['facet_spec_name'] = $specName;
+            $values = $run(
+                "SELECT psf.value, COUNT(DISTINCT p.id) AS count
+                 FROM products p JOIN product_specifications psf ON psf.product_id = p.id
+                 WHERE {$whereSql} AND psf.name = :facet_spec_name
+                 GROUP BY psf.value ORDER BY count DESC",
+                $params
+            );
+            $specFacets[] = ['name' => $specName, 'values' => $values];
+        }
+
+        return [
+            'brands' => $brands,
+            'price' => $priceBounds[0] ?? ['min_price' => null, 'max_price' => null],
+            'rating_buckets' => $ratingBuckets,
+            'discount_buckets' => $discountBuckets,
+            'countries' => $countries,
+            'attributes' => $attributeFacets,
+            'specs' => $specFacets,
         ];
     }
 
