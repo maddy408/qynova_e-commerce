@@ -36,11 +36,13 @@ export default function TopBrandsSection({
 
   const handleScroll = (direction) => {
     if (!scrollRef.current) return
-    const cardWidth = scrollRef.current.clientWidth >= 1024
-      ? scrollRef.current.clientWidth / 4
-      : scrollRef.current.clientWidth >= 768
-      ? scrollRef.current.clientWidth / 3
-      : scrollRef.current.clientWidth / 2
+    const cardWidth = scrollRef.current.clientWidth >= 1280
+      ? scrollRef.current.clientWidth / 8
+      : scrollRef.current.clientWidth >= 1024
+      ? scrollRef.current.clientWidth / 6
+      : scrollRef.current.clientWidth >= 640
+      ? scrollRef.current.clientWidth / 5
+      : scrollRef.current.clientWidth / 3.5
     const scrollAmount = cardWidth * (direction === 'left' ? -1 : 1)
     scrollRef.current.scrollBy({
       left: scrollAmount,
@@ -125,18 +127,14 @@ export default function TopBrandsSection({
           </div>
         </div>
 
-        {/* Brand Track: 4 CARDS PER ROW ON DESKTOP */}
+        {/* Brand Track: logo-only circles, as many per row as fit */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
-            {[1, 2, 3, 4].map((idx) => (
+          <div className="flex flex-wrap gap-4 sm:gap-5 lg:gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-[24px] p-6 border border-[#E9DFFF] animate-pulse space-y-4"
-              >
-                <div className="h-44 bg-[#FAF8FF] rounded-[18px]" />
-                <div className="h-5 bg-[#F3EDFF] rounded w-2/3 mx-auto" />
-                <div className="h-10 bg-[#FAF8FF] rounded-full" />
-              </div>
+                className="w-22 h-22 sm:w-28 sm:h-28 lg:w-[140px] lg:h-[140px] rounded-full bg-[#FAF8FF] border border-[#E9DFFF] animate-pulse shrink-0"
+              />
             ))}
           </div>
         ) : (
@@ -165,63 +163,34 @@ export default function TopBrandsSection({
                 brandNameLower.includes('aashirvaad') ? '/images/brands/aashirvaad.png' : null
 
               const imageUrl = brand.image_path ? resolveImageUrl(brand.image_path) : localBrandFallback
-              const offerLabel =
-                brand.offer_text?.trim() ||
-                (brand.min_price ? `From ₹${Math.round(Number(brand.min_price))}` : 'Explore Brand')
 
               return (
-                <div
+                <button
                   key={brand.id}
-                  className="w-[calc(100%-24px)] min-w-[240px] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-14px)] lg:w-[calc(25%-18px)] shrink-0"
+                  type="button"
+                  onClick={() => navigate(`/products?brand_id=${brand.id}`)}
+                  aria-label={`Shop ${brand.name}`}
+                  title={brand.name}
+                  className="group shrink-0 w-22 h-22 sm:w-28 sm:h-28 lg:w-[140px] lg:h-[140px] rounded-full bg-white border border-[#E9DFFF] hover:border-[#BFA2FF] shadow-[0_4px_16px_rgba(108,78,255,0.06)] hover:shadow-[0_10px_28px_rgba(108,78,255,0.14)] hover:scale-105 transition-all duration-300 flex items-center justify-center p-3.5 sm:p-5 cursor-pointer"
                 >
-                  <div
-                    onClick={() => navigate(`/products?brand_id=${brand.id}`)}
-                    className="bg-[#FAF8FF] hover:bg-white rounded-[24px] p-6 sm:p-7 border border-[#E9DFFF] hover:border-[#BFA2FF] shadow-[0_6px_25px_rgba(108,78,255,0.04)] hover:shadow-[0_16px_35px_rgba(108,78,255,0.1)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer h-full"
-                  >
-                    <div>
-                      {/* Brand Logo Box with Radial Lavender Glow */}
-                      <div className="relative rounded-[18px] overflow-hidden bg-[radial-gradient(circle_at_center,#FFFFFF_0%,#F3EDFF_100%)] h-44 mb-5 flex items-center justify-center p-6 border border-[#E9DFFF]/40">
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={brand.name}
-                            onError={(e) => {
-                              if (localBrandFallback && e.target.src !== window.location.origin + localBrandFallback) {
-                                e.target.src = localBrandFallback
-                              }
-                            }}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 ease-out"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-white border border-[#E9DFFF] shadow-xs flex items-center justify-center font-serif font-bold text-[#6C4EFF] text-2xl uppercase">
-                            {brand.name.slice(0, 2)}
-                          </div>
-                        )}
-
-                        <span className="absolute top-3 left-3 bg-white/95 text-[#6C4EFF] border border-[#E9DFFF] font-sans font-bold text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded-full shadow-xs">
-                          Brand
-                        </span>
-                      </div>
-
-                      {/* Brand Name */}
-                      <h3 className="font-serif text-lg sm:text-xl font-bold text-[#1B133F] text-center truncate group-hover:text-[#6C4EFF] transition-colors mb-1">
-                        {brand.name}
-                      </h3>
-                      <p className="font-sans text-xs text-[#666666] text-center truncate mb-4">
-                        Verified Store Brand
-                      </p>
-                    </div>
-
-                    {/* Bottom Pill CTA */}
-                    <div className="pt-4 border-t border-[#E9DFFF]/60">
-                      <div className="w-full py-2.5 px-4 rounded-full bg-white group-hover:bg-[#6C4EFF] text-[#6C4EFF] group-hover:text-white border border-[#E9DFFF] group-hover:border-[#6C4EFF] font-sans text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-all duration-200">
-                        <span className="truncate">{offerLabel}</span>
-                        <FiArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={brand.name}
+                      onError={(e) => {
+                        if (localBrandFallback && e.target.src !== window.location.origin + localBrandFallback) {
+                          e.target.src = localBrandFallback
+                        }
+                      }}
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="font-serif font-bold text-[#6C4EFF] text-xl sm:text-2xl uppercase">
+                      {brand.name.slice(0, 2)}
+                    </span>
+                  )}
+                </button>
               )
             })}
           </div>
