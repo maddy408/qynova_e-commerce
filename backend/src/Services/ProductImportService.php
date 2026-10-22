@@ -506,8 +506,8 @@ final class ProductImportService
         $gstRateId = $this->resolveGstRate(trim($row['Tax'] ?? ''), trim($row['Tax Type'] ?? 'EXCLUSIVE'), $autoCreate);
         [$returnable, $returnWindowDays] = $this->resolveReturnPolicy($row);
 
-        $mfgDate = $this->parseDate($row['Manufacturing Date'] ?? '');
-        $expiryDate = $this->parseDate($row['Expiry Date'] ?? '');
+        $mfgDate = $this->parseMonthYear($row['Manufacturing Date'] ?? '', false);
+        $expiryDate = $this->parseMonthYear($row['Expiry Date'] ?? '', true);
         $expiryApplicable = ($expiryDate !== null && $expiryDate >= date('Y-m-d') && ($mfgDate === null || $expiryDate > $mfgDate)) ? 1 : 0;
 
         $this->pdo->prepare(
@@ -1180,20 +1180,62 @@ final class ProductImportService
         return (int) $this->pdo->lastInsertId();
     }
 
-    private function parseDate(string $value): ?string
+    /**
+     * Manufacturing/expiry dates on this product only ever carry a month
+     * and year in reality (no day), so the cell is normalized to the
+     * first day of that month (manufacturing) or the last day of that
+     * month ($endOfMonth, expiry) — never left ambiguous mid-month.
+     * Accepts "MM/YYYY", "MMM-YYYY"/"MMM YYYY" ("Mar 2026"), "YYYY-MM",
+     * and falls back to strtotime() for anything else (a full date
+     * string, or a real Excel date cell — Spreadsheet::readRows()
+     * already formats those into a plain string before this ever runs).
+     */
+    private function parseMonthYear(string $value, bool $endOfMonth): ?string
     {
         $value = trim($value);
         if ($value === '') {
             return null;
         }
 
-        $timestamp = strtotime($value);
+        $year = null;
+        $month = null;
 
-        if ($timestamp === false) {
-            throw new RuntimeException("Invalid date '{$value}'");
+        if (preg_match('/^(\d{1,2})\/(\d{4})$/', $value, $m)) {
+            $month = (int) $m[1];
+            $year = (int) $m[2];
+        } elseif (preg_match('/^(\d{4})[-\/](\d{1,2})$/', $value, $m)) {
+            $year = (int) $m[1];
+            $month = (int) $m[2];
+        } elseif (preg_match('/^([A-Za-z]{3,9})[\s-]+(\d{4})$/', $value, $m)) {
+            $parsed = strtotime("1 {$m[1]} {$m[2]}");
+            if ($parsed !== false) {
+                $month = (int) date('n', $parsed);
+                $year = (int) $m[2];
+            }
+        } elseif (preg_match('/^(\d{4})[\s-]+([A-Za-z]{3,9})$/', $value, $m)) {
+            $parsed = strtotime("1 {$m[2]} {$m[1]}");
+            if ($parsed !== false) {
+                $month = (int) date('n', $parsed);
+                $year = (int) $m[1];
+            }
         }
 
-        return date('Y-m-d', $timestamp);
+        if ($month === null || $year === null) {
+            $timestamp = strtotime($value);
+            if ($timestamp === false) {
+                throw new RuntimeException("Invalid date '{$value}'. Expected a month/year like MM/YYYY, \"Mar 2026\", or YYYY-MM.");
+            }
+            $month = (int) date('n', $timestamp);
+            $year = (int) date('Y', $timestamp);
+        }
+
+        if ($month < 1 || $month > 12 || $year < 1900 || $year > 2200) {
+            throw new RuntimeException("Invalid date '{$value}'. Expected a month/year like MM/YYYY, \"Mar 2026\", or YYYY-MM.");
+        }
+
+        $day = $endOfMonth ? (int) date('t', mktime(0, 0, 0, $month, 1, $year)) : 1;
+
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
     }
 
     private function slugify(string $value): string

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Button, Card, Select, TextArea, TextField } from '../components/ui'
+import { MonthYearPicker } from '../components/MonthYearPicker'
 import { api, apiErrorMessage } from '../lib/api'
 import type { Brand, Category, GstRate, HsnCode, Subcategory, Unit, VariantAttribute } from '../lib/types'
 import { ROUTES } from '../routes/routes'
@@ -511,6 +512,9 @@ export function ProductCreatePage() {
         length_cm: lengthCm || null,
         width_cm: widthCm || null,
         height_cm: heightCm || null,
+        manufacturing_date: manufacturingDate || null,
+        expiry_date: expiryDate || null,
+        expiry_applicable: expiryDate ? 1 : 0,
         returnable,
         return_window_days: returnable ? returnWindowDays || null : null,
         return_policy_description: returnPolicyDescription.trim() || null,
@@ -1018,8 +1022,8 @@ export function ProductCreatePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <TextField label="Manufacturing Date" type="date" value={manufacturingDate} onChange={(e) => setManufacturingDate(e.target.value)} />
-              <TextField label="Expiry Date" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+              <MonthYearPicker label="Manufacturing Date" mode="start" value={manufacturingDate} onChange={setManufacturingDate} />
+              <MonthYearPicker label="Expiry Date" mode="end" value={expiryDate} onChange={setExpiryDate} />
               <TextField label="Batch No" value={batchNo} onChange={(e) => setBatchNo(e.target.value)} placeholder="OPENING-001" />
             </div>
           </Card>
@@ -1393,19 +1397,19 @@ export function ProductCreatePage() {
                                 />
                               </td>
                               <td className="px-3 py-2">
-                                <input
-                                  type="date"
+                                <MonthYearPicker
+                                  compact
+                                  mode="start"
                                   value={row.manufacturingDate}
-                                  onChange={(e) => updateVariantRow(row.key, { manufacturingDate: e.target.value })}
-                                  className="w-28 rounded border border-slate-300 p-1 text-xs"
+                                  onChange={(v) => updateVariantRow(row.key, { manufacturingDate: v })}
                                 />
                               </td>
                               <td className="px-3 py-2">
-                                <input
-                                  type="date"
+                                <MonthYearPicker
+                                  compact
+                                  mode="end"
                                   value={row.expiryDate}
-                                  onChange={(e) => updateVariantRow(row.key, { expiryDate: e.target.value })}
-                                  className="w-28 rounded border border-slate-300 p-1 text-xs"
+                                  onChange={(v) => updateVariantRow(row.key, { expiryDate: v })}
                                 />
                               </td>
                               <td className="px-3 py-2">

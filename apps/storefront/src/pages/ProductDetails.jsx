@@ -38,6 +38,7 @@ import CartDrawer from '../components/CartDrawer'
 import CheckoutModal from '../components/CheckoutModal'
 import { addToCart, getCartCount, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist, toggleWishlist } from '../lib/wishlist'
+import { formatMonthYear } from '../lib/dateFormat'
 
 // In-memory session recently viewed products (temporary UI state, no localStorage)
 let inMemoryRecentlyViewed = []
@@ -377,7 +378,8 @@ export default function ProductDetails() {
     return 0
   }, [product, activeVariant, hasVariants])
 
-  const isUnavailable = !hasVariants || !hasPrice
+  const isExpired = Boolean(product?.is_expired)
+  const isUnavailable = !hasVariants || !hasPrice || isExpired
   const isOutOfStock = isUnavailable || stockAvailable <= 0
 
   // Image Gallery List (Variant images prioritized, then DB main images)
@@ -1068,7 +1070,12 @@ export default function ProductDetails() {
 
                   {/* STOCK STATUS */}
                   <div className="flex items-center gap-2 mb-5">
-                    {isUnavailable ? (
+                    {isExpired ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl">
+                        <span className="w-2 h-2 rounded-full bg-rose-500" />
+                        Expired — cannot be ordered
+                      </span>
+                    ) : isUnavailable ? (
                       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl">
                         <span className="w-2 h-2 rounded-full bg-gray-400" />
                         Currently Unavailable
@@ -1319,7 +1326,7 @@ export default function ProductDetails() {
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
-                        <span>{isUnavailable ? 'Unavailable' : isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
+                        <span>{isExpired ? 'Expired' : isUnavailable ? 'Unavailable' : isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}</span>
                       </button>
 
                       {/* Buy Now */}
@@ -1329,7 +1336,9 @@ export default function ProductDetails() {
                         disabled={isOutOfStock || isUnavailable}
                         className="w-full py-4 px-6 rounded-full bg-[#6C4EFF] hover:bg-[#4B2AC5] text-white font-sans font-semibold text-sm tracking-wide shadow-[0_8px_25px_rgba(108,78,255,0.35)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:scale-98"
                       >
-                        {isUnavailable ? (
+                        {isExpired ? (
+                          <span>Expired</span>
+                        ) : isUnavailable ? (
                           <span>Unavailable</span>
                         ) : (
                           <span className="flex items-center gap-1.5">
@@ -1448,6 +1457,8 @@ export default function ProductDetails() {
                   product.length_cm ||
                   product.country_of_origin ||
                   product.warranty_applicable === 1 ||
+                  product.manufacturing_date ||
+                  product.expiry_date ||
                   (Array.isArray(product.specifications) && product.specifications.length > 0)
                 ) ? (
                   <p className="text-gray-500 italic py-4">No additional specifications available for this product.</p>
@@ -1502,6 +1513,21 @@ export default function ProductDetails() {
                         <span className="font-bold text-gray-500">Warranty</span>
                         <span className="col-span-2 text-gray-900">
                           {product.warranty_period} {product.warranty_unit} {product.warranty_description && `(${product.warranty_description})`}
+                        </span>
+                      </div>
+                    )}
+                    {formatMonthYear(product.manufacturing_date) && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Manufactured</span>
+                        <span className="col-span-2 text-gray-900">{formatMonthYear(product.manufacturing_date)}</span>
+                      </div>
+                    )}
+                    {formatMonthYear(product.expiry_date) && (
+                      <div className="grid grid-cols-3 py-2.5">
+                        <span className="font-bold text-gray-500">Expiry</span>
+                        <span className={`col-span-2 font-semibold ${isExpired ? 'text-rose-600' : 'text-gray-900'}`}>
+                          {formatMonthYear(product.expiry_date)}
+                          {isExpired && ' · Expired'}
                         </span>
                       </div>
                     )}
@@ -1945,7 +1971,7 @@ export default function ProductDetails() {
                 disabled={isOutOfStock || isAddingToCart}
                 className="py-2.5 px-3.5 sm:px-5 rounded-xl border-2 border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-bg-alt)] font-bold text-xs sm:text-sm tracking-tight transition-colors cursor-pointer shrink-0 disabled:opacity-40"
               >
-                {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                {isExpired ? 'Expired' : isAddingToCart ? 'Adding...' : 'Add to Cart'}
               </button>
 
               {/* Buy Now Button */}

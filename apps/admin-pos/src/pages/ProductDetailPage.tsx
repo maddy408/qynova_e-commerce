@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SeoFields, seoFrom, type SeoValues } from '../components/SeoFields'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Badge, Button, Card, Modal, Spinner, TextArea, TextField } from '../components/ui'
+import { MonthYearPicker } from '../components/MonthYearPicker'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
+import { formatMonthYear } from '../lib/dateFormat'
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, stockStatus } from '../lib/stock'
 import type { Brand, Category, ProductDetail, ProductVariant, Subcategory, VariantAttribute } from '../lib/types'
 import { ROUTES } from '../routes/routes'
@@ -157,6 +159,7 @@ function ProductInformationSection({
   const [description, setDescription] = useState(product.description || '')
   const [tags, setTags] = useState(product.tags || '')
   const [seo, setSeo] = useState<SeoValues>(() => seoFrom(product as any))
+  const [manufacturingDate, setManufacturingDate] = useState((product as any).manufacturing_date ? String((product as any).manufacturing_date).slice(0, 10) : '')
   const [expiryDate, setExpiryDate] = useState((product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : '')
   const [isActive, setIsActive] = useState(Boolean(product.is_active))
   const [isPosEnabled, setIsPosEnabled] = useState(Boolean(product.is_pos_enabled))
@@ -188,6 +191,7 @@ function ProductInformationSection({
     setDescription(product.description || '')
     setTags(product.tags || '')
     setSeo(seoFrom(product as any))
+    setManufacturingDate((product as any).manufacturing_date ? String((product as any).manufacturing_date).slice(0, 10) : '')
     setExpiryDate((product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : '')
     setIsActive(Boolean(product.is_active))
     setIsPosEnabled(Boolean(product.is_pos_enabled))
@@ -217,6 +221,7 @@ function ProductInformationSection({
         meta_title: seo.meta_title.trim() || null,
         meta_description: seo.meta_description.trim() || null,
         seo_keywords: seo.seo_keywords.trim() || null,
+        manufacturing_date: manufacturingDate || null,
         expiry_date: expiryDate || null,
         expiry_applicable: expiryDate ? 1 : 0,
         is_active: isActive ? 1 : 0,
@@ -306,9 +311,16 @@ function ProductInformationSection({
           </div>
 
           <div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Manufacturing Date</span>
+            <span className="font-semibold text-slate-800">
+              {formatMonthYear((product as any).manufacturing_date) || 'Not Applicable'}
+            </span>
+          </div>
+
+          <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Expiry Date</span>
             <span className="font-semibold text-slate-800">
-              {(product as any).expiry_date ? String((product as any).expiry_date).slice(0, 10) : 'Not Applicable'}
+              {formatMonthYear((product as any).expiry_date) || 'Not Applicable'}
             </span>
           </div>
 
@@ -441,7 +453,8 @@ function ProductInformationSection({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <TextField label="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} />
-            <TextField label="Expiry Date" type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+            <MonthYearPicker label="Manufacturing Date" mode="start" value={manufacturingDate} onChange={setManufacturingDate} />
+            <MonthYearPicker label="Expiry Date" mode="end" value={expiryDate} onChange={setExpiryDate} />
             {returnable && (
               <TextField label="Return Window (Days)" type="number" value={returnDays} onChange={(e) => setReturnDays(e.target.value)} />
             )}

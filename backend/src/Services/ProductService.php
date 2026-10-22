@@ -624,11 +624,13 @@ final class ProductService
             return null;
         }
 
-        if (!$isStaff) {
-            if (!empty($product['expiry_date']) && strtotime((string) $product['expiry_date']) < strtotime(date('Y-m-d'))) {
-                return null;
-            }
-        }
+        // Customer-facing: an expired product stays visible (so the detail
+        // page can still show the dates and an "Expired" marking) but is
+        // flagged so the frontend blocks add-to-cart. Mirrors the same
+        // (ungated) expiry_date check CartService::addItem() already
+        // enforces server-side, so this flag never disagrees with what
+        // actually happens on an add-to-cart attempt.
+        $product['is_expired'] = !empty($product['expiry_date']) && (string) $product['expiry_date'] < date('Y-m-d');
 
         $realId = (int) $product['id'];
 
@@ -764,7 +766,7 @@ final class ProductService
                 short_description, description, bullet_points, tags, material,
                 length_cm, width_cm, height_cm, weight_grams, manufacturer, country_of_origin,
                 meta_title, meta_description, seo_keywords,
-                expiry_applicable, warranty_applicable, warranty_period, warranty_unit, warranty_description,
+                manufacturing_date, expiry_date, expiry_applicable, warranty_applicable, warranty_period, warranty_unit, warranty_description,
                 returnable, return_window_days, return_policy_description, replacement_available, refund_available,
                 shipping_required, cod_available,
                 is_active, is_pos_enabled, is_ecommerce_enabled, is_featured, is_trending, is_deal, show_discount
@@ -773,7 +775,7 @@ final class ProductService
                 :short_description, :description, :bullet_points, :tags, :material,
                 :length_cm, :width_cm, :height_cm, :weight_grams, :manufacturer, :country_of_origin,
                 :meta_title, :meta_description, :seo_keywords,
-                :expiry_applicable, :warranty_applicable, :warranty_period, :warranty_unit, :warranty_description,
+                :manufacturing_date, :expiry_date, :expiry_applicable, :warranty_applicable, :warranty_period, :warranty_unit, :warranty_description,
                 :returnable, :return_window_days, :return_policy_description, :replacement_available, :refund_available,
                 :shipping_required, :cod_available,
                 :is_active, :is_pos_enabled, :is_ecommerce_enabled, :is_featured, :is_trending, :is_deal, :show_discount
@@ -801,6 +803,8 @@ final class ProductService
             'meta_title' => $data['meta_title'] ?? null,
             'meta_description' => $data['meta_description'] ?? null,
             'seo_keywords' => $data['seo_keywords'] ?? null,
+            'manufacturing_date' => $data['manufacturing_date'] ?? null,
+            'expiry_date' => $data['expiry_date'] ?? null,
             'expiry_applicable' => (int) (bool) ($data['expiry_applicable'] ?? false),
             'warranty_applicable' => (int) (bool) ($data['warranty_applicable'] ?? false),
             'warranty_period' => $data['warranty_period'] ?? null,
@@ -881,7 +885,7 @@ final class ProductService
             'short_description', 'description', 'tags', 'material',
             'length_cm', 'width_cm', 'height_cm', 'weight_grams', 'manufacturer', 'country_of_origin',
             'meta_title', 'meta_description', 'seo_keywords',
-            'expiry_applicable', 'expiry_date', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
+            'manufacturing_date', 'expiry_applicable', 'expiry_date', 'warranty_applicable', 'warranty_period', 'warranty_unit', 'warranty_description',
             'returnable', 'return_window_days', 'return_policy_description', 'replacement_available', 'refund_available',
             'shipping_required', 'cod_available',
             'is_active', 'is_pos_enabled', 'is_ecommerce_enabled', 'is_featured', 'is_trending', 'is_deal', 'show_discount',
