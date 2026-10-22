@@ -39,15 +39,19 @@ final class OtpService
         )->execute(['phone' => $phone, 'purpose' => $purpose]);
 
         // Store the actual 6-digit OTP value directly, NOT a bcrypt hash
+        $now = date('Y-m-d H:i:s');
+        $expiresAt = date('Y-m-d H:i:s', time() + self::EXPIRY_SECONDS);
+
         $stmt = $this->pdo->prepare(
-            'INSERT INTO otp_verifications (phone, otp_hash, purpose, expires_at, ip_address)
-             VALUES (:phone, :otp, :purpose, DATE_ADD(NOW(), INTERVAL :ttl SECOND), :ip)'
+            'INSERT INTO otp_verifications (phone, otp_hash, purpose, created_at, expires_at, ip_address)
+             VALUES (:phone, :otp, :purpose, :created_at, :expires_at, :ip)'
         );
         $stmt->execute([
             'phone' => $phone,
             'otp' => $otp,
             'purpose' => $purpose,
-            'ttl' => self::EXPIRY_SECONDS,
+            'created_at' => $now,
+            'expires_at' => $expiresAt,
             'ip' => $_SERVER['REMOTE_ADDR'] ?? null,
         ]);
 
@@ -110,21 +114,22 @@ final class OtpService
         }
 
         $this->pdo->prepare(
-            "UPDATE otp_verifications SET status = 'VERIFIED', verified_at = NOW() WHERE id = :id"
-        )->execute(['id' => $row['id']]);
+            "UPDATE otp_verifications SET status = 'VERIFIED', verified_at = :verified_at WHERE id = :id"
+        )->execute(['id' => $row['id'], 'verified_at' => date('Y-m-d H:i:s')]);
 
         return true;
     }
 
     public function hasRecentlyVerified(string $phone, string $purpose, int $withinSeconds = 600): bool
     {
+        $since = date('Y-m-d H:i:s', time() - $withinSeconds);
         $stmt = $this->pdo->prepare(
             "SELECT 1 FROM otp_verifications
              WHERE phone = :phone AND purpose = :purpose AND status = 'VERIFIED'
-               AND verified_at >= DATE_SUB(NOW(), INTERVAL :seconds SECOND)
+               AND verified_at >= :since
              ORDER BY id DESC LIMIT 1"
         );
-        $stmt->execute(['phone' => $phone, 'purpose' => $purpose, 'seconds' => $withinSeconds]);
+        $stmt->execute(['phone' => $phone, 'purpose' => $purpose, 'since' => $since]);
 
         return $stmt->fetchColumn() !== false;
     }

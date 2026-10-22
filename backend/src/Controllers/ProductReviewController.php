@@ -16,22 +16,37 @@ final class ProductReviewController
     }
 
     /**
-     * Optional customer auth: returns customer claims array or null
+     * Require customer authentication: verifies JWT and ensures customer exists in database
      *
-     * @return array<string, mixed>|null
+     * @return array<string, mixed>
      */
-    private function getOptionalCustomer(): ?array
+    private function requireCustomer(): array
     {
         $token = Request::bearerToken();
         if ($token === null) {
-            return null;
+            Response::error('You must be logged in as a registered customer to submit a review.', 401);
         }
 
         try {
-            return JwtHelper::verify($token);
+            $claims = JwtHelper::verify($token);
         } catch (\Throwable) {
-            return null;
+            Response::error('Session expired or invalid. Please sign in again to write a review.', 401);
         }
+
+        $customerId = (int) ($claims['sub'] ?? 0);
+        if ($customerId <= 0) {
+            Response::error('Invalid customer session. Please sign in again.', 401);
+        }
+
+        $stmt = $this->pdo->prepare('SELECT id, name, email, phone FROM customers WHERE id = :id AND deleted_at IS NULL');
+        $stmt->execute(['id' => $customerId]);
+        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$customer) {
+            Response::error('Only verified registered customers can write reviews.', 403);
+        }
+
+        return $customer;
     }
 
     /**
@@ -42,7 +57,7 @@ final class ProductReviewController
         $id = (int) $productId;
 
         $stmt = $this->pdo->prepare(
-            'SELECT id, product_id, customer_id, customer_name, customer_avatar,
+            'SELECT id, product_id, customer_id, customer_name, customer_email, customer_avatar,
                     rating, title, comment, is_verified_purchase, helpful_count, created_at
              FROM customer_reviews
              WHERE product_id = :id AND status = "APPROVED" AND deleted_at IS NULL
@@ -89,8 +104,11 @@ final class ProductReviewController
             Response::error('Product not found', 404);
         }
 
+        // STRICT REQUIREMENT: Only authenticated customers present in DB can post reviews (no guest reviews)
+        $customer = $this->requireCustomer();
+        $customerId = (int) $customer['id'];
+
         $body = Request::json();
-        $customer = $this->getOptionalCustomer();
 
         $rating = isset($body['rating']) ? (int) $body['rating'] : 0;
         if ($rating < 1 || $rating > 5) {
@@ -107,45 +125,52 @@ final class ProductReviewController
             $title = null;
         }
 
+        // Customer Name
         $customerName = trim((string) ($body['customer_name'] ?? ''));
-        $customerId = null;
-
-        if ($customer !== null && !empty($customer['sub'])) {
-            $customerId = (int) $customer['sub'];
-            if ($customerName === '' && !empty($customer['name'])) {
-                $customerName = (string) $customer['name'];
-            }
-        }
-
         if ($customerName === '') {
-            $customerName = 'Verified Shopper';
+            $customerName = trim((string) ($customer['name'] ?? '')) ?: 'Verified Customer';
         }
 
-        // Verify if customer actually purchased this item
-        $isVerifiedPurchase = 1;
-        if ($customerId !== null) {
-            $orderCheck = $this->pdo->prepare(
-                "SELECT 1 FROM orders o
-                 JOIN order_items oi ON oi.order_id = o.id
-                 WHERE o.customer_id = :customer_id AND oi.product_id = :product_id
-                 LIMIT 1"
-            );
-            $orderCheck->execute(['customer_id' => $customerId, 'product_id' => $id]);
-            if ($orderCheck->fetch()) {
-                $isVerifiedPurchase = 1;
-            }
+        // Customer Email verification requirement
+        $customerEmail = trim((string) ($body['customer_email'] ?? ''));
+        if ($customerEmail === '') {
+            $customerEmail = trim((string) ($customer['email'] ?? ''));
+        }
+
+        if ($customerEmail === '' || !filter_var($customerEmail, FILTER_VALIDATE_EMAIL)) {
+            Response::error('A valid email address is required for review verification.', 422);
+        }
+
+        // If the customer in DB does not have an email stored yet, update their profile
+        if (empty($customer['email']) && !empty($customerEmail)) {
+            $updateCust = $this->pdo->prepare('UPDATE customers SET email = :email WHERE id = :id AND (email IS NULL OR email = "")');
+            $updateCust->execute(['email' => $customerEmail, 'id' => $customerId]);
+        }
+
+        // Check verified purchase: did this customer actually order this product?
+        $isVerifiedPurchase = 0;
+        $orderCheck = $this->pdo->prepare(
+            "SELECT 1 FROM orders o
+             JOIN order_items oi ON oi.order_id = o.id
+             WHERE o.customer_id = :customer_id AND oi.product_id = :product_id
+             LIMIT 1"
+        );
+        $orderCheck->execute(['customer_id' => $customerId, 'product_id' => $id]);
+        if ($orderCheck->fetch()) {
+            $isVerifiedPurchase = 1;
         }
 
         $insert = $this->pdo->prepare(
             'INSERT INTO customer_reviews 
-             (product_id, customer_id, customer_name, customer_avatar, rating, title, comment, is_verified_purchase, helpful_count, status, created_at)
-             VALUES (:product_id, :customer_id, :customer_name, :customer_avatar, :rating, :title, :comment, :is_verified_purchase, 0, "APPROVED", NOW())'
+             (product_id, customer_id, customer_name, customer_email, customer_avatar, rating, title, comment, is_verified_purchase, helpful_count, status, created_at)
+             VALUES (:product_id, :customer_id, :customer_name, :customer_email, :customer_avatar, :rating, :title, :comment, :is_verified_purchase, 0, "APPROVED", NOW())'
         );
 
         $insert->execute([
             'product_id' => $id,
             'customer_id' => $customerId,
             'customer_name' => $customerName,
+            'customer_email' => $customerEmail,
             'customer_avatar' => null,
             'rating' => $rating,
             'title' => $title,
@@ -160,7 +185,7 @@ final class ProductReviewController
         $newReview = $fetchStmt->fetch(PDO::FETCH_ASSOC);
 
         Response::json([
-            'message' => 'Thank you! Your review has been published.',
+            'message' => 'Thank you! Your verified review has been published.',
             'review' => $newReview,
         ], 201);
     }

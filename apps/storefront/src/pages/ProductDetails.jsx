@@ -102,6 +102,7 @@ export default function ProductDetails() {
   const [newReviewTitle, setNewReviewTitle] = useState('')
   const [newReviewComment, setNewReviewComment] = useState('')
   const [newReviewName, setNewReviewName] = useState('')
+  const [newReviewEmail, setNewReviewEmail] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
   const [votedHelpfulIds, setVotedHelpfulIds] = useState([])
 
@@ -647,22 +648,39 @@ export default function ProductDetails() {
     }
   }
 
-  // Open review modal
+  // Open review modal - requires logged-in customer account
   const handleOpenWriteReview = () => {
+    if (!customer) {
+      showToast('Please sign in to your account to write a review.')
+      navigate(`/customer/login?redirect=${encodeURIComponent(location.pathname + location.search)}`)
+      return
+    }
     setNewReviewRating(5)
     setNewReviewTitle('')
     setNewReviewComment('')
     setNewReviewName(customer?.name || '')
+    setNewReviewEmail(customer?.email || '')
     setIsWriteReviewOpen(true)
   }
 
   // Submit new review
   const handleSubmitReview = async (e) => {
     e?.preventDefault()
+    if (!customer) {
+      showToast('Please sign in to submit a review.')
+      navigate(`/customer/login?redirect=${encodeURIComponent(location.pathname + location.search)}`)
+      return
+    }
     if (!newReviewComment.trim()) {
       showToast('Please enter your review comments.')
       return
     }
+    const cleanEmail = newReviewEmail.trim()
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      showToast('Please provide a valid email address for review verification.')
+      return
+    }
+
     setIsSubmittingReview(true)
     try {
       const res = await api.post(`/products/${product?.id}/reviews`, {
@@ -670,6 +688,7 @@ export default function ProductDetails() {
         title: newReviewTitle.trim() || undefined,
         comment: newReviewComment.trim(),
         customer_name: newReviewName.trim() || customer?.name || 'Verified Customer',
+        customer_email: cleanEmail,
       })
       if (res.data?.review) {
         setReviews((prev) => [res.data.review, ...prev])
@@ -679,7 +698,7 @@ export default function ProductDetails() {
         setNewReviewTitle('')
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to submit review. Please try again.')
+      showToast(err.response?.data?.error || err.response?.data?.message || 'Failed to submit review. Please try again.')
     } finally {
       setIsSubmittingReview(false)
     }
@@ -2106,20 +2125,39 @@ export default function ProductDetails() {
                 </div>
               </div>
 
-              {/* Reviewer Name */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Your Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newReviewName}
-                  onChange={(e) => setNewReviewName(e.target.value)}
-                  placeholder="e.g. Nandini Iyer"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--color-border-subtle)] text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] bg-white"
-                />
+              {/* Reviewer Name and Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Your Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newReviewName}
+                    onChange={(e) => setNewReviewName(e.target.value)}
+                    placeholder="e.g. Nandini Iyer"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--color-border-subtle)] text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Your Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newReviewEmail}
+                    onChange={(e) => setNewReviewEmail(e.target.value)}
+                    placeholder="e.g. nandini@gmail.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--color-border-subtle)] text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] bg-white"
+                  />
+                </div>
               </div>
+              <p className="text-[11px] text-gray-500 -mt-1">
+                Your email is used to verify you as a genuine customer in our database.
+              </p>
 
               {/* Headline / Title */}
               <div>

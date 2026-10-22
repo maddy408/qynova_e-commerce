@@ -84,7 +84,10 @@ export default function Home() {
 
   // Sync wishlist with MySQL database
   useEffect(() => {
-    fetchWishlist().then((items) => setWishlistIds(items.map((i) => i.product_id || i.id)))
+    fetchWishlist().then((res) => {
+      const ids = res?.productIds || (Array.isArray(res?.items) ? res.items.map((i) => i.product_id || i.id) : (Array.isArray(res) ? res.map((i) => i.product_id || i.id) : []))
+      setWishlistIds(ids)
+    }).catch(() => {})
     const handleSync = () => setWishlistIds(getWishlistIds())
     window.addEventListener('wishlist-updated', handleSync)
     return () => window.removeEventListener('wishlist-updated', handleSync)
@@ -330,20 +333,22 @@ export default function Home() {
         />
 
         {/* 8. DYNAMIC DATABASE-DRIVEN HOME SECTIONS (Configured in MySQL home_sections) */}
-        {sections.map((section) => (
-          <DynamicHomeSection
-            key={section.id}
-            section={section}
-            products={sectionProductsMap[section.id] || []}
-            isLoading={isLoadingSections}
-            categories={categories}
-            middleBanners={middleBanners}
-            isBannersLoading={isBannersLoading}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onAddToCart={handleAddToCart}
-          />
-        ))}
+        {sections
+          .filter((section) => (section.type !== 'BEST_SELLERS' && section.section_key !== 'best_sellers') || !bestSellers.length)
+          .map((section) => (
+            <DynamicHomeSection
+              key={section.id}
+              section={section}
+              products={sectionProductsMap[section.id] || []}
+              isLoading={isLoadingSections}
+              categories={categories}
+              middleBanners={middleBanners}
+              isBannersLoading={isBannersLoading}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
+              onAddToCart={handleAddToCart}
+            />
+          ))}
 
         {/* Standalone middle banners when no existing home section of type BANNER handles them */}
         {!sections.some((s) => s.type === 'BANNER') &&

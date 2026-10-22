@@ -64,8 +64,10 @@ foreach ($files as $file) {
                 str_contains($msg, 'Duplicate column')
                 || str_contains($msg, 'already exists')
                 || str_contains($msg, 'Duplicate key')
+                || str_contains($msg, 'Duplicate foreign key')
+                || str_contains($msg, 'Duplicate entry')
             ) {
-                // Column or key was already present, safe to continue
+                // Column, key, or constraint was already present, safe to continue
                 continue;
             }
             throw $e;

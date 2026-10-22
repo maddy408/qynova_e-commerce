@@ -12,16 +12,19 @@ function resolveApiBaseUrl(): string {
     }
   }
 
-  const envUrl = import.meta.env.VITE_API_BASE_URL
-  if (envUrl && envUrl.trim() !== '' && !envUrl.includes('your-production-domain')) {
-    return envUrl.trim().replace(/\/+$/, '')
-  }
-
-  if (typeof window !== 'undefined' && window.location.origin) {
+  if (typeof window !== 'undefined' && window.location.hostname) {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:8080/api'
     }
+    if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(window.location.hostname)) {
+      return `http://${window.location.hostname}:8080/api`
+    }
     return `${window.location.origin}/api`
+  }
+
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  if (envUrl && envUrl.trim() !== '' && !envUrl.includes('your-production-domain')) {
+    return envUrl.trim().replace(/\/+$/, '')
   }
 
   return 'http://localhost:8080/api'
