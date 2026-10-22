@@ -518,7 +518,15 @@ final class CustomerAuthController
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($existing) {
-            // Update name & customer_type if provided
+            // A customer with this phone already exists. Don't silently
+            // rename/retype them just because a cashier typo'd into an
+            // existing number while meaning to create someone new — make
+            // the caller choose explicitly (select the existing customer,
+            // or confirm they really want to overwrite the details).
+            if (!(bool) ($body['confirm_overwrite'] ?? false)) {
+                Response::error('A customer with this phone number already exists.', 409, ['existing_customer' => $existing]);
+            }
+
             $updateStmt = $this->pdo->prepare('UPDATE customers SET name = :name, customer_type = :type WHERE id = :id');
             $updateStmt->execute(['name' => $name, 'type' => $type, 'id' => $existing['id']]);
             $existing['name'] = $name;

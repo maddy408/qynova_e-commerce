@@ -284,6 +284,7 @@ export function SalePage() {
   const [newCustEmail, setNewCustEmail] = useState('')
   const [newCustType, setNewCustType] = useState<Customer['customer_type']>('NORMAL')
   const [creatingCust, setCreatingCust] = useState(false)
+  const [duplicateCustomer, setDuplicateCustomer] = useState<Customer | null>(null)
 
   // Payment & Bill Discount State (T05 & T06)
   const [showPayment, setShowPayment] = useState(false)
@@ -1042,7 +1043,7 @@ export function SalePage() {
   }
 
   // Create Quick Customer
-  async function handleCreateCustomer(e: FormEvent) {
+  async function handleCreateCustomer(e: FormEvent, confirmOverwrite = false) {
     e.preventDefault()
     setCreatingCust(true)
     setError('')
@@ -1053,22 +1054,42 @@ export function SalePage() {
         phone: newCustPhone.trim(),
         email: newCustEmail.trim() || null,
         customer_type: newCustType,
+        confirm_overwrite: confirmOverwrite,
       })
       const created = res.data?.customer || res.data?.data
       if (created) {
-        setAllCustomers((prev) => [created, ...prev])
+        setAllCustomers((prev) => [created, ...prev.filter((c) => c.id !== created.id)])
         setCustomer(created)
         setPriceType(created.customer_type)
         setShowNewCustModal(false)
+        setDuplicateCustomer(null)
         setNewCustName('')
         setNewCustPhone('')
         setNewCustEmail('')
       }
     } catch (err: any) {
-      setError(apiErrorMessage(err, 'Failed to create customer'))
+      if (err?.response?.status === 409 && err.response?.data?.existing_customer) {
+        setDuplicateCustomer(err.response.data.existing_customer)
+      } else {
+        setError(apiErrorMessage(err, 'Failed to create customer'))
+      }
     } finally {
       setCreatingCust(false)
     }
+  }
+
+  function handleUseExistingCustomer() {
+    if (!duplicateCustomer) return
+    setAllCustomers((prev) =>
+      prev.some((c) => c.id === duplicateCustomer.id) ? prev : [duplicateCustomer, ...prev]
+    )
+    setCustomer(duplicateCustomer)
+    setPriceType(duplicateCustomer.customer_type)
+    setShowNewCustModal(false)
+    setDuplicateCustomer(null)
+    setNewCustName('')
+    setNewCustPhone('')
+    setNewCustEmail('')
   }
 
   // Filter category label helper
@@ -2448,68 +2469,102 @@ export function SalePage() {
       {showNewCustModal && (
         <Modal
           title="Create New Customer"
-          onClose={() => setShowNewCustModal(false)}
+          onClose={() => {
+            setShowNewCustModal(false)
+            setDuplicateCustomer(null)
+          }}
           width="sm"
         >
-          <form onSubmit={handleCreateCustomer} className="space-y-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Customer Name *</label>
-              <input
-                type="text"
-                required
-                value={newCustName}
-                onChange={(e) => setNewCustName(e.target.value)}
-                placeholder="e.g. Rahul Sharma"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
-              />
+          {duplicateCustomer ? (
+            <div className="space-y-3">
+              <Alert tone="amber">A customer with this phone number already exists.</Alert>
+              <div className="rounded-xl border border-slate-200 p-3 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-slate-900 block text-sm">{duplicateCustomer.name}</span>
+                  <span className="text-xs text-slate-500">{duplicateCustomer.phone}</span>
+                </div>
+                <Badge tone="purple">{duplicateCustomer.customer_type}</Badge>
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button
+                  variant="secondary"
+                  onClick={(e: any) => handleCreateCustomer(e, true)}
+                  disabled={creatingCust}
+                >
+                  {creatingCust ? 'Saving...' : 'Edit Details Anyway'}
+                </Button>
+                <Button onClick={handleUseExistingCustomer}>Use This Customer</Button>
+              </div>
             </div>
+          ) : (
+            <form onSubmit={handleCreateCustomer} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Customer Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newCustName}
+                  onChange={(e) => setNewCustName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number *</label>
-              <input
-                type="tel"
-                required
-                value={newCustPhone}
-                onChange={(e) => setNewCustPhone(e.target.value)}
-                placeholder="e.g. 9876543210"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number *</label>
+                <input
+                  type="tel"
+                  required
+                  value={newCustPhone}
+                  onChange={(e) => setNewCustPhone(e.target.value)}
+                  placeholder="e.g. 9876543210"
+                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Email (Optional)</label>
-              <input
-                type="email"
-                value={newCustEmail}
-                onChange={(e) => setNewCustEmail(e.target.value)}
-                placeholder="e.g. rahul@example.com"
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email (Optional)</label>
+                <input
+                  type="email"
+                  value={newCustEmail}
+                  onChange={(e) => setNewCustEmail(e.target.value)}
+                  placeholder="e.g. rahul@example.com"
+                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Customer Type</label>
-              <select
-                value={newCustType}
-                onChange={(e) => setNewCustType(e.target.value as any)}
-                className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
-              >
-                <option value="NORMAL">Normal</option>
-                <option value="RETAIL">Retail</option>
-                <option value="WHOLESALE">Wholesale</option>
-                <option value="CUSTOMER_WISE">Customer-Wise</option>
-              </select>
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Customer Type</label>
+                <select
+                  value={newCustType}
+                  onChange={(e) => setNewCustType(e.target.value as any)}
+                  className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-[var(--color-sale-accent)] focus:outline-hidden"
+                >
+                  <option value="NORMAL">Normal</option>
+                  <option value="RETAIL">Retail</option>
+                  <option value="WHOLESALE">Wholesale</option>
+                  <option value="CUSTOMER_WISE">Customer-Wise</option>
+                </select>
+              </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <Button variant="secondary" onClick={() => setShowNewCustModal(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={creatingCust}>
-                {creatingCust ? 'Creating...' : 'Save Customer'}
-              </Button>
-            </div>
-          </form>
+              {error && <Alert tone="red">{error}</Alert>}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowNewCustModal(false)
+                    setDuplicateCustomer(null)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={creatingCust}>
+                  {creatingCust ? 'Creating...' : 'Save Customer'}
+                </Button>
+              </div>
+            </form>
+          )}
         </Modal>
       )}
 
