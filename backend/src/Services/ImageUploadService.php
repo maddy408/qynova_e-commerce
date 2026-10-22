@@ -36,9 +36,6 @@ final class ImageUploadService
     public function __construct(?R2Storage $r2 = null)
     {
         $this->r2 = $r2 ?? R2Storage::fromConfig();
-        if ($this->r2 === null) {
-            throw new RuntimeException('Cloudflare R2 is required for all image uploads. Local disk storage is disabled.');
-        }
     }
 
     /**
@@ -158,17 +155,27 @@ final class ImageUploadService
 
     public function usesR2(): bool
     {
-        return true;
+        return $this->r2 !== null;
     }
 
-    /** Store bytes strictly in Cloudflare R2; returns public CDN URL. */
+    /** Store bytes in R2 or on local disk; returns what goes into the DB. */
     private function put(string $key, string $bytes, string $contentType): string
     {
         if ($this->r2 !== null) {
             return $this->r2->put($key, $bytes, $contentType);
         }
 
-        throw new RuntimeException('Cloudflare R2 is required. Local disk uploads are permanently disabled.');
+        $relative = "uploads/{$key}";
+        $full = dirname(__DIR__, 2) . "/public/{$relative}";
+        $dir = dirname($full);
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new RuntimeException('Could not create upload directory');
+        }
+        if (file_put_contents($full, $bytes) === false) {
+            throw new RuntimeException('Could not save uploaded image file');
+        }
+
+        return $relative;
     }
 
     private function decode(string $raw): ?\GdImage
