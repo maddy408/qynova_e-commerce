@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Card, Spinner } from '../components/ui'
-import { api, getApiOrigin } from '../lib/api'
+import { api } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
 interface DashboardSummary {
@@ -97,12 +97,6 @@ function formatCurrency(value: string | number) {
   })}`
 }
 
-function imageUrl(path: string | null | undefined) {
-  if (!path) return null
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${getApiOrigin()}/${path.replace(/^\/+/, '')}`
-}
-
 function formatRelativeTime(dateStr: string) {
   if (!dateStr) return 'Just now'
   const date = new Date(dateStr.replace(' ', 'T'))
@@ -133,20 +127,6 @@ function getCategoryIcon(name: string) {
   if (lower.includes('combo') || lower.includes('offer')) return '🎁'
   if (lower.includes('store') || lower.includes('util')) return '📦'
   return '🧴'
-}
-
-function getProductFallbackIcon(name: string) {
-  const lower = name.toLowerCase()
-  if (lower.includes('tomato')) return '🍅'
-  if (lower.includes('potato')) return '🥔'
-  if (lower.includes('onion')) return '🧅'
-  if (lower.includes('carrot')) return '🥕'
-  if (lower.includes('bean')) return '🫘'
-  if (lower.includes('scrunch') || lower.includes('hair')) return '🎀'
-  if (lower.includes('handbag') || lower.includes('bag')) return '👜'
-  if (lower.includes('car') || lower.includes('toy')) return '🏎️'
-  if (lower.includes('glam') || lower.includes('beauty')) return '💄'
-  return '📦'
 }
 
 function MiniBars({ color }: { color: string }) {
@@ -1428,34 +1408,18 @@ export function DashboardPage() {
               {/* 5 Top Selling Products Horizontal Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 my-3">
                 {popularItems.slice(0, 5).map((item, idx) => {
-                  const img = imageUrl(item.primary_image)
                   return (
                     <div
                       key={item.id}
                       onClick={() => navigate(ROUTES.PRODUCT_DETAIL(item.id))}
-                      className="group relative rounded-xl border border-slate-100 bg-white p-2 text-center hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
+                      className="group relative rounded-xl border border-slate-100 bg-white p-2.5 pt-7 text-center hover:border-purple-300 hover:shadow-sm transition-all cursor-pointer flex flex-col justify-between"
                     >
                       {/* Rank Badge */}
                       <span className="absolute top-1.5 left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white shadow-xs">
                         {idx + 1}
                       </span>
 
-                      {/* Product Image / Icon */}
-                      <div className="h-16 w-full flex items-center justify-center overflow-hidden rounded-lg bg-slate-50 mt-1 mb-1.5">
-                        {img ? (
-                          <img
-                            src={img}
-                            alt={item.name}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                        ) : (
-                          <span className="text-2xl select-none">
-                            {getProductFallbackIcon(item.name)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Product Name */}
+                      {/* Product Name (text/numbers only, no image) */}
                       <div className="font-bold text-xs text-slate-800 truncate" title={item.name}>
                         {item.name}
                       </div>

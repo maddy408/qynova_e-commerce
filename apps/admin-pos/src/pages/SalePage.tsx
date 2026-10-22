@@ -1478,24 +1478,23 @@ export function SalePage() {
                     className="flex flex-col justify-between rounded-2xl border border-slate-400/90 hover:border-purple-600 hover:shadow-md transition-all duration-200 bg-white p-3 shadow-xs group relative"
                   >
                     <div>
-                      {/* Product Thumbnail / Image Container */}
-                      <div className="mb-2.5 flex h-32 w-full items-center justify-center rounded-xl bg-slate-50/70 border border-slate-200 relative overflow-hidden p-2 group-hover:scale-[1.01] transition-transform">
+                      {/* Small thumbnail (at most) + stock badge — large product
+                          images are intentionally not shown in the POS grid. */}
+                      <div className="mb-2 flex items-center justify-between gap-2">
                         {p.primary_image ? (
                           <img
                             src={imageUrl(p.primary_image) || p.primary_image}
                             alt={p.product_name}
-                            className="h-full w-full object-contain drop-shadow-xs"
+                            className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 bg-slate-50/70 object-cover"
                           />
                         ) : (
-                          <div className="flex flex-col items-center justify-center text-center p-2">
-                            <span className="text-2xl opacity-40">🛍️</span>
-                            <span className="text-[10px] font-bold tracking-wider text-slate-400 mt-1">{p.product_name.slice(0, 6)}</span>
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50/70">
+                            <span className="text-sm opacity-40">🛍️</span>
                           </div>
                         )}
 
-                        {/* In Stock / Low Stock / Out of Stock Badge */}
                         <span
-                          className={`absolute top-2 right-2 rounded-full px-2.5 py-0.5 text-[10px] font-semibold shadow-xs ${
+                          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-semibold shadow-xs ${
                             outOfStock
                               ? 'bg-rose-500 text-white'
                               : status === 'LOW_STOCK'
