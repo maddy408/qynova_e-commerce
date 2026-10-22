@@ -247,7 +247,7 @@ export async function fetchDeliverySettings(forceRefresh = false) {
 
 export function resolveImageUrl(path) {
   if (!path) return ''
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('/images/')) {
     return path
   }
   return `${env.API_ORIGIN}/${path.replace(/^\//, '')}`

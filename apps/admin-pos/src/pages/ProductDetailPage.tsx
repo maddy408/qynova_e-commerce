@@ -8,7 +8,7 @@ import type { Brand, Category, ProductDetail, ProductVariant, Subcategory, Varia
 import { ROUTES } from '../routes/routes'
 
 function imageUrl(path: string) {
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/images/')) return path
   return `${getApiOrigin()}/${path}`
 }
 
