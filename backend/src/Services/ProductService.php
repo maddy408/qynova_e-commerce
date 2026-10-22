@@ -97,21 +97,15 @@ final class ProductService
                     -- parseVariantsSummary() below turns it back into a
                     -- clean nested structure before the response goes out.
                     (SELECT GROUP_CONCAT(
-                        CONCAT_WS('\x1f', sub.attr_name, sub.attr_value, COALESCE(sub.color_hex, ''), sub.in_stock)
+                        DISTINCT CONCAT_WS('\x1f', va.name, vav.value, COALESCE(vav.color_hex, ''), IF(COALESCE(i.available, 0) > 0, 1, 0))
                         SEPARATOR '\x1e'
                      )
-                     FROM (
-                        SELECT va.name AS attr_name, vav.value AS attr_value, vav.color_hex AS color_hex,
-                               MAX(CASE WHEN COALESCE(i.available, 0) > 0 THEN 1 ELSE 0 END) AS in_stock
-                        FROM product_variants v
-                        JOIN product_variant_values pvv ON pvv.variant_id = v.id
-                        JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
-                        JOIN variant_attributes va ON va.id = vav.attribute_id
-                        LEFT JOIN inventory i ON i.variant_id = v.id
-                        WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
-                        GROUP BY va.name, vav.value, vav.color_hex
-                        ORDER BY va.sort_order, vav.sort_order
-                     ) sub
+                     FROM product_variants v
+                     JOIN product_variant_values pvv ON pvv.variant_id = v.id
+                     JOIN variant_attribute_values vav ON vav.id = pvv.attribute_value_id
+                     JOIN variant_attributes va ON va.id = vav.attribute_id
+                     LEFT JOIN inventory i ON i.variant_id = v.id
+                     WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}
                     ) AS variants_summary_raw
              FROM products p
              LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
