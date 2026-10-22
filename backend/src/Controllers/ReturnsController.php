@@ -215,6 +215,44 @@ final class ReturnsController
         }
     }
 
+    /** Admin "Return Mapping" tool — list/search/filter products by their returnable flag. */
+    public function mappingProducts(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        Response::json($this->returnService->mappingProducts([
+            'search' => Request::query('search', ''),
+            'returnable' => Request::query('returnable', null),
+            'page' => (int) Request::query('page', '1'),
+            'limit' => (int) Request::query('limit', '50'),
+        ]));
+    }
+
+    /** Admin "Return Mapping" tool — bulk enable/disable/clear-window across selected products. */
+    public function updateMapping(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+        $productIds = array_map('intval', (array) ($body['product_ids'] ?? []));
+        $returnable = array_key_exists('returnable', $body) && $body['returnable'] !== null
+            ? (bool) $body['returnable']
+            : null;
+        $clearWindow = (bool) ($body['clear_window'] ?? false);
+        $returnWindowDays = isset($body['return_window_days']) && $body['return_window_days'] !== ''
+            ? (int) $body['return_window_days']
+            : null;
+
+        try {
+            $updated = $this->returnService->updateMapping($productIds, $returnable, $clearWindow, $returnWindowDays);
+            Response::json(['updated' => $updated]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
     public function indexSaleReturns(): void
     {
         $claims = JwtAuthMiddleware::authenticate();

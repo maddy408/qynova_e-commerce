@@ -1427,4 +1427,130 @@ final class ReturnService
             throw $e;
         }
     }
+
+    /**
+     * Admin "Return Mapping" tool — a searchable/filterable view over the
+     * WHOLE product catalog's returnable/return_window_days flags (the
+     * mapping IS those two columns on `products`; there's no separate
+     * mapping table). Distinct from list()/find() above, which are about
+     * return REQUESTS, not products.
+     *
+     * @param array{search?: string, returnable?: string, page?: int, limit?: int} $filters
+     * @return array{items: list<array<string, mixed>>, total: int, page: int, limit: int}
+     */
+    public function mappingProducts(array $filters = []): array
+    {
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $limit = min(100, max(1, (int) ($filters['limit'] ?? 50)));
+        $offset = ($page - 1) * $limit;
+
+        $where = ['p.deleted_at IS NULL'];
+        $params = [];
+
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $where[] = '(p.name LIKE :search_name OR p.product_code LIKE :search_code)';
+            $params['search_name'] = '%' . $search . '%';
+            $params['search_code'] = '%' . $search . '%';
+        }
+
+        $returnableFilter = $filters['returnable'] ?? null;
+        if ($returnableFilter === '1' || $returnableFilter === true) {
+            $where[] = 'p.returnable = 1';
+        } elseif ($returnableFilter === '0' || $returnableFilter === false) {
+            $where[] = 'p.returnable = 0';
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $countStmt = $this->pdo->prepare("SELECT COUNT(*) FROM products p WHERE {$whereSql}");
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
+
+        $stmt = $this->pdo->prepare(
+            "SELECT p.id, p.name, p.product_code, p.returnable, p.return_window_days, p.return_policy_description,
+                    b.name AS brand_name
+             FROM products p
+             LEFT JOIN brands b ON b.id = p.brand_id AND b.deleted_at IS NULL
+             WHERE {$whereSql}
+             ORDER BY p.name ASC
+             LIMIT :limit OFFSET :offset"
+        );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue('limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue('offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => $stmt->fetchAll(),
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ];
+    }
+
+    /**
+     * Bulk-set returnable/return_window_days across many products at once
+     * (the "enable / disable / cancel mapping" bulk actions). A single
+     * UPDATE over `WHERE id IN (...)` rather than looping
+     * ProductService::update() per id, which does a full product find()
+     * first — too heavy to repeat over a bulk selection that could be
+     * hundreds of rows.
+     *
+     * $returnable: true to enable, false to disable, null to leave as-is.
+     * $clearWindow: true resets return_window_days to NULL (falls back to
+     * the default 7-day window via eligibilityForOrder() when returnable).
+     * $returnWindowDays: an explicit window to set (ignored if $clearWindow).
+     *
+     * @param list<int> $productIds
+     */
+    public function updateMapping(array $productIds, ?bool $returnable, bool $clearWindow, ?int $returnWindowDays): int
+    {
+        $productIds = array_values(array_unique(array_filter(array_map('intval', $productIds), fn ($id) => $id > 0)));
+        if ($productIds === []) {
+            throw new RuntimeException('Select at least one product');
+        }
+
+        if ($returnWindowDays !== null && $returnWindowDays < 0) {
+            throw new RuntimeException('Return Window (Days) must be a non-negative whole number');
+        }
+
+        if ($returnable === true && !$clearWindow && $returnWindowDays !== null && $returnWindowDays <= 0) {
+            throw new RuntimeException('Return Window (Days) must be a positive number when enabling returns');
+        }
+
+        $sets = [];
+        $params = [];
+
+        if ($returnable !== null) {
+            $sets[] = 'returnable = :returnable';
+            $params['returnable'] = (int) $returnable;
+        }
+
+        if ($clearWindow) {
+            $sets[] = 'return_window_days = NULL';
+        } elseif ($returnWindowDays !== null) {
+            $sets[] = 'return_window_days = :return_window_days';
+            $params['return_window_days'] = $returnWindowDays;
+        }
+
+        if ($sets === []) {
+            throw new RuntimeException('Nothing to update — choose enable, disable, a window, or clear');
+        }
+
+        $placeholders = [];
+        foreach ($productIds as $i => $id) {
+            $key = "id_{$i}";
+            $placeholders[] = ":{$key}";
+            $params[$key] = $id;
+        }
+
+        $sql = 'UPDATE products SET ' . implode(', ', $sets) . ' WHERE id IN (' . implode(',', $placeholders) . ') AND deleted_at IS NULL';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount();
+    }
 }

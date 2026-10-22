@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Button, Modal, Spinner } from '../components/ui'
+import { ReturnMappingPanel } from '../components/ReturnMappingPanel'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 
 // ================= TYPES & INTERFACES =================
@@ -160,6 +161,11 @@ export function ReturnsPage() {
     approved_processing: { count: 7, today: 1 },
     completed: { count: 5, today: 1 },
   })
+
+  // Top-level section: return REQUESTS (existing table below) vs the
+  // product-wide returnable MAPPING tool (separate dataset — products,
+  // not return requests — so it gets its own view, not another status tab).
+  const [mainView, setMainView] = useState<'requests' | 'mapping'>('requests')
 
   // List & Filter States
   const [activeTab, setActiveTab] = useState<'all' | 'pending_review' | 'approved' | 'completed' | 'rejected'>('all')
@@ -652,6 +658,32 @@ export function ReturnsPage() {
         </div>
       </div>
 
+      {/* ================= TOP-LEVEL SECTION TOGGLE ================= */}
+      <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setMainView('requests')}
+          className={`px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            mainView === 'requests' ? 'bg-[#6366f1] text-white' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          Return Requests
+        </button>
+        <button
+          type="button"
+          onClick={() => setMainView('mapping')}
+          className={`px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+            mainView === 'mapping' ? 'bg-[#6366f1] text-white' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          Return Mapping
+        </button>
+      </div>
+
+      {mainView === 'mapping' && <ReturnMappingPanel />}
+
+      {mainView === 'requests' && (
+        <>
       {/* ================= ALERTS ================= */}
       {actionSuccess && (
         <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-between animate-in fade-in">
@@ -1687,6 +1719,8 @@ export function ReturnsPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* ================= NEW RETURN MODAL ================= */}
       {showNewReturnModal && (
