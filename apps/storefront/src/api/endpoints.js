@@ -60,6 +60,7 @@ export const ENDPOINTS = {
 
   ORDERS: {
     CHECKOUT: '/orders/checkout',
+    PREVIEW: '/orders/preview',
     CANCEL: (id) => `/orders/${id}/cancel`,
     MY_ORDERS: '/customers/orders',
     BY_ID: (id) => `/orders/${id}`,

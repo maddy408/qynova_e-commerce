@@ -47,6 +47,14 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [gpsSuccessBadge, setGpsSuccessBadge] = useState(null)
   const [saveAddressToProfile, setSaveAddressToProfile] = useState(false)
 
+  // Delivery Management: real distance/weight-based quote for the
+  // entered pincode + actual cart, once the pincode is a valid 6
+  // digits — see DeliveryCalculationService on the backend. Replaces
+  // the flat estimate CartDrawer seeded cartData.deliveryCharge with.
+  const [deliveryQuote, setDeliveryQuote] = useState(null)
+  const [isCheckingDelivery, setIsCheckingDelivery] = useState(false)
+  const [deliveryCheckError, setDeliveryCheckError] = useState('')
+
   // Prefill authenticated customer details from MySQL or stored GPS location
   useEffect(() => {
     if (isOpen) {
@@ -185,13 +193,54 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
     }
   }, [isOpen])
 
+  // Real delivery quote (distance/type/ETA/₹ charge) for the entered
+  // pincode + actual cart — debounced so it doesn't fire on every
+  // keystroke, and only once the pincode looks like a real 6-digit PIN.
+  useEffect(() => {
+    if (!isOpen) return
+    const pincode = formData.pincode.trim()
+    const cartItems = cartData?.items || []
+
+    if (!/^[0-9]{6}$/.test(pincode) || cartItems.length === 0) {
+      setDeliveryQuote(null)
+      setDeliveryCheckError('')
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setIsCheckingDelivery(true)
+      setDeliveryCheckError('')
+      api
+        .post(ENDPOINTS.ORDERS.PREVIEW, {
+          items: cartItems.map((item) => ({
+            variant_id: item.variant_id || item.variantId || item.id,
+            quantity: Number(item.quantity) || 1,
+          })),
+          pincode,
+        })
+        .then((res) => setDeliveryQuote(res.data))
+        .catch((err) => {
+          setDeliveryQuote(null)
+          setDeliveryCheckError(err.response?.data?.error || 'Could not check delivery for this pincode.')
+        })
+        .finally(() => setIsCheckingDelivery(false))
+    }, 500)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, formData.pincode, cartData?.items])
+
   if (!isOpen) return null
 
   const items = cartData?.items || []
   const subtotal = Number(cartData?.subtotal) || 0
   const discountAmount = Number(cartData?.discountAmount) || 0
-  const deliveryCharge = Number(cartData?.deliveryCharge) || 0
-  const grandTotal = Number(cartData?.grandTotal) || Math.max(0, subtotal - discountAmount + deliveryCharge)
+  // Once a real quote has come back for the entered pincode, it replaces
+  // the flat estimate CartDrawer seeded cartData.deliveryCharge with.
+  const deliveryCharge = deliveryQuote ? Number(deliveryQuote.shipping_total) || 0 : Number(cartData?.deliveryCharge) || 0
+  const grandTotal = deliveryQuote
+    ? Number(deliveryQuote.grand_total) || Math.max(0, subtotal - discountAmount + deliveryCharge)
+    : Number(cartData?.grandTotal) || Math.max(0, subtotal - discountAmount + deliveryCharge)
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -668,6 +717,55 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                       {errors.pincode && <p className="text-[10px] text-red-500 mt-1">{errors.pincode}</p>}
                     </div>
                   </div>
+
+                  {/* Delivery Management: real distance/weight-based quote for this pincode */}
+                  {isCheckingDelivery && (
+                    <p className="text-[11px] text-[var(--color-text-muted)] flex items-center gap-1.5">
+                      <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Checking delivery for this pincode…
+                    </p>
+                  )}
+                  {!isCheckingDelivery && deliveryCheckError && (
+                    <p className="text-[11px] text-red-500">{deliveryCheckError}</p>
+                  )}
+                  {!isCheckingDelivery && deliveryQuote && (
+                    <div
+                      className={`rounded-xl border px-3 py-2.5 text-xs ${
+                        deliveryQuote.delivery_type === 'OWN_DELIVERY'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-[var(--color-bg-main)] border-[var(--color-border-subtle)] text-[var(--color-text-main)]'
+                      }`}
+                    >
+                      <p className="font-bold">
+                        {deliveryQuote.delivery_type === 'OWN_DELIVERY'
+                          ? `Delivered by the shop — ${deliveryQuote.delivery_days} day${deliveryQuote.delivery_days === 1 ? '' : 's'}`
+                          : `India Post — ${deliveryQuote.delivery_days ? `up to ${deliveryQuote.delivery_days}` : '2-3'} days`}
+                        {deliveryQuote.delivery_distance_km != null && (
+                          <span className="font-normal text-[var(--color-text-muted)]"> ({deliveryQuote.delivery_distance_km} km away)</span>
+                        )}
+                      </p>
+                      <p className="mt-0.5">
+                        {Number(deliveryQuote.shipping_total) === 0 ? (
+                          <span className="font-bold text-emerald-700">
+                            Free delivery{deliveryQuote.is_first_order_delivery ? ' — your first order!' : ''}
+                          </span>
+                        ) : (
+                          <span>
+                            Delivery charge: <span className="font-bold">₹{deliveryQuote.shipping_total}</span>
+                            {deliveryQuote.delivery_breakdown?.reason === 'weight_based' && (
+                              <span className="text-[var(--color-text-muted)]">
+                                {' '}
+                                ({deliveryQuote.delivery_breakdown.total_weight_kg}kg × ₹{deliveryQuote.delivery_breakdown.price_per_kg}/kg)
+                              </span>
+                            )}
+                            {deliveryQuote.delivery_breakdown?.reason === 'flat_fallback_no_weight_data' && (
+                              <span className="text-[var(--color-text-muted)]"> (flat rate — weight not available)</span>
+                            )}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Save to Profile Checkbox (If Authenticated) */}
                   {getCustomerToken() && (
