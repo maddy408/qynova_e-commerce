@@ -1097,7 +1097,7 @@ export default function Navbar({
                 >
                   {customer.profile_photo_path ? (
                     <img
-                      src={customer.profile_photo_path}
+                      src={resolveImageUrl(customer.profile_photo_path)}
                       alt={customer.name || 'Customer'}
                       referrerPolicy="no-referrer"
                       className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[var(--color-border-subtle)]"
@@ -1124,7 +1124,7 @@ export default function Navbar({
                     <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-3">
                       {customer.profile_photo_path ? (
                         <img
-                          src={customer.profile_photo_path}
+                          src={resolveImageUrl(customer.profile_photo_path)}
                           alt={customer.name}
                           referrerPolicy="no-referrer"
                           className="w-10 h-10 rounded-full object-cover border border-[var(--color-border-subtle)] shadow-xs"
@@ -1756,7 +1756,7 @@ export default function Navbar({
                 <div className="p-3 mb-2 rounded-2xl bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] flex items-center gap-3">
                   {customer.profile_photo_path ? (
                     <img
-                      src={customer.profile_photo_path}
+                      src={resolveImageUrl(customer.profile_photo_path)}
                       alt={customer.name}
                       referrerPolicy="no-referrer"
                       className="w-10 h-10 rounded-full object-cover border border-[var(--color-border-subtle)] shadow-xs shrink-0"

@@ -69,6 +69,7 @@ $router->post('/api/customers/otp/login', fn () => $customerAuth->loginWithOtp()
 $router->post('/api/customers/google-login', fn () => $customerAuth->loginWithGoogle());
 $router->get('/api/customers/me', fn () => $customerAuth->me());
 $router->put('/api/customers/me', fn () => $customerAuth->updateProfile());
+$router->post('/api/customers/me/photo', fn () => $customerAuth->uploadPhoto());
 $router->get('/api/customer/addresses', fn () => $customerAuth->getAddresses());
 $router->post('/api/customer/addresses', fn () => $customerAuth->storeAddress());
 $router->put('/api/customer/addresses/{id}', fn ($id) => $customerAuth->updateAddress($id));

@@ -16,6 +16,7 @@ import {
   FiTrash2,
   FiCheckCircle,
   FiAlertCircle,
+  FiCamera,
 } from 'react-icons/fi'
 import {
   api,
@@ -60,6 +61,11 @@ export default function Profile() {
     window.addEventListener('delivery-location-changed', handleLocationChange)
     return () => window.removeEventListener('delivery-location-changed', handleLocationChange)
   }, [])
+
+  // Profile photo upload state
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const [photoPreview, setPhotoPreview] = useState(null)
 
   // Edit Profile modal state
   const [isEditing, setIsEditing] = useState(false)
@@ -311,6 +317,44 @@ export default function Profile() {
     setTimeout(() => setAddressSuccess(''), 2500)
   }
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    setPhotoError('')
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+    if (!allowed.includes(file.type)) {
+      setPhotoError('Only JPG, PNG, and WebP images are allowed.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Image must be smaller than 5 MB.')
+      return
+    }
+
+    const previewUrl = URL.createObjectURL(file)
+    setPhotoPreview(previewUrl)
+    setIsUploadingPhoto(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.post('/customers/me/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const updatedCustomer = { ...customer, profile_photo_path: res.data.profile_photo_path }
+      setCustomer(updatedCustomer)
+      setCustomerSession(getCustomerToken(), updatedCustomer)
+    } catch (err) {
+      setPhotoError(err.response?.data?.error || 'Failed to upload photo. Please try again.')
+    } finally {
+      setIsUploadingPhoto(false)
+      URL.revokeObjectURL(previewUrl)
+      setPhotoPreview(null)
+    }
+  }
+
   const handleOpenEdit = () => {
     setEditName(customer?.name || '')
     setEditEmail(customer?.email || '')
@@ -497,9 +541,9 @@ export default function Profile() {
                 
                 {/* Prominent Profile Photo */}
                 <div className="relative shrink-0">
-                  {customer.profile_photo_path ? (
+                  {(photoPreview || customer.profile_photo_path) ? (
                     <img
-                      src={customer.profile_photo_path}
+                      src={photoPreview || resolveImageUrl(customer.profile_photo_path)}
                       alt={customer.name || 'Customer Profile'}
                       referrerPolicy="no-referrer"
                       className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-[var(--color-primary-tint)] shadow-md ring-4 ring-[var(--color-bg-alt)]"
@@ -513,17 +557,33 @@ export default function Profile() {
                   ) : null}
                   <div
                     className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-[var(--color-brand)] text-white font-black text-2xl sm:text-4xl items-center justify-center shadow-md ring-4 ring-[var(--color-bg-alt)] uppercase ${
-                      customer.profile_photo_path ? 'hidden' : 'flex'
+                      (photoPreview || customer.profile_photo_path) ? 'hidden' : 'flex'
                     }`}
                   >
                     {customer.name?.trim().charAt(0) || 'C'}
                   </div>
-                  
-                  {customer.profile_photo_path && (
-                    <span className="absolute bottom-0 right-0 bg-emerald-500 border-2 border-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white shadow-xs" title="Google Verified Account">
-                      ✓
-                    </span>
+
+                  {isUploadingPhoto && (
+                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
                   )}
+
+                  <label
+                    htmlFor="profile-photo-input"
+                    title="Change profile photo"
+                    className="absolute bottom-0 right-0 bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] border-2 border-white w-7 h-7 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer transition-colors"
+                  >
+                    <FiCamera className="w-3.5 h-3.5" />
+                  </label>
+                  <input
+                    id="profile-photo-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={isUploadingPhoto}
+                    onChange={handlePhotoChange}
+                  />
                 </div>
 
                 {/* Name, Type & Quick Summary */}
@@ -555,13 +615,17 @@ export default function Profile() {
                       <FiCalendar className="w-3.5 h-3.5 text-[var(--color-brand)]" />
                       <span>Member since <strong>{formatDate(customer.created_at)}</strong></span>
                     </span>
-                    {customer.profile_photo_path && (
+                    {customer.is_google_linked && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-800 rounded-full border border-blue-200 font-medium text-[11px]">
                         <FiGlobe className="w-3.5 h-3.5 text-blue-600" />
                         <span>Google Linked</span>
                       </span>
                     )}
                   </div>
+
+                  {photoError && (
+                    <p className="text-[11px] font-semibold text-red-600 pt-1">{photoError}</p>
+                  )}
                 </div>
 
               </div>
@@ -581,7 +645,7 @@ export default function Profile() {
               </Link>
 
               <Link
-                to={ROUTES.HOME}
+                to={ROUTES.WISHLIST}
                 className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
               >
                 <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">

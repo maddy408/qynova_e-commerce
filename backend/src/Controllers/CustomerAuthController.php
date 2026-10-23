@@ -11,6 +11,7 @@ use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
 use App\Services\GoogleAuthService;
+use App\Services\ImageUploadService;
 use App\Services\OtpService;
 use App\Services\ReferralService;
 use PDO;
@@ -265,10 +266,13 @@ final class CustomerAuthController
                 $customerByGoogle['email'] = $email;
             }
 
-            // Refresh/update profile photo if Google provides one
-            if ($picture !== null && $picture !== '') {
+            // Refresh profile photo from Google on every login, UNLESS the
+            // customer has since uploaded their own — that must never be
+            // silently replaced by a stale/default Google avatar.
+            $hasCustomUpload = ($customerByGoogle['profile_photo_source'] ?? null) === 'UPLOAD';
+            if ($picture !== null && $picture !== '' && !$hasCustomUpload) {
                 $this->pdo->prepare(
-                    'UPDATE customers SET profile_photo_path = :picture, updated_at = NOW() WHERE id = :id'
+                    "UPDATE customers SET profile_photo_path = :picture, profile_photo_source = 'GOOGLE', updated_at = NOW() WHERE id = :id"
                 )->execute([
                     'picture' => $picture,
                     'id' => $customerByGoogle['id'],
@@ -308,21 +312,29 @@ final class CustomerAuthController
                 Response::error('This email account is already linked to a different Google account', 403);
             }
 
-            // Link verified Google ID to that existing customer & update profile photo
+            // Link verified Google ID to that existing customer. Only set
+            // the photo from Google if the customer doesn't already have
+            // their own uploaded one.
+            $hasCustomUpload = ($customerByEmail['profile_photo_source'] ?? null) === 'UPLOAD';
+            $applyGooglePicture = $picture !== null && $picture !== '' && !$hasCustomUpload;
+
             $this->pdo->prepare(
-                'UPDATE customers 
-                 SET google_id = :google_id, 
-                     profile_photo_path = COALESCE(:picture, profile_photo_path),
-                     updated_at = NOW() 
-                 WHERE id = :id'
+                "UPDATE customers
+                 SET google_id = :google_id,
+                     profile_photo_path = CASE WHEN :apply_picture THEN :picture ELSE profile_photo_path END,
+                     profile_photo_source = CASE WHEN :apply_picture2 THEN 'GOOGLE' ELSE profile_photo_source END,
+                     updated_at = NOW()
+                 WHERE id = :id"
             )->execute([
                 'google_id' => $googleId,
                 'picture' => $picture,
+                'apply_picture' => $applyGooglePicture ? 1 : 0,
+                'apply_picture2' => $applyGooglePicture ? 1 : 0,
                 'id' => $customerByEmail['id'],
             ]);
 
             $customerByEmail['google_id'] = $googleId;
-            if ($picture !== null && $picture !== '') {
+            if ($applyGooglePicture) {
                 $customerByEmail['profile_photo_path'] = $picture;
             }
 
@@ -347,13 +359,14 @@ final class CustomerAuthController
 
         try {
             $this->pdo->prepare(
-                'INSERT INTO customers (name, email, google_id, profile_photo_path, customer_type, profile_completed, status)
-                 VALUES (:name, :email, :google_id, :picture, "RETAIL", 0, "ACTIVE")'
+                'INSERT INTO customers (name, email, google_id, profile_photo_path, profile_photo_source, customer_type, profile_completed, status)
+                 VALUES (:name, :email, :google_id, :picture, :picture_source, "RETAIL", 0, "ACTIVE")'
             )->execute([
                 'name' => $name,
                 'email' => $email,
                 'google_id' => $googleId,
                 'picture' => $picture,
+                'picture_source' => $picture !== null && $picture !== '' ? 'GOOGLE' : null,
             ]);
 
             $newCustomerId = (int) $this->pdo->lastInsertId();
@@ -391,7 +404,9 @@ final class CustomerAuthController
         $customerId = (int) $claims['sub'];
 
         $stmt = $this->pdo->prepare(
-            'SELECT id, name, phone, email, profile_photo_path, customer_type, profile_completed, created_at
+            'SELECT id, name, phone, email, profile_photo_path, profile_photo_source,
+                    google_id IS NOT NULL AND google_id != "" AS is_google_linked,
+                    customer_type, profile_completed, created_at
              FROM customers WHERE id = :id'
         );
         $stmt->execute(['id' => $customerId]);
@@ -400,6 +415,8 @@ final class CustomerAuthController
         if ($customer === false) {
             Response::error('Not found', 404);
         }
+
+        $customer['is_google_linked'] = (bool) $customer['is_google_linked'];
 
         $referral = (new ReferralService($this->pdo))->getCustomerReferralSummary($customerId);
 
@@ -769,6 +786,53 @@ final class CustomerAuthController
         $fetchStmt = $this->pdo->prepare("SELECT id, name, phone, email, customer_type, profile_photo_path FROM customers WHERE id = :id");
         $fetchStmt->execute(['id' => $customerId]);
         Response::json(['customer' => $fetchStmt->fetch(PDO::FETCH_ASSOC)]);
+    }
+
+    /**
+     * POST /api/customers/me/photo (multipart) — reuses ImageUploadService
+     * (same validation/compression pipeline as product/category images).
+     * Marks the photo as profile_photo_source='UPLOAD' so a later Google
+     * login never silently overwrites it (see loginWithGoogle()).
+     */
+    public function uploadPhoto(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::requireCustomer($claims);
+        $customerId = (int) $claims['sub'];
+
+        if (!isset($_FILES['file'])) {
+            Response::error('A file upload named "file" is required', 422);
+            return;
+        }
+
+        $existing = $this->pdo->prepare('SELECT profile_photo_path, profile_photo_source FROM customers WHERE id = :id');
+        $existing->execute(['id' => $customerId]);
+        $previous = $existing->fetch(PDO::FETCH_ASSOC);
+
+        try {
+            $uploader = new ImageUploadService();
+            $stored = $uploader->store($_FILES['file'], 'customer-photos');
+
+            $this->pdo->prepare(
+                "UPDATE customers SET profile_photo_path = :path, profile_photo_source = 'UPLOAD' WHERE id = :id"
+            )->execute(['path' => $stored['path'], 'id' => $customerId]);
+
+            // Only clean up the old file if it was itself a prior upload —
+            // never delete a Google-hosted URL (not ours to delete) or try
+            // to unlink what would just be a 404 on R2/local disk either way.
+            // customers has no separate thumb-path column, so the old
+            // thumb is derived from ImageUploadService::store()'s own
+            // naming convention ("{basename}.webp" / "{basename}-thumb.webp")
+            // rather than left orphaned on disk.
+            if (($previous['profile_photo_source'] ?? null) === 'UPLOAD' && !empty($previous['profile_photo_path'])) {
+                $uploader->delete($previous['profile_photo_path']);
+                $uploader->delete(preg_replace('/\.(webp|jpg|png)$/', '-thumb.$1', $previous['profile_photo_path']));
+            }
+
+            Response::json(['profile_photo_path' => $stored['path']]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
     }
 
     private function issueToken(int $customerId, string $name, string $phone): string
