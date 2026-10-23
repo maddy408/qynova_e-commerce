@@ -1862,16 +1862,7 @@ export default function Navbar({
 
               {/* Expandable Mobile Category Menu */}
               {categoryList.length > 0 && (
-                <div className="pt-2 border-t border-[var(--color-border-subtle)]">
-                  <div className="flex items-center justify-between px-3.5 mb-1.5">
-                    <span className="text-[10px] font-black uppercase text-[var(--color-brand)] tracking-wider">
-                      Shop by Category
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-primary-tint)] text-[var(--color-brand)]">
-                      {categoryList.length}
-                    </span>
-                  </div>
-
+                <div className="pt-1.5 border-t border-[var(--color-border-subtle)]">
                   <div className="space-y-1">
                     {categoryList.map((cat) => {
                       const catSubs = subcategoryList.filter((s) => s.category_ids?.includes(Number(cat.id)))
@@ -1927,7 +1918,7 @@ export default function Navbar({
 
                           {/* Subcategories list when expanded */}
                           {catSubs.length > 0 && isExpanded && (
-                            <div className="bg-[var(--color-bg-main)] px-3 py-2 border-t border-[var(--color-border-subtle)] space-y-1">
+                            <div className="bg-[var(--color-bg-main)] px-3 py-1.5 space-y-0.5">
                               <Link
                                 to={ROUTES.PRODUCTS_BY_CATEGORY(cat)}
                                 onClick={() => setIsMobileMenuOpen(false)}
