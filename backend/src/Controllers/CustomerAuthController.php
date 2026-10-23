@@ -548,6 +548,16 @@ final class CustomerAuthController
         ]);
         $id = (int) $this->pdo->lastInsertId();
 
+        // POS-created customers previously never got a referral code at
+        // all (C2) — every other creation path (signup, Google login)
+        // already calls this; a generation failure must never block the
+        // sale the cashier is mid-way through, so it's swallowed here.
+        try {
+            (new ReferralService($this->pdo))->generateCodeForCustomer($id, $name);
+        } catch (\Throwable $e) {
+            error_log('CustomerAuthController::createForStaff: referral code generation failed: ' . $e->getMessage());
+        }
+
         $fetch = $this->pdo->prepare('SELECT id, name, phone, email, customer_type, status FROM customers WHERE id = :id');
         $fetch->execute(['id' => $id]);
         $customer = $fetch->fetch(PDO::FETCH_ASSOC);

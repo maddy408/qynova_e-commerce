@@ -277,6 +277,23 @@ final class ReferralService
 
         $code = $this->pdo->prepare('SELECT code FROM referral_codes WHERE customer_id = :id');
         $code->execute(['id' => $customerId]);
+        $referralCode = $code->fetchColumn() ?: null;
+
+        // Belt-and-suspenders (C2): every creation path now generates a
+        // code up front, plus a one-time backfill script covers existing
+        // customers — this lazily covers any path that still slips
+        // through, so the profile page never shows a permanent blank.
+        if ($referralCode === null) {
+            $nameStmt = $this->pdo->prepare('SELECT name FROM customers WHERE id = :id');
+            $nameStmt->execute(['id' => $customerId]);
+            $customerName = (string) ($nameStmt->fetchColumn() ?: 'Customer');
+
+            try {
+                $referralCode = $this->generateCodeForCustomer($customerId, $customerName);
+            } catch (\Throwable $e) {
+                error_log('ReferralService::getCustomerReferralSummary: lazy code generation failed: ' . $e->getMessage());
+            }
+        }
 
         $referrals = $this->pdo->prepare(
             'SELECT r.id, r.referred_customer_id, c.name AS referred_name, r.status, r.created_at
@@ -294,7 +311,7 @@ final class ReferralService
         $rewardList = $rewards->fetchAll();
 
         return [
-            'referral_code' => $code->fetchColumn() ?: null,
+            'referral_code' => $referralCode,
             'referrals' => $referralList,
             'rewards' => $rewardList,
             'total_referrals' => count($referralList),
