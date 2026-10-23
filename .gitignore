@@ -17,6 +17,9 @@ test-results/
 playwright-report/
 scratch/
 
+# Resumable CLI script progress state (regenerated per-run, per-environment)
+scripts/.seed_tn_pincodes.state
+
 # Dependencies and build output (apps/* also carry their own .gitignore)
 node_modules/
 **/node_modules/
