@@ -9,17 +9,44 @@ use App\Helpers\Request;
 use App\Helpers\Response;
 use App\Middleware\JwtAuthMiddleware;
 use App\Middleware\PermissionMiddleware;
+use App\Services\DeliveryCalculationService;
 use App\Services\DeliveryService;
+use App\Services\PincodeGeocodingService;
 use PDO;
 use RuntimeException;
 
 final class DeliveryController
 {
     private readonly DeliveryService $deliveries;
+    private readonly DeliveryCalculationService $deliveryCalc;
 
     public function __construct(private readonly PDO $pdo)
     {
         $this->deliveries = new DeliveryService($pdo);
+        $this->deliveryCalc = new DeliveryCalculationService($pdo, new PincodeGeocodingService($pdo));
+    }
+
+    /** GET /api/settings/delivery-management — admin Delivery Management settings (radius/price-per-kg/etc). */
+    public function getManagementSettings(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'settings.manage');
+
+        Response::json(['settings' => $this->deliveryCalc->getSettings()]);
+    }
+
+    /** PUT /api/settings/delivery-management */
+    public function updateManagementSettings(): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'settings.manage');
+
+        try {
+            $this->deliveryCalc->updateSettings(Request::json());
+            Response::json(['settings' => $this->deliveryCalc->getSettings()]);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
     }
 
     /** GET /api/deliveries/summary - Real-time metrics for delivery dashboard cards. */
@@ -334,9 +361,7 @@ final class DeliveryController
         $customerId = $this->optionalCustomerId();
 
         try {
-            $geocoder = new \App\Services\PincodeGeocodingService($this->pdo);
-            $calc = new \App\Services\DeliveryCalculationService($this->pdo, $geocoder);
-            $quote = $calc->quotePincode($pincode, $customerId);
+            $quote = $this->deliveryCalc->quotePincode($pincode, $customerId);
         } catch (RuntimeException $e) {
             Response::json([
                 'serviceable' => false,

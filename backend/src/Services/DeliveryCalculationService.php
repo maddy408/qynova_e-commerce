@@ -166,8 +166,13 @@ final class DeliveryCalculationService
         return ((int) $stmt->fetchColumn()) === 0;
     }
 
-    /** @return array<string, mixed> */
-    private function getSettings(): array
+    /**
+     * Public so the admin Delivery Management settings page can read the
+     * same row this service's own calculations use — one source of truth.
+     *
+     * @return array<string, mixed>
+     */
+    public function getSettings(): array
     {
         $row = $this->pdo->query('SELECT * FROM delivery_management_settings ORDER BY id ASC LIMIT 1')->fetch();
 
@@ -180,6 +185,58 @@ final class DeliveryCalculationService
             'post_max_days' => 3,
             'default_courier_name' => 'India Post',
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @throws RuntimeException on invalid input (negative/zero where it
+     *   shouldn't be, min > max days) — surfaced as a 422 by the controller.
+     */
+    public function updateSettings(array $data): void
+    {
+        $radiusKm = (float) ($data['radius_km'] ?? 10);
+        $pricePerKg = (float) ($data['price_per_kg'] ?? 20);
+        $flatFallback = (float) ($data['flat_fallback_charge'] ?? 100);
+        $ownDeliveryDays = (int) ($data['own_delivery_days'] ?? 1);
+        $postMinDays = (int) ($data['post_min_days'] ?? 2);
+        $postMaxDays = (int) ($data['post_max_days'] ?? 3);
+        $courierName = trim((string) ($data['default_courier_name'] ?? 'India Post'));
+
+        if ($radiusKm <= 0) {
+            throw new RuntimeException('Delivery radius (km) must be greater than 0');
+        }
+        if ($pricePerKg < 0 || $flatFallback < 0) {
+            throw new RuntimeException('Price per kg and flat fallback charge must not be negative');
+        }
+        if ($ownDeliveryDays <= 0 || $postMinDays <= 0 || $postMaxDays <= 0) {
+            throw new RuntimeException('Delivery day estimates must be at least 1');
+        }
+        if ($postMinDays > $postMaxDays) {
+            throw new RuntimeException('Post office minimum days cannot be greater than maximum days');
+        }
+        if ($courierName === '') {
+            throw new RuntimeException('Default courier name is required');
+        }
+
+        $this->pdo->prepare(
+            'UPDATE delivery_management_settings SET
+                radius_km = :radius_km,
+                price_per_kg = :price_per_kg,
+                flat_fallback_charge = :flat_fallback_charge,
+                own_delivery_days = :own_delivery_days,
+                post_min_days = :post_min_days,
+                post_max_days = :post_max_days,
+                default_courier_name = :default_courier_name
+             WHERE id = 1'
+        )->execute([
+            'radius_km' => $radiusKm,
+            'price_per_kg' => $pricePerKg,
+            'flat_fallback_charge' => $flatFallback,
+            'own_delivery_days' => $ownDeliveryDays,
+            'post_min_days' => $postMinDays,
+            'post_max_days' => $postMaxDays,
+            'default_courier_name' => $courierName,
+        ]);
     }
 
     public static function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float

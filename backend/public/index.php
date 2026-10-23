@@ -402,6 +402,8 @@ $router->post('/api/purchases/{purchaseId}/payments/{paymentId}/reverse', fn ($p
 // Delivery (ECOMMERCE_POS_ADMIN_SPEC.md sections 21-22)
 $delivery = new DeliveryController($pdo);
 $router->get('/api/delivery/check-pincode', fn () => $delivery->checkPincode());
+$router->get('/api/settings/delivery-management', fn () => $delivery->getManagementSettings());
+$router->put('/api/settings/delivery-management', fn () => $delivery->updateManagementSettings());
 $router->get('/api/deliveries/summary', fn () => $delivery->summary());
 $router->get('/api/deliveries/eligible-orders', fn () => $delivery->eligibleOrders());
 $router->get('/api/deliveries/drivers', fn () => $delivery->drivers());
