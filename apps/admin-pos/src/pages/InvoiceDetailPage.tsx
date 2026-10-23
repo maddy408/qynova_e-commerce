@@ -35,6 +35,11 @@ interface InvoiceDetail {
   tax_total: string
   shipping_total: string
   grand_total: string
+  delivery_type?: 'OWN_DELIVERY' | 'INDIA_POST' | null
+  delivery_distance_km?: string | null
+  delivery_days?: number | null
+  delivery_tracking_id?: string | null
+  delivery_tracking_courier?: string | null
   payment_method: string | null
   amount_paid: string
   payment_status: 'PAID' | 'PARTIAL' | 'UNPAID'
@@ -186,6 +191,13 @@ export function InvoiceDetailPage() {
   const subtotal = Number(invoice.subtotal || 0)
   const discountTotal = Number(invoice.discount_total || 0)
   const taxTotal = Number(invoice.tax_total || 0)
+  const shippingTotal = Number(invoice.shipping_total || 0)
+  const deliveryBreakdownText =
+    invoice.delivery_type === 'INDIA_POST'
+      ? `Via ${invoice.delivery_tracking_courier || 'India Post'}${invoice.delivery_distance_km ? ` · ${invoice.delivery_distance_km} km` : ''}${invoice.delivery_tracking_id ? ` · Tracking: ${invoice.delivery_tracking_id}` : ''}`
+      : invoice.delivery_type === 'OWN_DELIVERY'
+        ? `Local delivery by the shop${invoice.delivery_days ? ` · ${invoice.delivery_days} day${invoice.delivery_days === 1 ? '' : 's'}` : ''}`
+        : null
   const amountPaid = Number(invoice.amount_paid || 0)
   const balance = (grandTotal - amountPaid).toFixed(2)
 
@@ -474,6 +486,15 @@ export function InvoiceDetailPage() {
                     <span className="font-mono">-{money(discountTotal)}</span>
                   </div>
                 )}
+                {shippingTotal > 0 && (
+                  <div className="flex justify-between text-slate-700">
+                    <span className="uppercase font-semibold">SHIPPING</span>
+                    <span className="font-mono">{money(shippingTotal)}</span>
+                  </div>
+                )}
+                {deliveryBreakdownText && (
+                  <p className="text-[10px] text-slate-500 italic text-right">{deliveryBreakdownText}</p>
+                )}
                 <div className="flex justify-between text-slate-700">
                   <span className="uppercase font-semibold">GST TAX</span>
                   <span className="font-mono">{money(taxTotal)}</span>
@@ -565,6 +586,15 @@ export function InvoiceDetailPage() {
                   </span>
                   <span>-Rs. {money(discountTotal)}</span>
                 </div>
+              )}
+              {shippingTotal > 0 && (
+                <div className="flex justify-between font-medium text-slate-700">
+                  <span>Shipping</span>
+                  <span>Rs. {money(shippingTotal)}</span>
+                </div>
+              )}
+              {deliveryBreakdownText && (
+                <p className="text-[9px] text-slate-500 italic">{deliveryBreakdownText}</p>
               )}
               {taxTotal > 0 && (
                 <div className="flex justify-between font-medium text-slate-700">

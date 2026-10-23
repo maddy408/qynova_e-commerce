@@ -651,6 +651,45 @@ export default function OrderDetail() {
                       )}
                     </div>
                   )}
+
+                  {/* India Post tracking (beyond-radius orders) — separate from the driver-dispatch "delivery" record above */}
+                  {order.delivery_type === 'INDIA_POST' && (
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs bg-gray-50/70 p-3 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <FiTruck className="w-4 h-4 text-[var(--color-brand)]" />
+                        <span className="text-[var(--color-text-muted)]">Shipped via:</span>
+                        <span className="font-bold text-[var(--color-text-main)]">{order.delivery_tracking_courier || 'India Post'}</span>
+                      </div>
+                      {order.delivery_tracking_id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[var(--color-text-muted)]">Tracking ID:</span>
+                          <span className="font-mono font-bold text-[var(--color-brand)] bg-white px-2 py-0.5 rounded border border-gray-200">
+                            {order.delivery_tracking_id}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-[var(--color-text-muted)]">
+                          Tracking ID will appear here once your order is dispatched.
+                        </span>
+                      )}
+                      {order.delivery_tracking_id && (
+                        <a
+                          href="https://www.indiapost.gov.in/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-brand)] hover:underline"
+                        >
+                          <span>Track on India Post</span>
+                          <FiExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      {order.delivery_tracking_status && (
+                        <p className="w-full text-[11px] text-[var(--color-text-muted)] pt-1 border-t border-gray-100">
+                          {order.delivery_tracking_status}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -610,10 +610,13 @@ final class InvoiceService
     public function find(int $invoiceId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT i.*, c.name AS customer_name, c.phone AS customer_phone, u.name AS cashier_name
+            'SELECT i.*, c.name AS customer_name, c.phone AS customer_phone, u.name AS cashier_name,
+                    o.delivery_type, o.delivery_distance_km, o.delivery_days,
+                    o.delivery_tracking_id, o.delivery_tracking_courier
              FROM invoices i
              LEFT JOIN customers c ON c.id = i.customer_id
              LEFT JOIN users u ON u.id = i.cashier_user_id
+             LEFT JOIN orders o ON o.id = i.order_id
              WHERE i.id = :id'
         );
         $stmt->execute(['id' => $invoiceId]);
