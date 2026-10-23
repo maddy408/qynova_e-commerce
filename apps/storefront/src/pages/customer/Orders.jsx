@@ -201,7 +201,7 @@ export default function Orders() {
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-[var(--color-text-main)] tracking-tight">
                 My Orders
               </h1>
               <p className="text-xs sm:text-sm text-[var(--color-text-muted)] mt-1">

@@ -184,7 +184,7 @@ export default function GroceryHeroBanner({
 
                     {/* Title */}
                     {slide.title && (
-                      <h1 className="font-sans font-black text-xl sm:text-2xl md:text-3xl lg:text-[38px] text-[#0F172A] tracking-tight leading-[1.14]">
+                      <h1 className="font-sans font-black text-lg sm:text-xl md:text-2xl lg:text-[28px] text-[#0F172A] tracking-tight leading-[1.2]">
                         {slide.title.includes('\n') ? (
                           slide.title.split('\n').map((line, i) => (
                             <React.Fragment key={i}>

@@ -244,7 +244,7 @@ export default function Register() {
 
             {/* Main Headline */}
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-[34px] font-extrabold text-[var(--color-text-main)] leading-[1.16] tracking-tight">
+              <h1 className="text-xl sm:text-2xl lg:text-[26px] font-extrabold text-[var(--color-text-main)] leading-snug tracking-tight">
                 Curated lifestyle,<br />
                 <span className="text-[var(--color-brand)]">delivered to your doorstep.</span>
               </h1>

@@ -22,6 +22,7 @@ import {
 import { clearCart } from '../lib/cart'
 import { ROUTES } from '../routes/routes'
 import { ENDPOINTS } from '../api/endpoints'
+import { lookupPostalPincode } from '../services/pincodeService'
 
 export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [formData, setFormData] = useState({
@@ -54,6 +55,12 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
   const [deliveryQuote, setDeliveryQuote] = useState(null)
   const [isCheckingDelivery, setIsCheckingDelivery] = useState(false)
   const [deliveryCheckError, setDeliveryCheckError] = useState('')
+
+  // Postal PIN Code Lookup & Auto-fill State
+  const [isPincodeLookupLoading, setIsPincodeLookupLoading] = useState(false)
+  const [pincodeLookupFeedback, setPincodeLookupFeedback] = useState(null)
+  const [availablePostOffices, setAvailablePostOffices] = useState([])
+  const [selectedPostOffice, setSelectedPostOffice] = useState('')
 
   // Prefill authenticated customer details from MySQL or stored GPS location
   useEffect(() => {
@@ -250,6 +257,60 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
     }
   }
 
+  // Postal PIN Code Lookup Handler (India Post API)
+  const triggerPincodeLookup = async (pin) => {
+    const cleanPin = String(pin !== undefined ? pin : formData.pincode || '').trim()
+    if (!cleanPin || cleanPin.length !== 6 || !/^[1-9][0-9]{5}$/.test(cleanPin)) {
+      setErrors((prev) => ({
+        ...prev,
+        pincode: 'Invalid PIN code. Please enter a valid 6-digit Indian PIN code.',
+      }))
+      setPincodeLookupFeedback(null)
+      return
+    }
+
+    setIsPincodeLookupLoading(true)
+    setErrors((prev) => ({ ...prev, pincode: '' }))
+
+    try {
+      const res = await lookupPostalPincode(cleanPin)
+      if (!res.valid) {
+        setErrors((prev) => ({
+          ...prev,
+          pincode: res.error || 'Invalid PIN code. Please enter a valid 6-digit Indian PIN code.',
+        }))
+        setPincodeLookupFeedback(null)
+        setAvailablePostOffices([])
+        return
+      }
+
+      // Populate State and City/District without overwriting user's manually entered street address
+      setFormData((prev) => ({
+        ...prev,
+        state: res.state || prev.state,
+        city: res.city || prev.city,
+      }))
+
+      setAvailablePostOffices(res.postOffices || [])
+      setSelectedPostOffice(res.postOffice || (res.postOffices && res.postOffices[0]) || '')
+
+      setPincodeLookupFeedback({
+        valid: true,
+        location: res.formattedLocation,
+        district: res.district,
+        state: res.state,
+        city: res.city,
+      })
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        pincode: 'Unable to verify PIN code right now. You can enter your address manually.',
+      }))
+    } finally {
+      setIsPincodeLookupLoading(false)
+    }
+  }
+
   const validate = () => {
     const errs = {}
     if (!formData.fullName.trim()) errs.fullName = 'Full Name is required'
@@ -262,8 +323,8 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
     if (!formData.city.trim()) errs.city = 'City is required'
     if (!formData.pincode.trim()) {
       errs.pincode = 'Pincode is required'
-    } else if (!/^[0-9]{6}$/.test(formData.pincode.trim())) {
-      errs.pincode = 'Please enter a valid 6-digit pincode'
+    } else if (!/^[1-9][0-9]{5}$/.test(formData.pincode.trim())) {
+      errs.pincode = 'Invalid PIN code. Please enter a valid 6-digit Indian PIN code.'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -700,23 +761,95 @@ export default function CheckoutModal({ isOpen, onClose, cartData }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
-                        Pincode <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="pincode"
-                        maxLength={6}
-                        value={formData.pincode}
-                        onChange={handleInputChange}
-                        placeholder="6-digit PIN"
-                        className={`w-full h-10 px-3 rounded-xl border text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none ${
-                          errors.pincode ? 'border-red-400 bg-red-50/20' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-brand)]'
-                        }`}
-                      />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-[var(--color-text-main)]">
+                          Pincode <span className="text-red-500">*</span>
+                        </label>
+                        {isPincodeLookupLoading && (
+                          <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-1">
+                            <span className="w-2.5 h-2.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            Detecting location...
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          name="pincode"
+                          maxLength={6}
+                          value={formData.pincode}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                            setFormData((prev) => ({ ...prev, pincode: val }))
+                            if (errors.pincode) setErrors((prev) => ({ ...prev, pincode: '' }))
+                            if (val.length === 6) {
+                              triggerPincodeLookup(val)
+                            } else if (pincodeLookupFeedback) {
+                              setPincodeLookupFeedback(null)
+                              setAvailablePostOffices([])
+                            }
+                          }}
+                          placeholder="6-digit PIN"
+                          className={`w-full h-10 pl-3 pr-16 rounded-xl border text-xs text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none ${
+                            errors.pincode ? 'border-red-400 bg-red-50/20' : 'border-[var(--color-border-subtle)] focus:border-[var(--color-brand)]'
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => triggerPincodeLookup(formData.pincode)}
+                          disabled={isPincodeLookupLoading || (formData.pincode || '').length !== 6}
+                          className="absolute right-1.5 px-2.5 py-1 text-[11px] font-bold text-[var(--color-brand)] bg-gray-100 hover:bg-[var(--color-primary-tint)] rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {isPincodeLookupLoading ? '...' : 'Check'}
+                        </button>
+                      </div>
                       {errors.pincode && <p className="text-[10px] text-red-500 mt-1">{errors.pincode}</p>}
                     </div>
                   </div>
+
+                  {/* Postal Lookup Success Feedback */}
+                  {pincodeLookupFeedback?.valid && (
+                    <div className="p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
+                      <FiCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="flex-1 text-[11px]">
+                        <span className="font-bold">Location Auto-Filled:</span>{' '}
+                        <span className="font-semibold text-emerald-800">{pincodeLookupFeedback.location}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multiple Post Offices Selection */}
+                  {availablePostOffices.length > 1 && (
+                    <div>
+                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
+                        Select Post Office / Locality ({availablePostOffices.length} options for PIN {formData.pincode})
+                      </label>
+                      <select
+                        value={selectedPostOffice}
+                        onChange={(e) => {
+                          const selected = e.target.value
+                          setSelectedPostOffice(selected)
+                          if (selected) {
+                            setFormData((prev) => ({
+                              ...prev,
+                              city: `${selected}${pincodeLookupFeedback?.district ? `, ${pincodeLookupFeedback.district}` : ''}`,
+                            }))
+                          }
+                        }}
+                        className="w-full h-10 px-3 rounded-xl border border-[var(--color-border-subtle)] bg-white text-xs text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-brand)]"
+                      >
+                        {availablePostOffices.map((po) => (
+                          <option key={po} value={po}>
+                            {po} (Post Office)
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        Choose your exact locality/village post office from this PIN code.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Delivery Management: real distance/weight-based quote for this pincode */}
                   {isCheckingDelivery && (

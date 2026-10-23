@@ -66,7 +66,7 @@ export default function CategoriesSection({
               </span>
             </div>
           )}
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-[var(--color-text-main)] tracking-tight">
             {title}
           </h2>
           {subtitle && (

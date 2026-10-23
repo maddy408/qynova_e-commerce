@@ -39,7 +39,7 @@ export default function GroceryFooter({
               <span>SUPERMARKET CUSTOMER CARE</span>
             </div>
 
-            <h3 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight">
+            <h3 className="font-serif text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight leading-snug">
               Need Assistance with Your Daily Grocery Order?
             </h3>
 

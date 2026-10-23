@@ -40,6 +40,7 @@ import {
   saveStoredLocation,
   getStoredLocation,
 } from '../../services/locationService'
+import { lookupPostalPincode } from '../../services/pincodeService'
 import { ROUTES } from '../../routes/routes'
 
 export default function Profile() {
@@ -98,6 +99,54 @@ export default function Profile() {
     address_type: 'HOME',
     is_default: false,
   })
+
+  // Postal PIN Code Lookup State for Profile Address Modal
+  const [isProfilePincodeLoading, setIsProfilePincodeLoading] = useState(false)
+  const [profilePincodeFeedback, setProfilePincodeFeedback] = useState(null)
+  const [profilePostOffices, setProfilePostOffices] = useState([])
+  const [selectedProfilePostOffice, setSelectedProfilePostOffice] = useState('')
+
+  const handleProfilePincodeLookup = async (pin) => {
+    const cleanPin = String(pin !== undefined ? pin : addressFormData.pincode || '').trim()
+    if (!cleanPin || cleanPin.length !== 6 || !/^[1-9][0-9]{5}$/.test(cleanPin)) {
+      setAddressError('Invalid PIN code. Please enter a valid 6-digit Indian PIN code.')
+      setProfilePincodeFeedback(null)
+      return
+    }
+
+    setIsProfilePincodeLoading(true)
+    setAddressError('')
+
+    try {
+      const res = await lookupPostalPincode(cleanPin)
+      if (!res.valid) {
+        setAddressError(res.error || 'Invalid PIN code. Please enter a valid 6-digit Indian PIN code.')
+        setProfilePincodeFeedback(null)
+        setProfilePostOffices([])
+        return
+      }
+
+      // Auto-populate available location fields without overwriting street address
+      setAddressFormData((prev) => ({
+        ...prev,
+        city_district: res.city || prev.city_district,
+        state: res.state || prev.state,
+      }))
+
+      setProfilePostOffices(res.postOffices || [])
+      setSelectedProfilePostOffice(res.postOffice || (res.postOffices && res.postOffices[0]) || '')
+      setProfilePincodeFeedback({
+        valid: true,
+        location: res.formattedLocation,
+        district: res.district,
+        state: res.state,
+      })
+    } catch {
+      setAddressError('Unable to verify PIN code right now. You can enter your address manually.')
+    } finally {
+      setIsProfilePincodeLoading(false)
+    }
+  }
 
   const loadAddresses = async () => {
     setLoadingAddresses(true)
@@ -205,6 +254,10 @@ export default function Profile() {
     }
     if (!addressFormData.city_district.trim() || !addressFormData.pincode.trim()) {
       setAddressError('City and Pincode are required.')
+      return
+    }
+    if (!/^[1-9][0-9]{5}$/.test(addressFormData.pincode.trim())) {
+      setAddressError('Invalid PIN code. Please enter a valid 6-digit Indian PIN code.')
       return
     }
 
@@ -589,7 +642,7 @@ export default function Profile() {
                 {/* Name, Type & Quick Summary */}
                 <div className="flex-1 text-center sm:text-left space-y-1.5 w-full">
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <h1 className="text-xl sm:text-3xl font-black text-[var(--color-text-main)] tracking-tight break-words">
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-black text-[var(--color-text-main)] tracking-tight break-words">
                       {customer.name || 'Customer'}
                     </h1>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-border-subtle)]">
@@ -1284,20 +1337,91 @@ export default function Profile() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
-                      Pincode <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={6}
-                      value={addressFormData.pincode}
-                      onChange={(e) => setAddressFormData((p) => ({ ...p, pincode: e.target.value }))}
-                      placeholder="6-digit PIN"
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[var(--color-brand)] focus:bg-white"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-gray-700">
+                        Pincode <span className="text-red-500">*</span>
+                      </label>
+                      {isProfilePincodeLoading && (
+                        <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          Detecting...
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        required
+                        maxLength={6}
+                        value={addressFormData.pincode}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                          setAddressFormData((p) => ({ ...p, pincode: val }))
+                          if (val.length === 6) {
+                            handleProfilePincodeLookup(val)
+                          } else if (profilePincodeFeedback) {
+                            setProfilePincodeFeedback(null)
+                            setProfilePostOffices([])
+                          }
+                        }}
+                        placeholder="6-digit PIN"
+                        className="w-full pl-3 pr-16 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[var(--color-brand)] focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleProfilePincodeLookup(addressFormData.pincode)}
+                        disabled={isProfilePincodeLoading || (addressFormData.pincode || '').length !== 6}
+                        className="absolute right-1.5 px-2 py-1 text-[11px] font-bold text-[var(--color-brand)] bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {isProfilePincodeLoading ? '...' : 'Check'}
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Postal Lookup Feedback Badge */}
+                {profilePincodeFeedback?.valid && (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
+                    <FiCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="flex-1 text-[11px]">
+                      <span className="font-bold">Location Auto-Filled:</span>{' '}
+                      <span className="font-semibold text-emerald-800">{profilePincodeFeedback.location}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Multiple Post Offices Dropdown */}
+                {profilePostOffices.length > 1 && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Select Post Office / Locality ({profilePostOffices.length} options for PIN {addressFormData.pincode})
+                    </label>
+                    <select
+                      value={selectedProfilePostOffice}
+                      onChange={(e) => {
+                        const selected = e.target.value
+                        setSelectedProfilePostOffice(selected)
+                        if (selected) {
+                          setAddressFormData((prev) => ({
+                            ...prev,
+                            city_district: `${selected}${profilePincodeFeedback?.district ? `, ${profilePincodeFeedback.district}` : ''}`,
+                          }))
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[var(--color-brand)] focus:bg-white"
+                    >
+                      {profilePostOffices.map((po) => (
+                        <option key={po} value={po}>
+                          {po} (Post Office)
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Choose your specific village or post office branch from this postal code.
+                    </p>
+                  </div>
+                )}
 
                 {/* Address Type Selector */}
                 <div>

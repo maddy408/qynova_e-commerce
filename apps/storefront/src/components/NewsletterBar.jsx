@@ -25,7 +25,7 @@ export default function NewsletterBar() {
             <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] block">
               WEEKLY SAVINGS & OFFERS
             </span>
-            <h3 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1B133F] tracking-tight leading-tight">
+            <h3 className="font-serif text-lg sm:text-xl lg:text-2xl font-bold text-[#1B133F] tracking-tight leading-snug">
               Stay Updated with Supermarket Deals & Weekly Savings
             </h3>
             <p className="font-sans text-sm sm:text-base text-[#666666] leading-relaxed">

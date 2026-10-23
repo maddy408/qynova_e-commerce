@@ -295,7 +295,7 @@ export default function Login() {
 
             {/* Main Headline */}
             <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-extrabold text-[var(--color-text-main)] leading-[1.18] tracking-tight">
+              <h1 className="text-xl sm:text-2xl lg:text-[26px] font-extrabold text-[var(--color-text-main)] leading-snug tracking-tight">
                 Welcome back!<br />
                 <span className="text-[var(--color-brand)]">Discover elegance in every pick.</span>
               </h1>

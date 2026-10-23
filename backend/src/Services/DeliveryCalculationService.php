@@ -38,8 +38,8 @@ final class DeliveryCalculationService
     public function quotePincode(string $pincode, ?int $customerId): array
     {
         $geo = $this->geocoder->resolve($pincode);
-        if ($geo === null) {
-            throw new RuntimeException('Please enter a valid 6-digit PIN code.');
+        if ($geo === null || ($geo['found'] ?? true) === false) {
+            throw new RuntimeException('Invalid PIN code. Please enter a valid 6-digit Indian PIN code.');
         }
 
         $settings = $this->getSettings();
@@ -51,8 +51,9 @@ final class DeliveryCalculationService
             return [
                 'pincode' => $pincode,
                 'is_tamil_nadu' => false,
-                'district' => null,
-                'area' => null,
+                'state' => $geo['state'] ?? null,
+                'district' => $geo['district'] ?? null,
+                'area' => $geo['area'] ?? null,
                 'geocode_source' => null,
                 'distance_km' => null,
                 'within_radius' => false,
@@ -78,6 +79,7 @@ final class DeliveryCalculationService
         return [
             'pincode' => $pincode,
             'is_tamil_nadu' => true,
+            'state' => $geo['state'] ?? 'Tamil Nadu',
             'district' => $geo['district'],
             'area' => $geo['area'],
             'geocode_source' => $geo['geocode_source'],

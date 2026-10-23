@@ -220,7 +220,7 @@ export default function PromotionalBannerCarousel({
               )}
 
               {/* Main Heading */}
-              <h1 className="text-xl sm:text-3xl lg:text-4xl xl:text-5xl font-black tracking-tight leading-tight sm:leading-[1.14]">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-black tracking-tight leading-tight sm:leading-snug">
                 {activeBanner.title}
                 {activeBanner.subtitle && (
                   <span className={`block font-extrabold mt-0.5 sm:mt-1 text-sm sm:xl lg:text-2xl ${theme.subtitleText}`}>

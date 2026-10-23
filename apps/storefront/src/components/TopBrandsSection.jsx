@@ -72,12 +72,12 @@ export default function TopBrandsSection({
               </span>
             </div>
 
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-[46px] font-bold text-[#1B133F] tracking-tight leading-[1.15] mb-4">
+            <h2 className="font-serif text-xl sm:text-2xl lg:text-[28px] font-bold text-[#1B133F] tracking-tight leading-snug mb-3">
               {title}
             </h2>
 
             {subtitle && (
-              <p className="font-sans text-base sm:text-[17px] text-[#666666] leading-[1.6]">
+              <p className="font-sans text-sm sm:text-base text-[#666666] leading-[1.5]">
                 {subtitle}
               </p>
             )}

@@ -57,7 +57,9 @@ final class PincodeGeocodingService
         if ($row === null) {
             return [
                 'pincode' => $pincode,
+                'found' => false,
                 'is_tamil_nadu' => false,
+                'state' => null,
                 'district' => null,
                 'area' => null,
                 'lat' => null,
@@ -66,16 +68,20 @@ final class PincodeGeocodingService
             ];
         }
 
-        if (($row['lat'] === null || $row['lng'] === null) && !empty($row['district'])) {
+        $isTamilNadu = (($row['state'] ?? '') === 'Tamil Nadu');
+
+        if ($isTamilNadu && ($row['lat'] === null || $row['lng'] === null) && !empty($row['district'])) {
             $this->geocode($pincode, (string) $row['district']);
             $row = $this->fetchCached($pincode) ?? $row;
         }
 
         return [
             'pincode' => $pincode,
-            'is_tamil_nadu' => true,
-            'district' => $row['district'],
-            'area' => $row['office_name'],
+            'found' => true,
+            'is_tamil_nadu' => $isTamilNadu,
+            'state' => $row['state'] ?? null,
+            'district' => $row['district'] ?? null,
+            'area' => $row['office_name'] ?? null,
             'lat' => $row['lat'] !== null ? (float) $row['lat'] : null,
             'lng' => $row['lng'] !== null ? (float) $row['lng'] : null,
             'geocode_source' => $row['geocode_source'],
@@ -152,10 +158,11 @@ final class PincodeGeocodingService
             }
         }
 
+        if ($office === null && !empty($entry['PostOffice'][0]) && is_array($entry['PostOffice'][0])) {
+            $office = $entry['PostOffice'][0];
+        }
+
         if ($office === null) {
-            // A real pincode, just not in Tamil Nadu (or Puducherry/
-            // Karaikal sharing this numeric range) — not cached, not an
-            // error, resolve() reports is_tamil_nadu=false.
             return [true, null];
         }
 

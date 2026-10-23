@@ -375,9 +375,12 @@ final class DeliveryController
             ? "{$quote['delivery_days']} day" . ($quote['delivery_days'] === 1 ? '' : 's') . ' (delivered by the shop)'
             : "{$quote['settings']['post_min_days']}-{$quote['settings']['post_max_days']} days (via {$quote['settings']['default_courier_name']})";
 
+        $locationParts = array_filter([$quote['area'] ?? null, $quote['district'] ?? null, $quote['state'] ?? null]);
+        $locStr = !empty($locationParts) ? implode(', ', $locationParts) : $pincode;
+
         $message = !$quote['is_tamil_nadu']
-            ? "We deliver to {$pincode} via {$quote['settings']['default_courier_name']}, typically {$quote['settings']['post_min_days']}-{$quote['settings']['post_max_days']} days."
-            : "Delivery available to {$pincode}. Estimated delivery within {$days}.";
+            ? "We deliver to {$locStr} ({$pincode}) via {$quote['settings']['default_courier_name']}, typically {$quote['settings']['post_min_days']}-{$quote['settings']['post_max_days']} days."
+            : "Delivery available to {$locStr} ({$pincode}). Estimated delivery within {$days}.";
 
         Response::json([
             // Original fields — unchanged meaning, existing callers unaffected.
@@ -393,8 +396,10 @@ final class DeliveryController
             'message' => $message,
             // Delivery Management additions.
             'is_tamil_nadu' => $quote['is_tamil_nadu'],
+            'state' => $quote['state'] ?? null,
             'district' => $quote['district'],
             'area' => $quote['area'],
+            'location' => !empty($locationParts) ? implode(', ', $locationParts) : null,
             'geocode_source' => $quote['geocode_source'],
             'distance_km' => $quote['distance_km'],
             'within_radius' => $quote['within_radius'],

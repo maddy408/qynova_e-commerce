@@ -16,10 +16,12 @@ import {
   FiX,
   FiChevronLeft,
   FiChevronRight,
+  FiChevronDown,
   FiThumbsUp,
   FiMessageSquare,
   FiEdit3,
 } from 'react-icons/fi'
+import { lookupPostalPincode } from '../services/pincodeService'
 import {
   api,
   getCustomerToken,
@@ -77,6 +79,7 @@ export default function ProductDetails() {
   // Offers & Coupons from Backend
   const [availableCoupons, setAvailableCoupons] = useState([])
   const [isCouponsLoading, setIsCouponsLoading] = useState(false)
+  const [isOffersDropdownOpen, setIsOffersDropdownOpen] = useState(false)
 
   // Related & Recently Viewed Products
   const [relatedProducts, setRelatedProducts] = useState([])
@@ -512,7 +515,7 @@ export default function ProductDetails() {
     setIsCheckoutOpen(true)
   }
 
-  // Pincode check handler using real backend API
+  // Pincode check handler using real postal lookup API + backend delivery estimate
   const handleCheckPincode = async (e) => {
     e?.preventDefault()
     const cleanPin = (pincode || '').trim()
@@ -520,34 +523,58 @@ export default function ProductDetails() {
     if (!cleanPin || cleanPin.length !== 6 || !/^[1-9][0-9]{5}$/.test(cleanPin)) {
       setPincodeStatus({
         valid: false,
-        message: 'Please enter a valid 6-digit Indian PIN code (e.g. 560001).',
+        message: 'Invalid PIN code. Please enter a valid 6-digit Indian PIN code.',
       })
       return
     }
 
     setIsPincodeLoading(true)
     try {
-      const res = await api.get('/delivery/check-pincode', {
-        params: {
-          pincode: cleanPin,
-          product_id: product?.id,
-        },
-      })
-
-      if (res.data?.serviceable) {
-        setPincodeStatus({
-          valid: true,
-          estimated_delivery: res.data.estimated_delivery,
-          cod_available: res.data.cod_available,
-          delivery_charge: res.data.delivery_charge,
-          message: res.data.message || `Delivery available to ${cleanPin}.`,
-        })
-      } else {
+      // 1. Fetch postal location from reliable postal PIN code API
+      const postalRes = await lookupPostalPincode(cleanPin)
+      if (!postalRes.valid) {
         setPincodeStatus({
           valid: false,
-          message: res.data?.message || `Delivery currently not available to ${cleanPin}.`,
+          message: postalRes.error || 'Invalid PIN code. Please enter a valid 6-digit Indian PIN code.',
         })
+        return
       }
+
+      // 2. Query delivery serviceability from backend
+      let backendData = null
+      try {
+        const res = await api.get('/delivery/check-pincode', {
+          params: {
+            pincode: cleanPin,
+            product_id: product?.id,
+          },
+        })
+        backendData = res.data
+      } catch (err) {
+        console.warn('Backend delivery check fallback:', err)
+      }
+
+      const locationStr =
+        postalRes.formattedLocation ||
+        [postalRes.postOffice, postalRes.district, postalRes.state].filter(Boolean).join(', ')
+      const estimatedDelivery =
+        backendData?.estimated_delivery || '2-4 business days (via India Post)'
+      const deliveryCharge =
+        backendData?.delivery_charge || 'Standard delivery charges apply'
+      const codAvailable = backendData?.cod_available ?? true
+
+      setPincodeStatus({
+        valid: true,
+        location: locationStr,
+        postOffice: postalRes.postOffice,
+        postOffices: postalRes.postOffices || [],
+        district: postalRes.district,
+        state: postalRes.state,
+        estimated_delivery: estimatedDelivery,
+        cod_available: codAvailable,
+        delivery_charge: deliveryCharge,
+        message: `Delivery available to ${locationStr} (${cleanPin}).`,
+      })
     } catch (err) {
       setPincodeStatus({
         valid: false,
@@ -994,7 +1021,7 @@ export default function ProductDetails() {
                   </div>
 
                   {/* Product Title: Playfair Display */}
-                  <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1B133F] tracking-tight leading-snug mb-3">
+                  <h1 className="font-serif text-lg sm:text-xl lg:text-2xl font-bold text-[#1B133F] tracking-tight leading-snug mb-2.5">
                     {product.name}
                   </h1>
 
@@ -1032,7 +1059,7 @@ export default function ProductDetails() {
                   <div className="bg-[var(--color-bg-alt)]/80 border border-[var(--color-border-subtle)] rounded-2xl p-4 sm:p-5 mb-5">
                     {isUnavailable ? (
                       <div>
-                        <span className="text-2xl sm:text-3xl font-black text-gray-500 tracking-tight">
+                        <span className="text-xl sm:text-2xl font-black text-gray-500 tracking-tight">
                           Currently Unavailable
                         </span>
                         <p className="text-xs text-gray-400 mt-1">This product is currently not available for purchase.</p>
@@ -1040,7 +1067,7 @@ export default function ProductDetails() {
                     ) : (
                       <>
                         <div className="flex items-baseline gap-3 flex-wrap">
-                          <span className="text-3xl sm:text-4xl font-black text-[var(--color-brand)] tracking-tight">
+                          <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                             ₹{retailPrice}
                           </span>
                           {showDiscount && mrp > retailPrice && (
@@ -1170,64 +1197,94 @@ export default function ProductDetails() {
                     </div>
                   )}
 
-                  {/* OFFERS SECTION (Dynamic Backend Data) */}
-                  <div className="border border-[var(--color-border-subtle)] rounded-2xl p-4 bg-white shadow-2xs mb-5">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <h3 className="text-xs sm:text-sm font-extrabold text-[var(--color-text-main)] uppercase tracking-wider flex items-center gap-1.5">
-                        <FiTag className="w-4 h-4 text-[var(--color-brand)]" />
-                        <span>Available Offers</span>
-                      </h3>
-                      {availableCoupons.length > 0 && (
-                        <span className="text-[11px] font-bold text-[var(--color-brand)]">
-                          {availableCoupons.length} Active Coupon{availableCoupons.length > 1 ? 's' : ''}
+                  {/* OFFERS SECTION (Dropdown Selector - No vertical clutter) */}
+                  <div className="border border-[var(--color-border-subtle)] rounded-2xl bg-white shadow-2xs mb-5 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsOffersDropdownOpen((prev) => !prev)}
+                      className="w-full flex items-center justify-between p-3.5 hover:bg-gray-50/80 transition-colors text-left cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                          <FiTag className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-xs sm:text-sm font-extrabold text-[var(--color-text-main)] uppercase tracking-wider">
+                            Available Offers
+                          </h3>
+                          {availableCoupons.length > 0 ? (
+                            <p className="text-[11px] text-emerald-700 font-semibold">
+                              {availableCoupons.length} active coupon{availableCoupons.length > 1 ? 's' : ''} available
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-gray-400">No active coupons available</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {availableCoupons.length > 0 && (
+                          <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                            {availableCoupons.length} Active
+                          </span>
+                        )}
+                        <span className="text-xs font-bold text-[var(--color-brand)] hidden sm:inline">
+                          {isOffersDropdownOpen ? 'Hide' : 'View Offers'}
                         </span>
-                      )}
-                    </div>
+                        <FiChevronDown
+                          className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                            isOffersDropdownOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </div>
+                    </button>
 
-                    {availableCoupons.length > 0 ? (
-                      <div className="space-y-2">
-                        {availableCoupons.map((coupon) => (
-                          <div
-                            key={coupon.id}
-                            className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] hover:border-[var(--color-border-subtle)] transition-colors"
-                          >
-                            <div className="text-xs">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-black text-[var(--color-text-main)] bg-white border border-[var(--color-border-subtle)] px-2 py-0.5 rounded text-[11px]">
-                                  {coupon.code}
-                                </span>
-                                <span className="font-bold text-[var(--color-text-main)]">
-                                  {coupon.name}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-gray-600 mt-1">
-                                {coupon.description ||
-                                  (coupon.discount_type === 'PERCENTAGE'
-                                    ? `Get ${coupon.discount_value}% discount on orders`
-                                    : `Get flat ₹${coupon.discount_value} off`)}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyCoupon(coupon.code)}
-                              className="text-[11px] font-bold text-[var(--color-brand)] hover:text-[var(--color-text-main)] bg-white hover:bg-[var(--color-primary-tint)] px-2.5 py-1 rounded-lg border border-[var(--color-border-subtle)] transition-colors shrink-0 ml-2 cursor-pointer"
+                    {/* Dropdown Content */}
+                    {isOffersDropdownOpen && (
+                      <div className="p-3.5 pt-1 border-t border-[var(--color-border-subtle)]/70 bg-gray-50/50 space-y-2">
+                        {availableCoupons.length > 0 ? (
+                          availableCoupons.map((coupon) => (
+                            <div
+                              key={coupon.id}
+                              className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[var(--color-border-subtle)] shadow-2xs hover:border-[var(--color-brand)]/40 transition-colors"
                             >
-                              Copy
-                            </button>
+                              <div className="text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-black text-[var(--color-text-main)] bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] px-2 py-0.5 rounded text-[11px]">
+                                    {coupon.code}
+                                  </span>
+                                  <span className="font-bold text-[var(--color-text-main)]">
+                                    {coupon.name}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-gray-600 mt-1">
+                                  {coupon.description ||
+                                    (coupon.discount_type === 'PERCENTAGE'
+                                      ? `Get ${coupon.discount_value}% discount on orders`
+                                      : `Get flat ₹${coupon.discount_value} off`)}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCoupon(coupon.code)}
+                                className="text-[11px] font-bold text-[var(--color-brand)] hover:text-white hover:bg-[var(--color-brand)] bg-white px-2.5 py-1 rounded-lg border border-[var(--color-brand)]/30 transition-all shrink-0 ml-2 cursor-pointer active:scale-95"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-gray-500 py-1">
+                            No offers available for this product
                           </div>
-                        ))}
+                        )}
 
-                        {/* Free Delivery Offer */}
-                        <div className="flex items-start gap-2 text-xs text-gray-700 pt-1">
+                        {/* Free Delivery Offer inside Dropdown */}
+                        <div className="flex items-start gap-2 text-xs text-gray-700 pt-1.5 border-t border-gray-100">
                           <FiCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                           <span>
                             <strong>Free Delivery:</strong> On all orders above ₹499 across India.
                           </span>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-gray-500 py-1">
-                        No offers available for this product
                       </div>
                     )}
                   </div>
@@ -1254,28 +1311,53 @@ export default function ProductDetails() {
                       <button
                         type="submit"
                         disabled={isPincodeLoading || pincode.trim().length !== 6}
-                        className="px-4 py-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className="px-4 py-2 bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-bold text-xs sm:text-sm rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5"
                       >
-                        {isPincodeLoading ? 'Checking...' : 'Check'}
+                        {isPincodeLoading ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Checking...</span>
+                          </>
+                        ) : (
+                          'Check'
+                        )}
                       </button>
                     </form>
 
-                    {/* Result message */}
+                    {/* Result message with resolved Postal Location */}
                     {pincodeStatus && (
                       <div
-                        className={`text-xs p-3 rounded-xl border mt-2 ${
+                        className={`text-xs p-3.5 rounded-xl border mt-2 transition-all ${
                           pincodeStatus.valid
-                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                            ? 'bg-emerald-50/80 text-emerald-950 border-emerald-200'
                             : 'bg-rose-50 text-rose-800 border-rose-200'
                         }`}
                       >
-                        <p className="font-semibold">{pincodeStatus.message}</p>
-                        {pincodeStatus.valid && (
-                          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-emerald-800">
-                            <span>• {pincodeStatus.delivery_charge}</span>
-                            <span>• Cash on Delivery: {pincodeStatus.cod_available ? 'Available' : 'Prepaid Only'}</span>
+                        <div className="flex items-start gap-2">
+                          {pincodeStatus.valid ? (
+                            <FiCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          ) : (
+                            <FiX className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                          )}
+                          <div className="flex-1">
+                            <p className="font-bold text-xs sm:text-sm">{pincodeStatus.message}</p>
+                            {pincodeStatus.valid && (
+                              <div className="mt-2 space-y-1.5 text-[11px] text-emerald-900">
+                                {pincodeStatus.location && (
+                                  <div className="flex items-center gap-1.5 font-semibold text-emerald-800 bg-white/70 px-2.5 py-1 rounded-lg border border-emerald-100">
+                                    <span>📍 Location:</span>
+                                    <span className="font-bold">{pincodeStatus.location}</span>
+                                  </div>
+                                )}
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5 font-medium">
+                                  <span>• Delivery: {pincodeStatus.estimated_delivery}</span>
+                                  <span>• {pincodeStatus.delivery_charge}</span>
+                                  <span>• Cash on Delivery: {pincodeStatus.cod_available ? 'Available' : 'Prepaid Only'}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1639,7 +1721,7 @@ export default function ProductDetails() {
                     {/* Score & Star Breakdown Column */}
                     <div className="md:col-span-4 text-center md:text-left flex flex-col items-center md:items-start">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-5xl font-black text-[var(--color-text-main)] tracking-tight">
+                        <span className="text-3xl sm:text-4xl font-black text-[var(--color-text-main)] tracking-tight">
                           {Number(reviewStats.total) > 0 ? reviewStats.average : '0.0'}
                         </span>
                         <span className="text-base text-gray-400 font-bold">/ 5.0</span>
@@ -1922,7 +2004,7 @@ export default function ProductDetails() {
                   {product.name}
                 </h4>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-base sm:text-lg font-black text-[var(--color-brand)]">
+                  <span className="text-base sm:text-lg font-black text-slate-900">
                     ₹{retailPrice}
                   </span>
                   {mrp > retailPrice && (

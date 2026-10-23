@@ -98,7 +98,7 @@ export default function CategoryBanner({ banner, onScrollToProducts }) {
             </div>
           )}
 
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white tracking-tight leading-snug">
             {banner.title}
           </h2>
 

@@ -503,10 +503,10 @@ export default function Shop() {
         />
 
         {/* Main Content Area in 1320px Container */}
-        <main className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <main className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-3 pb-8 sm:pb-12">
           
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center gap-2 text-xs font-sans font-medium text-[#666666] mb-4">
+          <div className="flex items-center gap-2 text-xs font-sans font-medium text-[#666666] mb-2">
             <Link to={ROUTES.HOME} className="text-[#6C4EFF] hover:underline">
               Home
             </Link>
@@ -600,7 +600,7 @@ export default function Shop() {
 
           <div className="flex-1 min-w-0">
           {/* Page Header / Category Heading */}
-          <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E9DFFF] mb-6">
+          <div id="shop-products-header" className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-3 border-b border-[#E9DFFF] mb-2">
             <div>
               <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] bg-[#FAF8FF] px-3.5 py-1 rounded-full border border-[#E9DFFF]">
                 {offerIdParam
@@ -611,10 +611,10 @@ export default function Shop() {
                   ? currentCategoryObj.name
                   : 'All Groceries & Essentials'}
               </span>
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1B133F] tracking-tight mt-3">
+              <h1 className="font-serif text-xl sm:text-2xl lg:text-[26px] font-bold text-[#1B133F] tracking-tight mt-2.5">
                 {pageTitle}
               </h1>
-              <p className="font-sans text-xs sm:text-sm text-[#666666] mt-2">
+              <p className="font-sans text-xs sm:text-sm text-[#666666] mt-1.5">
                 {pagination.total > 0 ? (
                   <>
                     Showing{' '}
@@ -664,7 +664,7 @@ export default function Shop() {
 
           {/* Active Offer Chip Filter */}
           {offerIdParam && (
-            <div className="pt-3 pb-1 flex items-center gap-2 flex-wrap">
+            <div className="pt-2 pb-1 flex items-center gap-2 flex-wrap">
               <span className="text-[11px] font-black uppercase text-purple-700 tracking-wider">
                 Active Offer Filter:
               </span>
@@ -689,7 +689,7 @@ export default function Shop() {
           )}
 
           {/* Category Quick Chips Filter (Top 5 Categories) */}
-          <div className="py-3.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-2">
+          <div className="py-1.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-2">
             <button
               type="button"
               onClick={() => handleCategoryChange('')}
@@ -720,46 +720,9 @@ export default function Shop() {
             })}
           </div>
 
-          {/* Subcategory Quick Chips Filter (Top 5 Subcategories) */}
-          {relevantSubcategories.length > 0 && (
-            <div className="pb-3 flex flex-nowrap overflow-x-auto no-scrollbar gap-2 items-center">
-              <span className="text-[11px] font-black uppercase text-gray-400 shrink-0 mr-1">
-                Subcategories:
-              </span>
-              <button
-                type="button"
-                onClick={() => handleSubcategoryChange('')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  !subcategoryIdParam
-                    ? 'bg-[var(--color-brand)] text-white shadow-xs'
-                    : 'bg-white border border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-gray-50'
-                }`}
-              >
-                All
-              </button>
-              {relevantSubcategories.slice(0, 5).map((subcat) => {
-                const isSelected = String(subcat.id) === String(subcategoryIdParam)
-                return (
-                  <button
-                    key={subcat.id}
-                    type="button"
-                    onClick={() => handleSubcategoryChange(subcat.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                      isSelected
-                        ? 'bg-[var(--color-brand)] text-white shadow-xs'
-                        : 'bg-white border border-[var(--color-border-subtle)] text-[var(--color-text-main)] hover:bg-gray-50'
-                    }`}
-                  >
-                    {subcat.name}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
           {/* Products Grid or Loading / Empty */}
           {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 py-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 pt-1.5 pb-4">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <div
                   key={n}
@@ -798,7 +761,7 @@ export default function Shop() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 py-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 pt-1.5 pb-6">
               {products.map((product) => (
                 <ProductCard
                   key={product.id}

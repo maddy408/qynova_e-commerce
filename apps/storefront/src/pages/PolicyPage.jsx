@@ -69,7 +69,7 @@ export default function PolicyPage() {
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full inline-block mb-3">
                   Store Policy & Legal
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-black text-[var(--color-text-main)] tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-[var(--color-text-main)] tracking-tight">
                   {page.title}
                 </h1>
                 {page.updated_at && (
