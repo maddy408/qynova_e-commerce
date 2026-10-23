@@ -44,6 +44,13 @@ interface OrderDetail {
   shipping_city_district: string
   shipping_state: string
   shipping_pincode: string
+  delivery_type: 'OWN_DELIVERY' | 'INDIA_POST' | null
+  delivery_distance_km: string | null
+  delivery_days: number | null
+  delivery_tracking_id: string | null
+  delivery_tracking_courier: string | null
+  delivery_tracking_status: string | null
+  delivery_whatsapp_sent_at: string | null
   items: OrderItem[]
   status_history: StatusHistoryRow[]
 }
@@ -70,9 +77,20 @@ export function OrderDetailPage() {
   const [deliveryId, setDeliveryId] = useState<number | null>(null)
   const [deliveryChecked, setDeliveryChecked] = useState(false)
   const [creatingDelivery, setCreatingDelivery] = useState(false)
+  const [trackingId, setTrackingId] = useState('')
+  const [courierName, setCourierName] = useState('India Post')
+  const [trackingStatus, setTrackingStatus] = useState('')
+  const [savingTracking, setSavingTracking] = useState(false)
+  const [trackingError, setTrackingError] = useState('')
+  const [clickToChatUrl, setClickToChatUrl] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    api.get(`/orders/${id}`).then((res) => setOrder(res.data.order))
+    api.get(`/orders/${id}`).then((res) => {
+      setOrder(res.data.order)
+      setTrackingId(res.data.order.delivery_tracking_id || '')
+      setCourierName(res.data.order.delivery_tracking_courier || 'India Post')
+      setTrackingStatus(res.data.order.delivery_tracking_status || '')
+    })
     api
       .get(`/orders/${id}/delivery`)
       .then((res) => setDeliveryId(res.data.delivery.id))
@@ -92,6 +110,31 @@ export function OrderDetailPage() {
       setError(apiErrorMessage(err, 'Could not create delivery'))
     } finally {
       setCreatingDelivery(false)
+    }
+  }
+
+  async function saveTracking() {
+    if (!trackingId.trim()) {
+      setTrackingError('Tracking ID is required')
+      return
+    }
+    setSavingTracking(true)
+    setTrackingError('')
+    setClickToChatUrl(null)
+    try {
+      const res = await api.patch(`/orders/${id}/delivery-tracking`, {
+        tracking_id: trackingId.trim(),
+        courier_name: courierName.trim() || 'India Post',
+        status: trackingStatus.trim() || undefined,
+      })
+      setOrder(res.data.order)
+      if (!res.data.whatsapp_sent) {
+        setClickToChatUrl(res.data.whatsapp_click_to_chat_url)
+      }
+    } catch (err) {
+      setTrackingError(apiErrorMessage(err, 'Could not save tracking details'))
+    } finally {
+      setSavingTracking(false)
     }
   }
 
@@ -247,6 +290,71 @@ export function OrderDetailPage() {
               {order.shipping_city_district}, {order.shipping_state} {order.shipping_pincode}
             </p>
           </Card>
+
+          {order.delivery_type === 'INDIA_POST' && (
+            <Card className="space-y-3 p-5">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">India Post Tracking</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {order.delivery_distance_km ? `${order.delivery_distance_km} km from the shop` : 'Beyond local delivery radius'} ·{' '}
+                  {order.delivery_days ? `up to ${order.delivery_days} days` : '2-3 days'}
+                </p>
+              </div>
+
+              {trackingError && <Alert>{trackingError}</Alert>}
+
+              <div className="space-y-2.5">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Tracking ID</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. EE123456789IN"
+                    value={trackingId}
+                    onChange={(e) => setTrackingId(e.target.value)}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Courier Name</label>
+                  <input
+                    type="text"
+                    value={courierName}
+                    onChange={(e) => setCourierName(e.target.value)}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Status Note (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Dispatched from local post office"
+                    value={trackingStatus}
+                    onChange={(e) => setTrackingStatus(e.target.value)}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                  />
+                </div>
+
+                <Button size="sm" onClick={saveTracking} disabled={savingTracking} className="w-full">
+                  {savingTracking ? 'Saving…' : 'Save & Notify via WhatsApp'}
+                </Button>
+
+                {order.delivery_whatsapp_sent_at && (
+                  <p className="text-xs text-emerald-600">WhatsApp sent {new Date(order.delivery_whatsapp_sent_at).toLocaleString()}</p>
+                )}
+
+                {clickToChatUrl && (
+                  <a
+                    href={clickToChatUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-center text-xs font-medium py-2 px-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  >
+                    WhatsApp not auto-sent — Send via WhatsApp manually
+                  </a>
+                )}
+              </div>
+            </Card>
+          )}
 
           {deliveryChecked && (
             <Card className="space-y-2 p-5">

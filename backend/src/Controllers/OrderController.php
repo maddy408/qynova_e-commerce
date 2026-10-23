@@ -178,4 +178,25 @@ final class OrderController
             Response::error($e->getMessage(), 422);
         }
     }
+
+    /** PATCH /api/orders/{id}/delivery-tracking — India Post tracking ID + courier + WhatsApp send (Delivery Management, Part B step 7). */
+    public function updateDeliveryTracking(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+
+        try {
+            $result = $this->orders->updateDeliveryTracking(
+                (int) $id,
+                (string) ($body['tracking_id'] ?? ''),
+                (string) ($body['courier_name'] ?? 'India Post'),
+                isset($body['status']) ? (string) $body['status'] : null,
+            );
+            Response::json($result);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
 }

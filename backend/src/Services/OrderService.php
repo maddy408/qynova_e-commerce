@@ -44,6 +44,7 @@ final class OrderService
 
     private readonly NotificationDispatcher $notifications;
     private readonly DeliveryCalculationService $deliveryCalc;
+    private readonly WhatsAppService $whatsApp;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -53,9 +54,11 @@ final class OrderService
         private readonly RefundService $refunds,
         ?NotificationDispatcher $notifications = null,
         ?DeliveryCalculationService $deliveryCalc = null,
+        ?WhatsAppService $whatsApp = null,
     ) {
         $this->notifications = $notifications ?? new NotificationDispatcher($pdo);
         $this->deliveryCalc = $deliveryCalc ?? new DeliveryCalculationService($pdo, new PincodeGeocodingService($pdo));
+        $this->whatsApp = $whatsApp ?? new WhatsAppService($pdo);
     }
 
     /**
@@ -564,6 +567,53 @@ final class OrderService
         }
 
         return $updated;
+    }
+
+    /**
+     * Admin saves a post-office tracking ID for a beyond-radius
+     * (delivery_type = INDIA_POST) order. Always persists the tracking
+     * fields first, then attempts a WhatsApp send — a failed/unconfigured
+     * send never blocks the save itself (see WhatsAppService's docblock).
+     *
+     * @return array{order: array<string, mixed>, whatsapp_sent: bool, whatsapp_configured: bool, whatsapp_click_to_chat_url: string}
+     */
+    public function updateDeliveryTracking(int $orderId, string $trackingId, string $courierName, ?string $status): array
+    {
+        $order = $this->find($orderId);
+
+        if ($order === null) {
+            throw new RuntimeException('Order not found');
+        }
+
+        $trackingId = trim($trackingId);
+        $courierName = trim($courierName) ?: 'India Post';
+
+        if ($trackingId === '') {
+            throw new RuntimeException('Tracking ID is required');
+        }
+
+        $this->pdo->prepare(
+            'UPDATE orders SET delivery_tracking_id = :tracking_id, delivery_tracking_courier = :courier,
+                delivery_tracking_status = :status WHERE id = :id'
+        )->execute([
+            'tracking_id' => $trackingId,
+            'courier' => $courierName,
+            'status' => $status !== null ? trim($status) : null,
+            'id' => $orderId,
+        ]);
+
+        $result = $this->whatsApp->sendTrackingUpdate($orderId, (string) $order['customer_phone'], (string) $order['order_no'], $trackingId, $courierName);
+
+        if ($result['sent']) {
+            $this->pdo->prepare('UPDATE orders SET delivery_whatsapp_sent_at = NOW() WHERE id = :id')->execute(['id' => $orderId]);
+        }
+
+        return [
+            'order' => $this->find($orderId) ?? throw new RuntimeException('Order not found after tracking update'),
+            'whatsapp_sent' => $result['sent'],
+            'whatsapp_configured' => $result['configured'],
+            'whatsapp_click_to_chat_url' => $this->whatsApp->clickToChatUrl((string) $order['customer_phone'], (string) $order['order_no'], $trackingId, $courierName),
+        ];
     }
 
     /**
