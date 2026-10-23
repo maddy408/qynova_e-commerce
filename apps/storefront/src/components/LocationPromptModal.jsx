@@ -99,6 +99,13 @@ export default function LocationPromptModal() {
                 Lat: {successInfo.latitude?.toFixed(4)}, Lng: {successInfo.longitude?.toFixed(4)}
               </span>
             </div>
+
+            {typeof successInfo.accuracy === 'number' && (
+              <p className={`text-[10px] font-bold ${successInfo.accuracy > 100 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                Accuracy: ±{Math.round(successInfo.accuracy)}m
+                {successInfo.accuracy > 100 ? ' — you can adjust the pin manually if this looks off' : ''}
+              </p>
+            )}
           </div>
         ) : (
           /* PROMPT STATE */

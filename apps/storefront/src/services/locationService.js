@@ -7,23 +7,14 @@
 const STORAGE_KEY = 'user_delivery_location'
 const PROMPT_DISMISSED_KEY = 'location_prompt_dismissed_session'
 
-/**
- * Get current browser GPS coordinates using standard HTML5 Geolocation API.
- * @param {Object} customOptions
- * @returns {Promise<{latitude: number, longitude: number, accuracy: number}>}
- */
-export function getCurrentCoordinates(customOptions = {}) {
+/** Above this, a fix is considered too coarse (often a cell-tower/wifi estimate rather than GPS) to trust without a retry. */
+const ACCURACY_RETRY_THRESHOLD_METERS = 100
+
+function getPositionOnce(options) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by your browser.'))
       return
-    }
-
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 12000,
-      maximumAge: 60000,
-      ...customOptions,
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -57,6 +48,44 @@ export function getCurrentCoordinates(customOptions = {}) {
 }
 
 /**
+ * Get current browser GPS coordinates using standard HTML5 Geolocation API.
+ * Never falls back to IP-based geolocation — a wrong fix is better surfaced
+ * via low `accuracy` than silently replaced with a city-level IP guess.
+ *
+ * `maximumAge: 0` forces a fresh fix every time (a cached fix from an
+ * earlier, possibly different, location was part of why this previously
+ * showed Madurai/Peraiyur instead of the user's actual position near
+ * Pavoorchatram). If the first fix is coarser than
+ * ACCURACY_RETRY_THRESHOLD_METERS, one retry is attempted and the more
+ * accurate of the two fixes is kept — a low-accuracy fix is still
+ * returned (never thrown away) so the caller can show it to the user
+ * with its accuracy figure rather than fail outright.
+ *
+ * @param {Object} customOptions
+ * @returns {Promise<{latitude: number, longitude: number, accuracy: number}>}
+ */
+export async function getCurrentCoordinates(customOptions = {}) {
+  const options = {
+    enableHighAccuracy: true,
+    timeout: 12000,
+    maximumAge: 0,
+    ...customOptions,
+  }
+
+  const first = await getPositionOnce(options)
+  if (first.accuracy == null || first.accuracy <= ACCURACY_RETRY_THRESHOLD_METERS) {
+    return first
+  }
+
+  try {
+    const second = await getPositionOnce(options)
+    return second.accuracy != null && second.accuracy < first.accuracy ? second : first
+  } catch {
+    return first
+  }
+}
+
+/**
  * Free Reverse Geocoding using BigDataCloud Client API + OpenStreetMap Nominatim.
  * No API key needed, completely free, CORS enabled for client-side frontend use.
  *
@@ -76,25 +105,16 @@ export async function reverseGeocode(latitude, longitude) {
   let country = 'India'
   let formattedAddress = ''
 
-  // 1. Primary query: BigDataCloud Free Client-side Reverse Geocoder (fast, no rate-limiting, CORS-friendly)
+  // 1. Primary query: OpenStreetMap Nominatim, read most-specific-first
+  //    (village/suburb/neighbourhood before town/city). BigDataCloud
+  //    (below) was previously queried first and nearly always returns
+  //    some value for `city` even for rural coordinates — typically the
+  //    district headquarters (e.g. Madurai for a Pavoorchatram/Tenkasi
+  //    fix) — which then skipped Nominatim's finer-grained result
+  //    entirely via the old `if (!city)` gate. Nominatim is queried
+  //    first now so its locality-level detail is used whenever present.
   try {
-    const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
-    const bdcRes = await fetch(bdcUrl)
-    if (bdcRes.ok) {
-      const data = await bdcRes.json()
-      city = data.city || data.locality || ''
-      locality = data.locality || ''
-      state = data.principalSubdivision || ''
-      pincode = (data.postcode || '').replace(/[^0-9]/g, '').slice(0, 6)
-      country = data.countryName || 'India'
-    }
-  } catch (err) {
-    console.warn('BigDataCloud reverse geocode fallback trigger:', err)
-  }
-
-  // 2. Secondary query: OpenStreetMap Nominatim (rich street/road & neighbourhood detail)
-  try {
-    const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
     const nomRes = await fetch(nomUrl, {
       headers: {
         Accept: 'application/json',
@@ -114,19 +134,15 @@ export async function reverseGeocode(latitude, longitude) {
         addr.amenity ||
         ''
 
-      if (!locality) {
-        locality = addr.suburb || addr.neighbourhood || addr.quarter || addr.residential || ''
-      }
-      if (!city) {
-        city = addr.city || addr.town || addr.village || addr.city_district || addr.county || ''
-      }
-      if (!state) {
-        state = addr.state || ''
-      }
-      if (!pincode && addr.postcode) {
+      // Most specific locality first — a village/suburb, never the
+      // district/first geocoder result.
+      locality = addr.village || addr.hamlet || addr.suburb || addr.neighbourhood || addr.quarter || addr.residential || ''
+      city = addr.village || addr.suburb || addr.town || addr.city || addr.city_district || addr.county || ''
+      state = addr.state || ''
+      if (addr.postcode) {
         pincode = String(addr.postcode).replace(/[^0-9]/g, '').slice(0, 6)
       }
-      if (!country && addr.country) {
+      if (addr.country) {
         country = addr.country
       }
       if (data.display_name) {
@@ -134,7 +150,27 @@ export async function reverseGeocode(latitude, longitude) {
       }
     }
   } catch (err) {
-    console.warn('Nominatim reverse geocode fallback trigger:', err)
+    console.warn('Nominatim reverse geocode failed, will fall back to BigDataCloud:', err)
+  }
+
+  // 2. Fallback only: BigDataCloud fills in whatever Nominatim couldn't
+  //    provide (it failed entirely, or is missing a field) — never
+  //    overrides a value Nominatim already supplied.
+  if (!city || !locality || !pincode) {
+    try {
+      const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
+      const bdcRes = await fetch(bdcUrl)
+      if (bdcRes.ok) {
+        const data = await bdcRes.json()
+        if (!locality) locality = data.locality || ''
+        if (!city) city = data.city || data.locality || ''
+        if (!state) state = data.principalSubdivision || ''
+        if (!pincode) pincode = (data.postcode || '').replace(/[^0-9]/g, '').slice(0, 6)
+        if (!country) country = data.countryName || 'India'
+      }
+    } catch (err) {
+      console.warn('BigDataCloud reverse geocode fallback failed:', err)
+    }
   }
 
   // Assemble clean street and display strings
@@ -172,12 +208,23 @@ export async function reverseGeocode(latitude, longitude) {
 }
 
 /**
+ * Log lat/lng/accuracy for a GPS fix during debugging (C1 — wrong live
+ * location bug). Call sites log immediately after getCurrentCoordinates()
+ * resolves; this is a thin wrapper so the log format stays consistent.
+ */
+export function logGpsFix(coords, label = 'GPS fix') {
+  console.log(`[location] ${label}: lat=${coords.latitude}, lng=${coords.longitude}, accuracy=${coords.accuracy}m`)
+}
+
+/**
  * Fetch current GPS location, reverse-geocode it, save to localStorage, and broadcast change.
  * @returns {Promise<Object>}
  */
 export async function detectAndSaveLocation() {
   const coords = await getCurrentCoordinates()
+  logGpsFix(coords)
   const locationData = await reverseGeocode(coords.latitude, coords.longitude)
+  locationData.accuracy = coords.accuracy
   saveStoredLocation(locationData)
   return locationData
 }
