@@ -290,7 +290,20 @@ final class DeliveryController
         }
     }
 
-    /** Customer-facing pincode serviceability check. */
+    /**
+     * Customer-facing pincode serviceability check. Delivery Management
+     * (Part B) extends this additively — every field the original mock
+     * response returned (serviceable/status/pincode/estimated_delivery/
+     * cod_available/shipping_required/delivery_charge/message) is still
+     * present with the same meaning, so ProductDetails.jsx's existing
+     * "check delivery to my pincode" widget keeps working unchanged. The
+     * new fields carry the real distance/type/ETA; `delivery_charge`
+     * here stays a human-readable string, not a final ₹ figure — the
+     * actual chargeable amount depends on the real cart's weight and is
+     * only ever computed server-side from it (OrderService::preview()/
+     * checkout()), never from anything this GET could be tricked into
+     * trusting from the client.
+     */
     public function checkPincode(): void
     {
         $pincode = trim((string) ($_GET['pincode'] ?? ''));
@@ -318,22 +331,68 @@ final class DeliveryController
             }
         }
 
-        $firstDigit = (int) $pincode[0];
-        $days = match ($firstDigit) {
-            1, 2, 5, 6 => '1–2 business days (Express Courier)',
-            3, 4 => '2–3 business days (Standard Courier)',
-            default => '3–4 business days (National Network)',
-        };
+        $customerId = $this->optionalCustomerId();
+
+        try {
+            $geocoder = new \App\Services\PincodeGeocodingService($this->pdo);
+            $calc = new \App\Services\DeliveryCalculationService($this->pdo, $geocoder);
+            $quote = $calc->quotePincode($pincode, $customerId);
+        } catch (RuntimeException $e) {
+            Response::json([
+                'serviceable' => false,
+                'status' => 'INVALID',
+                'message' => $e->getMessage(),
+            ], 400);
+            return;
+        }
+
+        $days = $quote['within_radius']
+            ? "{$quote['delivery_days']} day" . ($quote['delivery_days'] === 1 ? '' : 's') . ' (delivered by the shop)'
+            : "{$quote['settings']['post_min_days']}-{$quote['settings']['post_max_days']} days (via {$quote['settings']['default_courier_name']})";
+
+        $message = !$quote['is_tamil_nadu']
+            ? "We deliver to {$pincode} via {$quote['settings']['default_courier_name']}, typically {$quote['settings']['post_min_days']}-{$quote['settings']['post_max_days']} days."
+            : "Delivery available to {$pincode}. Estimated delivery within {$days}.";
 
         Response::json([
+            // Original fields — unchanged meaning, existing callers unaffected.
             'serviceable' => true,
             'status' => 'AVAILABLE',
             'pincode' => $pincode,
             'estimated_delivery' => $days,
             'cod_available' => $codAvailable,
             'shipping_required' => $shippingRequired,
-            'delivery_charge' => 'Free on orders above ₹499 (Flat ₹49 below ₹499)',
-            'message' => "Delivery available to {$pincode}. Estimated delivery within {$days}.",
+            'delivery_charge' => $quote['is_first_order']
+                ? 'Free (your first order)'
+                : ($quote['within_radius'] ? 'Free (within local delivery area)' : 'Based on order weight — shown at checkout'),
+            'message' => $message,
+            // Delivery Management additions.
+            'is_tamil_nadu' => $quote['is_tamil_nadu'],
+            'district' => $quote['district'],
+            'area' => $quote['area'],
+            'geocode_source' => $quote['geocode_source'],
+            'distance_km' => $quote['distance_km'],
+            'within_radius' => $quote['within_radius'],
+            'delivery_type' => $quote['delivery_type'],
+            'delivery_days' => $quote['delivery_days'],
+            'is_first_order' => $quote['is_first_order'],
         ]);
+    }
+
+    /** Best-effort: a guest/invalid/missing token just means no first-order discount — never force a 401 on a public pincode check. */
+    private function optionalCustomerId(): ?int
+    {
+        $token = Request::bearerToken();
+        if ($token === null) {
+            return null;
+        }
+
+        try {
+            $claims = \App\Helpers\JwtHelper::verify($token);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return isset($claims['sub']) && ($claims['type'] ?? '') === 'customer' ? (int) $claims['sub'] : null;
     }
 }
