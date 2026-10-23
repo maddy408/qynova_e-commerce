@@ -75,4 +75,19 @@ return [
         // where you sell: 'India' (all-India shipping), a city name for a local store, or ''
         'area' => $_ENV['SEO_AREA'] ?? 'India',
     ],
+    'shop' => [
+        // Delivery Management distance-calc origin (Tenkasi, Melagaram).
+        // Blank until configured — DeliveryCalculationService must treat
+        // a missing SHOP_LAT/LNG as "cannot compute distance" rather than
+        // silently defaulting to (0, 0).
+        'lat' => isset($_ENV['SHOP_LAT']) && $_ENV['SHOP_LAT'] !== '' ? (float) $_ENV['SHOP_LAT'] : null,
+        'lng' => isset($_ENV['SHOP_LNG']) && $_ENV['SHOP_LNG'] !== '' ? (float) $_ENV['SHOP_LNG'] : null,
+    ],
+    'whatsapp' => [
+        'phone_number_id' => $_ENV['WHATSAPP_PHONE_NUMBER_ID'] ?? '',
+        'access_token' => $_ENV['WHATSAPP_ACCESS_TOKEN'] ?? '',
+        'business_account_id' => $_ENV['WHATSAPP_BUSINESS_ACCOUNT_ID'] ?? '',
+        'template_name' => $_ENV['WHATSAPP_TEMPLATE_NAME'] ?? 'order_tracking_update',
+        'template_language' => $_ENV['WHATSAPP_TEMPLATE_LANGUAGE'] ?? 'en',
+    ],
 ];
