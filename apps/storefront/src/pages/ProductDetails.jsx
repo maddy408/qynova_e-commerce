@@ -654,7 +654,7 @@ export default function ProductDetails() {
   const handleOpenWriteReview = () => {
     if (!customer) {
       showToast('Please sign in to your account to write a review.')
-      navigate(`/customer/login?redirect=${encodeURIComponent(location.pathname + location.search)}`)
+      navigate(`${ROUTES.LOGIN}?redirect=${encodeURIComponent(location.pathname + location.search)}`)
       return
     }
     setNewReviewRating(5)
@@ -670,7 +670,7 @@ export default function ProductDetails() {
     e?.preventDefault()
     if (!customer) {
       showToast('Please sign in to submit a review.')
-      navigate(`/customer/login?redirect=${encodeURIComponent(location.pathname + location.search)}`)
+      navigate(`${ROUTES.LOGIN}?redirect=${encodeURIComponent(location.pathname + location.search)}`)
       return
     }
     if (!newReviewComment.trim()) {
@@ -1669,8 +1669,8 @@ export default function ProductDetails() {
                         onClick={handleOpenWriteReview}
                         className="mt-4 px-5 py-2.5 bg-[var(--color-brand)] hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
                       >
-                        <FiEdit3 className="w-4 h-4" />
-                        <span>Write a Review</span>
+                        {customer ? <FiEdit3 className="w-4 h-4" /> : <FiLock className="w-4 h-4" />}
+                        <span>{customer ? 'Write a Review' : 'Sign in to write a review'}</span>
                       </button>
                     </div>
 
@@ -1850,9 +1850,10 @@ export default function ProductDetails() {
                       <button
                         type="button"
                         onClick={handleOpenWriteReview}
-                        className="px-4 py-2 bg-[var(--color-brand)] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer"
+                        className="px-4 py-2 bg-[var(--color-brand)] text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
                       >
-                        Write the First Review
+                        {!customer && <FiLock className="w-3.5 h-3.5" />}
+                        <span>{customer ? 'Write the First Review' : 'Sign in to write a review'}</span>
                       </button>
                     )}
                   </div>

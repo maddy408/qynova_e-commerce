@@ -31,10 +31,20 @@ export default function Login() {
   const googleBtnRef = useRef(null)
   const googleClientId = env.GOOGLE_CLIENT_ID
 
-  // Direct to Home screen after login, unless redirected specifically from checkout or cart
+  // Direct to Home screen after login, unless redirected specifically from
+  // checkout/cart (location.state.from) or a ?redirect= query param (set by
+  // e.g. ProductDetails.jsx's "Sign in to write a review" button, so the
+  // customer lands back on the same product page — C3). Query param is
+  // restricted to an internal path (starts with a single "/", never "//")
+  // to rule out an open redirect to an external site.
+  const redirectParam = new URLSearchParams(location.search).get('redirect')
+  const isSafeInternalPath = (path) => typeof path === 'string' && /^\/(?!\/)/.test(path)
+
   const targetRoute = (location.state?.from && !location.state.from.includes('profile') && !location.state.from.includes('login'))
     ? location.state.from
-    : ROUTES.HOME
+    : isSafeInternalPath(redirectParam) && !redirectParam.includes('/login')
+      ? redirectParam
+      : ROUTES.HOME
 
   // If already logged in, redirect straight to home screen
   useEffect(() => {
