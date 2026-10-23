@@ -36,7 +36,12 @@ final class OrderController
         $body = Request::json();
 
         try {
-            Response::json($this->orders->preview((int) $claims['sub'], (array) ($body['items'] ?? []), $body['coupon_code'] ?? null));
+            Response::json($this->orders->preview(
+                (int) $claims['sub'],
+                (array) ($body['items'] ?? []),
+                $body['coupon_code'] ?? null,
+                isset($body['pincode']) ? (string) $body['pincode'] : null,
+            ));
         } catch (RuntimeException $e) {
             Response::error($e->getMessage(), 422);
         }

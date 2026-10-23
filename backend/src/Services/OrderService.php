@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\Config;
 use PDO;
 use RuntimeException;
 
@@ -42,6 +43,7 @@ final class OrderService
     ];
 
     private readonly NotificationDispatcher $notifications;
+    private readonly DeliveryCalculationService $deliveryCalc;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -50,8 +52,10 @@ final class OrderService
         private readonly InvoiceService $invoices,
         private readonly RefundService $refunds,
         ?NotificationDispatcher $notifications = null,
+        ?DeliveryCalculationService $deliveryCalc = null,
     ) {
         $this->notifications = $notifications ?? new NotificationDispatcher($pdo);
+        $this->deliveryCalc = $deliveryCalc ?? new DeliveryCalculationService($pdo, new PincodeGeocodingService($pdo));
     }
 
     /**
@@ -102,12 +106,12 @@ final class OrderService
      * @param list<array{variant_id: int, quantity: int}> $items
      * @return array<string, mixed>
      */
-    public function preview(int $customerId, array $items, ?string $couponCode): array
+    public function preview(int $customerId, array $items, ?string $couponCode, ?string $pincode = null): array
     {
         $customerType = $this->customerType($customerId);
         $lines = $this->priceLines($items, $customerType);
 
-        return $this->computeTotals($customerId, $lines, $couponCode);
+        return $this->computeTotals($customerId, $lines, $couponCode, $pincode);
     }
 
     /**
@@ -151,7 +155,7 @@ final class OrderService
             }
         }
 
-        $totals = $this->computeTotals($customerId, $lines, $couponCode);
+        $totals = $this->computeTotals($customerId, $lines, $couponCode, $address['pincode']);
 
         if (isset($totals['coupon_error']) && $couponCode !== null) {
             throw new RuntimeException($totals['coupon_error']);
@@ -168,13 +172,15 @@ final class OrderService
                     coupon_id, coupon_code, coupon_discount_total, referral_reward_id, referral_discount_total,
                     tax_total, shipping_total, grand_total,
                     shipping_name, shipping_phone, shipping_line1, shipping_line2,
-                    shipping_city_district, shipping_state, shipping_pincode
+                    shipping_city_district, shipping_state, shipping_pincode,
+                    delivery_type, delivery_distance_km, delivery_days, delivery_geocode_source, is_first_order_delivery
                 ) VALUES (
                     :order_no, :customer_id, 'PENDING', 'PENDING', :payment_method, :subtotal, :product_discount_total,
                     :coupon_id, :coupon_code, :coupon_discount_total, :referral_reward_id, :referral_discount_total,
                     :tax_total, :shipping_total, :grand_total,
                     :shipping_name, :shipping_phone, :shipping_line1, :shipping_line2,
-                    :shipping_city_district, :shipping_state, :shipping_pincode
+                    :shipping_city_district, :shipping_state, :shipping_pincode,
+                    :delivery_type, :delivery_distance_km, :delivery_days, :delivery_geocode_source, :is_first_order_delivery
                 )"
             )->execute([
                 'order_no' => $orderNo,
@@ -197,6 +203,11 @@ final class OrderService
                 'shipping_city_district' => $address['city_district'],
                 'shipping_state' => $address['state'],
                 'shipping_pincode' => $address['pincode'],
+                'delivery_type' => $totals['delivery_type'],
+                'delivery_distance_km' => $totals['delivery_distance_km'],
+                'delivery_days' => $totals['delivery_days'],
+                'delivery_geocode_source' => $totals['delivery_geocode_source'],
+                'is_first_order_delivery' => (int) $totals['is_first_order_delivery'],
             ]);
 
             $orderId = (int) $this->pdo->lastInsertId();
@@ -658,7 +669,7 @@ final class OrderService
                 'SELECT v.id AS variant_id, v.product_id, v.sku, v.mrp, v.retail_price, v.wholesale_price,
                         v.gst_rate_id, g.gst_percent, g.tax_mode, p.name AS product_name, p.is_active,
                         p.is_ecommerce_enabled, i.available,
-                        p.brand_id
+                        p.brand_id, COALESCE(v.weight_grams, p.weight_grams) AS weight_grams
                  FROM product_variants v
                  JOIN products p ON p.id = v.product_id
                  LEFT JOIN gst_rates g ON g.id = v.gst_rate_id
@@ -715,6 +726,7 @@ final class OrderService
                 'is_active' => (bool) $variant['is_active'],
                 'is_ecommerce_enabled' => (bool) $variant['is_ecommerce_enabled'],
                 'available' => (string) ($variant['available'] ?? '0'),
+                'weight_grams' => $variant['weight_grams'] !== null ? (float) $variant['weight_grams'] : 0.0,
             ];
         }
 
@@ -729,17 +741,40 @@ final class OrderService
      *
      * @param list<array<string, mixed>> $lines
      */
-    private function computeTotals(int $customerId, array $lines, ?string $couponCode): array
+    private function computeTotals(int $customerId, array $lines, ?string $couponCode, ?string $pincode = null): array
     {
         $subtotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['line_subtotal'], 2), '0.00');
         $productDiscountTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['product_discount_amount'], 2), '0.00');
         $taxTotal = array_reduce($lines, fn (string $c, array $l) => bcadd($c, $l['tax_amount'], 2), '0.00');
 
-        $delSettings = $this->pdo->query("SELECT * FROM delivery_settings WHERE is_active = 1 ORDER BY id ASC LIMIT 1")->fetch();
-        $flatShipping = $delSettings ? (string) ($delSettings['delivery_charge'] ?? self::FLAT_SHIPPING) : self::FLAT_SHIPPING;
-        $freeShippingAbove = $delSettings ? (string) ($delSettings['free_delivery_threshold'] ?? self::FREE_SHIPPING_ABOVE) : self::FREE_SHIPPING_ABOVE;
+        // Delivery Management (distance/weight-based) replaces the flat
+        // delivery_settings rate whenever a pincode is available and the
+        // shop's own lat/lng are configured — falls back to the old flat
+        // calc otherwise (unconfigured SHOP_LAT/LNG, no pincode yet at
+        // preview time, or an unresolvable pincode) so checkout never
+        // breaks over a delivery-estimation failure.
+        $deliveryQuote = null;
+        if ($pincode !== null && trim($pincode) !== '' && Config::get('shop.lat') !== null && Config::get('shop.lng') !== null) {
+            try {
+                $deliveryItems = array_map(fn (array $l) => [
+                    'weight_kg' => $l['weight_grams'] / 1000,
+                    'qty' => $l['quantity'],
+                ], $lines);
+                $deliveryQuote = $this->deliveryCalc->quoteForOrder($pincode, $customerId, $deliveryItems);
+            } catch (RuntimeException) {
+                $deliveryQuote = null; // invalid pincode format etc. — fall back to flat shipping below
+            }
+        }
 
-        $shippingTotal = bccomp($subtotal, $freeShippingAbove, 2) >= 0 ? '0.00' : $flatShipping;
+        if ($deliveryQuote !== null) {
+            $shippingTotal = number_format($deliveryQuote['delivery_charge'], 2, '.', '');
+        } else {
+            $delSettings = $this->pdo->query("SELECT * FROM delivery_settings WHERE is_active = 1 ORDER BY id ASC LIMIT 1")->fetch();
+            $flatShipping = $delSettings ? (string) ($delSettings['delivery_charge'] ?? self::FLAT_SHIPPING) : self::FLAT_SHIPPING;
+            $freeShippingAbove = $delSettings ? (string) ($delSettings['free_delivery_threshold'] ?? self::FREE_SHIPPING_ABOVE) : self::FREE_SHIPPING_ABOVE;
+
+            $shippingTotal = bccomp($subtotal, $freeShippingAbove, 2) >= 0 ? '0.00' : $flatShipping;
+        }
 
         $couponId = null;
         $couponDiscount = '0.00';
@@ -809,6 +844,12 @@ final class OrderService
             'tax_total' => $exclusiveTaxTotal,
             'shipping_total' => $shippingTotal,
             'grand_total' => $grandTotal,
+            'delivery_type' => $deliveryQuote['delivery_type'] ?? null,
+            'delivery_distance_km' => $deliveryQuote['distance_km'] ?? null,
+            'delivery_days' => $deliveryQuote['delivery_days'] ?? null,
+            'delivery_geocode_source' => $deliveryQuote['geocode_source'] ?? null,
+            'is_first_order_delivery' => $deliveryQuote['is_first_order'] ?? false,
+            'delivery_breakdown' => $deliveryQuote['breakdown'] ?? null,
         ];
     }
 
