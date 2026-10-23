@@ -111,6 +111,26 @@ export function InvoiceDetailPage() {
     }
   }, [])
 
+  // Default the format toggle to whichever paper size is set in Settings →
+  // Thermal Printer Setup (a4 → A4, 80mm/58mm → thermal) rather than a
+  // hardcoded literal — the customer uses A4 only, so that's also the
+  // server-side default (SettingsController::getPrinterSettings()) when
+  // nothing has been configured yet.
+  useEffect(() => {
+    api
+      .get('/settings/printer')
+      .then((res) => {
+        const paperSize = res.data?.settings?.printer_paper_size
+        if (paperSize === '80mm' || paperSize === '58mm') {
+          setFormat('thermal')
+        }
+      })
+      .catch(() => {
+        // Printer setting fetch failing is not worth blocking/erroring the
+        // invoice view over — the a4 default already matches this shop.
+      })
+  }, [])
+
   useEffect(() => {
     setError(null)
     api

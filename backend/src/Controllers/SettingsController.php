@@ -199,4 +199,54 @@ final class SettingsController
                 : "Unable to connect to Redis server at {$stats['host']}:{$stats['port']}. Failover synchronous dispatch is active.",
         ]);
     }
+
+    private const PRINTER_SETTING_KEYS = [
+        'printer_paper_size' => 'a4',
+        'printer_connection' => 'USB / Local Spooler',
+        'printer_auto_print' => '1',
+    ];
+
+    /**
+     * GET /api/settings/printer — the POS printer setup used to live only
+     * in browser localStorage (lost per-device/per-browser); backing it
+     * with app_settings (the same generic key-value table notification
+     * settings already use) makes the default survive across the shop's
+     * devices, which matters since the customer uses A4 only.
+     */
+    public function getPrinterSettings(): void
+    {
+        \App\Middleware\JwtAuthMiddleware::authenticate();
+
+        $settings = [];
+        foreach (self::PRINTER_SETTING_KEYS as $key => $default) {
+            $stmt = $this->pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = :k LIMIT 1');
+            $stmt->execute(['k' => $key]);
+            $val = $stmt->fetchColumn();
+            $settings[$key] = $val !== false ? (string) $val : $default;
+        }
+
+        Response::json(['settings' => $settings]);
+    }
+
+    /** PUT /api/settings/printer */
+    public function updatePrinterSettings(): void
+    {
+        $claims = \App\Middleware\JwtAuthMiddleware::authenticate();
+        \App\Middleware\PermissionMiddleware::require($claims, 'settings.manage');
+
+        $input = \App\Helpers\Request::json();
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO app_settings (setting_key, setting_value)
+             VALUES (:k, :v)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()'
+        );
+
+        foreach (self::PRINTER_SETTING_KEYS as $key => $default) {
+            if (array_key_exists($key, $input)) {
+                $stmt->execute(['k' => $key, 'v' => (string) $input[$key]]);
+            }
+        }
+
+        $this->getPrinterSettings();
+    }
 }

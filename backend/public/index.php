@@ -308,6 +308,8 @@ $router->get('/api/offers/flash-deal', fn () => $settings->getFlashDeal());
 $router->get('/api/settings/notifications', fn () => $settings->getNotificationSettings());
 $router->put('/api/settings/notifications', fn () => $settings->updateNotificationSettings());
 $router->post('/api/settings/notifications/test-redis', fn () => $settings->testRedisConnection());
+$router->get('/api/settings/printer', fn () => $settings->getPrinterSettings());
+$router->put('/api/settings/printer', fn () => $settings->updatePrinterSettings());
 
 // Orders & checkout (docs section 13/20; ECOMMERCE_POS_ADMIN_SPEC.md 18-20, 36-38)
 $orders = new OrderController($pdo);

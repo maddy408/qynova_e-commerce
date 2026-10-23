@@ -46,10 +46,14 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
   const [posInvoicePrefix, setPosInvoicePrefix] = useState('POS')
   const [orderPrefix, setOrderPrefix] = useState('ORD')
 
-  // Printer state
-  const [printerPaperSize, setPrinterPaperSize] = useState(() => localStorage.getItem('printer_paper_size') || '80mm')
+  // Printer state — backed by app_settings on the server (so the default
+  // survives across this shop's devices/browsers, not just one), with
+  // localStorage as an instant-paint fallback while that loads. The
+  // customer uses A4 only, so that's the default both here and server-side.
+  const [printerPaperSize, setPrinterPaperSize] = useState(() => localStorage.getItem('printer_paper_size') || 'a4')
   const [printerConnection, setPrinterConnection] = useState(() => localStorage.getItem('printer_connection') || 'USB / Local Spooler')
   const [autoPrintPosSales, setAutoPrintPosSales] = useState(() => localStorage.getItem('auto_print_pos_sales') !== 'false')
+  const [loadingPrinterSettings, setLoadingPrinterSettings] = useState(false)
 
   // Scanner state
   const [scannerIp, setScannerIp] = useState('192.168.1.120')
@@ -71,6 +75,29 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
       fetchPriceSettings()
     }
   }, [tab])
+
+  useEffect(() => {
+    fetchPrinterSettings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function fetchPrinterSettings() {
+    setLoadingPrinterSettings(true)
+    try {
+      const res = await api.get('/settings/printer')
+      const s = res.data?.settings
+      if (s) {
+        setPrinterPaperSize(s.printer_paper_size || 'a4')
+        setPrinterConnection(s.printer_connection || 'USB / Local Spooler')
+        setAutoPrintPosSales(s.printer_auto_print !== '0')
+      }
+    } catch {
+      // Fall back silently to whatever localStorage/defaults already
+      // seeded state with — printer setup isn't worth blocking the page on.
+    } finally {
+      setLoadingPrinterSettings(false)
+    }
+  }
 
   async function fetchPriceSettings() {
     setLoadingPrices(true)
@@ -120,7 +147,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (tab === 'prices') {
       handleSavePrices()
       return
@@ -141,6 +168,17 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
       localStorage.setItem('printer_paper_size', printerPaperSize)
       localStorage.setItem('printer_connection', printerConnection)
       localStorage.setItem('auto_print_pos_sales', String(autoPrintPosSales))
+      try {
+        await api.put('/settings/printer', {
+          printer_paper_size: printerPaperSize,
+          printer_connection: printerConnection,
+          printer_auto_print: autoPrintPosSales ? '1' : '0',
+        })
+      } catch (err) {
+        setPriceError(apiErrorMessage(err, 'Saved locally, but failed to sync printer settings to the server'))
+        setTimeout(() => setPriceError(''), 5000)
+        return
+      }
     }
     setSavedMsg('Settings saved successfully!')
     setTimeout(() => setSavedMsg(''), 3000)
@@ -355,15 +393,19 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
 
         {tab === 'printer' && (
           <div className="space-y-4 text-xs max-w-3xl">
-            <h3 className="text-sm font-semibold text-slate-900">POS Thermal Receipt Printer Setup</h3>
+            <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+              POS Printer Setup
+              {loadingPrinterSettings && <Spinner className="w-3.5 h-3.5" />}
+            </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Receipt Paper Size</label>
+                <label className="block font-medium text-slate-700 mb-1">Receipt / Invoice Paper Size</label>
                 <select
                   value={printerPaperSize}
                   onChange={(e) => setPrinterPaperSize(e.target.value)}
                   className="w-full rounded-xl border border-[var(--color-border)] bg-white p-2.5 text-xs text-slate-900 focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
                 >
+                  <option value="a4">A4 (Standard Sheet, Full Tax Invoice)</option>
                   <option value="80mm">80mm Standard Thermal Paper</option>
                   <option value="58mm">58mm Compact Mini Receipt</option>
                 </select>
