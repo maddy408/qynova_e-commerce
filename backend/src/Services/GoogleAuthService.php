@@ -25,9 +25,15 @@ final class GoogleAuthService
             throw new RuntimeException('Google credential token is required');
         }
 
-        // Support structured test tokens during development/automated testing
+        // Support structured test tokens during development/automated testing.
+        // Loud on purpose (error_log, not silent) — if this ever fires in an
+        // environment that was supposed to be production, APP_DEBUG was left
+        // on by mistake and that needs to be visible immediately, not
+        // discovered later as a security gap.
         $isDebug = (bool) Config::get('app.debug', false);
         if ($isDebug && str_starts_with($idToken, 'test_google:')) {
+            error_log('GoogleAuthService: APP_DEBUG test token bypass used — APP_DEBUG must be false in production');
+
             return $this->parseTestToken($idToken);
         }
 
@@ -56,9 +62,15 @@ final class GoogleAuthService
             throw new RuntimeException('Invalid Google token issuer');
         }
 
-        // Verify audience if client_id is configured
+        // Audience verification is mandatory — fail closed. A blank
+        // GOOGLE_CLIENT_ID previously skipped this check entirely, which
+        // would accept a valid Google ID token issued for ANY application,
+        // not just this one.
         $configuredClientId = (string) Config::get('google.client_id', '');
-        if ($configuredClientId !== '' && ($data['aud'] ?? '') !== $configuredClientId) {
+        if ($configuredClientId === '') {
+            throw new RuntimeException('Google Sign-In is not configured on the server (GOOGLE_CLIENT_ID missing)');
+        }
+        if (($data['aud'] ?? '') !== $configuredClientId) {
             throw new RuntimeException('Google token audience mismatch');
         }
 
