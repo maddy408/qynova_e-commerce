@@ -323,6 +323,7 @@ $router->post('/api/orders/{id}/confirm-payment', fn ($id) => $orders->confirmPa
 $router->post('/api/orders/{id}/cancel', fn ($id) => $orders->cancel($id));
 $router->patch('/api/orders/{id}/status', fn ($id) => $orders->updateStatus($id));
 $router->patch('/api/orders/{id}/delivery-tracking', fn ($id) => $orders->updateDeliveryTracking($id));
+$router->post('/api/orders/{id}/delivery-tracking/mark-whatsapp-sent', fn ($id) => $orders->markDeliveryTrackingWhatsAppSent($id));
 
 // Notifications + FCM device tokens — shared by admin-pos (staff) and
 // storefront (customer); the recipient is always derived from the

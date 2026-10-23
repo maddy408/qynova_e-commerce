@@ -572,12 +572,12 @@ final class OrderService
     /**
      * Admin saves a post-office tracking ID for a beyond-radius
      * (delivery_type = INDIA_POST) order. Always persists the tracking
-     * fields first, then attempts a WhatsApp send — a failed/unconfigured
-     * send never blocks the save itself (see WhatsAppService's docblock).
+     * fields first, then attempts a WhatsApp send or generates WhatsApp Web /
+     * click-to-chat links for 1-click manual sending.
      *
-     * @return array{order: array<string, mixed>, whatsapp_sent: bool, whatsapp_configured: bool, whatsapp_click_to_chat_url: string}
+     * @return array{order: array<string, mixed>, whatsapp_sent: bool, whatsapp_configured: bool, whatsapp_web_url: string, whatsapp_click_to_chat_url: string, recipient_phone: string}
      */
-    public function updateDeliveryTracking(int $orderId, string $trackingId, string $courierName, ?string $status): array
+    public function updateDeliveryTracking(int $orderId, string $trackingId, string $courierName, ?string $status, ?string $customPhone = null): array
     {
         $order = $this->find($orderId);
 
@@ -602,17 +602,51 @@ final class OrderService
             'id' => $orderId,
         ]);
 
-        $result = $this->whatsApp->sendTrackingUpdate($orderId, (string) $order['customer_phone'], (string) $order['order_no'], $trackingId, $courierName);
+        $recipientPhone = trim((string) ($customPhone ?: $order['shipping_phone'] ?: $order['customer_phone'] ?: ''));
+        $customerName = (string) ($order['shipping_name'] ?: $order['customer_name'] ?: 'Customer');
+
+        $result = $this->whatsApp->sendTrackingUpdate($orderId, $recipientPhone, (string) $order['order_no'], $trackingId, $courierName);
 
         if ($result['sent']) {
             $this->pdo->prepare('UPDATE orders SET delivery_whatsapp_sent_at = NOW() WHERE id = :id')->execute(['id' => $orderId]);
         }
 
+        $webUrl = $this->whatsApp->webUrl($recipientPhone, (string) $order['order_no'], $trackingId, $courierName, $customerName, $status);
+        $clickToChatUrl = $this->whatsApp->clickToChatUrl($recipientPhone, (string) $order['order_no'], $trackingId, $courierName, $customerName, $status);
+
         return [
             'order' => $this->find($orderId) ?? throw new RuntimeException('Order not found after tracking update'),
+            'recipient_phone' => $recipientPhone,
             'whatsapp_sent' => $result['sent'],
             'whatsapp_configured' => $result['configured'],
-            'whatsapp_click_to_chat_url' => $this->whatsApp->clickToChatUrl((string) $order['customer_phone'], (string) $order['order_no'], $trackingId, $courierName),
+            'whatsapp_web_url' => $webUrl,
+            'whatsapp_click_to_chat_url' => $clickToChatUrl,
+        ];
+    }
+
+    /**
+     * Mark delivery tracking WhatsApp notification as sent (when admin sends via WhatsApp Web).
+     */
+    public function markDeliveryTrackingWhatsAppSent(int $orderId, ?string $customPhone = null): array
+    {
+        $order = $this->find($orderId);
+
+        if ($order === null) {
+            throw new RuntimeException('Order not found');
+        }
+
+        $recipientPhone = trim((string) ($customPhone ?: $order['shipping_phone'] ?: $order['customer_phone'] ?: ''));
+        $trackingId = (string) ($order['delivery_tracking_id'] ?? '');
+        $courierName = (string) ($order['delivery_tracking_courier'] ?? 'India Post');
+        $status = $order['delivery_tracking_status'] ?? null;
+
+        $this->pdo->prepare('UPDATE orders SET delivery_whatsapp_sent_at = NOW() WHERE id = :id')->execute(['id' => $orderId]);
+
+        $this->whatsApp->logManualSent($orderId, $recipientPhone, (string) $order['order_no'], $trackingId, $courierName, $status);
+
+        return [
+            'order' => $this->find($orderId) ?? throw new RuntimeException('Order not found'),
+            'whatsapp_sent' => true,
         ];
     }
 
@@ -702,6 +736,21 @@ final class OrderService
         $history = $this->pdo->prepare('SELECT * FROM order_status_history WHERE order_id = :id ORDER BY created_at');
         $history->execute(['id' => $orderId]);
         $order['status_history'] = $history->fetchAll();
+
+        $recipientPhone = trim((string) ($order['shipping_phone'] ?: $order['customer_phone'] ?: ''));
+        $order['recipient_phone'] = $recipientPhone;
+
+        $trackingId = trim((string) ($order['delivery_tracking_id'] ?? ''));
+        if ($trackingId !== '') {
+            $customerName = (string) ($order['shipping_name'] ?: $order['customer_name'] ?: 'Customer');
+            $courierName = (string) ($order['delivery_tracking_courier'] ?: 'India Post');
+            $status = $order['delivery_tracking_status'] ?? null;
+            $order['whatsapp_web_url'] = $this->whatsApp->webUrl($recipientPhone, (string) $order['order_no'], $trackingId, $courierName, $customerName, $status);
+            $order['whatsapp_click_to_chat_url'] = $this->whatsApp->clickToChatUrl($recipientPhone, (string) $order['order_no'], $trackingId, $courierName, $customerName, $status);
+        } else {
+            $order['whatsapp_web_url'] = null;
+            $order['whatsapp_click_to_chat_url'] = null;
+        }
 
         return $order;
     }

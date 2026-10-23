@@ -51,6 +51,9 @@ interface OrderDetail {
   delivery_tracking_courier: string | null
   delivery_tracking_status: string | null
   delivery_whatsapp_sent_at: string | null
+  recipient_phone?: string
+  whatsapp_web_url?: string | null
+  whatsapp_click_to_chat_url?: string | null
   items: OrderItem[]
   status_history: StatusHistoryRow[]
 }
@@ -80,16 +83,22 @@ export function OrderDetailPage() {
   const [trackingId, setTrackingId] = useState('')
   const [courierName, setCourierName] = useState('India Post')
   const [trackingStatus, setTrackingStatus] = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [whatsappWebUrl, setWhatsappWebUrl] = useState<string | null>(null)
+  const [clickToChatUrl, setClickToChatUrl] = useState<string | null>(null)
   const [savingTracking, setSavingTracking] = useState(false)
   const [trackingError, setTrackingError] = useState('')
-  const [clickToChatUrl, setClickToChatUrl] = useState<string | null>(null)
 
   const load = useCallback(() => {
     api.get(`/orders/${id}`).then((res) => {
-      setOrder(res.data.order)
-      setTrackingId(res.data.order.delivery_tracking_id || '')
-      setCourierName(res.data.order.delivery_tracking_courier || 'India Post')
-      setTrackingStatus(res.data.order.delivery_tracking_status || '')
+      const ord = res.data.order
+      setOrder(ord)
+      setTrackingId(ord.delivery_tracking_id || '')
+      setCourierName(ord.delivery_tracking_courier || 'India Post')
+      setTrackingStatus(ord.delivery_tracking_status || '')
+      setRecipientPhone(ord.recipient_phone || ord.shipping_phone || ord.customer_phone || '')
+      setWhatsappWebUrl(ord.whatsapp_web_url || null)
+      setClickToChatUrl(ord.whatsapp_click_to_chat_url || null)
     })
     api
       .get(`/orders/${id}/delivery`)
@@ -113,28 +122,82 @@ export function OrderDetailPage() {
     }
   }
 
-  async function saveTracking() {
+  async function saveAndSendWhatsAppWeb() {
+    if (!trackingId.trim()) {
+      setTrackingError('Tracking ID is required')
+      return
+    }
+    if (!recipientPhone.trim()) {
+      setTrackingError('Customer mobile number is required')
+      return
+    }
+    setSavingTracking(true)
+    setTrackingError('')
+
+    // Open blank tab immediately during user click event to bypass popup blockers
+    const win = window.open('about:blank', '_blank')
+
+    try {
+      const res = await api.patch(`/orders/${id}/delivery-tracking`, {
+        tracking_id: trackingId.trim(),
+        courier_name: courierName.trim() || 'India Post',
+        status: trackingStatus.trim() || undefined,
+        phone: recipientPhone.trim(),
+      })
+      setOrder(res.data.order)
+      setWhatsappWebUrl(res.data.whatsapp_web_url)
+      setClickToChatUrl(res.data.whatsapp_click_to_chat_url)
+
+      const targetUrl = res.data.whatsapp_web_url || res.data.whatsapp_click_to_chat_url
+      if (win && targetUrl) {
+        win.location.href = targetUrl
+      }
+
+      await api.post(`/orders/${id}/delivery-tracking/mark-whatsapp-sent`, {
+        phone: recipientPhone.trim(),
+      })
+      load()
+    } catch (err) {
+      if (win) win.close()
+      setTrackingError(apiErrorMessage(err, 'Could not save tracking details'))
+    } finally {
+      setSavingTracking(false)
+    }
+  }
+
+  async function saveTrackingOnly() {
     if (!trackingId.trim()) {
       setTrackingError('Tracking ID is required')
       return
     }
     setSavingTracking(true)
     setTrackingError('')
-    setClickToChatUrl(null)
     try {
       const res = await api.patch(`/orders/${id}/delivery-tracking`, {
         tracking_id: trackingId.trim(),
         courier_name: courierName.trim() || 'India Post',
         status: trackingStatus.trim() || undefined,
+        phone: recipientPhone.trim() || undefined,
       })
       setOrder(res.data.order)
-      if (!res.data.whatsapp_sent) {
-        setClickToChatUrl(res.data.whatsapp_click_to_chat_url)
-      }
+      setWhatsappWebUrl(res.data.whatsapp_web_url)
+      setClickToChatUrl(res.data.whatsapp_click_to_chat_url)
+      load()
     } catch (err) {
       setTrackingError(apiErrorMessage(err, 'Could not save tracking details'))
     } finally {
       setSavingTracking(false)
+    }
+  }
+
+  async function markSentManually() {
+    try {
+      await api.post(`/orders/${id}/delivery-tracking/mark-whatsapp-sent`, {
+        phone: recipientPhone.trim() || undefined,
+      })
+      load()
+    } catch {
+      // ignore
     }
   }
 
@@ -292,65 +355,153 @@ export function OrderDetailPage() {
           </Card>
 
           {order.delivery_type === 'INDIA_POST' && (
-            <Card className="space-y-3 p-5">
+            <Card className="space-y-3.5 p-5">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">India Post Tracking</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                    <span>India Post Tracking</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      WhatsApp Notify
+                    </span>
+                  </h2>
+                </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {order.delivery_distance_km ? `${order.delivery_distance_km} km from the shop` : 'Beyond local delivery radius'} ·{' '}
+                  {order.delivery_distance_km ? `${order.delivery_distance_km} km from shop` : 'Beyond local radius'} ·{' '}
                   {order.delivery_days ? `up to ${order.delivery_days} days` : '2-3 days'}
                 </p>
               </div>
 
               {trackingError && <Alert>{trackingError}</Alert>}
 
-              <div className="space-y-2.5">
+              {order.delivery_whatsapp_sent_at && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>WhatsApp Sent: <strong>{new Date(order.delivery_whatsapp_sent_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</strong></span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Success</span>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-medium text-slate-700">Customer Mobile (WhatsApp)</label>
+                    <span className="text-[11px] text-slate-400">Recipient Number</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="e.g. 9384256321"
+                    value={recipientPhone}
+                    onChange={(e) => setRecipientPhone(e.target.value)}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-0.5">Tracking details will be sent directly to this WhatsApp number</p>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Tracking ID</label>
                   <input
                     type="text"
                     placeholder="e.g. EE123456789IN"
                     value={trackingId}
-                    onChange={(e) => setTrackingId(e.target.value)}
-                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Courier Name</label>
-                  <input
-                    type="text"
-                    value={courierName}
-                    onChange={(e) => setCourierName(e.target.value)}
-                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Status Note (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Dispatched from local post office"
-                    value={trackingStatus}
-                    onChange={(e) => setTrackingStatus(e.target.value)}
-                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                    onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
+                    className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 font-mono placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
                   />
                 </div>
 
-                <Button size="sm" onClick={saveTracking} disabled={savingTracking} className="w-full">
-                  {savingTracking ? 'Saving…' : 'Save & Notify via WhatsApp'}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Courier Name</label>
+                    <input
+                      type="text"
+                      value={courierName}
+                      onChange={(e) => setCourierName(e.target.value)}
+                      className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Status Note</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. dispatched to post office"
+                      value={trackingStatus}
+                      onChange={(e) => setTrackingStatus(e.target.value)}
+                      className="w-full text-xs py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                    />
+                  </div>
+                </div>
 
-                {order.delivery_whatsapp_sent_at && (
-                  <p className="text-xs text-emerald-600">WhatsApp sent {new Date(order.delivery_whatsapp_sent_at).toLocaleString()}</p>
-                )}
+                {/* Primary Button: Save & Open WhatsApp Web */}
+                <button
+                  type="button"
+                  onClick={saveAndSendWhatsAppWeb}
+                  disabled={savingTracking}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-medium text-xs shadow-sm transition disabled:opacity-60 cursor-pointer"
+                >
+                  <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.28-2.42 5.84a8.18 8.18 0 0 1-5.82 2.41h-.01c-1.42 0-2.82-.37-4.05-1.07l-.29-.17-3.11.82.83-3.03-.19-.31c-.77-1.26-1.18-2.72-1.18-4.22 0-4.54 3.7-8.24 8.25-8.24zm4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.49-1.4-1.74-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.32-.02-.45-.06-.13-.56-1.35-.77-1.85-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1s.9 2.44 1.03 2.61c.13.17 1.77 2.7 4.29 3.78.6.26 1.07.41 1.43.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.22-.17-.47-.3z"/>
+                  </svg>
+                  <span>
+                    {savingTracking
+                      ? 'Saving & Opening…'
+                      : order.delivery_whatsapp_sent_at
+                        ? 'Resend via WhatsApp Web'
+                        : 'Save & Send via WhatsApp Web'}
+                  </span>
+                </button>
 
-                {clickToChatUrl && (
-                  <a
-                    href={clickToChatUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block text-center text-xs font-medium py-2 px-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={saveTrackingOnly}
+                    disabled={savingTracking}
+                    className="flex-1 text-xs"
                   >
-                    WhatsApp not auto-sent — Send via WhatsApp manually
-                  </a>
+                    Save Tracking Only
+                  </Button>
+
+                  {(whatsappWebUrl || order.whatsapp_web_url) && (
+                    <a
+                      href={whatsappWebUrl || order.whatsapp_web_url || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={markSentManually}
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-medium transition"
+                      title="Open chat in WhatsApp Web directly"
+                    >
+                      Web Chat ↗
+                    </a>
+                  )}
+
+                  {(clickToChatUrl || order.whatsapp_click_to_chat_url) && (
+                    <a
+                      href={clickToChatUrl || order.whatsapp_click_to_chat_url || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={markSentManually}
+                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-medium transition"
+                      title="Open in WhatsApp Mobile / App (wa.me)"
+                    >
+                      wa.me ↗
+                    </a>
+                  )}
+                </div>
+
+                {/* Message preview */}
+                {trackingId && (
+                  <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-600">
+                    <p className="font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Message Preview:</span>
+                      <span className="text-[10px] font-normal text-slate-400">to {recipientPhone || 'customer'}</span>
+                    </p>
+                    <div className="bg-white p-2.5 rounded-lg border border-slate-200 text-slate-700 whitespace-pre-line font-sans leading-relaxed text-[11px]">
+                      {`Hi ${order.shipping_name || order.customer_name || 'Customer'}! 👋\n\nYour order #${order.order_no} from Shop with Adam has been dispatched via ${courierName || 'India Post'}.\n\n📦 Tracking ID: ${trackingId}\n${trackingStatus ? `📝 Status: ${trackingStatus}\n` : ''}\n🌐 Track your parcel: https://www.indiapost.gov.in/\n\nThank you for shopping with us! 🙏`}
+                    </div>
+                  </div>
                 )}
               </div>
             </Card>

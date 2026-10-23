@@ -63,23 +63,64 @@ final class WhatsAppService
         }
     }
 
-    /** wa.me click-to-chat fallback, shown when isConfigured() is false or the Cloud API send failed. */
-    public function clickToChatUrl(string $phone, string $orderNo, string $trackingId, string $courierName): string
+    /** Direct WhatsApp Web URL (best for desktop / admin-pos when WhatsApp Web is already open). */
+    public function webUrl(string $phone, string $orderNo, string $trackingId, string $courierName, ?string $customerName = null, ?string $note = null): string
     {
-        return 'https://wa.me/' . $this->toInternationalDigits($phone) . '?text=' . rawurlencode($this->trackingMessage($orderNo, $trackingId, $courierName));
+        return 'https://web.whatsapp.com/send?phone=' . $this->toInternationalDigits($phone) . '&text=' . rawurlencode($this->trackingMessage($orderNo, $trackingId, $courierName, $customerName, $note));
     }
 
-    private function trackingMessage(string $orderNo, string $trackingId, string $courierName): string
+    /** wa.me click-to-chat fallback (works well on mobile or redirects). */
+    public function clickToChatUrl(string $phone, string $orderNo, string $trackingId, string $courierName, ?string $customerName = null, ?string $note = null): string
     {
-        return "Your order #{$orderNo} has been dispatched via {$courierName}. Tracking ID: {$trackingId}. Track at https://www.indiapost.gov.in/";
+        return 'https://wa.me/' . $this->toInternationalDigits($phone) . '?text=' . rawurlencode($this->trackingMessage($orderNo, $trackingId, $courierName, $customerName, $note));
+    }
+
+    public function trackingMessage(string $orderNo, string $trackingId, string $courierName, ?string $customerName = null, ?string $note = null): string
+    {
+        $name = trim((string) $customerName);
+        $greeting = $name !== '' ? "Hi {$name}! 👋" : "Hi! 👋";
+        $msg = "{$greeting}\n\n";
+        $msg .= "Your order *#{$orderNo}* from *Shop with Adam* has been dispatched via *{$courierName}*.\n\n";
+        $msg .= "📦 *Tracking ID:* {$trackingId}\n";
+        if ($note !== null && trim($note) !== '') {
+            $msg .= "📝 *Status:* " . trim($note) . "\n";
+        }
+        $msg .= "\n🌐 *Track your parcel:* https://www.indiapost.gov.in/\n\n";
+        $msg .= "Thank you for shopping with us! 🙏";
+
+        return $msg;
     }
 
     /** Matches the existing wa.me/91{phone} convention (InvoiceDetailPage.tsx, GroceryFooter.jsx). */
-    private function toInternationalDigits(string $phone): string
+    public function toInternationalDigits(string $phone): string
     {
         $digits = preg_replace('/\D/', '', $phone) ?? '';
 
+        if (str_starts_with($digits, '0') && strlen($digits) === 11) {
+            $digits = substr($digits, 1);
+        }
+
         return strlen($digits) === 10 ? "91{$digits}" : $digits;
+    }
+
+    public function logManualSent(int $orderId, string $phone, string $orderNo, string $trackingId, string $courierName, ?string $note = null): int
+    {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO delivery_tracking_messages (order_id, channel, recipient_phone, template_name, payload_sanitized, status, sent_at)
+             VALUES (:order_id, "WHATSAPP_CLICK_TO_CHAT", :phone, "order_tracking_web_chat", :payload, "SENT", NOW())'
+        );
+        $stmt->execute([
+            'order_id' => $orderId,
+            'phone' => $phone,
+            'payload' => json_encode([
+                'order_no' => $orderNo,
+                'tracking_id' => $trackingId,
+                'courier_name' => $courierName,
+                'status_note' => $note,
+            ]),
+        ]);
+
+        return (int) $this->pdo->lastInsertId();
     }
 
     /** @return string|null provider message id */

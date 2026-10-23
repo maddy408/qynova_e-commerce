@@ -193,6 +193,26 @@ final class OrderController
                 (string) ($body['tracking_id'] ?? ''),
                 (string) ($body['courier_name'] ?? 'India Post'),
                 isset($body['status']) ? (string) $body['status'] : null,
+                isset($body['phone']) ? (string) $body['phone'] : null,
+            );
+            Response::json($result);
+        } catch (RuntimeException $e) {
+            Response::error($e->getMessage(), 422);
+        }
+    }
+
+    /** POST /api/orders/{id}/delivery-tracking/mark-whatsapp-sent */
+    public function markDeliveryTrackingWhatsAppSent(string $id): void
+    {
+        $claims = JwtAuthMiddleware::authenticate();
+        PermissionMiddleware::require($claims, 'orders.manage');
+
+        $body = Request::json();
+
+        try {
+            $result = $this->orders->markDeliveryTrackingWhatsAppSent(
+                (int) $id,
+                isset($body['phone']) ? (string) $body['phone'] : null
             );
             Response::json($result);
         } catch (RuntimeException $e) {
