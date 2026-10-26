@@ -2,76 +2,88 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '../routes/routes'
 import { resolveImageUrl } from '../lib/api'
-import { FiPhone, FiMapPin, FiMail } from 'react-icons/fi'
+import { FiPhone, FiMapPin, FiMail, FiClock, FiNavigation } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa6'
 import { LuSparkles } from 'react-icons/lu'
+
+export const STORE_MAPS_DIRECTIONS_URL =
+  "https://www.google.com/maps/dir//Adam's+Supet+Market,+Courtallam+Rd,+Melagaram,+Tamil+Nadu+627818/@12.0435363,74.1618346,6.54z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3b042938dfd1c58f:0x4ea89242fe9d979a!2m2!1d77.2962217!2d8.9498603?entry=ttu&g_ep=EgoyMDI2MTAyMC4wIKXMDSoASAFQAw%3D%3D"
 
 export default function GroceryFooter({
   storeSettings = null,
   categories = [],
 }) {
-  const storeName = storeSettings?.store_name || 'Shop with Adams'
+  const storeName = storeSettings?.store_name || "Adam's Super Market"
   const storeTagline = storeSettings?.tagline || 'FRESH • DAILY • ESSENTIALS'
   const storeDesc =
     storeSettings?.description ||
     'Your trusted neighborhood supermarket delivering farm-fresh fruits, vegetables, dairy, pantry staples, and daily household essentials right to your doorstep.'
-  // contact details come only from Admin > Store Settings - no placeholder numbers
-  const phone = storeSettings?.phone || ''
-  const whatsappNum = (storeSettings?.whatsapp_number || storeSettings?.phone || '').replace(/[^0-9]/g, '')
-  const email = storeSettings?.email || ''
+
+  const phone = storeSettings?.phone || '087541 93847'
+  const cleanPhone = phone.replace(/[^0-9]/g, '')
+  const whatsappNum = (storeSettings?.whatsapp_number || storeSettings?.phone || '08754193847').replace(/[^0-9]/g, '')
+  const email = storeSettings?.email || 'info.adamsmart@gmail.com'
   const address = storeSettings?.address
-    ? `${storeSettings.address}${storeSettings.city ? `, ${storeSettings.city}` : ''}`
-    : '123 Market Road, Main City Bazaar'
+    ? `${storeSettings.address}${storeSettings.city ? `, ${storeSettings.city}` : ''}${storeSettings.state ? `, ${storeSettings.state}` : ''}${storeSettings.pincode ? ` - ${storeSettings.pincode}` : ''}`
+    : 'Courtallam Rd, Melagaram, Tamil Nadu 627818'
+  const supportHours = storeSettings?.support_hours || 'Open Daily · Closes 9:00 PM'
 
   return (
     <footer className="w-full bg-[#0a0a0a] text-white border-t border-zinc-800 select-none">
       
-      {/* 1. GROCERY CUSTOMER SUPPORT ASSISTANCE STRIP */}
-      <div className="w-full py-12 sm:py-16 border-b border-zinc-800/80 relative overflow-hidden bg-gradient-to-r from-[#121214] via-[#0a0a0a] to-[#121214]">
+      {/* 1. GROCERY CUSTOMER SUPPORT & STORE LOCATION STRIP */}
+      <div className="w-full py-8 sm:py-10 border-b border-zinc-800/80 relative overflow-hidden bg-gradient-to-r from-[#121214] via-[#0a0a0a] to-[#121214]">
         {/* Soft decorative blur circles */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-purple-900/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-900/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="space-y-3 text-left max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 text-purple-300 border border-zinc-800 text-[11px] font-sans font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-              <span>SUPERMARKET CUSTOMER CARE</span>
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-left max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-zinc-900 text-purple-300 border border-zinc-800 text-[11px] font-sans font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>VISIT OUR SUPERMARKET • COURTALLAM RD, MELAGARAM</span>
             </div>
 
             <h3 className="font-serif text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight leading-snug">
-              Need Assistance with Your Daily Grocery Order?
+              Need Assistance or Looking for Store Directions?
             </h3>
 
             <p className="font-sans text-xs sm:text-sm text-zinc-400 leading-relaxed">
-              Our friendly customer support team is available via WhatsApp and phone for immediate order assistance, delivery tracking, and fresh item inquiries.
+              Visit Adam's Super Market at Melagaram ({supportHours}) or connect with our customer care team via WhatsApp and phone.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3.5 shrink-0">
-            {/* WhatsApp Chat Button */}
-            {whatsappNum && (
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Get Directions Button */}
             <a
-              href={`https://wa.me/${whatsappNum}?text=Hello%2C%20I%20have%20an%20inquiry%20regarding%20my%20grocery%20order.`}
+              href={STORE_MAPS_DIRECTIONS_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-7 py-3 rounded-full bg-[#6C4EFF] hover:bg-[#5839EE] text-white font-sans text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-[0_6px_20px_rgba(108,78,255,0.35)] active:scale-95 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-full bg-white hover:bg-zinc-100 text-black font-sans text-xs sm:text-sm font-bold flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
+            >
+              <FiNavigation className="w-4 h-4 text-[#6C4EFF]" />
+              <span>Get Directions</span>
+            </a>
+
+            {/* WhatsApp Chat Button */}
+            <a
+              href={`https://wa.me/${whatsappNum}?text=Hello%20Adam%27s%20Super%20Market%2C%20I%20have%20an%20inquiry%20regarding%20products%20and%20orders.`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-2.5 rounded-full bg-[#6C4EFF] hover:bg-[#5839EE] text-white font-sans text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-[0_6px_20px_rgba(108,78,255,0.35)] active:scale-95 transition-all cursor-pointer"
             >
               <FaWhatsapp className="w-4 h-4" />
-              <span>Chat on WhatsApp</span>
+              <span>WhatsApp</span>
             </a>
-            )}
 
             {/* Phone Call Button */}
-            {phone && (
             <a
-              href={`tel:${phone.replace(/[^0-9+]/g, '')}`}
-              className="px-7 py-3 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-600 font-sans text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+              href={`tel:${cleanPhone}`}
+              className="px-5 py-2.5 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-600 font-sans text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
             >
               <FiPhone className="w-4 h-4 text-purple-400" />
               <span>{phone}</span>
             </a>
-            )}
           </div>
         </div>
       </div>
@@ -161,30 +173,59 @@ export default function GroceryFooter({
           {/* Column 5: STORE CONTACT & LOCATION */}
           <div className="space-y-3">
             <h4 className="text-[12px] font-sans font-bold uppercase tracking-[0.16em] text-white">
-              Store & Support
+              Supermarket & Location
             </h4>
-            <div className="space-y-2 text-xs font-sans text-zinc-400">
-              {address && (
-              <p className="flex items-start gap-2">
+            <div className="space-y-2.5 text-xs font-sans text-zinc-300">
+              <div className="flex items-start gap-2">
                 <FiMapPin className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                <span>{address}</span>
-              </p>
-              )}
-              {phone && (
-              <p className="flex items-center gap-2">
+                <div>
+                  <p className="font-semibold text-white">{storeName}</p>
+                  <p className="text-zinc-400 mt-0.5 leading-relaxed">{address}</p>
+                </div>
+              </div>
+
+              {/* Small Rectangular Embedded Google Map */}
+              <div className="my-2 relative rounded-xl overflow-hidden border border-zinc-700/80 shadow-md bg-zinc-900 group">
+                <iframe
+                  title="Adam's Super Market Melagaram Location Map"
+                  src="https://maps.google.com/maps?q=8.9498603,77.2962217&hl=en&z=15&output=embed"
+                  className="w-full h-32 border-0 rounded-xl filter contrast-105 brightness-95 group-hover:brightness-100 transition-all"
+                  loading="lazy"
+                  allowFullScreen=""
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+                <a
+                  href={STORE_MAPS_DIRECTIONS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute bottom-1.5 right-1.5 px-2.5 py-1 rounded-lg bg-black/85 hover:bg-[#6C4EFF] text-white text-[10px] font-bold backdrop-blur-xs flex items-center gap-1 transition-all border border-white/20 shadow-xs"
+                >
+                  <FiNavigation className="w-3 h-3 text-purple-300" />
+                  <span>Open in Google Maps ↗</span>
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/80">
+                <FiClock className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-zinc-300">
+                  <strong className="text-emerald-400">Hours:</strong> {supportHours}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
                 <FiPhone className="w-4 h-4 text-purple-400 shrink-0" />
-                <a href={`tel:${phone.replace(/[^0-9+]/g, '')}`} className="hover:text-white">
+                <a href={`tel:${cleanPhone}`} className="hover:text-white text-zinc-300">
                   {phone}
                 </a>
-              </p>
-              )}
+              </div>
+
               {email && (
-              <p className="flex items-center gap-2">
-                <FiMail className="w-4 h-4 text-purple-400 shrink-0" />
-                <a href={`mailto:${email}`} className="hover:text-white">
-                  {email}
-                </a>
-              </p>
+                <div className="flex items-center gap-2">
+                  <FiMail className="w-4 h-4 text-purple-400 shrink-0" />
+                  <a href={`mailto:${email}`} className="hover:text-white text-zinc-400">
+                    {email}
+                  </a>
+                </div>
               )}
             </div>
           </div>

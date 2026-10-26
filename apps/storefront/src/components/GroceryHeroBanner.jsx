@@ -119,8 +119,8 @@ export default function GroceryHeroBanner({
 
   if (isLoading) {
     return (
-      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2.5 sm:pt-3 pb-2">
-        <div className="w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] bg-slate-100 animate-pulse rounded-[20px] sm:rounded-[28px]" />
+      <div className="w-full pb-1">
+        <div className="w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] bg-slate-100 animate-pulse" />
       </div>
     )
   }
@@ -140,9 +140,9 @@ export default function GroceryHeroBanner({
       onTouchEnd={handleTouchEnd}
       aria-label="Shop with Adams Grocery Promotion"
     >
-      <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-2.5 pb-2">
-        {/* Sleek Panoramic Hero Container */}
-        <div className="relative w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] rounded-[20px] sm:rounded-[28px] overflow-hidden bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB] border border-sky-100 shadow-xs flex items-center">
+      <div className="w-full pb-1">
+        {/* Full 100% Width Panoramic Hero Container */}
+        <div className="relative w-full h-[230px] sm:h-[270px] md:h-[300px] lg:h-[330px] overflow-hidden bg-gradient-to-r from-[#D7EFFB] via-[#E4F4FD] to-[#D0EEFB] shadow-xs flex items-center">
           
           {/* Slides: ONLY Admin-created banners */}
           {slides.map((slide, idx) => {
@@ -156,7 +156,7 @@ export default function GroceryHeroBanner({
                   isCurrent ? 'opacity-100 z-1 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'
                 }`}
               >
-                {/* 1. Full-Width Background Banner Image (Covers entire container) */}
+                {/* 1. Full-Width 100% Background Banner Image (Covers entire container) */}
                 {slide.image_url && (
                   <img
                     src={slide.image_url}
@@ -167,12 +167,13 @@ export default function GroceryHeroBanner({
 
                 {/* 2. Soft Gradient Mask on left for maximum text legibility (only if banner has text) */}
                 {hasTextContent && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/60 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/70 to-transparent sm:w-[55%] w-[85%] pointer-events-none" />
                 )}
 
-                {/* 3. Content Overlay: Text, Badge, CTA Buttons */}
+                {/* 3. Content Overlay: Text, Badge, CTA Buttons (Container centered) */}
                 {hasTextContent ? (
-                  <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-10 lg:px-14 py-3 sm:py-5 max-w-md sm:max-w-lg lg:max-w-xl text-left space-y-2 sm:space-y-2.5">
+                  <div className="w-full h-full max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-14 flex items-center">
+                    <div className="relative z-10 flex flex-col justify-center py-3 sm:py-5 max-w-md sm:max-w-lg lg:max-w-xl text-left space-y-2 sm:space-y-2.5">
                     {/* Badge */}
                     {slide.badge && (
                       <div>
@@ -227,7 +228,8 @@ export default function GroceryHeroBanner({
                       )}
                     </div>
                   </div>
-                ) : (
+                </div>
+              ) : (
                   // If banner is image-only, make entire banner clickable
                   <button
                     type="button"

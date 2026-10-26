@@ -19,6 +19,7 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
   const [couponError, setCouponError] = useState('')
   const [availableCoupons, setAvailableCoupons] = useState([])
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
+  const [appliedCouponDetails, setAppliedCouponDetails] = useState(null)
 
   const refreshItems = () => {
     fetchCart().then((c) => setCartItems(c.items || []))
@@ -35,6 +36,14 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
   useEffect(() => {
     if (isOpen) {
       refreshItems()
+      try {
+        const savedCode = localStorage.getItem('applied_coupon_code')
+        if (savedCode && !appliedCoupon) {
+          applyCouponCode(savedCode)
+        }
+      } catch {
+        // ignore
+      }
       // Lock body scroll on mobile
       document.body.style.overflow = 'hidden'
     } else {
@@ -47,11 +56,29 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
 
   useEffect(() => {
     const handleCartUpdate = () => refreshItems()
+    const handleCustomCoupon = async (e) => {
+      const code = e.detail?.code
+      if (!code) return
+      let currentItems = cartItems
+      if (!currentItems || currentItems.length === 0) {
+        const c = await fetchCart()
+        currentItems = c.items || []
+        setCartItems(currentItems)
+      }
+      applyCouponCode(code, currentItems)
+    }
+    const handleRemoveCustomCoupon = () => {
+      handleRemoveCoupon()
+    }
     window.addEventListener('cart-updated', handleCartUpdate)
-    return () => window.removeEventListener('cart-updated', handleCartUpdate)
-  }, [])
-
-  if (!isOpen) return null
+    window.addEventListener('apply-coupon', handleCustomCoupon)
+    window.addEventListener('remove-coupon', handleRemoveCustomCoupon)
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdate)
+      window.removeEventListener('apply-coupon', handleCustomCoupon)
+      window.removeEventListener('remove-coupon', handleRemoveCustomCoupon)
+    }
+  }, [cartItems])
 
   const freeThreshold = deliverySettings?.free_delivery_threshold != null ? Number(deliverySettings.free_delivery_threshold) : null
   const stdDeliveryFee = Number(deliverySettings?.delivery_charge ?? deliverySettings?.standard_delivery_fee ?? 0)
@@ -64,7 +91,67 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
   const deliveryCharge = (freeThreshold !== null && subtotal >= freeThreshold) || subtotal === 0 ? 0 : stdDeliveryFee
   const grandTotal = Math.max(0, subtotal - discountAmount + deliveryCharge)
 
-  const applyCouponCode = async (codeToApply) => {
+  // Auto-remove or adjust coupon if cart items or subtotal drop below minimum spend
+  useEffect(() => {
+    if (!appliedCoupon) return
+
+    // If cart is completely emptied, remove coupon
+    if (cartItems.length === 0) {
+      setAppliedCoupon('')
+      setCouponDiscountAmount(0)
+      setAppliedCouponDetails(null)
+      return
+    }
+
+    const currentSubtotal = cartItems.reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+      0
+    )
+
+    // Immediate client-side check if minimum purchase is breached
+    if (appliedCouponDetails?.min_order_amount != null) {
+      const minRequired = Number(appliedCouponDetails.min_order_amount)
+      if (currentSubtotal < minRequired) {
+        setAppliedCoupon('')
+        setCouponDiscountAmount(0)
+        setAppliedCouponDetails(null)
+        const errMsg = `Coupon "${appliedCoupon}" removed: minimum purchase of ₹${minRequired} required.`
+        setCouponError(errMsg)
+        onShowToast?.(errMsg)
+        return
+      }
+    }
+
+    // Dynamic backend verification to recalculate discount or auto-remove
+    api
+      .post('/coupons/validate', {
+        code: appliedCoupon,
+        items: cartItems.map((ci) => ({
+          variant_id: ci.variant_id,
+          product_id: ci.product_id,
+          quantity: ci.quantity,
+          price: ci.price,
+          line_total: ci.line_total || ((Number(ci.price) || 0) * (Number(ci.quantity) || 1)).toFixed(2),
+        })),
+      })
+      .then((res) => {
+        const discount = Number(res.data?.discount_amount) || 0
+        setCouponDiscountAmount(discount)
+        if (res.data?.coupon) {
+          setAppliedCouponDetails(res.data.coupon)
+        }
+      })
+      .catch((err) => {
+        const msg = err.response?.data?.error || err.response?.data?.message || 'Coupon requirement no longer met'
+        setAppliedCoupon('')
+        setCouponDiscountAmount(0)
+        setAppliedCouponDetails(null)
+        setCouponError(msg)
+        onShowToast?.(`Coupon "${appliedCoupon}" removed: ${msg}`)
+      })
+  }, [cartItems])
+
+  const applyCouponCode = async (codeToApply, itemsToValidate = cartItems) => {
     const code = (codeToApply || couponCode).trim().toUpperCase()
     setCouponError('')
 
@@ -73,11 +160,24 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
       return
     }
 
+    const items = itemsToValidate || []
+    if (items.length === 0) {
+      // Cart is empty right now, but save code for when items are added
+      setAppliedCoupon(code)
+      setCouponCode(code)
+      try {
+        localStorage.setItem('applied_coupon_code', code)
+      } catch {}
+      window.dispatchEvent(new CustomEvent('coupon-updated', { detail: { code } }))
+      onShowToast?.(`Coupon "${code}" saved! Add items to activate discount.`)
+      return
+    }
+
     setIsApplyingCoupon(true)
     try {
       const res = await api.post('/coupons/validate', {
         code,
-        items: cartItems.map((ci) => ({
+        items: items.map((ci) => ({
           variant_id: ci.variant_id,
           product_id: ci.product_id,
           quantity: ci.quantity,
@@ -88,13 +188,27 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
       const discount = Number(res.data?.discount_amount) || 0
       setCouponDiscountAmount(discount)
       setAppliedCoupon(code)
+      setAppliedCouponDetails(res.data?.coupon || null)
       setCouponCode(code)
+      try {
+        localStorage.setItem('applied_coupon_code', code)
+      } catch {
+        // ignore
+      }
+      window.dispatchEvent(new CustomEvent('coupon-updated', { detail: { code } }))
       onShowToast?.(`Coupon "${code}" applied! Saved ₹${discount.toFixed(2)}`)
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || 'Invalid coupon code'
       setCouponError(msg)
       setAppliedCoupon('')
       setCouponDiscountAmount(0)
+      setAppliedCouponDetails(null)
+      try {
+        localStorage.removeItem('applied_coupon_code')
+      } catch {
+        // ignore
+      }
+      window.dispatchEvent(new CustomEvent('coupon-removed'))
     } finally {
       setIsApplyingCoupon(false)
     }
@@ -108,10 +222,19 @@ export default function CartDrawer({ isOpen, onClose, onProceedToCheckout, onSho
   const handleRemoveCoupon = () => {
     setAppliedCoupon('')
     setCouponDiscountAmount(0)
+    setAppliedCouponDetails(null)
     setCouponCode('')
     setCouponError('')
+    try {
+      localStorage.removeItem('applied_coupon_code')
+    } catch {
+      // ignore
+    }
+    window.dispatchEvent(new CustomEvent('coupon-removed'))
     onShowToast?.('Coupon removed.')
   }
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">

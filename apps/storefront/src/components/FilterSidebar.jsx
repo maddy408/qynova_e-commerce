@@ -246,7 +246,7 @@ export default function FilterSidebar({
               />
             </div>
           )}
-          <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
+          <div className="space-y-1 pr-1">
             {filteredBrands.map((b) => (
               <FacetCheckbox
                 key={b.id}

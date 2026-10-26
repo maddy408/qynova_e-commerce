@@ -59,20 +59,20 @@ export default function TopBrandsSection({
   return (
     <section
       id={id}
-      className="w-full py-14 sm:py-18 lg:py-24 overflow-hidden relative bg-white border-b border-[#E9DFFF]/70 select-none"
+      className="w-full py-3 sm:py-4.5 overflow-hidden relative bg-white border-b border-[#E9DFFF]/70 select-none"
     >
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* SECTION HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-3 sm:mb-4">
           <div className="max-w-2xl">
-            <div className="mb-3">
-              <span className="text-[13px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] inline-block">
+            <div className="mb-1">
+              <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] inline-block">
                 TOP SUPERMARKET BRANDS
               </span>
             </div>
 
-            <h2 className="font-serif text-xl sm:text-2xl lg:text-[28px] font-bold text-[#1B133F] tracking-tight leading-snug mb-3">
+            <h2 className="font-serif text-lg sm:text-xl lg:text-2xl font-bold text-[#1B133F] tracking-tight leading-snug mb-1">
               {title}
             </h2>
 

@@ -367,26 +367,45 @@ final class ProductService
             )";
         }
 
-        if (!empty($filters['search'])) {
+        if (!empty($filters['search']) && trim((string) $filters['search']) !== '') {
             $searchTerm = trim((string) $filters['search']);
             $needle = '%' . $searchTerm . '%';
+            $noSpace = '%' . str_replace(' ', '', strtolower($searchTerm)) . '%';
             $where[] = '(
-                p.name LIKE :search_like
-                OR p.product_code LIKE :search_like
-                OR p.tags LIKE :search_like
-                OR p.short_description LIKE :search_like
+                p.name LIKE :search_name
+                OR p.product_code LIKE :search_code
+                OR p.tags LIKE :search_tags
+                OR p.short_description LIKE :search_desc
+                OR REPLACE(LOWER(p.name), \' \', \'\') LIKE :search_name_compact
                 OR EXISTS (
                     SELECT 1 FROM product_categories pc
                     JOIN categories c ON c.id = pc.category_id
-                    WHERE pc.product_id = p.id AND c.name LIKE :search_like AND c.status = "ACTIVE" AND c.deleted_at IS NULL
+                    WHERE pc.product_id = p.id AND c.name LIKE :search_cat AND c.status = "ACTIVE" AND c.deleted_at IS NULL
                 )
                 OR EXISTS (
                     SELECT 1 FROM product_subcategories ps
                     JOIN subcategories s ON s.id = ps.subcategory_id
-                    WHERE ps.product_id = p.id AND s.name LIKE :search_like AND s.status = "ACTIVE" AND s.deleted_at IS NULL
+                    WHERE ps.product_id = p.id AND s.name LIKE :search_subcat AND s.status = "ACTIVE" AND s.deleted_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1 FROM brands b
+                    WHERE b.id = p.brand_id AND b.name LIKE :search_brand AND b.deleted_at IS NULL
+                )
+                OR EXISTS (
+                    SELECT 1 FROM product_variants v
+                    WHERE v.product_id = p.id AND v.deleted_at IS NULL AND (v.sku LIKE :search_sku OR v.barcode LIKE :search_barcode)
                 )
             )';
-            $params['search_like'] = $needle;
+            $params['search_name'] = $needle;
+            $params['search_code'] = $needle;
+            $params['search_tags'] = $needle;
+            $params['search_desc'] = $needle;
+            $params['search_name_compact'] = $noSpace;
+            $params['search_cat'] = $needle;
+            $params['search_subcat'] = $needle;
+            $params['search_brand'] = $needle;
+            $params['search_sku'] = $needle;
+            $params['search_barcode'] = $needle;
         }
 
         return [$where, $params];

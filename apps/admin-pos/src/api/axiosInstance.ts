@@ -128,6 +128,9 @@ api.interceptors.response.use(
 /** Extracts a user-facing message from a failed API call — the backend always returns {error: string}. */
 export function apiErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   if (axios.isAxiosError(err)) {
+    if (err.response?.status === 413) {
+      return 'File size is too large for the server (HTTP 413 Request Entity Too Large). Please upload an image under 10MB or use compressed format.'
+    }
     const data = err.response?.data as { error?: string } | undefined
     return data?.error ?? fallback
   }

@@ -41,6 +41,7 @@ import CheckoutModal from '../components/CheckoutModal'
 import { addToCart, getCartCount, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist, toggleWishlist } from '../lib/wishlist'
 import { formatMonthYear } from '../lib/dateFormat'
+import GroceryFooter from '../components/GroceryFooter'
 
 // In-memory session recently viewed products (temporary UI state, no localStorage)
 let inMemoryRecentlyViewed = []
@@ -80,6 +81,13 @@ export default function ProductDetails() {
   const [availableCoupons, setAvailableCoupons] = useState([])
   const [isCouponsLoading, setIsCouponsLoading] = useState(false)
   const [isOffersDropdownOpen, setIsOffersDropdownOpen] = useState(false)
+  const [selectedCouponCode, setSelectedCouponCode] = useState(() => {
+    try {
+      return localStorage.getItem('applied_coupon_code') || ''
+    } catch {
+      return ''
+    }
+  })
 
   // Related & Recently Viewed Products
   const [relatedProducts, setRelatedProducts] = useState([])
@@ -139,6 +147,22 @@ export default function ProductDetails() {
     fetchCategories().then((cats) => cats && setCategories(cats))
   }, [])
 
+  // Sync coupon code from window events
+  useEffect(() => {
+    const handleCouponUpdate = (e) => {
+      setSelectedCouponCode(e.detail?.code || '')
+    }
+    const handleCouponRemove = () => {
+      setSelectedCouponCode('')
+    }
+    window.addEventListener('coupon-updated', handleCouponUpdate)
+    window.addEventListener('coupon-removed', handleCouponRemove)
+    return () => {
+      window.removeEventListener('coupon-updated', handleCouponUpdate)
+      window.removeEventListener('coupon-removed', handleCouponRemove)
+    }
+  }, [])
+
   // Scroll to top whenever ID changes & reset states
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -148,18 +172,22 @@ export default function ProductDetails() {
     setPincodeStatus(null)
   }, [id])
 
-  // Sticky Purchase Bar intersection observer
+  // Sticky Purchase Bar intersection observer (High performance, zero layout thrashing)
   useEffect(() => {
-    const handleScroll = () => {
-      if (!purchaseSectionRef.current) return
-      const rect = purchaseSectionRef.current.getBoundingClientRect()
-      // If purchase buttons are scrolled above current viewport
-      setShowStickyBar(rect.bottom < 120)
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    const el = purchaseSectionRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowStickyBar(!entry.isIntersecting && entry.boundingClientRect.top < 0)
+      },
+      {
+        threshold: 0,
+        rootMargin: '-80px 0px 0px 0px',
+      }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [product])
 
   // Load customer session (Backend JWT is the source of truth)
   useEffect(() => {
@@ -515,6 +543,65 @@ export default function ProductDetails() {
     setIsCheckoutOpen(true)
   }
 
+  // Handle copy coupon code to clipboard
+  const handleCopyCoupon = (code) => {
+    if (!code) return
+    try {
+      navigator.clipboard.writeText(code)
+      showToast(`Coupon "${code}" copied to clipboard!`)
+    } catch {
+      showToast(`Coupon code: ${code}`)
+    }
+  }
+
+  // Handle select / apply coupon code
+  const handleSelectCoupon = async (code) => {
+    if (!code) return
+    const cleanCode = code.trim().toUpperCase()
+
+    // If already selected, allow user to deselect / remove it
+    if (selectedCouponCode === cleanCode) {
+      setSelectedCouponCode('')
+      try {
+        localStorage.removeItem('applied_coupon_code')
+      } catch {}
+      window.dispatchEvent(new CustomEvent('remove-coupon'))
+      showToast(`Coupon "${cleanCode}" removed`)
+      return
+    }
+
+    // Set as selected coupon & persist in localStorage
+    setSelectedCouponCode(cleanCode)
+    try {
+      localStorage.setItem('applied_coupon_code', cleanCode)
+    } catch {}
+
+    // Ensure this product is in the cart so discount calculates immediately
+    if (product && !isOutOfStock) {
+      try {
+        await addToCart(
+          {
+            ...product,
+            variant_id: activeVariant?.id,
+            retail_price: retailPrice,
+            mrp,
+            primary_image: activeImage,
+          },
+          quantity
+        )
+        setCartCount(getCartCount())
+        window.dispatchEvent(new CustomEvent('cart-updated'))
+      } catch (err) {
+        console.warn('Auto-add to cart on coupon select:', err)
+      }
+    }
+
+    // Dispatch event to CartDrawer and open CartDrawer to display discount
+    window.dispatchEvent(new CustomEvent('apply-coupon', { detail: { code: cleanCode } }))
+    setIsCartOpen(true)
+    showToast(`Coupon "${cleanCode}" selected & applied!`)
+  }
+
   // Pincode check handler using real postal lookup API + backend delivery estimate
   const handleCheckPincode = async (e) => {
     e?.preventDefault()
@@ -598,15 +685,6 @@ export default function ProductDetails() {
     })
   }
 
-  // Copy coupon code helper
-  const handleCopyCoupon = (code) => {
-    try {
-      navigator.clipboard.writeText(code)
-      showToast(`Coupon "${code}" copied to clipboard!`)
-    } catch {
-      showToast(`Coupon Code: ${code}`)
-    }
-  }
 
   // Calculate review statistics & star breakdown
   const reviewStats = useMemo(() => {
@@ -776,7 +854,7 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-brand)] overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-brand)]">
       
       {/* TOAST FEEDBACK NOTIFICATION */}
       {toastMessage && (
@@ -952,13 +1030,15 @@ export default function ProductDetails() {
                           handleToggleWishlist(product.id)
                         }}
                         aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                        className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-700 hover:text-red-500 flex items-center justify-center shadow-md transition-all cursor-pointer z-10"
+                        className={`absolute top-3 right-3 w-10 h-10 rounded-full bg-white/95 hover:bg-white flex items-center justify-center shadow-md transition-all cursor-pointer z-10 ${
+                          isWishlisted ? 'text-rose-500 border border-rose-200 bg-rose-50/60' : 'text-gray-700 hover:text-rose-500 border border-slate-200'
+                        }`}
                       >
                         <svg
                           className="w-5 h-5"
                           viewBox="0 0 24 24"
-                          fill={isWishlisted ? 'var(--color-brand)' : 'none'}
-                          stroke={isWishlisted ? 'var(--color-brand)' : 'currentColor'}
+                          fill={isWishlisted ? '#f43f5e' : 'none'}
+                          stroke={isWishlisted ? '#f43f5e' : 'currentColor'}
                           strokeWidth="2.2"
                         >
                           <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -1242,36 +1322,69 @@ export default function ProductDetails() {
                     {isOffersDropdownOpen && (
                       <div className="p-3.5 pt-1 border-t border-[var(--color-border-subtle)]/70 bg-gray-50/50 space-y-2">
                         {availableCoupons.length > 0 ? (
-                          availableCoupons.map((coupon) => (
-                            <div
-                              key={coupon.id}
-                              className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[var(--color-border-subtle)] shadow-2xs hover:border-[var(--color-brand)]/40 transition-colors"
-                            >
-                              <div className="text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono font-black text-[var(--color-text-main)] bg-[var(--color-bg-alt)] border border-[var(--color-border-subtle)] px-2 py-0.5 rounded text-[11px]">
-                                    {coupon.code}
-                                  </span>
-                                  <span className="font-bold text-[var(--color-text-main)]">
-                                    {coupon.name}
-                                  </span>
-                                </div>
-                                <p className="text-[11px] text-gray-600 mt-1">
-                                  {coupon.description ||
-                                    (coupon.discount_type === 'PERCENTAGE'
-                                      ? `Get ${coupon.discount_value}% discount on orders`
-                                      : `Get flat ₹${coupon.discount_value} off`)}
-                                </p>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyCoupon(coupon.code)}
-                                className="text-[11px] font-bold text-[var(--color-brand)] hover:text-white hover:bg-[var(--color-brand)] bg-white px-2.5 py-1 rounded-lg border border-[var(--color-brand)]/30 transition-all shrink-0 ml-2 cursor-pointer active:scale-95"
+                          availableCoupons.map((coupon) => {
+                            const isApplied = (selectedCouponCode || '').toUpperCase() === (coupon.code || '').toUpperCase()
+                            return (
+                              <div
+                                key={coupon.id}
+                                onClick={() => handleSelectCoupon(coupon.code)}
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
+                                  isApplied
+                                    ? 'bg-emerald-50/80 border-emerald-400 shadow-xs ring-1 ring-emerald-300'
+                                    : 'bg-white border-[var(--color-border-subtle)] shadow-2xs hover:border-[var(--color-brand)]/50'
+                                }`}
                               >
-                                Copy
-                              </button>
-                            </div>
-                          ))
+                                <div className="text-xs flex-1 min-w-0 pr-2">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`font-mono font-black px-2 py-0.5 rounded text-[11px] border ${
+                                        isApplied
+                                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                          : 'bg-[var(--color-primary-tint)] text-[var(--color-brand)] border-[var(--color-border-subtle)]'
+                                      }`}
+                                    >
+                                      {coupon.code}
+                                    </span>
+                                    <span className="font-bold text-[var(--color-text-main)] truncate">
+                                      {coupon.name}
+                                    </span>
+                                    {isApplied && (
+                                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/90 px-1.5 py-0.2 rounded-full">
+                                        Applied
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-gray-600 mt-1 line-clamp-1">
+                                    {coupon.description ||
+                                      (coupon.discount_type === 'PERCENTAGE'
+                                        ? `Get ${coupon.discount_value}% discount on orders`
+                                        : `Get flat ₹${coupon.discount_value} off`)}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSelectCoupon(coupon.code)}
+                                    className={`text-[11px] font-bold px-3 py-1 rounded-lg transition-all cursor-pointer shadow-xs active:scale-95 ${
+                                      isApplied
+                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                        : 'text-white bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)]'
+                                    }`}
+                                  >
+                                    {isApplied ? 'Applied ✓' : 'Apply'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyCoupon(coupon.code)}
+                                    className="text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 transition-all cursor-pointer active:scale-95"
+                                    title="Copy coupon code"
+                                  >
+                                    Copy
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })
                         ) : (
                           <div className="text-xs text-gray-500 py-1">
                             No offers available for this product
@@ -1693,13 +1806,22 @@ export default function ProductDetails() {
                             </p>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCoupon(coupon.code)}
-                          className="mt-3 w-full py-1.5 rounded-xl border border-[var(--color-border-subtle)] text-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                        >
-                          Copy Coupon Code
-                        </button>
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectCoupon(coupon.code)}
+                            className="flex-1 py-1.5 rounded-xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-bold text-xs transition-colors cursor-pointer shadow-xs active:scale-95 text-center"
+                          >
+                            Apply Coupon
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCoupon(coupon.code)}
+                            className="px-3 py-1.5 rounded-xl border border-[var(--color-border-subtle)] bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors cursor-pointer active:scale-95"
+                          >
+                            Copy Code
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2319,84 +2441,8 @@ export default function ProductDetails() {
         </div>
       )}
 
-      {/* FOOTER (Black & White Aesthetic) */}
-      <footer className="bg-black text-white pt-12 pb-8 border-t border-zinc-800 mt-16">
-        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-zinc-800">
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                {storeSettings?.logo ? (
-                  <img src={resolveImageUrl(storeSettings.logo)} alt={storeSettings.store_name} className="w-9 h-9 rounded-xl object-cover border border-zinc-800" />
-                ) : (
-                  <span className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white font-black text-lg">
-                    {storeSettings?.store_name ? storeSettings.store_name.charAt(0) : 'S'}
-                  </span>
-                )}
-                <span className="text-xl font-extrabold tracking-tight text-white">
-                  {storeSettings?.store_name || 'Store'}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                {storeSettings?.description || 'Your trusted online shopping destination.'}
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Shop Categories</h4>
-              <ul className="space-y-2 text-xs text-zinc-400">
-                {categories.length > 0 ? (
-                  categories.slice(0, 6).map((c) => (
-                    <li key={c.id}>
-                      <Link to={ROUTES.PRODUCTS_BY_CATEGORY(c)} className="hover:text-white transition-colors">
-                        {c.name}
-                      </Link>
-                    </li>
-                  ))
-                ) : (
-                  <li><Link to={ROUTES.PRODUCTS} className="hover:text-white transition-colors">All Products</Link></li>
-                )}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Customer Service</h4>
-              <ul className="space-y-2 text-xs text-zinc-400">
-                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-white transition-colors">Shipping & Delivery Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-white transition-colors">Returns & Refunds</Link></li>
-                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-white transition-colors">Terms and Conditions</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3">Fast & Secure Delivery</h4>
-              <p className="text-xs text-zinc-400 leading-relaxed mb-3">
-                {deliverySettings?.free_delivery_threshold != null && Number(deliverySettings.free_delivery_threshold) > 0
-                  ? `Free shipping on orders above ₹${Number(deliverySettings.free_delivery_threshold).toFixed(0)}.`
-                  : deliverySettings?.estimated_delivery_text
-                  ? `Express shipping: ${deliverySettings.estimated_delivery_text}.`
-                  : 'Fast and reliable shipping across India.'}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-zinc-400">
-                <span className="flex items-center gap-1">
-                  <FiLock className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>SSL Encrypted</span>
-                </span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <FiDollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>COD Available</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-400 gap-4">
-            <p>© {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}</p>
-            <p className="text-zinc-500">100% Secure Checkout • Express Shipping • Quality Assured</p>
-          </div>
-        </div>
-      </footer>
+      {/* Comprehensive Supermarket Grocery Footer with Logo, Location & Google Map */}
+      <GroceryFooter storeSettings={storeSettings} categories={categories} />
 
     </div>
   )

@@ -131,11 +131,11 @@ export default function TopOffersSection({
   const hasMultipleOffers = topOffers.length > 4
 
   return (
-    <section className="w-full py-4 sm:py-6 select-none relative">
+    <section className="w-full py-2 sm:py-2.5 select-none relative">
       <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8">
         
         {/* Header: 🔥 Top Offers for You + Prev/Next Controls + View More Deals */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2.5 sm:mb-3">
           <div className="flex items-center gap-2">
             <span className="text-base sm:text-lg">🔥</span>
             <h2 className="font-sans text-base sm:text-lg font-black text-[var(--color-text-main)] tracking-tight">

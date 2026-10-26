@@ -603,9 +603,9 @@ export default function Navbar({
   }, [userDeliveryLocation, customerAddress, storeSettings])
 
   return (
-    <div className="sticky top-0 z-40 w-full shadow-[0_2px_15px_rgba(2,132,199,0.06)] bg-white">
-      {/* 1. TOP ANNOUNCEMENT STRIP (Soft Sky/Cyan Tint matching KiranaBazaar image) */}
-      <div className="bg-[var(--color-primary-tint)] text-[#0369A1] text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-sky-200/60 select-none">
+    <>
+      {/* 1. TOP ANNOUNCEMENT STRIP (Scrolls naturally, zero reflow, zero lag) */}
+      <div className="bg-[var(--color-primary-tint)] text-[#0369A1] text-[11px] sm:text-xs px-3 sm:px-6 lg:px-8 xl:px-12 border-b border-sky-200/60 select-none py-1.5 sm:py-2">
         <div className="max-w-[1320px] mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 truncate">
             <FiTruck className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
@@ -641,8 +641,19 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* 2. FIRST ROW: ETHEREAL GLASSMORPHIC MAIN NAVBAR */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-100">
+      {/* 2. STICKY MAIN NAVBAR & SEARCH BAR (Sticks at top: 0, pure GPU-accelerated 60fps) */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+        }}
+        className="sticky top-0 z-50 w-full bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] border-b border-slate-200/80"
+      >
+        {/* FIRST ROW: MAIN NAVBAR */}
+        <header className="bg-white border-b border-slate-100">
         <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-3 sm:gap-6">
           {/* LEFT: Logo + Location Selection */}
           <div className="flex items-center gap-3 sm:gap-5 shrink-0">
@@ -1054,13 +1065,13 @@ export default function Navbar({
             <button
               type="button"
               onClick={() => setIsWishlistOpen(true)}
-              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-slate-50 border border-slate-200 hover:border-[var(--color-primary)] text-slate-700 hover:text-[var(--color-primary)] transition-all duration-200 cursor-pointer group flex items-center justify-center shadow-2xs"
+              className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white hover:bg-rose-50/50 border border-slate-200 hover:border-rose-300 text-slate-700 hover:text-rose-500 transition-all duration-200 cursor-pointer group flex items-center justify-center shadow-2xs"
               title="Saved Wishlist"
               aria-label="Saved Wishlist"
             >
               <FiHeart className="w-4.5 h-4.5 transition-transform group-hover:scale-110" />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[var(--color-primary)] text-white text-[10px] font-sans font-bold rounded-full flex items-center justify-center shadow-2xs leading-none">
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-sans font-bold rounded-full flex items-center justify-center shadow-2xs leading-none">
                   {wishlistCount}
                 </span>
               )}
@@ -1708,6 +1719,7 @@ export default function Navbar({
           document.body
         )}
       </header>
+      </div>
 
       {/* 4. MOBILE SLIDE-OUT DRAWER */}
       {isMobileMenuOpen && (
@@ -1950,14 +1962,18 @@ export default function Navbar({
 
               {/* Bottom Quick Tools */}
               <div className="border-t border-gray-100 my-2 pt-2 space-y-1">
-                {onOpenReferral && isReferralActive && (
+                {isReferralActive && (
                   <button
                     type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false)
-                      onOpenReferral()
+                      if (!customer) {
+                        navigate(ROUTES.LOGIN)
+                      } else if (onOpenReferral) {
+                        onOpenReferral()
+                      }
                     }}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-pink-50 text-[var(--color-extra-029)] font-bold"
+                    className="w-full text-left px-3.5 py-2.5 rounded-xl flex items-center gap-3 hover:bg-pink-50 text-[var(--color-extra-029)] font-bold cursor-pointer"
                   >
                     <FiGift className="w-4 h-4 text-pink-600" />
                     <span>Refer & Earn ({referralPercentText})</span>
@@ -2032,6 +2048,6 @@ export default function Navbar({
         onClose={() => setIsWishlistOpen(false)}
         onOpenCart={handleCartClick}
       />
-    </div>
+    </>
   )
 }

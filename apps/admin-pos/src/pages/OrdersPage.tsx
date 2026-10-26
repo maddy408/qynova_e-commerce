@@ -4,8 +4,6 @@ import { Alert, Badge, Card, PageHeader, Select, Spinner, TextField } from '../c
 import { api, apiErrorMessage } from '../lib/api'
 import { ROUTES } from '../routes/routes'
 
-const PAGE_SIZE = 20
-
 interface OrderListItem {
   id: number
   order_no: string
@@ -47,13 +45,14 @@ export function OrdersPage() {
   const [status, setStatus] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(10)
   const [updatingId, setUpdatingId] = useState<number | null>(null)
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
   function loadOrders() {
     api
-      .get('/orders', { params: { status: status || undefined, search: search || undefined, page, limit: PAGE_SIZE } })
+      .get('/orders', { params: { status: status || undefined, search: search || undefined, page, limit: pageSize } })
       .then((res) => {
         setOrders(res.data.orders)
         setTotal(res.data.total ?? res.data.orders.length)
@@ -65,7 +64,7 @@ export function OrdersPage() {
 
   useEffect(() => {
     loadOrders()
-  }, [status, search, page])
+  }, [status, search, page, pageSize])
 
   function handleStatusFilterChange(value: string) {
     setStatus(value)
@@ -93,7 +92,7 @@ export function OrdersPage() {
     }
   }
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   return (
     <div>
@@ -101,7 +100,7 @@ export function OrdersPage() {
         title="Orders & Tracking"
         description="E-commerce orders with live status management (Packed, Shipped, Out of Stock, Cancelled) and tracking."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <TextField
               placeholder="Search order # or customer…"
               value={search}
@@ -116,6 +115,22 @@ export function OrdersPage() {
                 </option>
               ))}
             </Select>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+              <span className="text-[11px] text-slate-400 font-bold">Show:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setPage(1)
+                }}
+                className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
           </div>
         }
       />
@@ -207,11 +222,12 @@ export function OrdersPage() {
             </tbody>
           </table>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-[var(--color-border-muted)] px-6 py-4 text-xs">
+          {orders.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[var(--color-border-muted)] px-6 py-4 text-xs">
               <span className="text-slate-600 font-medium">
-                Page <span className="font-extrabold text-slate-950">{page}</span> of{' '}
-                <span className="font-extrabold text-slate-950">{totalPages}</span> ({total} total)
+                Showing <span className="font-extrabold text-slate-950">{total === 0 ? 0 : (page - 1) * pageSize + 1}</span> to{' '}
+                <span className="font-extrabold text-slate-950">{Math.min(page * pageSize, total)}</span> of{' '}
+                <span className="font-extrabold text-slate-950">{total}</span> orders
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -222,6 +238,9 @@ export function OrdersPage() {
                 >
                   ← Previous
                 </button>
+                <span className="text-xs font-bold text-slate-700 px-1">
+                  {page} / {totalPages}
+                </span>
                 <button
                   type="button"
                   disabled={page >= totalPages}

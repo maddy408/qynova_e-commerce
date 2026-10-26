@@ -42,7 +42,7 @@ final class CategoryService
         $stmt = $this->pdo->prepare(
             "SELECT c.*,
                 (SELECT COUNT(*) FROM category_subcategory cs WHERE cs.category_id = c.id) AS subcategory_count,
-                (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count,
+                (SELECT COUNT(DISTINCT p.id) FROM product_categories pc JOIN products p ON p.id = pc.product_id WHERE pc.category_id = c.id AND p.deleted_at IS NULL AND p.is_active = 1) AS product_count,
                 COALESCE((
                     SELECT SUM(ii.quantity) 
                     FROM invoice_items ii 
@@ -65,7 +65,7 @@ final class CategoryService
         $stmt = $this->pdo->prepare(
             "SELECT c.*,
                 (SELECT COUNT(*) FROM category_subcategory cs WHERE cs.category_id = c.id) AS subcategory_count,
-                (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count
+                (SELECT COUNT(DISTINCT p.id) FROM product_categories pc JOIN products p ON p.id = pc.product_id WHERE pc.category_id = c.id AND p.deleted_at IS NULL AND p.is_active = 1) AS product_count
              FROM categories c
              WHERE c.id = :id AND c.deleted_at IS NULL"
         );

@@ -101,7 +101,7 @@ export function InvoiceDetailPage() {
           address: parsed.address || 'Plot 42, Commercial Avenue, Sector 5, Jaipur',
           gstin: parsed.gstin || '27AAAAA0000A1Z5',
           phone: parsed.phone || '+91 98765 01234',
-          email: parsed.email || 'support@shopwithadam.com',
+          email: parsed.email || 'info.adamsmart@gmail.com',
         }
       }
     } catch (e) {
@@ -112,7 +112,7 @@ export function InvoiceDetailPage() {
       address: 'Plot 42, Commercial Avenue, Sector 5, Jaipur',
       gstin: '27AAAAA0000A1Z5',
       phone: '+91 98765 01234',
-      email: 'support@shopwithadam.com',
+      email: 'info.adamsmart@gmail.com',
     }
   }, [])
 

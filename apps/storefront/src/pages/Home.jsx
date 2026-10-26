@@ -267,7 +267,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[#ede9fe] selection:text-[#6d28d9] overflow-x-hidden flex flex-col justify-between w-full">
+    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[#ede9fe] selection:text-[#6d28d9] flex flex-col justify-between w-full">
       
       {/* Toast Notification */}
       {toastMessage && (

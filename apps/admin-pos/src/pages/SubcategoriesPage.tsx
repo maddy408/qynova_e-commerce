@@ -5,6 +5,13 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage, getApiOrigin } from '../lib/api'
 import type { Category, Subcategory } from '../lib/types'
 import { EMPTY_SEO, SeoFields, seoFrom, type SeoValues } from '../components/SeoFields'
+import {
+  compressImage,
+  formatFileSize,
+  validateImageFile,
+  MAX_ALLOWED_FILE_BYTES,
+  MAX_ALLOWED_FILE_MB,
+} from '../lib/imageCompression'
 
 function imageUrl(path: string | null) {
   if (!path) return null
@@ -40,6 +47,12 @@ export function SubcategoriesPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageRemoved, setImageRemoved] = useState(false)
+  const [compressingImage, setCompressingImage] = useState(false)
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: string
+    compressedSize: string
+    reductionPercent: number
+  } | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
   function load() {
@@ -124,6 +137,8 @@ export function SubcategoriesPage() {
     setImageFile(null)
     setImagePreview(null)
     setImageRemoved(false)
+    setCompressingImage(false)
+    setCompressionInfo(null)
     if (fileInput.current) fileInput.current.value = ''
   }
 
@@ -151,11 +166,44 @@ export function SubcategoriesPage() {
     resetImageState()
   }
 
-  function pickImage(file: File | undefined) {
+  async function pickImage(file: File | undefined) {
     if (!file) return
-    setImageFile(file)
-    setImageRemoved(false)
-    setImagePreview(URL.createObjectURL(file))
+    setError('')
+
+    // 1. Check max size limit (10MB)
+    const validation = validateImageFile(file, MAX_ALLOWED_FILE_BYTES)
+    if (!validation.valid) {
+      setError(validation.error || `File exceeds ${MAX_ALLOWED_FILE_MB}MB limit`)
+      if (fileInput.current) fileInput.current.value = ''
+      return
+    }
+
+    // 2. Client-side compression to avoid Nginx 413 "Request Entity Too Large"
+    setCompressingImage(true)
+    try {
+      const result = await compressImage(file, {
+        maxDimension: 1200,
+        quality: 0.82,
+        targetMaxBytes: 500 * 1024,
+      })
+
+      setImageFile(result.file)
+      setImageRemoved(false)
+      setImagePreview(result.previewUrl)
+      setCompressionInfo({
+        originalSize: formatFileSize(result.originalSize),
+        compressedSize: formatFileSize(result.compressedSize),
+        reductionPercent: result.reductionPercent,
+      })
+    } catch (err) {
+      console.error('Image compression failed, falling back to original:', err)
+      setImageFile(file)
+      setImageRemoved(false)
+      setImagePreview(URL.createObjectURL(file))
+      setCompressionInfo(null)
+    } finally {
+      setCompressingImage(false)
+    }
   }
 
   function toggleCategory(id: number) {
@@ -164,6 +212,7 @@ export function SubcategoriesPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (compressingImage) return
     setError('')
     if (categoryIds.length === 0) {
       setError('Select at least one parent category')
@@ -785,12 +834,23 @@ export function SubcategoriesPage() {
 
             {/* Image Uploader Card */}
             <div className="rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-alt)]/70 p-4 transition-colors">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary-strong)] mb-2.5">
-                Subcategory Image &amp; Thumbnail
-              </label>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--color-primary-strong)]">
+                  Subcategory Image &amp; Thumbnail
+                </label>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Max Limit: {MAX_ALLOWED_FILE_MB}MB (Auto-compressed)
+                </span>
+              </div>
+
               <div className="flex items-center gap-4">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[var(--color-border)] bg-white shadow-2xs flex items-center justify-center">
-                  {imagePreview || (editingSubcategory && !imageRemoved && imageUrl(editingSubcategory.image_path)) ? (
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[var(--color-border)] bg-white shadow-2xs flex items-center justify-center">
+                  {compressingImage ? (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="h-5 w-5 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : imagePreview || (editingSubcategory && !imageRemoved && imageUrl(editingSubcategory.image_path)) ? (
                     <img
                       src={imagePreview ?? imageUrl(editingSubcategory!.image_path)!}
                       alt=""
@@ -807,11 +867,14 @@ export function SubcategoriesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
+                      disabled={compressingImage}
                       onClick={() => fileInput.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[var(--color-extra-021)] transition-all shadow-2xs active:scale-98"
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[var(--color-primary)] text-white text-xs font-semibold hover:bg-[var(--color-extra-021)] transition-all shadow-2xs active:scale-98 disabled:opacity-50"
                     >
                       <ImageIcon className="h-3.5 w-3.5" />
-                      {imagePreview || (editingSubcategory && !imageRemoved && editingSubcategory.image_path)
+                      {compressingImage
+                        ? 'Optimizing...'
+                        : imagePreview || (editingSubcategory && !imageRemoved && editingSubcategory.image_path)
                         ? 'Change Image'
                         : 'Upload Image'}
                     </button>
@@ -819,22 +882,39 @@ export function SubcategoriesPage() {
                     {(imagePreview || (editingSubcategory && !imageRemoved && editingSubcategory.image_path)) && (
                       <button
                         type="button"
+                        disabled={compressingImage}
                         onClick={() => {
                           setImageFile(null)
                           setImagePreview(null)
                           setImageRemoved(true)
+                          setCompressionInfo(null)
                           if (fileInput.current) fileInput.current.value = ''
                         }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-medium transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-medium transition-colors disabled:opacity-50"
                       >
                         <TrashIcon className="h-3.5 w-3.5" />
                         Remove
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-tight">
-                    JPG, PNG, WEBP supported • Automatically compressed &amp; stored as WebP
-                  </p>
+
+                  {compressionInfo ? (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-medium">
+                      <span>✓ Optimized:</span>
+                      <span className="line-through text-slate-400">{compressionInfo.originalSize}</span>
+                      <span>➔</span>
+                      <span className="font-bold text-emerald-700">{compressionInfo.compressedSize}</span>
+                      {compressionInfo.reductionPercent > 0 && (
+                        <span className="bg-emerald-200 text-emerald-900 px-1 py-0.2 rounded text-[10px] font-bold">
+                          -{compressionInfo.reductionPercent}%
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 leading-tight">
+                      JPG, PNG, WEBP • Max {MAX_ALLOWED_FILE_MB}MB • Images are automatically compressed to ~200KB before upload to ensure instant loading.
+                    </p>
+                  )}
                 </div>
 
                 <input

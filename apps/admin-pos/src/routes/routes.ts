@@ -264,7 +264,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'marketing',
     label: 'Marketing',
     to: ROUTES.REFERRAL_SETTINGS,
-    matchPrefixes: [ROUTES.REFERRAL_SETTINGS, ROUTES.BANNERS, ROUTES.HOME_SECTIONS, ROUTES.COUPONS, ROUTES.BROADCAST_NOTIFICATIONS],
+    matchPrefixes: [ROUTES.REFERRAL_SETTINGS, ROUTES.BANNERS, ROUTES.HOME_SECTIONS, ROUTES.TOP_OFFERS, ROUTES.COUPONS, ROUTES.BROADCAST_NOTIFICATIONS],
     items: [
       { to: ROUTES.REFERRAL_SETTINGS, label: 'Referral', permission: 'settings.manage' },
       { to: ROUTES.BANNERS, label: 'Banner', permission: 'banners.manage' },

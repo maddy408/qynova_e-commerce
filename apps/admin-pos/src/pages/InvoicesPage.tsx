@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Button, Modal, Select, Spinner, TextField } from '../components/ui'
 import { ROUTES } from '../routes/routes'
@@ -21,7 +21,6 @@ interface Invoice {
 }
 
 const REFERENCE_REQUIRED_METHODS = ['UPI', 'CARD', 'NETBANKING', 'GOOGLE_PAY']
-const PAGE_SIZE = 7
 
 function formatInvoiceDate(dateStr: string) {
   if (!dateStr) return { date: '—', time: '' }
@@ -46,6 +45,7 @@ export function InvoicesPage() {
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(10)
 
   // Record Payment / amendment modal state
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null)
@@ -190,10 +190,10 @@ export function InvoicesPage() {
 
   // Pagination calculation
   const totalInvoices = displayedInvoices.length
-  const totalPages = Math.max(1, Math.ceil(totalInvoices / PAGE_SIZE))
-  const currentPageSafe = Math.min(currentPage, totalPages)
-  const startIndex = (currentPageSafe - 1) * PAGE_SIZE
-  const endIndex = Math.min(startIndex + PAGE_SIZE, totalInvoices)
+  const totalPages = Math.max(1, Math.ceil(totalInvoices / pageSize))
+  const currentPageSafe = Math.min(Math.max(1, currentPage), totalPages)
+  const startIndex = (currentPageSafe - 1) * pageSize
+  const endIndex = Math.min(startIndex + pageSize, totalInvoices)
   const currentInvoices = displayedInvoices.slice(startIndex, endIndex)
 
   // Selection handlers
@@ -322,6 +322,24 @@ export function InvoicesPage() {
             </svg>
             <span>E-Commerce Orders</span>
           </button>
+
+          {/* Per Page Select */}
+          <div className="flex items-center gap-1.5 h-10 px-3 bg-white border border-slate-200/90 rounded-2xl text-xs font-semibold text-slate-600 shadow-2xs">
+            <span className="text-[11px] text-slate-400 font-bold">Show:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setCurrentPage(1)
+              }}
+              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
 
           {/* Filter Funnel Button */}
           <button
@@ -684,57 +702,82 @@ export function InvoicesPage() {
 
           {/* ================= TABLE FOOTER & PAGINATION ================= */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3.5 border-t border-slate-100 bg-white text-xs">
-            {/* Left: Showing entries */}
-            <p className="font-medium text-slate-500 text-[12px]">
-              Showing{' '}
-              <span className="font-bold text-slate-700">
-                {totalInvoices === 0 ? 0 : startIndex + 1}
-              </span>{' '}
-              -{' '}
-              <span className="font-bold text-slate-700">{endIndex}</span> of{' '}
-              <span className="font-bold text-slate-700">{totalInvoices}</span> invoices
-            </p>
+            {/* Left: Showing entries & quick page-size switcher */}
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="font-medium text-slate-500 text-[12px]">
+                Showing{' '}
+                <span className="font-bold text-slate-700">
+                  {totalInvoices === 0 ? 0 : startIndex + 1}
+                </span>{' '}
+                -{' '}
+                <span className="font-bold text-slate-700">{endIndex}</span> of{' '}
+                <span className="font-bold text-slate-700">{totalInvoices}</span> invoices
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                <span>Per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="h-6 px-1.5 text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-md cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
 
-            {/* Right: Modern Pagination */}
+            {/* Right: Modern Pagination with windowing */}
             {totalPages > 1 && (
-              <div className="flex items-center gap-1.5 select-none">
+              <div className="flex items-center gap-1 select-none">
                 {/* Previous Button */}
                 <button
                   type="button"
                   disabled={currentPageSafe <= 1}
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="w-7 h-7 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer font-bold text-xs"
+                  className="h-7 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer font-bold text-xs"
                 >
-                  ‹
+                  ← Prev
                 </button>
 
-                {/* Page numbers */}
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNo) => {
-                  const isActive = pageNo === currentPageSafe
-                  return (
-                    <button
-                      key={pageNo}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNo)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-[#1877F2] text-white shadow-sm shadow-blue-500/25'
-                          : 'bg-white border border-transparent text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {pageNo}
-                    </button>
-                  )
-                })}
+                {/* Windowed page numbers */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPageSafe) <= 2)
+                  .map((pageNo, idx, arr) => {
+                    const prev = arr[idx - 1]
+                    const showEllipsis = prev && pageNo - prev > 1
+                    const isActive = pageNo === currentPageSafe
+
+                    return (
+                      <Fragment key={pageNo}>
+                        {showEllipsis && <span className="px-1 text-slate-400 text-xs">…</span>}
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(pageNo)}
+                          className={`min-w-[28px] h-7 px-2 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-[#1877F2] text-white shadow-sm shadow-blue-500/25'
+                              : 'bg-white border border-transparent text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {pageNo}
+                        </button>
+                      </Fragment>
+                    )
+                  })}
 
                 {/* Next Button */}
                 <button
                   type="button"
                   disabled={currentPageSafe >= totalPages}
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="w-7 h-7 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer font-bold text-xs"
+                  className="h-7 px-2.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer font-bold text-xs"
                 >
-                  ›
+                  Next →
                 </button>
               </div>
             )}

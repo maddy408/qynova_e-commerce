@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import CartDrawer from '../components/CartDrawer'
 import CheckoutModal from '../components/CheckoutModal'
 import { ROUTES } from '../routes/routes'
+import GroceryFooter from '../components/GroceryFooter'
 
 export default function PolicyPage() {
   const { slug } = useParams()
@@ -100,11 +101,8 @@ export default function PolicyPage() {
         </main>
       </div>
 
-      <footer className="bg-black text-white py-8 border-t border-zinc-800 mt-12">
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 text-center text-xs text-zinc-400">
-          <p>© {new Date().getFullYear()} {storeSettings?.store_name || 'Store'}. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Comprehensive Supermarket Grocery Footer with Logo, Location & Google Map */}
+      <GroceryFooter storeSettings={storeSettings} />
 
       <CartDrawer
         isOpen={isCartOpen}

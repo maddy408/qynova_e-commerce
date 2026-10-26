@@ -4,6 +4,13 @@ import { Alert, Badge, Button, Card, Modal, PageHeader, Select, Spinner, TextFie
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 import { env } from '../config/env'
+import {
+  compressImage,
+  formatFileSize,
+  validateImageFile,
+  MAX_ALLOWED_FILE_BYTES,
+  MAX_ALLOWED_FILE_MB,
+} from '../lib/imageCompression'
 
 export interface TopOffer {
   id: number
@@ -89,6 +96,12 @@ export function TopOffersPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageRemoved, setImageRemoved] = useState(false)
+  const [compressingImage, setCompressingImage] = useState(false)
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: string
+    compressedSize: string
+    reductionPercent: number
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [error, setError] = useState('')
@@ -176,6 +189,8 @@ export function TopOffersPage() {
     setImageFile(null)
     setImagePreview(null)
     setImageRemoved(false)
+    setCompressingImage(false)
+    setCompressionInfo(null)
     setButtonText('Shop Deals')
     setLink('/products?section=deals')
     setSortOrder(String((offers?.length || 0) + 1))
@@ -199,6 +214,8 @@ export function TopOffersPage() {
     setImageFile(null)
     setImagePreview(null)
     setImageRemoved(false)
+    setCompressingImage(false)
+    setCompressionInfo(null)
     setButtonText(offer.button_text || 'Shop Deals')
     setLink(offer.link && !offer.link.startsWith('/product/') ? offer.link : '/products?section=deals')
     setSortOrder(String(offer.sort_order ?? 0))
@@ -231,12 +248,42 @@ export function TopOffersPage() {
     setShowForm(true)
   }
 
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) {
+    if (!file) return
+    setError('')
+
+    const validation = validateImageFile(file, MAX_ALLOWED_FILE_BYTES)
+    if (!validation.valid) {
+      setError(validation.error || `File exceeds ${MAX_ALLOWED_FILE_MB}MB limit`)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    setCompressingImage(true)
+    try {
+      const result = await compressImage(file, {
+        maxDimension: 1200,
+        quality: 0.82,
+        targetMaxBytes: 500 * 1024,
+      })
+
+      setImageFile(result.file)
+      setImagePreview(result.previewUrl)
+      setImageRemoved(false)
+      setCompressionInfo({
+        originalSize: formatFileSize(result.originalSize),
+        compressedSize: formatFileSize(result.compressedSize),
+        reductionPercent: result.reductionPercent,
+      })
+    } catch (err) {
+      console.error('Top offer image compression failed:', err)
       setImageFile(file)
       setImagePreview(URL.createObjectURL(file))
       setImageRemoved(false)
+      setCompressionInfo(null)
+    } finally {
+      setCompressingImage(false)
     }
   }
 
@@ -245,6 +292,7 @@ export function TopOffersPage() {
     setImagePreview(null)
     setImagePath('')
     setImageRemoved(true)
+    setCompressionInfo(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -252,6 +300,7 @@ export function TopOffersPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    if (compressingImage) return
     if (!badge.trim() || !title.trim()) {
       setError('Badge and Title are required')
       return
@@ -643,18 +692,24 @@ export function TopOffersPage() {
             <div className="p-3.5 rounded-xl border border-purple-200/80 bg-purple-50/40 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-xs font-bold text-slate-800">
-                    Card Background Image (Glass UI)
-                  </label>
-                  <p className="text-[11px] text-slate-500">
-                    Upload an image or paste a URL. A frosted glass overlay will display text clearly over it.
+                  <div className="flex items-center gap-2">
+                    <label className="block text-xs font-bold text-slate-800">
+                      Card Background Image (Glass UI)
+                    </label>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+                      Max {MAX_ALLOWED_FILE_MB}MB (Auto-compressed)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Upload an image or paste a URL. High-res images are automatically compressed to ~200KB before upload.
                   </p>
                 </div>
                 {activeCardImage && (
                   <button
                     type="button"
+                    disabled={compressingImage}
                     onClick={handleRemoveImage}
-                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded border border-rose-200 bg-white hover:bg-rose-50 transition-colors cursor-pointer"
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1 rounded border border-rose-200 bg-white hover:bg-rose-50 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     ✕ Remove Image
                   </button>
@@ -674,16 +729,22 @@ export function TopOffersPage() {
                   />
                   <label
                     htmlFor="top-offer-image-input"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-purple-500 text-slate-700 hover:text-purple-700 text-xs font-semibold cursor-pointer shadow-2xs transition-all active:scale-95"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-purple-500 text-slate-700 hover:text-purple-700 text-xs font-semibold cursor-pointer shadow-2xs transition-all active:scale-95 ${
+                      compressingImage ? 'opacity-50 pointer-events-none' : ''
+                    }`}
                   >
                     <ImageIcon className="w-4 h-4 text-purple-600" />
-                    <span>{activeCardImage ? 'Change Image File' : 'Upload Image File'}</span>
+                    <span>{compressingImage ? 'Optimizing...' : activeCardImage ? 'Change Image File' : 'Upload Image File'}</span>
                   </label>
-                  {imageFile && (
+                  {compressionInfo ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-medium">
+                      ✓ {compressionInfo.compressedSize} (-{compressionInfo.reductionPercent}%)
+                    </span>
+                  ) : imageFile ? (
                     <span className="text-[11px] text-emerald-600 font-medium truncate max-w-[150px]">
                       ✓ {imageFile.name}
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="text-xs text-slate-400 font-medium hidden sm:block">OR</div>

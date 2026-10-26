@@ -39,6 +39,39 @@ function downloadBlob(blob: Blob, filename: string) {
   window.URL.revokeObjectURL(url)
 }
 
+export const EXCEL_HEADERS = [
+  { name: 'Product Name', required: true, desc: 'Title of product' },
+  { name: 'Product Code', required: false, desc: 'Grouping code for variants' },
+  { name: 'Category', required: true, desc: 'Main category name' },
+  { name: 'Subcategory', required: false, desc: 'Subcategory name' },
+  { name: 'Brand', required: false, desc: 'Brand name' },
+  { name: 'Description', required: false, desc: 'Long product details' },
+  { name: 'Short Description', required: false, desc: 'Short subtitle' },
+  { name: 'Material', required: false, desc: 'Material/Composition' },
+  { name: 'Unit', required: false, desc: 'e.g. PCS, KG, PACK, GM' },
+  { name: 'HSN Code', required: false, desc: 'HSN code for tax' },
+  { name: 'Tax', required: false, desc: 'GST rate (e.g. 5%, 12%, 18%)' },
+  { name: 'Tax Type', required: false, desc: 'INCLUSIVE or EXCLUSIVE' },
+  { name: 'Manufacturer', required: false, desc: 'Manufacturer name' },
+  { name: 'Manufacturing Date', required: false, desc: 'MM/YYYY or YYYY-MM-DD' },
+  { name: 'Expiry Date', required: false, desc: 'MM/YYYY or YYYY-MM-DD' },
+  { name: 'Return Eligible', required: false, desc: 'YES or NO' },
+  { name: 'Return Window (Days)', required: false, desc: 'e.g. 7' },
+  { name: 'Product Image Path', required: false, desc: 'Image URLs or ZIP filenames' },
+  { name: 'Variant SKU', required: false, desc: 'Unique SKU for this variant' },
+  { name: 'Variant Barcode', required: false, desc: 'Barcode / EAN code' },
+  { name: 'Variant Description', required: false, desc: 'e.g. 500g Pack, Blue 32' },
+  { name: 'Size', required: false, desc: 'e.g. 500g, XL, 1L' },
+  { name: 'Color', required: false, desc: 'Color variant' },
+  { name: 'MRP', required: true, desc: 'Maximum Retail Price' },
+  { name: 'Selling Price', required: false, desc: 'Storefront selling price' },
+  { name: 'Variant Cost Price', required: false, desc: 'Purchase/cost price' },
+  { name: 'Opening Stock', required: false, desc: 'Starting quantity' },
+  { name: 'Low Stock Threshold', required: false, desc: 'Alert threshold' },
+  { name: 'Variant Image Path', required: false, desc: 'Variant image URLs or ZIP filenames' },
+  { name: 'Status', required: false, desc: 'ACTIVE or INACTIVE' },
+] as const
+
 /**
  * Product Create Excel Import/Export (section 39/12 of
  * ECOMMERCE_POS_ADMIN_SPEC.md). The backend contract already existed
@@ -59,8 +92,28 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
   const [updateExisting, setUpdateExisting] = useState(false)
   const [preview, setPreview] = useState<ImportResult | null>(null)
   const [committedResult, setCommittedResult] = useState<ImportResult | null>(null)
+  const [showHeaderDetails, setShowHeaderDetails] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const imagesZipInputRef = useRef<HTMLInputElement | null>(null)
+
+  function handleCopySingleHeader(name: string) {
+    try {
+      navigator.clipboard.writeText(name)
+      push('success', `Copied header "${name}" to clipboard`)
+    } catch {
+      push('info', `Header: ${name}`)
+    }
+  }
+
+  function handleCopyAllHeaders() {
+    try {
+      const allText = EXCEL_HEADERS.map((h) => h.name).join('\t')
+      navigator.clipboard.writeText(allText)
+      push('success', `Copied all ${EXCEL_HEADERS.length} column headers (tab-separated) for Excel paste!`)
+    } catch {
+      push('error', 'Could not copy headers to clipboard')
+    }
+  }
 
   const templateGuard = useDoubleSubmitGuard()
   const exportGuard = useDoubleSubmitGuard()
@@ -178,6 +231,59 @@ export function ProductImportExportPanel({ onImported }: { onImported: () => voi
       {modalOpen && (
         <Modal title="Import Products from Excel" onClose={closeModal} width="2xl">
           <div className="space-y-4">
+            {/* Dynamic Sticky Header of Excel Column Titles */}
+            <div className="sticky -top-6 -mx-6 px-6 py-2.5 bg-white/95 backdrop-blur-md border-b border-slate-200 z-30 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-600 animate-pulse" />
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-800">
+                    Excel Column Titles ({EXCEL_HEADERS.length} Total)
+                  </span>
+                  <span className="hidden sm:inline text-[10px] font-semibold text-slate-500">
+                    · Sticks to top while scrolling for easy title matching
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyAllHeaders}
+                    className="text-[10px] font-bold text-cyan-800 bg-cyan-50 hover:bg-cyan-100 px-2.5 py-1 rounded-full border border-cyan-200 transition-colors cursor-pointer"
+                    title="Copy all column headers to paste directly into Excel first row"
+                  >
+                    Copy All Titles (Excel Row)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowHeaderDetails((prev) => !prev)}
+                    className="text-[10px] font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    {showHeaderDetails ? 'Compact ▲' : 'Details ▼'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Horizontally scrollable & wrap pill dock of all column titles with copy on click */}
+              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto no-scrollbar py-0.5">
+                {EXCEL_HEADERS.map((h, idx) => (
+                  <span
+                    key={h.name}
+                    onClick={() => handleCopySingleHeader(h.name)}
+                    title={`Click to copy: "${h.name}" (${h.desc})`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-semibold border transition-all cursor-pointer select-none active:scale-95 ${
+                      h.required
+                        ? 'bg-rose-50 border-rose-200 text-rose-800 hover:bg-rose-100 hover:border-rose-300'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="text-[9px] font-mono text-slate-400 font-bold">{idx + 1}.</span>
+                    <span className="font-bold">{h.name}</span>
+                    {h.required && <span className="text-red-500 font-black" title="Required field">*</span>}
+                    {showHeaderDetails && <span className="text-[9px] text-slate-400">({h.desc})</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-800">Excel file (.xlsx)</label>
               <input

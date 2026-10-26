@@ -11,7 +11,10 @@ function isPathActive(pathname: string, section: NavSection): boolean {
   if (section.id === 'dashboard') {
     return pathname === '/'
   }
-  return section.matchPrefixes.some((prefix) => pathname.startsWith(prefix))
+  return (
+    section.matchPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
+    section.items.some((item) => pathname.startsWith(item.to))
+  )
 }
 
 function getBreadcrumb(pathname: string, activeSection: NavSection | undefined): { sectionLabel: string; itemLabel: string } | null {

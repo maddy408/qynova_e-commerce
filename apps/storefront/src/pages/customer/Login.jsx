@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { FiHeart, FiKey } from 'react-icons/fi'
+import { FiHeart, FiKey, FiSmartphone } from 'react-icons/fi'
 import { api, getCustomerToken, setCustomerSession, clearCustomerSession, getErrorMessage } from '../../lib/api'
 import { mergeGuestCart } from '../../lib/cart'
 import { mergeGuestWishlist } from '../../lib/wishlist'
@@ -14,6 +14,7 @@ export default function Login() {
 
   const [mobileNumber, setMobileNumber] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -156,31 +157,56 @@ export default function Login() {
     return () => window.removeEventListener('resize', handleResize)
   }, [googleClientId])
 
-  const handleMobileChange = (e) => {
-    const val = e.target.value.replace(/\D/g, '')
-    setMobileNumber(val)
-    if (error) setError('')
+  const handleMobileKeyDown = (e) => {
+    // Allow navigation, deletion, Tab, Enter, and keyboard shortcuts
+    if (
+      ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter', 'Home', 'End'].includes(e.key) ||
+      (e.ctrlKey || e.metaKey)
+    ) {
+      return
+    }
+    // Only allow numeric digits 0-9
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault()
+    }
   }
 
-  // Step 1: Send Login OTP
+  const handleMobileChange = (e) => {
+    // Strictly numeric only, max 10 digits
+    const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+    setMobileNumber(val)
+    if (error) setError('')
+    if (fieldErrors.mobile) {
+      setFieldErrors((prev) => ({ ...prev, mobile: '' }))
+    }
+  }
+
+  // Handle Login Submission (Send OTP)
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    const nextErrors = {}
 
     const cleanMobile = mobileNumber.trim().replace(/\D/g, '')
 
     if (!cleanMobile) {
-      setError('Please enter your mobile number')
+      nextErrors.mobile = 'Please enter your mobile number'
+    } else if (cleanMobile.length !== 10) {
+      nextErrors.mobile = 'Mobile number must be exactly 10 digits'
+    } else if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
+      nextErrors.mobile = 'Enter a valid 10-digit Indian mobile number'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      setError(nextErrors.mobile)
       return
     }
 
-    if (!/^[6-9]\d{9}$/.test(cleanMobile)) {
-      setError('Enter a valid 10-digit Indian mobile number')
-      return
-    }
-
+    setFieldErrors({})
     setIsSubmitting(true)
 
+    // Mobile OTP Login
     try {
       const response = await api.post('/customers/otp/send', {
         phone: cleanMobile,
@@ -410,32 +436,45 @@ export default function Login() {
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 
-                {/* Mobile Number Field */}
+                {/* Mobile Number Field - Strictly 10 digits numeric only */}
                 <div>
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-bg-main)] flex items-center justify-center text-[var(--color-text-muted)] shrink-0">
-                      <svg className="w-4.5 h-4.5 text-[var(--color-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                      </svg>
+                      <FiSmartphone className="w-4.5 h-4.5 text-[var(--color-brand)]" />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs font-semibold text-[var(--color-text-main)] mb-1">
-                        Mobile Number <span className="text-red-500">*</span>
-                      </label>
-                      <div className="flex items-center border border-[var(--color-border-subtle)] rounded-xl overflow-hidden focus-within:border-[var(--color-brand)] focus-within:ring-1 focus-within:ring-[var(--color-brand)] transition-colors">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-[var(--color-text-main)]">
+                          Mobile Number <span className="text-red-500">*</span>
+                        </label>
+                        <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
+                          {mobileNumber.length}/10 digits
+                        </span>
+                      </div>
+                      <div className={`flex items-center border rounded-xl overflow-hidden transition-colors ${
+                        fieldErrors.mobile ? 'border-red-400 ring-1 ring-red-400' : 'border-[var(--color-border-subtle)] focus-within:border-[var(--color-brand)] focus-within:ring-1 focus-within:ring-[var(--color-brand)]'
+                      }`}>
                         <span className="px-3 py-2 bg-[var(--color-bg-main)] text-[var(--color-text-muted)] font-semibold text-xs border-r border-[var(--color-border-subtle)] select-none">
                           +91
                         </span>
                         <input
                           type="tel"
-                          maxLength="10"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={10}
                           disabled={isSubmitting || isGoogleLoading}
                           value={mobileNumber}
+                          onKeyDown={handleMobileKeyDown}
                           onChange={handleMobileChange}
                           placeholder="Enter 10 digit mobile number"
                           className="flex-1 h-10 px-3 text-xs sm:text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)]/60 focus:outline-none disabled:bg-gray-50"
                         />
                       </div>
+                      {fieldErrors.mobile && (
+                        <p className="text-[11px] font-semibold text-red-600 mt-1 pl-1">
+                          {fieldErrors.mobile}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -467,13 +506,9 @@ export default function Login() {
                   </button>
                 </div>
 
-                {/* Secure OTP badge */}
+                {/* Helper subtitle */}
                 <div className="flex items-center justify-center gap-1.5 text-[var(--color-text-muted)] text-[11px] pt-1">
-                  <svg className="w-3.5 h-3.5 text-[var(--color-brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  <span>Secure OTP login • No password required</span>
+                  <span>Instant login via secure 6-digit one-time password</span>
                 </div>
 
                 {/* Divider */}

@@ -38,7 +38,7 @@ export function SettingsSetupPage({ defaultTab = 'company' }: { defaultTab?: 'co
   })
   const [companyEmail, setCompanyEmail] = useState(() => {
     const s = localStorage.getItem('company_settings')
-    return s ? JSON.parse(s).email || 'contact@unifiedpos.store' : 'contact@unifiedpos.store'
+    return s ? JSON.parse(s).email || 'info.adamsmart@gmail.com' : 'info.adamsmart@gmail.com'
   })
 
   // Invoice Prefix state

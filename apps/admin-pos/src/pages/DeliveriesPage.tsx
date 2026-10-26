@@ -168,6 +168,7 @@ export function DeliveriesPage() {
   const [dateTo, setDateTo] = useState('')
   const [deliveryArea, setDeliveryArea] = useState('')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
 
   // Selection states
   const [selectedIds, setSelectedIds] = useState<number[]>([])
@@ -260,7 +261,7 @@ export function DeliveriesPage() {
     if (activeTab !== 'ready_orders') {
       fetchDeliveries()
     }
-  }, [activeTab, page, statusFilter, courierFilter, dateFrom, dateTo, deliveryArea])
+  }, [activeTab, page, pageSize, statusFilter, courierFilter, dateFrom, dateTo, deliveryArea])
 
   async function fetchSummary() {
     try {
@@ -303,7 +304,7 @@ export function DeliveriesPage() {
       const params: Record<string, string | number> = {
         tab: activeTab,
         page,
-        limit: PAGE_SIZE,
+        limit: pageSize,
       }
       if (search.trim()) params.search = search.trim()
       if (statusFilter) params.status = statusFilter
@@ -362,7 +363,7 @@ export function DeliveriesPage() {
     setAddSelectedOrder(orderToSelect || null)
     const defaultPartner = courierPartners[0]
     setAddCourierPartnerId(defaultPartner?.id || '')
-    setAddCourier(defaultPartner?.name || 'Delhivery')
+    setAddCourier(defaultPartner?.name || '')
     setAddAwb('')
     setAddNotes('')
     setAddWeight('0.50')
@@ -1104,29 +1105,52 @@ export function DeliveriesPage() {
         )}
 
         {/* Pagination */}
-        {activeTab !== 'ready_orders' && totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 text-xs">
+        {activeTab !== 'ready_orders' && deliveries && deliveries.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-xs">
             <span className="text-slate-500 font-medium">
-              Showing page <strong className="text-slate-900">{page}</strong> of{' '}
-              <strong className="text-slate-900">{totalPages}</strong> ({total} total deliveries)
+              Showing <strong className="text-slate-900">{total === 0 ? 0 : (page - 1) * pageSize + 1}</strong> to{' '}
+              <strong className="text-slate-900">{Math.min(page * pageSize, total)}</strong> of{' '}
+              <strong className="text-slate-900">{total}</strong> total deliveries
             </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 transition-colors text-xs"
-              >
-                ← Previous
-              </button>
-              <button
-                type="button"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 transition-colors text-xs"
-              >
-                Next →
-              </button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-xl shadow-2xs">
+                <span className="text-[10px] text-slate-400 font-bold">Show:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setPage(1)
+                  }}
+                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 transition-colors text-xs cursor-pointer"
+                >
+                  ← Previous
+                </button>
+                <span className="text-xs font-bold text-slate-700 px-1">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 font-bold disabled:opacity-40 hover:bg-slate-50 transition-colors text-xs cursor-pointer"
+                >
+                  Next →
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1455,12 +1479,22 @@ export function DeliveriesPage() {
                     2. Courier Partner <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={addCourierPartnerId}
+                    value={courierPartners.length > 0 ? (addCourierPartnerId || '') : (addCourier || '')}
                     onChange={(e) => {
-                      const pid = Number(e.target.value) || ''
-                      setAddCourierPartnerId(pid)
-                      const found = courierPartners.find((cp) => cp.id === pid)
-                      if (found) setAddCourier(found.name)
+                      const val = e.target.value
+                      if (!val) {
+                        setAddCourierPartnerId('')
+                        setAddCourier('')
+                        return
+                      }
+                      const found = courierPartners.find((cp) => String(cp.id) === String(val))
+                      if (found) {
+                        setAddCourierPartnerId(found.id)
+                        setAddCourier(found.name)
+                      } else {
+                        setAddCourierPartnerId('')
+                        setAddCourier(val)
+                      }
                     }}
                     required
                     className="w-full h-10 px-3 rounded-2xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:border-purple-600"
@@ -1733,12 +1767,22 @@ export function DeliveriesPage() {
                   Courier Partner <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={reassignCourierPartnerId}
+                  value={courierPartners.length > 0 ? (reassignCourierPartnerId || '') : (reassignCourier || '')}
                   onChange={(e) => {
-                    const pid = Number(e.target.value) || ''
-                    setReassignCourierPartnerId(pid)
-                    const found = courierPartners.find((cp) => cp.id === pid)
-                    if (found) setReassignCourier(found.name)
+                    const val = e.target.value
+                    if (!val) {
+                      setReassignCourierPartnerId('')
+                      setReassignCourier('')
+                      return
+                    }
+                    const found = courierPartners.find((cp) => String(cp.id) === String(val))
+                    if (found) {
+                      setReassignCourierPartnerId(found.id)
+                      setReassignCourier(found.name)
+                    } else {
+                      setReassignCourierPartnerId('')
+                      setReassignCourier(val)
+                    }
                   }}
                   required
                   className="w-full h-9 px-3 rounded-2xl border border-slate-200 font-semibold text-xs bg-white"

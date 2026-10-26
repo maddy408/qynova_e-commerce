@@ -169,10 +169,10 @@ export default function LowerPromotionalBanners({
   const displayItems = [...activeBanners, ...activeBanners]
 
   return (
-    <section id={id} className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-8 overflow-hidden">
+    <section id={id} className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 py-3 sm:py-4 overflow-hidden">
       {/* Header (rendered if title or badgeText provided — styled with storefront theme) */}
       {(title || badgeText) && (
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
           <div>
             {badgeText && (
               <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-3 py-1 rounded-full mb-1">

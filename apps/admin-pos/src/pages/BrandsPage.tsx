@@ -5,6 +5,13 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { api, apiErrorMessage } from '../lib/api'
 import { env } from '../config/env'
 import type { Brand, Category } from '../lib/types'
+import {
+  compressImage,
+  formatFileSize,
+  validateImageFile,
+  MAX_ALLOWED_FILE_BYTES,
+  MAX_ALLOWED_FILE_MB,
+} from '../lib/imageCompression'
 
 export function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([])
@@ -31,6 +38,12 @@ export function BrandsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [removeExistingImage, setRemoveExistingImage] = useState(false)
+  const [compressingImage, setCompressingImage] = useState(false)
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: string
+    compressedSize: string
+    reductionPercent: number
+  } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [togglingId, setTogglingId] = useState<number | null>(null)
 
@@ -62,6 +75,8 @@ export function BrandsPage() {
     setImageFile(null)
     setImagePreview(null)
     setRemoveExistingImage(false)
+    setCompressingImage(false)
+    setCompressionInfo(null)
     setError('')
     setShowModal(true)
   }
@@ -77,30 +92,56 @@ export function BrandsPage() {
     setImageFile(null)
     setImagePreview(b.image_path ? `${env.API_ORIGIN}/${b.image_path}` : null)
     setRemoveExistingImage(false)
+    setCompressingImage(false)
+    setCompressionInfo(null)
     setError('')
     setShowModal(true)
   }
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPG, PNG, WEBP)')
+    setError('')
+
+    const validation = validateImageFile(file, MAX_ALLOWED_FILE_BYTES)
+    if (!validation.valid) {
+      setError(validation.error || `File exceeds ${MAX_ALLOWED_FILE_MB}MB limit`)
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
-    setImageFile(file)
-    setRemoveExistingImage(false)
-    const reader = new FileReader()
-    reader.onload = () => {
-      setImagePreview(reader.result as string)
+
+    setCompressingImage(true)
+    try {
+      const result = await compressImage(file, {
+        maxDimension: 1200,
+        quality: 0.82,
+        targetMaxBytes: 500 * 1024,
+      })
+
+      setImageFile(result.file)
+      setRemoveExistingImage(false)
+      setImagePreview(result.previewUrl)
+      setCompressionInfo({
+        originalSize: formatFileSize(result.originalSize),
+        compressedSize: formatFileSize(result.compressedSize),
+        reductionPercent: result.reductionPercent,
+      })
+    } catch (err) {
+      console.error('Brand image compression failed:', err)
+      setImageFile(file)
+      setRemoveExistingImage(false)
+      setImagePreview(URL.createObjectURL(file))
+      setCompressionInfo(null)
+    } finally {
+      setCompressingImage(false)
     }
-    reader.readAsDataURL(file)
   }
 
   function handleRemoveImage() {
     setImageFile(null)
     setImagePreview(null)
     setRemoveExistingImage(true)
+    setCompressionInfo(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -490,13 +531,23 @@ export function BrandsPage() {
 
             {/* Brand Logo / Image Upload */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Brand Logo / Showcase Image <span className="text-slate-400 font-normal normal-case">(Recommended for Storefront)</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Brand Logo / Showcase Image <span className="text-slate-400 font-normal normal-case">(Recommended)</span>
+                </label>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Max Limit: {MAX_ALLOWED_FILE_MB}MB (Auto-compressed)
+                </span>
+              </div>
 
               <div className="flex items-center gap-4">
                 <div className="h-20 w-20 shrink-0 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden relative shadow-2xs">
-                  {imagePreview ? (
+                  {compressingImage ? (
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="h-5 w-5 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : imagePreview ? (
                     <img
                       src={imagePreview}
                       alt="Brand Preview"
@@ -535,24 +586,42 @@ export function BrandsPage() {
                   <div className="flex items-center gap-2">
                     <label
                       htmlFor="brand-image-input"
-                      className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all shadow-xs"
+                      className={`cursor-pointer inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all shadow-xs ${
+                        compressingImage ? 'opacity-50 pointer-events-none' : ''
+                      }`}
                     >
-                      <span>Choose Brand Logo / Image</span>
+                      <span>{compressingImage ? 'Optimizing...' : imagePreview ? 'Change Logo / Image' : 'Choose Brand Logo / Image'}</span>
                     </label>
 
                     {imagePreview && (
                       <button
                         type="button"
+                        disabled={compressingImage}
                         onClick={handleRemoveImage}
-                        className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all"
+                        className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold transition-all disabled:opacity-50"
                       >
                         Remove
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    PNG, JPG, or WEBP. Upload high-res logo or product showcase for homepage.
-                  </p>
+
+                  {compressionInfo ? (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-medium">
+                      <span>✓ Optimized:</span>
+                      <span className="line-through text-slate-400">{compressionInfo.originalSize}</span>
+                      <span>➔</span>
+                      <span className="font-bold text-emerald-700">{compressionInfo.compressedSize}</span>
+                      {compressionInfo.reductionPercent > 0 && (
+                        <span className="bg-emerald-200 text-emerald-900 px-1 py-0.2 rounded text-[10px] font-bold">
+                          -{compressionInfo.reductionPercent}%
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500">
+                      PNG, JPG, WEBP • Max {MAX_ALLOWED_FILE_MB}MB • Images are automatically compressed to ~200KB before upload.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

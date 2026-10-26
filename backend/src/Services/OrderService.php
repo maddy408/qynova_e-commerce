@@ -693,15 +693,15 @@ final class OrderService
         $offset = ($page - 1) * $limit;
 
         $countStmt = $this->pdo->prepare(
-            "SELECT COUNT(*) FROM orders o JOIN customers c ON c.id = o.customer_id WHERE {$whereSql}"
+            "SELECT COUNT(*) FROM orders o LEFT JOIN customers c ON c.id = o.customer_id WHERE {$whereSql}"
         );
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
         $stmt = $this->pdo->prepare(
-            "SELECT o.id, o.order_no, o.customer_id, c.name AS customer_name, o.status, o.payment_status,
+            "SELECT o.id, o.order_no, o.customer_id, COALESCE(c.name, o.shipping_name, 'Customer') AS customer_name, o.status, o.payment_status,
                     o.payment_method, o.grand_total, o.created_at
-             FROM orders o JOIN customers c ON c.id = o.customer_id
+             FROM orders o LEFT JOIN customers c ON c.id = o.customer_id
              WHERE {$whereSql} ORDER BY o.created_at DESC, o.id DESC
              LIMIT :limit OFFSET :offset"
         );

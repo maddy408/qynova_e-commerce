@@ -51,7 +51,7 @@ export default function TrustValueBar({ deliverySettings = null }) {
   ]
 
   return (
-    <section className="w-full select-none pt-2 pb-4">
+    <section className="w-full select-none py-1.5 sm:py-2">
       <div className="max-w-[1320px] mx-auto px-3 sm:px-6 lg:px-8">
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs px-4 py-3.5 sm:py-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">

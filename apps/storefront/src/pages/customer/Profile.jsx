@@ -17,7 +17,14 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiCamera,
+  FiPhone,
+  FiMail,
+  FiShield,
+  FiArrowRight,
+  FiExternalLink,
+  FiShare2,
 } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 import {
   api,
   getCustomerToken,
@@ -513,37 +520,41 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-main)] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-text-main)]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[var(--color-text-main)] font-sans selection:bg-[var(--color-primary-tint)] selection:text-[var(--color-text-main)]">
       
       {/* Top Navigation Bar */}
-      <header className="bg-white border-b border-[var(--color-border-subtle)] sticky top-0 z-30 shadow-xs">
-        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12 min-h-14 py-2 sm:py-0 flex items-center justify-between gap-2">
-          <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group shrink-0 select-none">
-            <img
-              src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
-              alt={storeSettings?.store_name || 'Shop with Adams'}
-              className="h-10 sm:h-11 w-auto max-w-[180px] sm:max-w-[210px] object-contain group-hover:scale-105 transition-transform"
-              onError={(e) => {
-                e.currentTarget.onerror = null
-                e.currentTarget.src = '/images/logo2.jpeg'
-              }}
-            />
-            <span className="hidden sm:inline-block text-[9px] font-bold tracking-wider text-[var(--color-text-muted)] uppercase border-l border-gray-200 pl-2.5 ml-1">
-              Customer Profile
-            </span>
-          </Link>
+      <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-xs">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link to={ROUTES.HOME} className="flex items-center gap-2 group select-none">
+              <img
+                src={storeSettings?.logo ? resolveImageUrl(storeSettings.logo) : '/images/logo2.jpeg'}
+                alt={storeSettings?.store_name || 'Shop with Adams'}
+                className="h-9 sm:h-10 w-auto max-w-[160px] sm:max-w-[190px] object-contain group-hover:scale-105 transition-transform"
+                onError={(e) => {
+                  e.currentTarget.onerror = null
+                  e.currentTarget.src = '/images/logo2.jpeg'
+                }}
+              />
+            </Link>
+            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 border-l border-slate-200 pl-3">
+              <Link to={ROUTES.HOME} className="text-[var(--color-brand)] font-semibold hover:underline">Home</Link>
+              <span>/</span>
+              <span className="font-bold text-slate-700">Customer Account</span>
+            </div>
+          </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <NotificationBell />
             <Link
               to={ROUTES.HOME}
-              className="text-xs font-bold text-[var(--color-brand)] hover:text-[var(--color-text-main)] flex items-center gap-1 px-2.5 sm:px-3.5 py-2 rounded-full hover:bg-[var(--color-bg-alt)] transition-colors"
+              className="text-xs font-bold text-slate-700 hover:text-[var(--color-brand)] flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors"
             >
-              <span>← Store</span>
+              <span>← Back to Store</span>
             </Link>
             <button
               onClick={handleLogout}
-              className="text-xs font-bold text-red-600 hover:bg-red-50 px-2.5 sm:px-3.5 py-2 rounded-full transition-colors cursor-pointer"
+              className="text-xs font-bold text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
             >
               Logout
             </button>
@@ -551,21 +562,14 @@ export default function Profile() {
         </div>
       </header>
 
-      {/* Main Profile Container */}
-      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 xl:px-12 py-5 sm:py-10">
+      {/* Main Profile Dashboard Container */}
+      <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-muted)] mb-4 sm:mb-6">
-          <Link to={ROUTES.HOME} className="text-[var(--color-brand)] hover:underline">Home</Link>
-          <span>/</span>
-          <span className="text-[var(--color-text-main)]">My Profile</span>
-        </div>
-
         {/* Loading State */}
         {isLoading && (
-          <div className="bg-white rounded-3xl p-10 text-center border border-[var(--color-border-subtle)] shadow-sm space-y-4">
-            <div className="w-12 h-12 border-4 border-[var(--color-primary-tint)] border-t-[var(--color-brand)] rounded-full animate-spin mx-auto" />
-            <p className="text-sm font-bold text-[var(--color-text-main)]">Loading profile data from database...</p>
+          <div className="bg-white rounded-3xl p-10 text-center border border-slate-200 shadow-sm space-y-4">
+            <div className="w-12 h-12 border-3 border-[var(--color-primary-tint)] border-t-[var(--color-brand)] rounded-full animate-spin mx-auto" />
+            <p className="text-sm font-bold text-[var(--color-text-main)]">Loading your customer account...</p>
           </div>
         )}
 
@@ -575,7 +579,7 @@ export default function Profile() {
             <p className="text-sm font-bold text-red-600">{error}</p>
             <Link
               to={ROUTES.HOME}
-              className="inline-block px-5 py-2.5 bg-[var(--color-brand)] text-white font-bold text-xs rounded-full hover:bg-[var(--color-brand-hover)] min-h-[44px]"
+              className="inline-block px-5 py-2.5 bg-[var(--color-brand)] text-white font-bold text-xs rounded-full hover:bg-[var(--color-brand-hover)]"
             >
               Back to Home
             </Link>
@@ -584,463 +588,719 @@ export default function Profile() {
 
         {/* Profile Content */}
         {!isLoading && customer && (
-          <div className="space-y-5 sm:space-y-6">
+          <div className="space-y-6">
             
-            {/* Profile Overview Card */}
-            <div className="bg-white rounded-3xl p-5 sm:p-8 border border-[var(--color-border-subtle)] shadow-[var(--shadow-profile-card)] relative overflow-hidden">
-              <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-gradient-to-br from-[var(--color-primary-tint)]/60 to-[var(--color-bg-alt)]/60 pointer-events-none blur-2xl" />
-
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 relative z-10">
-                
-                {/* Prominent Profile Photo */}
-                <div className="relative shrink-0">
-                  {(photoPreview || customer.profile_photo_path) ? (
-                    <img
-                      src={photoPreview || resolveImageUrl(customer.profile_photo_path)}
-                      alt={customer.name || 'Customer Profile'}
-                      referrerPolicy="no-referrer"
-                      className="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-[var(--color-primary-tint)] shadow-md ring-4 ring-[var(--color-bg-alt)]"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                        if (e.currentTarget.nextElementSibling) {
-                          e.currentTarget.nextElementSibling.style.display = 'flex'
-                        }
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    className={`w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-[var(--color-brand)] text-white font-black text-2xl sm:text-4xl items-center justify-center shadow-md ring-4 ring-[var(--color-bg-alt)] uppercase ${
-                      (photoPreview || customer.profile_photo_path) ? 'hidden' : 'flex'
-                    }`}
-                  >
-                    {customer.name?.trim().charAt(0) || 'C'}
-                  </div>
-
-                  {isUploadingPhoto && (
-                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-
-                  <label
-                    htmlFor="profile-photo-input"
-                    title="Change profile photo"
-                    className="absolute bottom-0 right-0 bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] border-2 border-white w-7 h-7 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer transition-colors"
-                  >
-                    <FiCamera className="w-3.5 h-3.5" />
-                  </label>
-                  <input
-                    id="profile-photo-input"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="hidden"
-                    disabled={isUploadingPhoto}
-                    onChange={handlePhotoChange}
-                  />
-                </div>
-
-                {/* Name, Type & Quick Summary */}
-                <div className="flex-1 text-center sm:text-left space-y-1.5 w-full">
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                    <h1 className="text-lg sm:text-xl lg:text-2xl font-black text-[var(--color-text-main)] tracking-tight break-words">
-                      {customer.name || 'Customer'}
-                    </h1>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-[var(--color-primary-tint)] text-[var(--color-brand)] border border-[var(--color-border-subtle)]">
-                      {customer.customer_type || 'RETAIL'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleOpenEdit}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 hover:bg-purple-100 text-[var(--color-brand)] border border-purple-200 rounded-full text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer ml-auto sm:ml-0"
-                      title="Edit Profile Details"
+            {/* 1. Welcome Hero Greeting Header */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-purple-950 to-indigo-950 p-6 sm:p-7 text-white shadow-md border border-slate-800">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-10 left-1/3 w-60 h-60 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1 shrink-0 shadow-inner flex items-center justify-center">
+                    {(photoPreview || customer.profile_photo_path) ? (
+                      <img
+                        src={photoPreview || resolveImageUrl(customer.profile_photo_path)}
+                        alt={customer.name || 'Customer'}
+                        className="w-full h-full rounded-xl object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                          if (e.currentTarget.nextElementSibling) {
+                            e.currentTarget.nextElementSibling.style.display = 'flex'
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`w-full h-full rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-xl sm:text-2xl items-center justify-center uppercase shadow-xs ${
+                        (photoPreview || customer.profile_photo_path) ? 'hidden' : 'flex'
+                      }`}
                     >
-                      <FiEdit2 className="w-3.5 h-3.5" />
-                      <span>Edit Profile</span>
-                    </button>
+                      {customer.name?.trim().charAt(0) || 'C'}
+                    </div>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-[var(--color-text-muted)] font-medium break-all">
-                    {customer.email || 'No email linked'}
-                  </p>
-
-                  <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-[11px] sm:text-xs text-[var(--color-text-muted)]">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--color-bg-alt)] rounded-full border border-[var(--color-border-subtle)]">
-                      <FiCalendar className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-                      <span>Member since <strong>{formatDate(customer.created_at)}</strong></span>
-                    </span>
-                    {customer.is_google_linked && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-800 rounded-full border border-blue-200 font-medium text-[11px]">
-                        <FiGlobe className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Google Linked</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                        Welcome back, {customer.name || 'Shopper'}!
+                      </h1>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-500/30 text-purple-200 border border-purple-400/30 backdrop-blur-md">
+                        {customer.customer_type || 'RETAIL'} MEMBER
                       </span>
-                    )}
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1 backdrop-blur-md">
+                        <FiCheckCircle className="w-3 h-3 text-emerald-400" />
+                        <span>Verified Account</span>
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-300">
+                      Manage your delivery addresses, personal account info, and track grocery orders.
+                    </p>
                   </div>
-
-                  {photoError && (
-                    <p className="text-[11px] font-semibold text-red-600 pt-1">{photoError}</p>
-                  )}
                 </div>
 
+                <div className="flex items-center gap-2.5 self-start md:self-auto shrink-0 flex-wrap">
+                  <Link
+                    to={ROUTES.ORDERS}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 backdrop-blur-md transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <FiBox className="w-4 h-4 text-purple-300" />
+                    <span>My Orders</span>
+                  </Link>
+                  <Link
+                    to={ROUTES.WISHLIST}
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 backdrop-blur-md transition-all flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <FiHeart className="w-4 h-4 text-pink-300 fill-pink-400/30" />
+                    <span>Wishlist</span>
+                  </Link>
+                </div>
               </div>
             </div>
 
-            {/* Quick Access Tiles: Orders, Wishlist, Addresses */}
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+            {/* 2. Top Metric Overview Cards (4 Cards) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Orders */}
               <Link
                 to={ROUTES.ORDERS}
-                className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
+                className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex flex-col justify-between"
               >
-                <div className="w-10 h-10 rounded-xl bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-                  <FiBox className="w-5 h-5" />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-2xs">
+                    <FiBox className="w-5 h-5" />
+                  </div>
+                  <FiArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
                 </div>
-                <span className="text-xs font-bold text-[var(--color-text-main)]">My Orders</span>
-                <span className="text-[10px] text-[var(--color-text-muted)]">Track & history</span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    My Orders
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Track shipments & order history
+                  </p>
+                </div>
               </Link>
 
+              {/* Card 2: Wishlist */}
               <Link
                 to={ROUTES.WISHLIST}
-                className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group"
+                className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-pink-300 transition-all flex flex-col justify-between"
               >
-                <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-                  <FiHeart className="w-5 h-5 fill-pink-500" />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 flex items-center justify-center group-hover:scale-105 group-hover:bg-pink-600 group-hover:text-white transition-all shadow-2xs">
+                    <FiHeart className="w-5 h-5 fill-pink-500/20 group-hover:fill-white" />
+                  </div>
+                  <FiArrowRight className="w-4 h-4 text-slate-300 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
                 </div>
-                <span className="text-xs font-bold text-[var(--color-text-main)]">Wishlist</span>
-                <span className="text-[10px] text-[var(--color-text-muted)]">Saved items</span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-pink-600 transition-colors">
+                    My Wishlist
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Saved grocery essentials
+                  </p>
+                </div>
               </Link>
 
+              {/* Card 3: Saved Addresses */}
               <button
                 type="button"
                 onClick={() => {
                   const el = document.getElementById('saved-addresses-section')
                   if (el) el.scrollIntoView({ behavior: 'smooth' })
                 }}
-                className="bg-white p-3 sm:p-4 rounded-2xl border border-[var(--color-border-subtle)] shadow-xs hover:border-[var(--color-brand)]/50 hover:shadow-md transition-all flex flex-col items-center text-center group cursor-pointer"
+                className="group bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all flex flex-col justify-between text-left cursor-pointer"
               >
-                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
-                  <FiMapPin className="w-5 h-5 text-amber-600" />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-2xs">
+                    <FiMapPin className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100/70 text-emerald-800">
+                    {addresses.length} Saved
+                  </span>
                 </div>
-                <span className="text-xs font-bold text-[var(--color-text-main)]">Addresses</span>
-                <span className="text-[10px] text-[var(--color-text-muted)]">
-                  {addresses.length > 0 ? `${addresses.length} saved` : 'Manage delivery'}
-                </span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                    Delivery Addresses
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Instant 1-tap doorstep delivery
+                  </p>
+                </div>
               </button>
-            </div>
 
-            {/* Account Details Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              
-              {/* Card 1: Contact & Identification */}
-              <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[var(--color-border-subtle)] shadow-xs space-y-4">
-                <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--color-bg-alt)] text-[var(--color-brand)] flex items-center justify-center font-bold text-sm">
-                    <FiUser className="w-4 h-4" />
+              {/* Card 4: Referral Rewards */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 p-4 sm:p-5 rounded-2xl border border-amber-200/70 shadow-xs flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm shadow-2xs">
+                    <FiGift className="w-5 h-5" />
                   </div>
-                  <h2 className="text-sm font-extrabold text-[var(--color-text-main)]">Personal Information</h2>
+                  <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900">
+                    {referral?.reward_percent !== undefined && referral.reward_percent !== null ? `${referral.reward_percent}% OFF` : '10% OFF'}
+                  </span>
                 </div>
-
-                <div className="space-y-3.5 text-xs">
-                  <div>
-                    <span className="text-[var(--color-text-muted)] font-semibold block mb-0.5">Full Name</span>
-                    <p className="font-bold text-[var(--color-text-main)] text-sm">{customer.name || '—'}</p>
-                  </div>
-
-                  <div>
-                    <span className="text-[var(--color-text-muted)] font-semibold block mb-0.5">Email Address</span>
-                    <p className="font-bold text-[var(--color-text-main)] text-sm break-all">{customer.email || 'Not provided'}</p>
-                  </div>
-
-                  <div>
-                    <span className="text-[var(--color-text-muted)] font-semibold block mb-0.5">Mobile Number</span>
-                    <p className="font-bold text-[var(--color-text-main)] text-sm">
-                      {customer.phone ? `+91 ${customer.phone}` : 'Not provided'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <span className="text-[var(--color-text-muted)] font-semibold block mb-0.5">Customer Type</span>
-                    <p className="font-bold text-[var(--color-text-main)]">{customer.customer_type || 'RETAIL'}</p>
-                  </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">
+                    Referral Savings
+                  </h3>
+                  <p className="text-[11px] text-amber-800 font-medium mt-0.5">
+                    {referral?.referral_code && referral.referral_code !== 'N/A' ? (
+                      <>Code: <strong className="font-mono font-bold">{referral.referral_code}</strong></>
+                    ) : (
+                      'Invite friends & save on grocery orders'
+                    )}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Card 2: Referral & Rewards Summary */}
-              <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[var(--color-border-subtle)] shadow-xs space-y-4">
-                <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
-                  <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center font-bold text-sm">
-                    <FiGift className="w-4 h-4 text-pink-600" />
+            {/* 3. Main 2-Column Dashboard Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* ============================================================== */}
+              {/* LEFT COLUMN: Profile Identity, Referral & Store Info (4 Cols)   */}
+              {/* ============================================================== */}
+              <div className="lg:col-span-4 space-y-5">
+                
+                {/* 1. Customer Identity Profile Card */}
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+                  {/* Decorative Banner */}
+                  <div className="h-28 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 relative overflow-hidden p-4 flex items-start justify-end">
+                    <div className="absolute -top-10 -left-10 w-44 h-44 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-10 right-0 w-44 h-44 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <span className="relative z-10 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/15 text-white backdrop-blur-md border border-white/20">
+                      {customer.customer_type || 'RETAIL'} MEMBER
+                    </span>
                   </div>
-                  <h2 className="text-sm font-extrabold text-[var(--color-text-main)]">Referral Program</h2>
-                </div>
 
-                {referral ? (
-                  <div className="space-y-3 text-xs">
-                    <div>
-                      <span className="text-[var(--color-text-muted)] font-semibold block mb-0.5">Your Referral Code</span>
-                      <div className="inline-flex items-center gap-2">
-                        <div className="px-3 py-1.5 bg-[var(--color-bg-main)] border border-[var(--color-border-subtle)] rounded-xl text-[var(--color-text-main)] font-black text-sm tracking-wider">
-                          {referral.referral_code || 'Generating...'}
-                        </div>
-                        {referral.referral_code && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(referral.referral_code)
-                              setCopiedCode(true)
-                              setTimeout(() => setCopiedCode(false), 2000)
-                            }}
-                            className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-tint)] hover:bg-[var(--color-extra-040)] text-[var(--color-brand)] text-xs font-bold transition-colors cursor-pointer"
+                  {/* Avatar & Details */}
+                  <div className="px-5 pb-5 -mt-14 relative z-10">
+                    {/* Circular Avatar with Camera Badge */}
+                    <div className="relative inline-block mb-3.5">
+                      <div className="w-24 h-24 rounded-full p-1 bg-white shadow-md">
+                        <div className="w-full h-full rounded-full p-0.5 bg-gradient-to-tr from-purple-500 via-pink-500 to-indigo-400">
+                          {(photoPreview || customer.profile_photo_path) ? (
+                            <img
+                              src={photoPreview || resolveImageUrl(customer.profile_photo_path)}
+                              alt={customer.name || 'Customer'}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full rounded-full object-cover bg-slate-900 border border-white"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                if (e.currentTarget.nextElementSibling) {
+                                  e.currentTarget.nextElementSibling.style.display = 'flex'
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`w-full h-full rounded-full bg-slate-900 text-white font-black text-2xl items-center justify-center uppercase border border-white ${
+                              (photoPreview || customer.profile_photo_path) ? 'hidden' : 'flex'
+                            }`}
                           >
-                            {copiedCode ? (
-                              <span className="flex items-center gap-1">
-                                <FiCheck className="w-3.5 h-3.5" />
-                                <span>Copied</span>
-                              </span>
-                            ) : (
-                              'Copy'
-                            )}
-                          </button>
-                        )}
+                            {customer.name?.trim().charAt(0) || 'C'}
+                          </div>
+                        </div>
                       </div>
+
+                      {isUploadingPhoto && (
+                        <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
+
+                      <label
+                        htmlFor="profile-photo-input"
+                        title="Update profile picture"
+                        className="absolute bottom-1 right-1 bg-indigo-600 hover:bg-indigo-500 border-2 border-white w-7 h-7 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                      >
+                        <FiCamera className="w-3.5 h-3.5" />
+                      </label>
+                      <input
+                        id="profile-photo-input"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        disabled={isUploadingPhoto}
+                        onChange={handlePhotoChange}
+                      />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div className="p-3 bg-[var(--color-bg-main)] rounded-xl border border-[var(--color-border-subtle)]">
-                        <span className="text-[11px] text-[var(--color-text-muted)] font-semibold block">Total Referrals</span>
-                        <span className="text-lg font-black text-[var(--color-brand)]">{referral.total_referrals || 0}</span>
+                    {photoError && (
+                      <p className="text-[11px] font-semibold text-rose-500 pb-2">{photoError}</p>
+                    )}
+
+                    {/* Customer Name & Verified Badge */}
+                    <div className="space-y-1 mb-4">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                          {customer.name || 'Customer'}
+                        </h2>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <FiCheckCircle className="w-3 h-3 text-emerald-600" />
+                          <span>Verified</span>
+                        </span>
                       </div>
-                      <div className="p-3 bg-pink-50 rounded-xl border border-pink-100">
-                        <span className="text-[11px] text-pink-700 font-semibold block">Reward Rate</span>
-                        <span className="text-lg font-black text-pink-900">
-                          {referral.reward_percent !== undefined && referral.reward_percent !== null ? `${referral.reward_percent}% OFF` : '—'}
+                      <p className="text-xs text-slate-400">
+                        Adam's Supermarket Valued Shopper
+                      </p>
+                    </div>
+
+                    {/* Contact & Account Attributes List */}
+                    <div className="space-y-2.5 pt-3 border-t border-slate-100 text-xs text-slate-700">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/90 border border-slate-100">
+                        <span className="text-slate-500 text-[11px] font-medium flex items-center gap-2">
+                          <FiPhone className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Mobile Phone</span>
+                        </span>
+                        <strong className="text-slate-900 font-mono text-xs">
+                          {customer.phone ? `+91 ${customer.phone}` : 'Not linked'}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/90 border border-slate-100">
+                        <span className="text-slate-500 text-[11px] font-medium flex items-center gap-2">
+                          <FiMail className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Email Address</span>
+                        </span>
+                        <span className="text-slate-900 font-semibold text-xs truncate max-w-[170px]" title={customer.email}>
+                          {customer.email || 'No email registered'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/90 border border-slate-100">
+                        <span className="text-slate-500 text-[11px] font-medium flex items-center gap-2">
+                          <FiCalendar className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Member Since</span>
+                        </span>
+                        <span className="text-slate-900 font-semibold text-xs">
+                          {formatDate(customer.created_at)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/90 border border-slate-100">
+                        <span className="text-slate-500 text-[11px] font-medium flex items-center gap-2">
+                          <FiShield className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Account Security</span>
+                        </span>
+                        <span className="text-emerald-700 font-bold text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          OTP Protected
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed pt-1">
-                      Share your code with friends to give them {referral.referred_discount_percent ?? referral.reward_percent ?? ''}% OFF on their first purchase, and you'll earn {referral.referrer_discount_percent ?? referral.reward_percent ?? ''}% OFF too!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-xs text-[var(--color-text-muted)] py-4">
-                    Referral rewards will appear here when active.
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* Section 3: Saved Delivery Addresses (Database Synchronized + Current Location GPS Autofill) */}
-            <div id="saved-addresses-section" className="bg-white rounded-3xl p-5 sm:p-7 border border-[var(--color-border-subtle)] shadow-xs space-y-5 scroll-mt-20">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0">
-                    <FiMapPin className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm sm:text-base font-extrabold text-[var(--color-text-main)]">
-                      Saved Delivery Addresses
-                    </h2>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">
-                      Manage delivery destinations or autofill with your current GPS location
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleOpenAddAddress}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
-                >
-                  <FiPlus className="w-4 h-4" />
-                  <span>Add New Address</span>
-                </button>
-              </div>
-
-              {addressSuccess && (
-                <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-2">
-                  <FiCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{addressSuccess}</span>
-                </div>
-              )}
-
-              {loadingAddresses ? (
-                <div className="py-8 text-center text-xs text-gray-400">
-                  <div className="inline-block w-6 h-6 border-2 border-[var(--color-brand)] border-t-transparent rounded-full animate-spin mb-2" />
-                  <p>Loading your saved addresses...</p>
-                </div>
-              ) : addresses.length === 0 ? (
-                currentLocation ? (
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-50/90 to-indigo-50/70 border-2 border-purple-200/90 shadow-xs space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[var(--color-brand)] text-white flex items-center justify-center shrink-0 shadow-sm">
-                          <FiNavigation className="w-5 h-5 text-white animate-pulse" />
-                        </div>
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-2.5 py-0.5 rounded-full border border-purple-200">
-                              Current Location Detected
-                            </span>
-                            {currentLocation.latitude && (
-                              <span className="text-[10px] font-mono font-bold text-purple-700 bg-white px-2 py-0.5 rounded-md border border-purple-200">
-                                GPS: {Number(currentLocation.latitude).toFixed(4)}, {Number(currentLocation.longitude).toFixed(4)}
-                              </span>
-                            )}
-                          </div>
-                          <h4 className="text-sm font-bold text-[var(--color-text-main)] mt-1.5 leading-snug">
-                            {currentLocation.streetAddress || currentLocation.road || currentLocation.formattedAddress || 'Current GPS Location'}
-                          </h4>
-                          <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                            {[currentLocation.city, currentLocation.state, currentLocation.pincode].filter(Boolean).join(', ')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenAddAddress(currentLocation)}
-                          className="w-full sm:w-auto px-4 py-2.5 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white text-xs font-black shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                        >
-                          <FiEdit2 className="w-3.5 h-3.5" />
-                          <span>Review & Save Address</span>
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-[11px] text-purple-800 font-medium pt-2 border-t border-purple-100">
-                      <span>💡 Address auto-filled from your GPS coordinates. You can review, edit details, or change before saving.</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-8 text-center space-y-3">
-                    <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <FiMapPin className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-[var(--color-text-main)]">No delivery addresses saved yet</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
-                        Save an address or auto-detect using GPS for faster one-tap checkout.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+                    {/* Edit Profile Button */}
+                    <div className="pt-4">
                       <button
                         type="button"
-                        onClick={() => handleOpenAddAddress()}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-hover)] text-xs font-bold transition-all cursor-pointer shadow-xs"
+                        onClick={handleOpenEdit}
+                        className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all active:scale-98 cursor-pointer"
                       >
-                        <FiPlus className="w-4 h-4" />
-                        <span>Add Delivery Address</span>
+                        <FiEdit2 className="w-3.5 h-3.5" />
+                        <span>Edit Profile Information</span>
                       </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Referral & Rewards Hub */}
+                <div className="bg-gradient-to-br from-purple-50/90 via-pink-50/40 to-white rounded-3xl p-5 border border-purple-100 shadow-xs space-y-4">
+                  <div className="flex items-center gap-3 pb-3 border-b border-purple-100/80">
+                    <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                      <FiGift className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-slate-900">
+                        Referral Program
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        Share & earn discounts on grocery orders
+                      </p>
+                    </div>
+                  </div>
+
+                  {referral ? (
+                    <div className="space-y-3.5">
+                      <div>
+                        <span className="text-[11px] font-semibold text-slate-600 block mb-1.5">
+                          Your Exclusive Referral Code:
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-xl text-purple-950 font-black text-sm tracking-wider shadow-2xs font-mono">
+                            {referral.referral_code || 'Generating...'}
+                          </div>
+                          {referral.referral_code && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(referral.referral_code)
+                                setCopiedCode(true)
+                                setTimeout(() => setCopiedCode(false), 2000)
+                              }}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0 ${
+                                copiedCode
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-[#6C4EFF] hover:bg-[#5839EE] text-white'
+                              }`}
+                            >
+                              {copiedCode ? (
+                                <>
+                                  <FiCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+                                  <span>Copied!</span>
+                                </>
+                              ) : (
+                                <span>Copy Code</span>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* WhatsApp Share Button */}
+                      {referral.referral_code && (
+                        <a
+                          href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Shop fresh groceries at Adam's Supermarket Melagaram and get 10% OFF on your order using my referral code: ${referral.referral_code}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-98"
+                        >
+                          <FaWhatsapp className="w-4 h-4" />
+                          <span>Share with Friends on WhatsApp</span>
+                        </a>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2.5 pt-1">
+                        <div className="p-3 bg-white rounded-xl border border-purple-100 shadow-2xs">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Invites</span>
+                          <span className="text-xl font-black text-purple-700">{referral.total_referrals || 0}</span>
+                        </div>
+                        <div className="p-3 bg-white rounded-xl border border-pink-100 shadow-2xs">
+                          <span className="text-[10px] text-pink-700 font-bold uppercase tracking-wider block">Your Reward</span>
+                          <span className="text-xl font-black text-pink-900">
+                            {referral.reward_percent !== undefined && referral.reward_percent !== null ? `${referral.reward_percent}% OFF` : '10% OFF'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 py-2">
+                      Referral rewards will appear here when active.
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-slate-500 leading-relaxed pt-2 border-t border-purple-100/60">
+                    Give friends 10% off their first order and unlock savings on your upcoming supermarket purchases.
+                  </p>
+                </div>
+
+                {/* 3. Adam's Supermarket Store Info Card */}
+                <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3.5">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-[var(--color-brand)] flex items-center justify-center font-bold text-sm shrink-0">
+                      <FiMapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        Adam's Supermarket Melagaram
+                      </h3>
+                      <p className="text-[11px] text-emerald-600 font-semibold">
+                        Open Daily · Closes 9:00 PM
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Courtallam Rd, Melagaram, Tamil Nadu 627818<br />
+                    Helpline: <strong className="font-mono text-slate-900">087541 93847</strong>
+                  </p>
+
+                  {/* Rectangular Embedded Map */}
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-2xs bg-slate-100">
+                    <iframe
+                      title="Adam's Supermarket Melagaram Map"
+                      src="https://maps.google.com/maps?q=8.9498603,77.2962217&hl=en&z=15&output=embed"
+                      className="w-full h-28 border-0 rounded-2xl"
+                      loading="lazy"
+                      allowFullScreen=""
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <a
+                      href="tel:08754193847"
+                      className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold text-center transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <FiPhone className="w-3.5 h-3.5 text-[var(--color-brand)]" />
+                      <span>Call Store</span>
+                    </a>
+                    <a
+                      href="https://www.google.com/maps/search/?api=1&query=adam%27s+super+market+melagaram"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-[var(--color-brand)] text-xs font-bold text-center transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <FiExternalLink className="w-3.5 h-3.5" />
+                      <span>Directions</span>
+                    </a>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* ============================================================== */}
+              {/* RIGHT COLUMN: Delivery Addresses & Shopping Assistance (8 Cols) */}
+              {/* ============================================================== */}
+              <div className="lg:col-span-8 space-y-5">
+                
+                {/* 1. Primary Saved Delivery Addresses Management Hub */}
+                <div id="saved-addresses-section" className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                        <FiMapPin className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base font-extrabold text-slate-900">
+                            Saved Delivery Addresses
+                          </h2>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                            {addresses.length}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Manage delivery destinations or autofill with your live GPS location
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={handleDetectCurrentLocationForAddress}
                         disabled={isDetectingGps}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-purple-50 text-[var(--color-brand)] border border-purple-200 hover:bg-purple-100 text-xs font-bold transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-50 text-[var(--color-brand)] border border-purple-200 hover:bg-purple-100 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                        title="Detect GPS"
                       >
                         <FiNavigation className="w-3.5 h-3.5" />
-                        <span>{isDetectingGps ? 'Detecting GPS...' : 'Detect Current Location'}</span>
+                        <span>{isDetectingGps ? 'Detecting GPS...' : 'Detect GPS'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddAddress()}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--color-brand)] hover:bg-[#6d28d9] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                      >
+                        <FiPlus className="w-4 h-4" />
+                        <span>Add New Address</span>
                       </button>
                     </div>
                   </div>
-                )
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className={`rounded-2xl p-4 sm:p-5 border transition-all flex flex-col justify-between ${
-                        addr.is_default
-                          ? 'border-[var(--color-brand)] bg-[#FAF8FF]/40 shadow-xs'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                              {addr.address_type || 'HOME'}
-                            </span>
-                            {addr.is_default ? (
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                <FiCheck className="w-3 h-3" />
-                                <span>Default Address</span>
-                              </span>
-                            ) : null}
+
+                  {addressSuccess && (
+                    <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-2">
+                      <FiCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{addressSuccess}</span>
+                    </div>
+                  )}
+
+                  {loadingAddresses ? (
+                    <div className="py-12 text-center text-xs text-slate-400">
+                      <div className="inline-block w-6 h-6 border-2 border-[var(--color-brand)] border-t-transparent rounded-full animate-spin mb-2" />
+                      <p>Loading your saved addresses from database...</p>
+                    </div>
+                  ) : addresses.length === 0 ? (
+                    currentLocation ? (
+                      <div className="p-5 rounded-2xl bg-gradient-to-r from-purple-50/90 to-indigo-50/70 border border-purple-200/90 shadow-2xs space-y-3.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand)] text-white flex items-center justify-center shrink-0 shadow-sm">
+                              <FiNavigation className="w-5 h-5 text-white animate-pulse" />
+                            </div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[11px] font-black uppercase tracking-wider text-[var(--color-brand)] bg-[var(--color-primary-tint)] px-2.5 py-0.5 rounded-full border border-purple-200">
+                                  Live GPS Location Detected
+                                </span>
+                                {currentLocation.latitude && (
+                                  <span className="text-[10px] font-mono font-bold text-purple-700 bg-white px-2 py-0.5 rounded-md border border-purple-200">
+                                    GPS: {Number(currentLocation.latitude).toFixed(4)}, {Number(currentLocation.longitude).toFixed(4)}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-sm font-bold text-slate-900 mt-1.5 leading-snug">
+                                {currentLocation.streetAddress || currentLocation.road || currentLocation.formattedAddress || 'Current GPS Location'}
+                              </h4>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                {[currentLocation.city, currentLocation.state, currentLocation.pincode].filter(Boolean).join(', ')}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
                               type="button"
-                              onClick={() => handleOpenEditAddress(addr)}
-                              className="p-1.5 text-gray-400 hover:text-[var(--color-brand)] rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                              title="Edit Address"
+                              onClick={() => handleOpenAddAddress(currentLocation)}
+                              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                             >
                               <FiEdit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteAddress(addr.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-                              title="Delete Address"
-                            >
-                              <FiTrash2 className="w-3.5 h-3.5" />
+                              <span>Save as Delivery Address</span>
                             </button>
                           </div>
                         </div>
-
-                        <div className="space-y-1 text-xs">
-                          <p className="font-bold text-[var(--color-text-main)] text-sm">
-                            {addr.name}{' '}
-                            <span className="font-normal text-gray-500 text-xs">
-                              (+91 {addr.phone})
-                            </span>
-                          </p>
-                          <p className="text-gray-700 leading-snug">{addr.line1}</p>
-                          {addr.line2 && <p className="text-gray-500">{addr.line2}</p>}
-                          {addr.landmark && (
-                            <p className="text-gray-400 text-[11px]">Landmark: {addr.landmark}</p>
-                          )}
-                          <p className="font-semibold text-gray-800">
-                            {addr.city_district || addr.city}, {addr.state} - {addr.pincode}
-                          </p>
+                        
+                        <div className="flex items-center gap-2 text-[11px] text-purple-800 font-medium pt-2 border-t border-purple-100">
+                          <span>💡 Address auto-detected from your GPS coordinates. Click save to store it for 1-tap checkout.</span>
                         </div>
                       </div>
-
-                      <div className="pt-3 mt-3 border-t border-gray-100 flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectForDelivery(addr)}
-                          className="text-[11px] font-bold text-[var(--color-brand)] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <FiNavigation className="w-3 h-3" />
-                          <span>Deliver here</span>
-                        </button>
-
-                        {!addr.is_default && (
+                    ) : (
+                      <div className="py-12 text-center space-y-3">
+                        <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-2xs">
+                          <FiMapPin className="w-7 h-7" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">No delivery addresses saved yet</p>
+                          <p className="text-xs text-slate-500 mt-0.5 max-w-sm mx-auto">
+                            Save your home or office address, or auto-detect using GPS for faster doorstep delivery.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
                           <button
                             type="button"
-                            onClick={() => handleSetDefaultAddress(addr)}
-                            className="text-[11px] font-medium text-gray-500 hover:text-gray-800 cursor-pointer"
+                            onClick={() => handleOpenAddAddress()}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-hover)] text-xs font-bold transition-all cursor-pointer shadow-xs"
                           >
-                            Set as Default
+                            <FiPlus className="w-4 h-4" />
+                            <span>Add Delivery Address</span>
                           </button>
-                        )}
+                          <button
+                            type="button"
+                            onClick={handleDetectCurrentLocationForAddress}
+                            disabled={isDetectingGps}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-50 text-[var(--color-brand)] border border-purple-200 hover:bg-purple-100 text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <FiNavigation className="w-3.5 h-3.5" />
+                            <span>{isDetectingGps ? 'Detecting GPS...' : 'Detect Current Location'}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    )
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {addresses.map((addr) => (
+                        <div
+                          key={addr.id}
+                          className={`rounded-2xl p-4.5 border transition-all flex flex-col justify-between ${
+                            addr.is_default
+                              ? 'border-[var(--color-brand)] bg-[#FAF8FF]/70 shadow-xs'
+                              : 'border-slate-200 hover:border-slate-300 bg-white'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                                  {addr.address_type || 'HOME'}
+                                </span>
+                                {addr.is_default ? (
+                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <FiCheck className="w-3 h-3" />
+                                    <span>Default</span>
+                                  </span>
+                                ) : null}
+                              </div>
 
-            {/* Quick Navigation Footer */}
-            <div className="pt-4 flex items-center justify-start">
-              <Link
-                to={ROUTES.HOME}
-                className="min-h-[44px] flex items-center justify-center px-6 py-3 rounded-full bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-md shadow-black/10 active:scale-98"
-              >
-                Continue Shopping
-              </Link>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditAddress(addr)}
+                                  className="p-1.5 text-slate-400 hover:text-[var(--color-brand)] rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                                  title="Edit Address"
+                                >
+                                  <FiEdit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAddress(addr.id)}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Delete Address"
+                                >
+                                  <FiTrash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1 text-xs">
+                              <p className="font-bold text-slate-900 text-sm">
+                                {addr.name}{' '}
+                                <span className="font-normal text-slate-500 text-xs font-mono">
+                                  (+91 {addr.phone})
+                                </span>
+                              </p>
+                              <p className="text-slate-700 leading-snug">{addr.line1}</p>
+                              {addr.line2 && <p className="text-slate-500">{addr.line2}</p>}
+                              {addr.landmark && (
+                                <p className="text-slate-400 text-[11px]">Landmark: {addr.landmark}</p>
+                              )}
+                              <p className="font-semibold text-slate-800">
+                                {addr.city_district || addr.city}, {addr.state} - {addr.pincode}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => handleSelectForDelivery(addr)}
+                              className="font-bold text-[var(--color-brand)] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <FiNavigation className="w-3 h-3" />
+                              <span>Deliver here</span>
+                            </button>
+
+                            {!addr.is_default && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetDefaultAddress(addr)}
+                                className="font-medium text-slate-500 hover:text-slate-800 cursor-pointer"
+                              >
+                                Set as Default
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Supermarket Store Assistance & Shopping Strip */}
+                <div className="bg-gradient-to-r from-purple-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-purple-300 flex items-center justify-center shrink-0">
+                      <FiBox className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-white">
+                        Looking for Fresh Groceries & Household Essentials?
+                      </h4>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Over 5,000+ daily grocery items available with express doorstep delivery.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={ROUTES.HOME}
+                    className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs transition-all shadow-md text-center shrink-0 cursor-pointer active:scale-95"
+                  >
+                    Continue Shopping
+                  </Link>
+                </div>
+
+              </div>
+
             </div>
 
           </div>

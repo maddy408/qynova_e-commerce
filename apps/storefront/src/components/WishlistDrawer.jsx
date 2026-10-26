@@ -85,7 +85,7 @@ export default function WishlistDrawer({ isOpen, onClose, onShowToast }) {
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-[var(--color-border-subtle)] flex items-center justify-between bg-gradient-to-r from-white to-[var(--color-bg-main)]">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-[var(--color-brand)] flex items-center justify-center shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-500 flex items-center justify-center shadow-xs">
                 <FiHeart className="w-5 h-5 fill-current" />
               </div>
               <div>

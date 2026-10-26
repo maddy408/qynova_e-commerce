@@ -13,6 +13,7 @@ import { addToCart, getCartCount, fetchCart } from '../lib/cart'
 import { getWishlistIds, fetchWishlist, toggleWishlist } from '../lib/wishlist'
 import { ROUTES } from '../routes/routes'
 import { usePageTitle, categoryPath } from '../lib/seo'
+import GroceryFooter from '../components/GroceryFooter'
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -688,37 +689,39 @@ export default function Shop() {
             </div>
           )}
 
-          {/* Category Quick Chips Filter (Top 5 Categories) */}
-          <div className="py-1.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-2">
-            <button
-              type="button"
-              onClick={() => handleCategoryChange('')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                !categoryIdParam
-                  ? 'bg-[var(--color-brand)] text-white shadow-xs'
-                  : 'bg-[var(--color-primary-tint)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)]'
-              }`}
-            >
-              All Categories
-            </button>
-            {categories.slice(0, 5).map((cat) => {
-              const isSelected = String(cat.id) === String(categoryIdParam)
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => handleCategoryChange(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                    isSelected
-                      ? 'bg-[var(--color-brand)] text-white shadow-xs'
-                      : 'bg-[var(--color-primary-tint)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)]'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              )
-            })}
-          </div>
+          {/* Category Quick Chips Filter (Top 5 Categories) - hidden when search has no results */}
+          {(!searchParam || products.length > 0 || isLoading) && (
+            <div className="py-1.5 flex flex-nowrap overflow-x-auto no-scrollbar gap-2">
+              <button
+                type="button"
+                onClick={() => handleCategoryChange('')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  !categoryIdParam
+                    ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                    : 'bg-[var(--color-primary-tint)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)]'
+                }`}
+              >
+                All Categories
+              </button>
+              {categories.slice(0, 5).map((cat) => {
+                const isSelected = String(cat.id) === String(categoryIdParam)
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategoryChange(cat.id)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-[var(--color-brand)] text-white shadow-xs'
+                        : 'bg-[var(--color-primary-tint)] text-[var(--color-text-main)] hover:bg-[var(--color-primary-tint)]'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Products Grid or Loading / Empty */}
           {isLoading ? (
@@ -855,58 +858,8 @@ export default function Shop() {
         </main>
       </div>
 
-      {/* FOOTER (Black & White Aesthetic) */}
-      <footer className="bg-black text-white pt-12 pb-8 border-t border-zinc-800 mt-12">
-        <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-zinc-800">
-            <div className="space-y-3">
-              <div className="flex items-baseline leading-none">
-                <span className="text-2xl font-black tracking-tight text-white">
-                  {storeSettings?.store_name || 'Store'}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                {storeSettings?.description || 'Your trusted online shopping destination.'}
-              </p>
-            </div>
-            <div className="space-y-2 text-xs text-zinc-400">
-              <h4 className="font-black uppercase text-white text-xs">Quick Links</h4>
-              <ul className="space-y-1.5">
-                <li><Link to={ROUTES.HOME} className="hover:text-white transition-colors">Home Catalog</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('best_sellers')} className="hover:text-white transition-colors">Best Sellers</Link></li>
-                <li><Link to={ROUTES.PRODUCTS_BY_SECTION('new_arrivals')} className="hover:text-white transition-colors">New Arrivals</Link></li>
-              </ul>
-            </div>
-            <div className="space-y-2 text-xs text-zinc-400">
-              <h4 className="font-black uppercase text-white text-xs">Customer Care</h4>
-              <ul className="space-y-1.5">
-                <li><Link to={ROUTES.POLICY_SHIPPING} className="hover:text-white transition-colors">Shipping Information</Link></li>
-                <li><Link to={ROUTES.POLICY_RETURNS} className="hover:text-white transition-colors">Return & Refund Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_PRIVACY} className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link to={ROUTES.POLICY_TERMS_PAGE} className="hover:text-white transition-colors">Terms and Conditions</Link></li>
-              </ul>
-            </div>
-            <div className="space-y-2 text-xs text-zinc-400">
-              <h4 className="font-black uppercase text-white text-xs">Contact</h4>
-              {storeSettings?.phone && (
-                <p className="flex items-center gap-1.5">
-                  <FiPhone className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{storeSettings.phone}</span>
-                </p>
-              )}
-              {storeSettings?.email && (
-                <p className="flex items-center gap-1.5">
-                  <FiMail className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{storeSettings.email}</span>
-                </p>
-              )}
-            </div>
-          </div>
-          <p className="pt-6 text-center text-[11px] text-zinc-500">
-            © {new Date().getFullYear()} {storeSettings?.copyright_text || `${storeSettings?.store_name || 'Store'}. All rights reserved.`}
-          </p>
-        </div>
-      </footer>
+      {/* Comprehensive Supermarket Grocery Footer with Logo, Location & Google Map */}
+      <GroceryFooter storeSettings={storeSettings} categories={categories} />
 
       {/* Cart Drawer & Checkout Modal */}
       <CartDrawer

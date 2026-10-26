@@ -120,7 +120,7 @@ export function BroadcastNotificationsPage() {
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Badge>Eligible customers: {result.recipient_customer_count}</Badge>
                     <Badge>Devices targeted: {result.token_count}</Badge>
-                    <Badge tone="green">Accepted: {result.success_count}</Badge>
+                    {result.success_count > 0 && <Badge tone="green">Accepted: {result.success_count}</Badge>}
                     {result.failure_count > 0 && <Badge tone="red">Failed: {result.failure_count}</Badge>}
                   </div>
                 </div>
@@ -180,8 +180,7 @@ export function BroadcastNotificationsPage() {
                     {c.sent_by_name && <span>· by {c.sent_by_name}</span>}
                   </div>
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    <Badge>{c.recipient_customer_count} customers</Badge>
-                    <Badge tone="green">{c.success_count} sent</Badge>
+                    {c.success_count > 0 && <Badge tone="green">{c.success_count} sent</Badge>}
                     {c.failure_count > 0 && <Badge tone="red">{c.failure_count} failed</Badge>}
                   </div>
                 </li>

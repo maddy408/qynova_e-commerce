@@ -83,11 +83,11 @@ export default function CircularCategoriesRow({
   }
 
   return (
-    <section className="w-full bg-white border-b border-[#E9DFFF] py-8 sm:py-10 select-none">
+    <section className="w-full bg-white border-b border-[#E9DFFF] py-3 sm:py-4 select-none">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 relative">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-2.5 sm:mb-3">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#6C4EFF]" />
             <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF]">

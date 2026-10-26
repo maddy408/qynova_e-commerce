@@ -44,7 +44,7 @@ final class SubcategoryService
 
         $stmt = $this->pdo->prepare(
             "SELECT s.*,
-                (SELECT COUNT(*) FROM product_subcategories ps WHERE ps.subcategory_id = s.id) AS product_count
+                (SELECT COUNT(DISTINCT p.id) FROM product_subcategories ps JOIN products p ON p.id = ps.product_id WHERE ps.subcategory_id = s.id AND p.deleted_at IS NULL AND p.is_active = 1) AS product_count
              FROM subcategories s
              WHERE {$whereSql}
              ORDER BY s.sort_order, s.name"
@@ -92,7 +92,7 @@ final class SubcategoryService
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT s.*, (SELECT COUNT(*) FROM product_subcategories ps WHERE ps.subcategory_id = s.id) AS product_count
+            "SELECT s.*, (SELECT COUNT(DISTINCT p.id) FROM product_subcategories ps JOIN products p ON p.id = ps.product_id WHERE ps.subcategory_id = s.id AND p.deleted_at IS NULL AND p.is_active = 1) AS product_count
              FROM subcategories s
              WHERE s.id = :id AND s.deleted_at IS NULL"
         );

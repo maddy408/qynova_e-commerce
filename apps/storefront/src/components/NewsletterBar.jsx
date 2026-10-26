@@ -16,12 +16,12 @@ export default function NewsletterBar() {
   }
 
   return (
-    <section className="w-full bg-[#F3EDFF]/70 text-[#1B133F] py-14 sm:py-20 select-none border-b border-[#E9DFFF]">
+    <section className="w-full bg-[#F3EDFF]/70 text-[#1B133F] py-5 sm:py-7 select-none border-b border-[#E9DFFF]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-[32px] p-8 sm:p-12 lg:p-16 border border-[#E9DFFF] shadow-[0_12px_40px_rgba(108,78,255,0.06)] flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-14">
+        <div className="bg-white rounded-[24px] sm:rounded-[32px] p-5 sm:p-7 lg:p-8 border border-[#E9DFFF] shadow-[0_8px_30px_rgba(108,78,255,0.05)] flex flex-col lg:flex-row items-center justify-between gap-5 lg:gap-8">
           
           {/* Left Side: Icon & Copy */}
-          <div className="space-y-3 max-w-xl text-left">
+          <div className="space-y-1.5 max-w-xl text-left">
             <span className="text-[12px] font-sans font-bold uppercase tracking-[0.2em] text-[#6C4EFF] block">
               WEEKLY SAVINGS & OFFERS
             </span>

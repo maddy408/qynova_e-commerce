@@ -107,14 +107,14 @@ export default function ProductCard({
                 e.stopPropagation()
                 onToggleWishlist(product.id, e)
               }}
-              className={`absolute top-2 right-2 w-7 h-7 rounded-full bg-white/95 hover:bg-white flex items-center justify-center shadow-xs border border-slate-200 hover:border-[var(--color-primary)] transition-all active:scale-95 cursor-pointer z-10 ${
-                isWishlist ? 'text-[var(--color-primary)]' : 'text-slate-400 hover:text-rose-500'
+              className={`absolute top-2 right-2 w-7 h-7 rounded-full bg-white/95 hover:bg-white flex items-center justify-center shadow-xs border transition-all active:scale-95 cursor-pointer z-10 ${
+                isWishlist ? 'border-rose-200 text-rose-500 bg-rose-50/50' : 'border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200'
               }`}
               title="Save to Wishlist"
               aria-label="Save to Wishlist"
             >
               <FiHeart
-                className={`w-3.5 h-3.5 transition-transform ${isWishlist ? 'fill-[var(--color-primary)] stroke-[var(--color-primary)]' : ''}`}
+                className={`w-3.5 h-3.5 transition-transform ${isWishlist ? 'fill-rose-500 stroke-rose-500 text-rose-500' : ''}`}
               />
             </button>
           )}
