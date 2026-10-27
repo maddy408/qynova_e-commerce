@@ -93,6 +93,12 @@ final class Spreadsheet
             $sheet->setCellValue(Coordinate::stringFromColumnIndex($colIndex + 1) . '1', $header);
         }
 
+        // Freeze the header row so it stays visible while scrolling through
+        // product rows — applies to the Products sheet of every file this
+        // method produces (the export, the sample template, and the
+        // downloadable error report, which all share this one writer).
+        $sheet->freezePane('A2');
+
         foreach ($rows as $rowIndex => $row) {
             foreach ($headers as $colIndex => $header) {
                 $cell = Coordinate::stringFromColumnIndex($colIndex + 1) . (string) ($rowIndex + 2);

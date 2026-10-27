@@ -244,7 +244,25 @@ final class ProductImportService
                 if ($this->pendingNewGroupKey !== null) {
                     unset($productIdByGroupKey[$this->pendingNewGroupKey]);
                 }
-                $results[] = ['row' => $excelRow, 'status' => 'error', 'errors' => [$e->getMessage()], 'raw' => $row];
+
+                // \PDOException extends \RuntimeException, so an unexpected
+                // DB-level failure (anything resolveOptionalMaster()/
+                // resolveUnit() didn't already turn into a clean message)
+                // lands here too. Its raw message carries SQLSTATE codes,
+                // constraint names, and column names — an implementation
+                // detail, never shown to the user; logged for debugging,
+                // with a safe, actionable message shown instead.
+                if ($e instanceof \PDOException) {
+                    error_log("ProductImportService: row {$excelRow} database error: " . $e->getMessage());
+                    $results[] = [
+                        'row' => $excelRow,
+                        'status' => 'error',
+                        'errors' => ['A database error occurred while saving this row. Please check its Category, Brand, Unit, HSN Code and Tax values for duplicates or invalid data.'],
+                        'raw' => $row,
+                    ];
+                } else {
+                    $results[] = ['row' => $excelRow, 'status' => 'error', 'errors' => [$e->getMessage()], 'raw' => $row];
+                }
             }
         }
 
@@ -498,10 +516,7 @@ final class ProductImportService
         $brandId = $this->resolveOptionalMaster('brands', 'name', 'Brand', trim($row['Brand'] ?? ''), $autoCreate, fn ($name) =>
             $this->pdo->prepare('INSERT INTO brands (name) VALUES (:name)')->execute(['name' => $name])
         );
-        $unitId = $this->resolveOptionalMaster('units', 'name', 'Unit', trim($row['Unit'] ?? ''), $autoCreate, fn ($name) =>
-            $this->pdo->prepare('INSERT INTO units (name, short_code) VALUES (:name, :code)')
-                ->execute(['name' => $name, 'code' => mb_strtoupper(mb_substr($name, 0, 10))])
-        );
+        $unitId = $this->resolveUnit(trim($row['Unit'] ?? ''), $autoCreate);
         $hsnCodeId = $this->resolveHsnCode(trim($row['HSN Code'] ?? ''), $autoCreate);
         $gstRateId = $this->resolveGstRate(trim($row['Tax'] ?? ''), trim($row['Tax Type'] ?? 'EXCLUSIVE'), $autoCreate);
         [$returnable, $returnWindowDays] = $this->resolveReturnPolicy($row);
@@ -1163,9 +1178,14 @@ final class ProductImportService
             return null;
         }
 
-        $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE LOWER({$column}) = LOWER(:value)");
-        $stmt->execute(['value' => $value]);
-        $id = $stmt->fetchColumn();
+        $lookup = function () use ($table, $column, $value) {
+            $stmt = $this->pdo->prepare("SELECT id FROM {$table} WHERE LOWER({$column}) = LOWER(:value)");
+            $stmt->execute(['value' => $value]);
+
+            return $stmt->fetchColumn();
+        };
+
+        $id = $lookup();
 
         if ($id !== false) {
             return (int) $id;
@@ -1175,9 +1195,72 @@ final class ProductImportService
             throw new RuntimeException("{$label} '{$value}' not found");
         }
 
-        $createFn($value);
+        // Insert-then-fallback-to-select: safe against a concurrent import
+        // (or an earlier row in this same file) creating the identical
+        // {$label} between the lookup above and this insert — a unique-key
+        // violation (code 23000) on $createFn()'s own insert is caught and
+        // resolved by re-running the same lookup, reusing whatever row won
+        // the race, instead of failing this row with a raw SQL error.
+        try {
+            $createFn($value);
 
-        return (int) $this->pdo->lastInsertId();
+            return (int) $this->pdo->lastInsertId();
+        } catch (\PDOException $e) {
+            if ((int) $e->getCode() !== 23000) {
+                throw $e;
+            }
+
+            error_log("ProductImportService::resolveOptionalMaster: race creating {$label} '{$value}' in {$table}: " . $e->getMessage());
+
+            $id = $lookup();
+            if ($id !== false) {
+                return (int) $id;
+            }
+
+            throw new RuntimeException("Could not resolve or create {$label} '{$value}'");
+        }
+    }
+
+    /**
+     * Units are the one master table whose auto-create path derives a
+     * SECOND unique column (short_code) from the input that isn't itself
+     * part of the name-based lookup resolveOptionalMaster() does — e.g.
+     * Excel's "ml" doesn't match the existing "Millilitre" unit by name,
+     * but both normalize to the short_code "ML". Without checking that
+     * first, auto-create would try to insert a second unit whose derived
+     * short_code collides with the existing one and crash with a raw
+     * SQLSTATE[23000] violation on units.uq_units_short_code — this is
+     * exactly the bug reported in product-import-errors.xlsx. Checking by
+     * short_code first (reusing the existing unit regardless of its own
+     * display name) fixes it; resolveOptionalMaster() still provides the
+     * exact-name match and the concurrency-safe create-or-reuse fallback.
+     */
+    private function resolveUnit(string $value, bool $autoCreate): ?int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $shortCode = $this->normalizeUnitShortCode($value);
+        $byCode = $this->pdo->prepare('SELECT id FROM units WHERE short_code = :code');
+        $byCode->execute(['code' => $shortCode]);
+        $id = $byCode->fetchColumn();
+
+        if ($id !== false) {
+            return (int) $id;
+        }
+
+        return $this->resolveOptionalMaster('units', 'name', 'Unit', $value, $autoCreate, fn ($name) =>
+            $this->pdo->prepare('INSERT INTO units (name, short_code) VALUES (:name, :code)')
+                ->execute(['name' => $name, 'code' => $shortCode])
+        );
+    }
+
+    /** Must match exactly how a unit's short_code is derived at creation time (both here and in resolveUnit()'s insert). */
+    private function normalizeUnitShortCode(string $name): string
+    {
+        return mb_strtoupper(mb_substr(trim($name), 0, 10));
     }
 
     /**
