@@ -131,6 +131,8 @@ export default function Navbar({
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false)
   const [categoryModalFilter, setCategoryModalFilter] = useState('')
   const [expandedMobileCatId, setExpandedMobileCatId] = useState(null)
+  const [categoryProductsMap, setCategoryProductsMap] = useState({})
+  const [isLoadingCategoryProducts, setIsLoadingCategoryProducts] = useState(false)
 
   // Keep categoryList synchronized with incoming categories prop
   useEffect(() => {
@@ -345,13 +347,52 @@ export default function Navbar({
     return allSubs.filter((s) => (s.name || '').toLowerCase().includes(q))
   }, [activeCategoryObj, subcategoryList, categoryModalFilter])
 
+  // Fetch real products for active category in Mega Menu (especially when subcategories are 0)
+  useEffect(() => {
+    if (!isMegaMenuOpen || !activeCategoryObj?.id) return
+    const catId = Number(activeCategoryObj.id)
+    if (categoryProductsMap[catId] !== undefined) return
+
+    let isMounted = true
+    setIsLoadingCategoryProducts(true)
+    api
+      .get(`/products?category_id=${catId}&channel=ecommerce&is_active=1&limit=24`)
+      .then((res) => {
+        if (!isMounted) return
+        const items = res.data?.items || res.data?.data || []
+        setCategoryProductsMap((prev) => ({ ...prev, [catId]: items }))
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setCategoryProductsMap((prev) => ({ ...prev, [catId]: [] }))
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingCategoryProducts(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [isMegaMenuOpen, activeCategoryObj?.id, categoryProductsMap])
+
   // Real products belonging to the active category (used when subcategories are empty)
   const activeCategoryProducts = useMemo(() => {
-    if (!activeCategoryObj || allProductsCache.length === 0) return []
-    return allProductsCache
-      .filter((p) => Number(p.category_id) === Number(activeCategoryObj.id))
-      .slice(0, 12)
-  }, [activeCategoryObj, allProductsCache])
+    if (!activeCategoryObj) return []
+    const catId = Number(activeCategoryObj.id)
+    if (categoryProductsMap[catId] !== undefined) {
+      return categoryProductsMap[catId]
+    }
+    if (allProductsCache.length > 0) {
+      return allProductsCache
+        .filter((p) => {
+          const directMatch = Number(p.category_id) === catId
+          const listMatch = Array.isArray(p.category_ids) && p.category_ids.map(Number).includes(catId)
+          return directMatch || listMatch
+        })
+        .slice(0, 18)
+    }
+    return []
+  }, [activeCategoryObj, categoryProductsMap, allProductsCache])
 
   // Sync cart count & subtotal via DB API & window event
   useEffect(() => {
@@ -1640,11 +1681,28 @@ export default function Navbar({
                               ))}
                             </div>
                           </div>
+                        ) : isLoadingCategoryProducts && activeCategoryProducts.length === 0 ? (
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-xs font-black uppercase tracking-wider text-[var(--color-brand)]">
+                                Loading Products in {activeCategoryObj.name}...
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-4">
+                              {[1, 2, 3, 4, 5, 6].map((n) => (
+                                <div key={n} className="p-3 rounded-2xl border border-slate-100 bg-white flex flex-col items-center animate-pulse">
+                                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-100 mb-2" />
+                                  <div className="h-3 w-16 bg-slate-100 rounded mb-1" />
+                                  <div className="h-3 w-10 bg-slate-100 rounded" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         ) : activeCategoryProducts.length > 0 ? (
                           <div>
                             <div className="flex items-center justify-between mb-4">
                               <span className="text-xs font-black uppercase tracking-wider text-[var(--color-brand)]">
-                                Popular Items in {activeCategoryObj.name}
+                                All Items in {activeCategoryObj.name} ({activeCategoryProducts.length})
                               </span>
                               <Link
                                 to={ROUTES.PRODUCTS_BY_CATEGORY(activeCategoryObj)}

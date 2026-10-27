@@ -65,6 +65,10 @@ final class ProductService
             "SELECT p.id, p.name, p.slug, p.product_code, p.is_active, p.is_pos_enabled, p.is_ecommerce_enabled,
                     p.is_featured, p.is_trending, p.is_deal, p.show_discount, p.is_best_seller_override, p.is_new_arrival_override,
                     p.short_description, p.created_at, p.brand_id, p.unit_id, p.country_of_origin, b.name AS brand_name,
+                    (SELECT pc.category_id FROM product_categories pc WHERE pc.product_id = p.id LIMIT 1) AS category_id,
+                    (SELECT GROUP_CONCAT(DISTINCT pc.category_id) FROM product_categories pc WHERE pc.product_id = p.id) AS category_ids,
+                    (SELECT psc.subcategory_id FROM product_subcategories psc WHERE psc.product_id = p.id LIMIT 1) AS subcategory_id,
+                    (SELECT GROUP_CONCAT(DISTINCT psc.subcategory_id) FROM product_subcategories psc WHERE psc.product_id = p.id) AS subcategory_ids,
                     (SELECT image_path FROM product_images pi WHERE pi.product_id = p.id ORDER BY is_primary DESC, sort_order ASC LIMIT 1) AS primary_image,
                     (SELECT MIN(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS min_price,
                     (SELECT MAX(retail_price) FROM product_variants v WHERE v.product_id = p.id AND v.deleted_at IS NULL{$variantActiveClause}) AS max_price,
@@ -125,6 +129,14 @@ final class ProductService
         foreach ($items as &$item) {
             $item['variants_summary'] = self::parseVariantsSummary($item['variants_summary_raw'] ?? null);
             unset($item['variants_summary_raw']);
+            $item['category_ids'] = !empty($item['category_ids']) ? array_map('intval', explode(',', (string) $item['category_ids'])) : [];
+            $item['subcategory_ids'] = !empty($item['subcategory_ids']) ? array_map('intval', explode(',', (string) $item['subcategory_ids'])) : [];
+            if ($item['category_id'] !== null) {
+                $item['category_id'] = (int) $item['category_id'];
+            }
+            if ($item['subcategory_id'] !== null) {
+                $item['subcategory_id'] = (int) $item['subcategory_id'];
+            }
         }
         unset($item);
         $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 1;

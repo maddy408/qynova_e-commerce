@@ -730,7 +730,14 @@ export default function Profile() {
               </button>
 
               {/* Card 4: Referral Rewards */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 p-4 sm:p-5 rounded-2xl border border-amber-200/70 shadow-xs flex flex-col justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('referral-program-section')
+                  if (el) el.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="group bg-gradient-to-br from-amber-50 to-orange-50/60 p-4 sm:p-5 rounded-2xl border border-amber-200/70 shadow-xs hover:shadow-md hover:border-amber-300 transition-all flex flex-col justify-between text-left cursor-pointer"
+              >
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm shadow-2xs">
                     <FiGift className="w-5 h-5" />
@@ -751,7 +758,7 @@ export default function Profile() {
                     )}
                   </p>
                 </div>
-              </div>
+              </button>
             </div>
 
             {/* 3. Main 2-Column Dashboard Layout */}
@@ -901,149 +908,6 @@ export default function Profile() {
                         <span>Edit Profile Information</span>
                       </button>
                     </div>
-                  </div>
-                </div>
-
-                {/* 2. Referral & Rewards Hub */}
-                <div className="bg-gradient-to-br from-purple-50/90 via-pink-50/40 to-white rounded-3xl p-5 border border-purple-100 shadow-xs space-y-4">
-                  <div className="flex items-center gap-3 pb-3 border-b border-purple-100/80">
-                    <div className="w-9 h-9 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
-                      <FiGift className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-extrabold text-slate-900">
-                        Referral Program
-                      </h3>
-                      <p className="text-[11px] text-slate-500">
-                        Share & earn discounts on grocery orders
-                      </p>
-                    </div>
-                  </div>
-
-                  {referral ? (
-                    <div className="space-y-3.5">
-                      <div>
-                        <span className="text-[11px] font-semibold text-slate-600 block mb-1.5">
-                          Your Exclusive Referral Code:
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-xl text-purple-950 font-black text-sm tracking-wider shadow-2xs font-mono">
-                            {referral.referral_code || 'Generating...'}
-                          </div>
-                          {referral.referral_code && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(referral.referral_code)
-                                setCopiedCode(true)
-                                setTimeout(() => setCopiedCode(false), 2000)
-                              }}
-                              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0 ${
-                                copiedCode
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-[#6C4EFF] hover:bg-[#5839EE] text-white'
-                              }`}
-                            >
-                              {copiedCode ? (
-                                <>
-                                  <FiCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  <span>Copied!</span>
-                                </>
-                              ) : (
-                                <span>Copy Code</span>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* WhatsApp Share Button */}
-                      {referral.referral_code && (
-                        <a
-                          href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Shop fresh groceries at Adam's Supermarket Melagaram and get 10% OFF on your order using my referral code: ${referral.referral_code}`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-98"
-                        >
-                          <FaWhatsapp className="w-4 h-4" />
-                          <span>Share with Friends on WhatsApp</span>
-                        </a>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2.5 pt-1">
-                        <div className="p-3 bg-white rounded-xl border border-purple-100 shadow-2xs">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Invites</span>
-                          <span className="text-xl font-black text-purple-700">{referral.total_referrals || 0}</span>
-                        </div>
-                        <div className="p-3 bg-white rounded-xl border border-pink-100 shadow-2xs">
-                          <span className="text-[10px] text-pink-700 font-bold uppercase tracking-wider block">Your Reward</span>
-                          <span className="text-xl font-black text-pink-900">
-                            {referral.reward_percent !== undefined && referral.reward_percent !== null ? `${referral.reward_percent}% OFF` : '10% OFF'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-slate-500 py-2">
-                      Referral rewards will appear here when active.
-                    </div>
-                  )}
-
-                  <p className="text-[11px] text-slate-500 leading-relaxed pt-2 border-t border-purple-100/60">
-                    Give friends 10% off their first order and unlock savings on your upcoming supermarket purchases.
-                  </p>
-                </div>
-
-                {/* 3. Adam's Supermarket Store Info Card */}
-                <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3.5">
-                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                    <div className="w-8 h-8 rounded-xl bg-purple-50 text-[var(--color-brand)] flex items-center justify-center font-bold text-sm shrink-0">
-                      <FiMapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                        Adam's Supermarket Melagaram
-                      </h3>
-                      <p className="text-[11px] text-emerald-600 font-semibold">
-                        Open Daily · Closes 9:00 PM
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Courtallam Rd, Melagaram, Tamil Nadu 627818<br />
-                    Helpline: <strong className="font-mono text-slate-900">087541 93847</strong>
-                  </p>
-
-                  {/* Rectangular Embedded Map */}
-                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-2xs bg-slate-100">
-                    <iframe
-                      title="Adam's Supermarket Melagaram Map"
-                      src="https://maps.google.com/maps?q=8.9498603,77.2962217&hl=en&z=15&output=embed"
-                      className="w-full h-28 border-0 rounded-2xl"
-                      loading="lazy"
-                      allowFullScreen=""
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <a
-                      href="tel:08754193847"
-                      className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold text-center transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <FiPhone className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-                      <span>Call Store</span>
-                    </a>
-                    <a
-                      href="https://www.google.com/maps/search/?api=1&query=adam%27s+super+market+melagaram"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-[var(--color-brand)] text-xs font-bold text-center transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <FiExternalLink className="w-3.5 h-3.5" />
-                      <span>Directions</span>
-                    </a>
                   </div>
                 </div>
 
@@ -1301,6 +1165,138 @@ export default function Profile() {
 
               </div>
 
+            </div>
+
+            {/* 4. Full-Width Referral & Rewards Program Hub */}
+            <div
+              id="referral-program-section"
+              className="w-full bg-gradient-to-br from-purple-50/90 via-pink-50/40 to-white rounded-3xl p-6 sm:p-8 border border-purple-100 shadow-xs space-y-6"
+            >
+              {/* Top Banner / Heading */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-purple-100/80">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-lg shrink-0 shadow-2xs">
+                    <FiGift className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                        Referral & Rewards Program
+                      </h2>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-pink-100 text-pink-700 border border-pink-200">
+                        Share & Earn
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                      Share your exclusive referral code with friends and family to unlock instant discounts on grocery orders!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Live Stats Pills */}
+                {referral && (
+                  <div className="flex items-center gap-2.5 shrink-0 self-start md:self-auto">
+                    <div className="px-4 py-2 bg-white rounded-xl border border-purple-100 shadow-2xs text-center">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Invites</span>
+                      <span className="text-lg sm:text-xl font-black text-purple-700">{referral.total_referrals || 0}</span>
+                    </div>
+                    <div className="px-4 py-2 bg-white rounded-xl border border-pink-100 shadow-2xs text-center">
+                      <span className="text-[10px] text-pink-700 font-bold uppercase tracking-wider block">Your Reward</span>
+                      <span className="text-lg sm:text-xl font-black text-pink-900">
+                        {referral.reward_percent !== undefined && referral.reward_percent !== null ? `${referral.reward_percent}% OFF` : '10% OFF'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Referral Details Body */}
+              {referral ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                  {/* Left: Code, Copy & WhatsApp Share (7 cols) */}
+                  <div className="lg:col-span-7 space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-2">
+                        Your Exclusive Referral Code:
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        <div className="flex-1 px-4 py-2.5 bg-white border-2 border-purple-200 rounded-2xl text-purple-950 font-black text-base tracking-widest shadow-2xs font-mono select-all flex items-center justify-between">
+                          <span>{referral.referral_code || 'Generating...'}</span>
+                          <span className="text-[11px] text-purple-600 font-sans font-bold px-2 py-0.5 rounded-md bg-purple-50">
+                            10% OFF
+                          </span>
+                        </div>
+                        {referral.referral_code && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(referral.referral_code)
+                              setCopiedCode(true)
+                              setTimeout(() => setCopiedCode(false), 2000)
+                            }}
+                            className={`px-5 py-3 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95 flex items-center justify-center gap-2 shrink-0 ${
+                              copiedCode
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#6C4EFF] hover:bg-[#5839EE] text-white'
+                            }`}
+                          >
+                            {copiedCode ? (
+                              <>
+                                <FiCheck className="w-4 h-4 stroke-[2.5]" />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <FiShare2 className="w-4 h-4" />
+                                <span>Copy Code</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* WhatsApp Share Button */}
+                    {referral.referral_code && (
+                      <a
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Hey! Shop fresh groceries at Adam's Supermarket Melagaram and get 10% OFF on your order using my referral code: ${referral.referral_code}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto inline-flex py-3 px-6 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs items-center justify-center gap-2.5 shadow-sm transition-transform active:scale-98 cursor-pointer"
+                      >
+                        <FaWhatsapp className="w-4 h-4" />
+                        <span>Share with Friends on WhatsApp</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Right: How It Works & Benefits (5 cols) */}
+                  <div className="lg:col-span-5 bg-white/90 backdrop-blur-xs p-5 rounded-2xl border border-purple-100 shadow-2xs space-y-2.5">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <FiGift className="w-4 h-4 text-pink-600" />
+                      <span>How Referral Works</span>
+                    </h4>
+                    <ul className="text-xs text-slate-600 space-y-2 leading-relaxed">
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
+                        <span>Share your referral code with friends and family.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
+                        <span>They get <strong>10% OFF</strong> their first supermarket order at checkout.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="w-4 h-4 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
+                        <span>You earn instant discount savings on your upcoming purchases.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-slate-500 py-3 text-center">
+                  Referral rewards will appear here when active.
+                </div>
+              )}
             </div>
 
           </div>
